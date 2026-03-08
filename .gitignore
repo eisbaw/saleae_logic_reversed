@@ -1,0 +1,45 @@
+# Rust
+target/
+Cargo.lock
+
+# Extracted proprietary artifacts (do not redistribute)
+firmware/*.fw
+firmware/*.bin
+firmware/*.rbf
+firmware/*.bit
+firmware/*.img
+firmware/*.hex
+
+# Ghidra project databases (too large for git, use exports instead)
+*.gpr
+*.rep/
+*.lock~
+
+# Extracted asar (regenerable)
+re/extracted-asar/
+
+# USB captures (large binary files)
+re/captures/*.pcapng
+
+# Nix
+result
+result-*
+
+# Python
+__pycache__/
+*.pyc
+
+# Editor / IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Scratch / temporary
+SCRATCHPAD.md
+cruft/
