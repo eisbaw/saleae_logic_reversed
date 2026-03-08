@@ -1,9 +1,10 @@
 ---
 id: TASK-0002
 title: Create justfile with RE and Rust recipes
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-03-08 22:42'
+updated_date: '2026-03-08 23:13'
 labels: []
 dependencies:
   - TASK-0001
@@ -38,3 +39,9 @@ Organize recipes by section:
 ## Rust
 - build, test, clippy, fmt, fmt-fix, lint, e2e, run, doc, fuzz
 <!-- SECTION:DESCRIPTION:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Created justfile with 24 recipes organized in 4 sections:\n\n## Environment (3 recipes)\n- check: verifies 19 tools, SALEAE_PATH, libgraph_server_shared.so, and remote USB device\n- udev-install: installs udev rules for all 6 Saleae VID:PID combos\n- saleae-path: prints SALEAE_PATH from shell.nix\n\n## RE - Decomposition (7 recipes)\n- extract-asar, strings-search, symbols, ghidra-open, ghidra-export (placeholder), binwalk-scan, list-libs\n\n## RE - USB (4 recipes)\n- usb-capture, usb-list, usb-descriptors, usb-monitor -- all SSH to nvdk-msdlab-09\n\n## Rust (10 recipes)\n- build, test, clippy, fmt, fmt-check, lint, e2e, run, doc, fuzz -- all gated by _require-cargo\n\nAll recipes tested and working. Rust recipes fail gracefully with clear error until Cargo.toml exists."
+<!-- SECTION:FINAL_SUMMARY:END -->
