@@ -15,6 +15,16 @@ firmware/*.hex
 *.rep/
 *.lock~
 
+# Generated FunctionID databases (large binary files, regenerable)
+re/ghidra/fid/*.fidb
+re/ghidra/fid/*.fidbf
+
+# Generated analysis reports (regenerable)
+re/ghidra/reports/
+
+# Ghidra headless logs
+re/ghidra/*.log
+
 # Extracted asar (regenerable)
 re/extracted-asar/
 

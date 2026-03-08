@@ -198,6 +198,57 @@ ghidra-export:
     @echo "    -process libgraph_server_shared.so \\"
     @echo "    -postScript ExportDecompiled.py re/ghidra/decompiled/"
 
+# Import libgraph_server_shared.so into a Ghidra headless project with full analysis
+ghidra-import:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ ! -f "{{ main_so }}" ]; then
+        echo "ERROR: {{ main_so }} not found" >&2; exit 1
+    fi
+    PROJECT_DIR="re/ghidra"
+    PROJECT_NAME="saleae_re"
+    mkdir -p "$PROJECT_DIR"
+    echo "Importing {{ main_so }} into Ghidra project..."
+    echo "This will take a long time (~30-60 min for a 48MB binary)."
+    ghidra-analyzeHeadless "$PROJECT_DIR" "$PROJECT_NAME" \
+        -import "{{ main_so }}" \
+        -overwrite \
+        -analysisTimeoutPerFile 3600 \
+        -log "$PROJECT_DIR/import.log"
+    echo "Import complete. Project: $PROJECT_DIR/$PROJECT_NAME"
+
+# Run FunctionID + string-based labeling on the analyzed binary
+ghidra-fid:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    PROJECT_DIR="re/ghidra"
+    PROJECT_NAME="saleae_re"
+    REPORTS_DIR="re/ghidra/reports"
+    SCRIPTS_DIR="re/ghidra/scripts"
+    mkdir -p "$REPORTS_DIR"
+    if [ ! -d "$PROJECT_DIR/$PROJECT_NAME.rep" ]; then
+        echo "ERROR: No Ghidra project found. Run 'just ghidra-import' first." >&2
+        exit 1
+    fi
+    echo "Running FunctionID analysis..."
+    ghidra-analyzeHeadless "$PROJECT_DIR" "$PROJECT_NAME" \
+        -process libgraph_server_shared.so \
+        -noanalysis \
+        -scriptPath "$SCRIPTS_DIR" \
+        -postScript ApplyFunctionID.py "$REPORTS_DIR" \
+        -postScript LabelByStrings.py "$REPORTS_DIR" \
+        -log "$PROJECT_DIR/fid.log"
+    echo "Reports written to $REPORTS_DIR/"
+    echo "See: $REPORTS_DIR/fid-report.txt"
+    echo "See: $REPORTS_DIR/string-label-report.txt"
+
+# Generate FunctionID databases from nix store library versions
+ghidra-gen-sigs:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "Generating FunctionID databases from nix store libraries..."
+    bash re/ghidra/scripts/generate-fid-from-nix.sh re/ghidra/fid/
+
 # Run binwalk entropy and signature scan on libgraph_server_shared.so
 binwalk-scan:
     #!/usr/bin/env bash
