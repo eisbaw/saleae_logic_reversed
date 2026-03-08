@@ -182,21 +182,38 @@ ghidra-open:
     ghidra "$PROJECT_DIR" "$PROJECT_NAME" &
     echo "Ghidra launched in background."
 
-# Export decompiled C code from Ghidra for AI analysis (placeholder)
+# Export decompiled C code from Ghidra for AI analysis
 ghidra-export:
-    @echo "NOTE: Ghidra headless export requires a configured project."
-    @echo ""
-    @echo "Manual steps:"
-    @echo "  1. Open project in Ghidra (just ghidra-open)"
-    @echo "  2. Run analysis on libgraph_server_shared.so"
-    @echo "  3. Apply FLIRT signatures to label known library functions"
-    @echo "  4. File -> Export Program -> C/C++ source"
-    @echo "  5. Save to re/ghidra/decompiled/"
-    @echo ""
-    @echo "For headless export (after project exists):"
-    @echo "  ghidra-analyzeHeadless re/ghidra saleae_re \\"
-    @echo "    -process libgraph_server_shared.so \\"
-    @echo "    -postScript ExportDecompiled.py re/ghidra/decompiled/"
+    #!/usr/bin/env bash
+    set -euo pipefail
+    PROJECT_DIR="re/ghidra"
+    PROJECT_NAME="saleae_re"
+    SCRIPTS_DIR="re/ghidra/scripts"
+    OUTPUT_DIR="re/ghidra/decompiled"
+    if [ ! -d "$PROJECT_DIR/$PROJECT_NAME.rep" ]; then
+        echo "ERROR: No Ghidra project found. Run 'just ghidra-import' first." >&2
+        echo "Then run 'just ghidra-fid' to label library functions." >&2
+        exit 1
+    fi
+    # Clean previous export
+    rm -rf "$OUTPUT_DIR"
+    mkdir -p "$OUTPUT_DIR"
+    echo "Exporting decompiled C code to $OUTPUT_DIR/"
+    echo "This will take a long time for a 48MB binary (potentially hours)."
+    echo ""
+    ghidra-analyzeHeadless "$PROJECT_DIR" "$PROJECT_NAME" \
+        -process libgraph_server_shared.so \
+        -noanalysis \
+        -scriptPath "$SCRIPTS_DIR" \
+        -postScript ExportDecompiled.py "$OUTPUT_DIR" \
+        -log "$PROJECT_DIR/export.log"
+    echo ""
+    echo "Export complete. See:"
+    echo "  $OUTPUT_DIR/index.txt     - function index"
+    echo "  $OUTPUT_DIR/xrefs.txt     - cross-reference graph"
+    echo "  $OUTPUT_DIR/classes.txt   - detected class groupings"
+    echo "  $OUTPUT_DIR/by-address/   - individual decompiled .c files"
+    echo "  $OUTPUT_DIR/by-class/     - class-grouped symlinks"
 
 # Import libgraph_server_shared.so into a Ghidra headless project with full analysis
 ghidra-import:

@@ -22,6 +22,9 @@ re/ghidra/fid/*.fidbf
 # Generated analysis reports (regenerable)
 re/ghidra/reports/
 
+# Decompiled C code export (large, regenerable via `just ghidra-export`)
+re/ghidra/decompiled/
+
 # Ghidra headless logs
 re/ghidra/*.log
 
