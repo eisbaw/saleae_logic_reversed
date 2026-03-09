@@ -1,0 +1,214 @@
+# EP1 Command Protocol
+
+Status: High confidence (static analysis of libgraph_server_shared.so v2.4.40)
+Corroboration: RIP-relative LEA cross-reference to string constants, vtable
+offset pattern matching at 3 independent call sites, immediate value extraction,
+firmware source file path cross-reference (CommandProcessing.c)
+Awaiting: USB capture validation, Ghidra decompilation for remaining opcodes
+
+
+## Overview
+
+After FX3 firmware upload and re-enumeration, the host communicates with the
+device using a command/response protocol on EP1 bulk endpoints. Each command
+is a single-byte opcode followed by optional payload bytes, sent via EP1 OUT
+(0x01). The device responds on EP1 IN (0x81).
+
+This protocol controls all device operations: FPGA programming, register
+access, capture start/stop, EEPROM access, I2C tunneling, and diagnostics.
+
+
+## Wire Format
+
+- **Transport**: USB bulk transfers on EP1 OUT (write) and EP1 IN (read)
+- **Command format**: `[opcode] [payload...]` (1 + N bytes)
+- **Response format**: varies by command (1-4 bytes typical)
+- **Byte order**: Big-endian for multi-byte register values
+
+
+## Command Map
+
+| Opcode | Name | Direction | Payload | Response |
+|--------|------|-----------|---------|----------|
+| 0x01 | COMMAND_START_READ | OUT | None | 2 bytes: `[0x07, 0x00]` |
+| 0x02 | COMMAND_STOP_STREAM | OUT | None | 2 bytes: `[0x07, 0x00]` |
+| 0x22 | ReseedDevice | OUT | None | Read-back verification |
+| 0x55 | WriteEeprom | OUT | Address + data | Read-back confirmation |
+| 0x7E | ResetFpga | OUT | None | 1 byte: `0x00` |
+| 0x7F | WriteConfigurationData | OUT | Length + data | 1 byte: `0x00` |
+| 0x81 | ReadRegisters | OUT | 2 bytes (addr) | 4 bytes (value) |
+| 0x82 | ResetAndReEnumerate | OUT | None | (device resets) |
+| 0x86 | StopDataPath | OUT | None | Unknown |
+| 0x88 | ReadI2c | OUT | Variable | Variable |
+| 0x89 | Device2_1 | OUT | Unknown | Variable |
+| 0x8A | CMD_ASSERT_TEST | OUT | Unknown | Unknown |
+| 0x8B | GetDeviceInfo | OUT | None | Variable |
+
+
+## Detailed Command Formats
+
+### COMMAND_START_READ (0x01)
+
+Tells the FX3 to begin forwarding FPGA sample data to EP2 IN.
+
+```
+Host -> Device (EP1 OUT):  [0x01]
+Device -> Host (EP1 IN):   [0x07] [0x00]
+```
+
+Success response is `[0x07, 0x00]`. On failure, the host logs:
+```
+Start command error. Error: {}; CY Error: {}
+```
+
+### COMMAND_STOP_STREAM (0x02)
+
+Tells the FX3 to stop forwarding data on EP2 IN.
+
+```
+Host -> Device (EP1 OUT):  [0x02]
+Device -> Host (EP1 IN):   [0x07] [0x00]
+```
+
+### ResetFpga (0x7E)
+
+Resets the FPGA before bitstream programming.
+
+```
+Host -> Device (EP1 OUT):  [0x7E]
+Device -> Host (EP1 IN):   [0x00]
+```
+
+### WriteConfigurationData (0x7F)
+
+Writes FPGA bitstream or capture configuration data in chunks.
+
+**USB 2.0** (max 64 bytes total):
+```
+Host -> Device (EP1 OUT):  [0x7F] [len_8bit] [data...]
+Device -> Host (EP1 IN):   [0x00]
+```
+Maximum data payload: 62 bytes.
+
+**USB 3.0** (max 512 bytes total):
+```
+Host -> Device (EP1 OUT):  [0x7F] [len_lo] [len_hi] [data...]
+Device -> Host (EP1 IN):   [0x00]
+```
+Maximum data payload: 509 bytes.
+
+The caller loops, sending chunks until all data is written. Each chunk
+gets an individual `0x00` success response.
+
+### ReadRegisters (0x81)
+
+Reads an FPGA register via the command protocol.
+
+```
+Host -> Device (EP1 OUT):  [0x81] [addr_hi] [addr_lo]
+Device -> Host (EP1 IN):   [val_3] [val_2] [val_1] [val_0]
+```
+
+Register addresses are 16-bit, values are 32-bit big-endian.
+
+Note: There is a separate direct register access path (without the 0x81
+opcode) used by MsoFpga code. See `doc/protocol/fpga-registers.md`.
+
+### ReseedDevice (0x22)
+
+Firmware responsiveness test. Sent via direct `libusb_bulk_transfer`
+rather than the vtable command dispatch.
+
+```
+Host -> Device (EP1 OUT):  [0x22]
+Device -> Host (EP1 IN):   (read-back for verification)
+```
+
+
+## Register Access: Two Paths
+
+The FPGA registers can be accessed through two distinct code paths:
+
+### Path 1: Direct (no opcode)
+
+Used by `MsoFpga` class. Raw 2-byte or 6-byte packets on EP1, dispatched
+through vtable offset `[this+0x18]`:
+
+```
+Read:  Send [addr_hi] [addr_lo]            -> Receive 4 bytes
+Write: Send [addr_hi] [addr_lo] [v3] [v2] [v1] [v0]  -> (no response)
+```
+
+### Path 2: Command-wrapped (opcode 0x81)
+
+Used by `FpgaDeviceFeatures` class. Prefixed with 0x81 opcode, dispatched
+through vtable offset `[this+0x20]`/`[this+0x28]`:
+
+```
+Read:  Send [0x81] [addr_hi] [addr_lo]     -> Receive 4 bytes
+```
+
+Both paths access the same underlying FPGA register space.
+
+
+## vtable I/O Dispatch
+
+Host-side command I/O is dispatched through a C++ virtual function table:
+
+| Offset | Purpose |
+|--------|---------|
+| `[this+0x18]` | Raw register I/O (no opcode, 2/6 byte packets) |
+| `[this+0x20]` | Command write (EP1 OUT, opcode + payload) |
+| `[this+0x28]` | Command read (EP1 IN, response bytes) |
+
+
+## Firmware-Side Dispatch
+
+The FX3 firmware (`CommandProcessing.c`) runs a `process_raw_command` loop:
+
+1. `GetCommandRxBuffer()` -- receive command from EP1 OUT DMA
+2. Parse first byte as opcode
+3. Execute command handler
+4. `CommitCommandTxBuffer()` -- send response via EP1 IN DMA
+5. `DiscardRxBuffer()` -- release input buffer
+
+Unrecognized opcodes produce: "unrecognized command"
+
+
+## Command Sequence: Capture Start
+
+```
+1. SetBankPower()                    (register writes, direct path)
+2. SetCaptureParameters()            (0x7F WriteConfigurationData, chunked)
+3. TestFirmwareResponsivnessAndReseed() (0x22 ReseedDevice)
+4. ComputeTransferSize()             (host-side calculation)
+5. SendStartCommand()                (0x01 COMMAND_START_READ)
+6. [Async bulk reads begin on EP2 IN]
+```
+
+## Command Sequence: Capture Stop
+
+```
+1. StopDataPath (0x86)
+2. COMMAND_STOP_STREAM (0x02)
+3. Cancel EP2 IN transfers (libusb_cancel_transfer)
+4. Stop read thread
+```
+
+## Command Sequence: FPGA Programming
+
+```
+1. ResetFpga (0x7E)
+2. WriteConfigurationData (0x7F) x N chunks
+3. [Post-programming register init via direct path]
+```
+
+
+## Endpoint Usage Summary
+
+| Endpoint | Protocol | Used For |
+|----------|----------|----------|
+| EP0 (Control) | Vendor bRequest=0xA0 | Firmware upload only |
+| EP1 OUT (0x01) | Command protocol | All device control |
+| EP1 IN (0x81) | Command protocol | All device responses |
+| EP2 IN (0x82) | Raw bulk stream | Sample data during capture |
