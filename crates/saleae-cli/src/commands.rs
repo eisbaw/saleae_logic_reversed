@@ -445,20 +445,64 @@ pub fn device_init(bitstream_path: Option<&str>, skip_fpga: bool) -> Result<()> 
 }
 
 /// Start a digital capture.
+///
+/// Validates capture configuration and, when hardware is available, runs the
+/// full capture pipeline: configure FPGA, start sampling, stream EP2 data,
+/// parse chunks, disaggregate channels, and stop.
+///
+/// Currently performs a dry-run: validates configuration, prints what would
+/// happen, and exits. Actual hardware streaming is blocked until the device
+/// is recovered (red LED / stuck state).
 pub fn capture_digital(sample_rate: u64, duration: f64, channels: &str) -> Result<()> {
-    let _channel_list = parse_channel_list(channels)?;
+    let channel_list = parse_channel_list(channels)?;
+
+    // Build capture configuration.
+    let duration_samples = if duration > 0.0 {
+        (sample_rate as f64 * duration) as u64
+    } else {
+        0
+    };
+
+    let config = saleae_driver::capture::CaptureConfig {
+        sample_rate,
+        digital_channels: channel_list,
+        duration_samples,
+        voltage_threshold: 1.65,
+        stats_enabled: true,
+        samples_per_chunk: saleae_driver::capture::DEFAULT_SAMPLES_PER_CHUNK,
+    };
+
+    // Validate configuration (catches bad sample rates, channel numbers, etc.)
+    config
+        .validate()
+        .map_err(|e| anyhow::anyhow!("invalid capture config: {e}"))?;
+
+    println!("Digital capture configuration:");
+    println!("  Sample rate:       {} Hz", config.sample_rate);
+    println!("  Channels:          {:?}", config.digital_channels);
+    println!("  Duration samples:  {}", config.duration_samples);
+    println!("  Voltage threshold: {} V", config.voltage_threshold);
+    println!("  Stats enabled:     {}", config.stats_enabled);
+    println!("  Samples per chunk: {}", config.samples_per_chunk);
+    println!(
+        "  Sample data bytes: {} bytes/chunk",
+        config.sample_data_bytes_per_chunk()
+    );
+    println!();
 
     bail!(
-        "Digital capture not yet implemented.\n\
+        "Hardware capture not yet available.\n\
          \n\
-         This requires reverse engineering of:\n\
-         - Capture start/stop command sequence\n\
-         - Digital data streaming format\n\
-         - Host-side trigger detection\n\
+         The capture module is implemented (configure, start, stream, stop)\n\
+         but hardware is currently stuck (red LED). Once the device is\n\
+         recovered, this command will:\n\
          \n\
-         Sample rate: {sample_rate} Hz\n\
-         Duration: {duration}s\n\
-         Channels: {channels}"
+         1. Open the device and initialize the command channel\n\
+         2. Write capture parameters to FPGA registers\n\
+         3. Send StartSampling (0x01) to begin data flow on EP2 IN\n\
+         4. Read and parse data chunks (header + samples + stats)\n\
+         5. Disaggregate interleaved channels into per-channel streams\n\
+         6. Send StopDataPath (0x86) + StopStream (0x02) to end capture"
     );
 }
 

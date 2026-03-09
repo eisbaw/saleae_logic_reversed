@@ -6,6 +6,7 @@
 
 pub mod biquad;
 pub mod calibration;
+pub mod capture_data;
 pub mod device;
 pub mod error;
 pub mod firmware;

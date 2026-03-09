@@ -12,6 +12,7 @@
 //! driver testable with mock transports.
 
 pub mod calibration;
+pub mod capture;
 pub mod device;
 pub mod ep1;
 pub mod error;
