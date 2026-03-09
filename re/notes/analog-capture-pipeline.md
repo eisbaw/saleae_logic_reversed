@@ -111,12 +111,13 @@ From the template instantiations in the binary:
 
 - **HMCAD1100 devices**: 8-bit ADC, but data is stored as `int16_t`
   - String: `"invalid ADC data, exceedes 8 bits."` -- runtime validation
-  - The 8-bit value is likely zero-extended or sign-extended to 16 bits
-- **AD9637 devices**: 12-bit ADC, packed in `int16_t`
-  - 12-bit values in a 16-bit container, likely left-justified or
-    right-justified (Ghidra analysis needed to determine)
-- **ADS528x devices**: 12-bit ADC, packed in `int16_t`
-  - Same 16-bit container as AD9637
+  - Logic 4: 8-bit unsigned, zero-extended to int16_t, range [0, 255]
+  - Logic 8: 8-bit values normalized to 12-bit signed range [-2048, 2047]
+    (see re/notes/adc-encoding.md for details)
+- **AD9637 devices**: 12-bit ADC, right-justified two's complement in int16_t
+  - Range: [-2048, 2047], bits [11:0] with sign extension in [15:12]
+- **ADS528x devices**: 12-bit ADC, right-justified two's complement in int16_t
+  - Same encoding as AD9637
 
 ### AcquisitionInfo
 
@@ -136,8 +137,10 @@ to voltages) through the storage layer.
 
 The transform from ADC codes to voltages uses a linear transform:
 ```
-voltage = adc_code * mScale + mOffset  (hypothesis, likely)
+voltage = adc_code * scale + offset    (confirmed)
 ```
+
+Confirmed by JS bundle `apply1DTransform = (A, e) => A * e.m + e.b`.
 
 Evidence:
 - `cal.mAdcToVoltageTransform.mScale != 0.0` -- assertion, scale must be nonzero
@@ -147,6 +150,8 @@ Evidence:
 - `/adcTransform` -- another transform field
 - `MissingVoltageTransform` -- error when transform data is absent
 - `VoltageTransform` -- the transform type name
+
+See re/notes/adc-encoding.md for full transform details and per-device defaults.
 
 ### Two Python APIs for Analog Data
 
@@ -635,10 +640,9 @@ core/measurements/src/measurements/
    block-interleaved, or header+payload blocks? The
    `DisaggregatorSettingsData` struct layout would reveal this.
 
-2. **ADC data encoding**: Are 12-bit ADC values left-justified
-   (bits [15:4]) or right-justified (bits [11:0]) in the int16_t?
-   Is it offset binary or two's complement? Ghidra decompilation of
-   `AnalogCreatorNode` or the disaggregator output path would reveal this.
+2. **ADC data encoding**: RESOLVED -- 12-bit values are right-justified
+   two's complement in the int16_t (bits [11:0], sign-extended in [15:12]).
+   Range is [-2048, 2047]. See re/notes/adc-encoding.md.
 
 3. **HMCAD1100 multi-channel modes**: The HMCAD1100 can operate as
    1/2/4/8 channels with different sample rates. How does Saleae select

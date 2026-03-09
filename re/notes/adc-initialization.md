@@ -220,8 +220,9 @@ The binary validates that ADC data fits within 8 bits:
 - This check occurs in the data pipeline after ADC samples are received
 
 Despite being an 8-bit ADC, the data is stored in `int16_t` containers.
-The JS bundle uses `{min: -2048, max: 2047}` for Logic 8, suggesting
-the native code normalizes 8-bit values to 12-bit range (left-shift by 4).
+The JS bundle uses `{min: -2048, max: 2047}` for Logic 8, confirming
+the native code normalizes 8-bit values to the 12-bit signed range.
+See re/notes/adc-encoding.md for full encoding details.
 
 
 ## AD9637 (Logic Pro 8 / Logic Pro 16, Xilinx Revisions)
@@ -646,15 +647,14 @@ All ADC-related strings found in the binary, with file offsets:
    parameter. The polling loop with "Waiting for ADC calibration" suggests
    a maximum wait time.
 
-6. **ADC data encoding**: Is the 12-bit AD9637 data left-justified
-   (bits [15:4]) or right-justified (bits [11:0]) in the int16_t container?
-   The fact that the JS bundle uses {min: -2048, max: 2047} suggests
-   right-justified with sign extension (12-bit twos complement in 16-bit).
+6. **ADC data encoding**: RESOLVED -- 12-bit values are right-justified
+   two's complement in int16_t (bits [11:0], sign-extended in [15:12]).
+   Range [-2048, 2047]. See re/notes/adc-encoding.md.
 
-7. **HMCAD1100 8-bit to 12-bit normalization**: How exactly is the 8-bit
-   HMCAD1100 data expanded to fill the int16_t? Logic 4 uses {min: 0,
-   max: 255} (unsigned) while Logic 8 uses {min: -2048, max: 2047}
-   (suggesting a 4-bit left shift and sign conversion for Logic 8).
+7. **HMCAD1100 8-bit to 12-bit normalization**: PARTIALLY RESOLVED --
+   Logic 4 uses unsigned [0, 255]. Logic 8 normalizes to [-2048, 2047].
+   Exact normalization formula hypothesized as `(uint8 << 4) - 2048`
+   but needs Ghidra confirmation. See re/notes/adc-encoding.md.
 
 8. **ADC 12QJ1600**: The MSO device uses an ADC part called "12QJ1600"
    (from the source file name `adc_12qj1600.cpp`). This appears to be

@@ -273,9 +273,10 @@ USB capture validation
 
 1. Exact interleaving format in the USB bulk transfer (sample-level vs
    block-level interleaving)
-2. ADC data justification in int16_t (left-justified vs right-justified
-   for 12-bit values)
-3. ADC data encoding (offset binary vs two's complement)
+2. ADC data justification: RESOLVED -- right-justified, bits [11:0],
+   sign-extended in [15:12]. See re/notes/adc-encoding.md.
+3. ADC data encoding: RESOLVED -- two's complement, range [-2048, 2047].
+   See re/notes/adc-encoding.md.
 4. Exact values of minAnalogSamplesPerPacket and maxAnalogSamplesPerPacket
 5. AnalogStats format (what fields are in per-packet stats)
 6. HMCAD1100 multi-channel mode selection logic
