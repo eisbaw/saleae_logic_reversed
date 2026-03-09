@@ -38,6 +38,9 @@ pkgs.mkShell {
     # -- Reference / comparison --
     libusb1          # headers for cross-referencing RE findings
 
+    # -- Deployment --
+    patchelf          # fix Nix rpath/interp for remote deploy
+
     # -- Project tooling --
     just
   ];

@@ -11,6 +11,11 @@ asar_file       := saleae_path / "resources/app.asar"
 # Remote host where Saleae hardware is attached
 usb_host        := "nvdk-msdlab-09"
 
+# Remote deploy directory (/var/tmp persists across reboots;
+# NFS home is read-only on lab hosts)
+deploy_dir      := "/var/tmp/saleae"
+deploy_bin      := "saleae-cli"
+
 # Saleae vendor IDs for USB filtering
 saleae_vid      := "21a9"
 saleae_vid_legacy := "0925"
@@ -436,6 +441,43 @@ run *ARGS: _require-cargo
 # Generate and open documentation
 doc: _require-cargo
     cargo doc --no-deps --open
+
+# ─── Remote Deploy ─────────────────────────────────────────────────────────
+
+# Build release binary, patch for non-Nix Linux, and scp to remote host
+deploy: _require-cargo
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "=== Building release binary ==="
+    cargo build --release --bin saleae-cli
+
+    SRC="target/release/saleae-cli"
+    PATCHED="target/release/saleae-cli-patched"
+
+    echo "=== Patching binary for non-Nix host ==="
+    cp "$SRC" "$PATCHED"
+    patchelf --set-interpreter /lib64/ld-linux-x86-64.so.2 "$PATCHED"
+    patchelf --set-rpath /lib64 "$PATCHED"
+
+    # Verify the patched binary looks sane
+    INTERP=$(patchelf --print-interpreter "$PATCHED")
+    RPATH=$(patchelf --print-rpath "$PATCHED")
+    echo "  interpreter: $INTERP"
+    echo "  rpath:       $RPATH"
+
+    echo "=== Deploying to {{ usb_host }}:{{ deploy_dir }}/{{ deploy_bin }} ==="
+    ssh {{ usb_host }} "mkdir -p {{ deploy_dir }}"
+    scp "$PATCHED" {{ usb_host }}:{{ deploy_dir }}/{{ deploy_bin }}
+    ssh {{ usb_host }} "chmod +x {{ deploy_dir }}/{{ deploy_bin }}"
+    rm "$PATCHED"
+
+    echo "=== Verifying remote binary ==="
+    ssh {{ usb_host }} "ldd {{ deploy_dir }}/{{ deploy_bin }} && echo '---' && {{ deploy_dir }}/{{ deploy_bin }} --version"
+    echo "Deploy complete."
+
+# Run saleae-cli on remote host (where Saleae hardware is attached)
+run-remote *ARGS: deploy
+    ssh {{ usb_host }} "{{ deploy_dir }}/{{ deploy_bin }} {{ ARGS }}"
 
 # Run cargo-fuzz on packet parsers (requires nightly)
 fuzz TARGET="": _require-cargo
