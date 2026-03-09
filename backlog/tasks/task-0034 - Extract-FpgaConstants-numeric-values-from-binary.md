@@ -1,9 +1,10 @@
 ---
 id: TASK-0034
 title: Extract FpgaConstants numeric values from binary
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-03-09 00:38'
+updated_date: '2026-03-09 06:21'
 labels:
   - re
   - fpga
@@ -27,3 +28,9 @@ These are referenced in assertion strings but the actual values need Ghidra deco
 
 Also extract MsoConstants values for trigger buffer sizes.
 <!-- SECTION:DESCRIPTION:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Covered by TASK-0023. All FpgaConstants values extracted: MinSamplesPerPacket_Xilinx=256, MaxSamplesPerPacket_Xilinx=7680, MinSamplesPerPacket_Altera=64, MaxSamplesPerPacket_Altera=6016, SamplesPerPacketMultiple_WithStats=256. See doc/protocol/capture-constants.md.
+<!-- SECTION:FINAL_SUMMARY:END -->
