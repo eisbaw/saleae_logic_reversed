@@ -2,12 +2,8 @@
 
 Status: **Confirmed** -- Extracted from bundle.js CalibrationManager class
 (Saleae Logic 2 v2.4.40), corroborated by binary string analysis of
-libgraph_server_shared.so (JSON field names, type names, assertion
-messages). Two independent sources (JS frontend + native backend)
-agree on data structure.
-
-Awaiting: Actual `.cal` file download and byte-level verification of
-the Boost.Serialization XML structure.
+libgraph_server_shared.so, and **validated against a real .cal file**
+downloaded from Saleae's servers (Logic Pro 8, device ID 764051B51BD4D9F1).
 
 
 ## Overview
@@ -28,25 +24,50 @@ Calibration files are hosted at:
 https://downloads.saleae.com/calibration/{deviceIdHex}.cal
 ```
 
-Where `deviceIdHex` is the device serial number (numeric) converted to
-hexadecimal.
+Where `deviceIdHex` is the 64-bit device ID converted to lowercase
+hexadecimal via `BigInt(deviceId).toString(16)`. The device ID is a
+factory-assigned 64-bit integer stored on the device (NOT the USB
+serial number).
+
+Example: device ID `8520900333282843121` -> hex `764051b51bd4d9f1`
+-> URL `https://downloads.saleae.com/calibration/764051b51bd4d9f1.cal`
 
 The application also queries a GraphQL API to get the latest download URL:
 
 ```
 POST https://api.saleae.com/graphql
+Content-Type: application/json
 
-query GetDeviceCalibration($deviceId: String, $deviceType: Int, $version: String!) {
-  getDeviceCalibration(deviceId: $deviceId, deviceType: $deviceType, version: $version) {
-    deviceId
-    deviceType
-    downloadUrl
-    lastUpdated
+{
+  "query": "query GetDeviceCalibration ($deviceId: String, $deviceType: Int, $version: String!) {\n      getDeviceCalibration(deviceId: $deviceId, deviceType: $deviceType, version: $version) {\n        deviceId\n        deviceType\n        downloadUrl\n        lastUpdated\n      }\n    }",
+  "variables": {
+    "deviceId": "8520900333282843121",
+    "deviceType": 6,
+    "version": "2.4.13"
   }
 }
 ```
 
-**Confidence: Confirmed** -- Extracted from bundle.js CalibrationManager
+Response:
+```json
+{
+  "data": {
+    "getDeviceCalibration": {
+      "deviceId": "8520900333282843121",
+      "deviceType": 6,
+      "downloadUrl": "downloads.saleae.com/calibration/764051b51bd4d9f1.cal",
+      "lastUpdated": 1568317711765
+    }
+  }
+}
+```
+
+Note: The `downloadUrl` is returned without the `https://` prefix. The
+`lastUpdated` value is a Unix timestamp in milliseconds. The `version`
+parameter is required and checked against the calibration file's
+`mMinimumSoftwareVersionRequired` field.
+
+**Confidence: Confirmed** -- Tested live against api.saleae.com
 
 
 ### Device Type Enum
@@ -60,7 +81,7 @@ LogicPro8  = 6
 LogicPro16 = 7
 ```
 
-**Confidence: Confirmed** -- Extracted from bundle.js
+**Confidence: Confirmed** -- Extracted from bundle.js, validated with real data
 
 
 ### Devices Requiring Calibration
@@ -79,88 +100,118 @@ EEPROM-based path.
 
 ### File Type
 
-Boost.Serialization XML. The JS frontend uses `xml2json` to parse it.
-The root element is `boost_serialization` containing a
+Boost.Serialization XML (version 10). The JS frontend uses `xml2json`
+to parse it. The root element is `boost_serialization` containing a
 `DeviceCalibrationSet` element.
 
-### XML Structure
+### XML Structure (from real .cal file)
 
 ```xml
-<boost_serialization>
-  <DeviceCalibrationSet>
-    <px>
-      <mDeviceId>
-        <mDeviceId><_text>{deviceId}</_text></mDeviceId>
-        <mDeviceType><_text>{deviceType}</_text></mDeviceType>
-      </mDeviceId>
-      <mCalibrationDate><_text>{date}</_text></mCalibrationDate>
-      <mLastUpdatedDate><_text>{date}</_text></mLastUpdatedDate>
-      <mMinimumSoftwareVersionRequired><_text>{version}</_text></mMinimumSoftwareVersionRequired>
-      <mAdcGain><_text>{float}</_text></mAdcGain>
-      <mFullScaleVoltageRanges>
-        <item>...</item>
-        <!-- one per channel -->
-      </mFullScaleVoltageRanges>
-      <mCalibrationData>
-        <item>...</item>
-        <!-- one per (channel, sampleRate) -->
-      </mCalibrationData>
-    </px>
-  </DeviceCalibrationSet>
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<!DOCTYPE boost_serialization>
+<boost_serialization signature="serialization::archive" version="10">
+<DeviceCalibrationSet class_id="0" tracking_level="0" version="1">
+  <px class_id="1" tracking_level="1" version="21" object_id="_0">
+    <mDeviceId class_id="2" tracking_level="0" version="21">
+      <mDeviceId>8520900333282843121</mDeviceId>
+      <mDeviceType>6</mDeviceType>
+    </mDeviceId>
+    <mCalibrationDate>9/13/2019 3:48:10 AM</mCalibrationDate>
+    <mLastUpdatedDate>9/13/2019 3:48:29 AM</mLastUpdatedDate>
+    <mMinimumSoftwareVersionRequired>1.1.34</mMinimumSoftwareVersionRequired>
+    <mNote></mNote>
+    <mCalibrationType>1</mCalibrationType>
+    <mCalibrationData class_id="3" tracking_level="0" version="0">
+      <count>48</count>
+      <item_version>21</item_version>
+      <item class_id="4" tracking_level="0" version="21">
+        ...
+      </item>
+      <!-- 48 items total (8 channels x 6 sample rates) -->
+    </mCalibrationData>
+    <mFullScaleVoltageRanges class_id="7" tracking_level="0" version="0">
+      <count>8</count>
+      <item_version>21</item_version>
+      <item class_id="8" tracking_level="0" version="21">
+        ...
+      </item>
+      <!-- 8 items (one per channel) -->
+    </mFullScaleVoltageRanges>
+    <mAdcGain>0</mAdcGain>
+  </px>
+</DeviceCalibrationSet>
 </boost_serialization>
 ```
 
-**Confidence: Confirmed** -- `parseRawCalibrationFile` function in bundle.js
+Note: The Boost.Serialization attributes (`class_id`, `tracking_level`,
+`version`, `object_id`) are present on first-occurrence elements. The
+`count` and `item_version` elements precede vector contents.
+
+**Confidence: Confirmed** -- Validated against real .cal file
 
 
 ### Per-Channel Full-Scale Voltage Range
 
 ```xml
-<item>
-  <mChannel>
-    <mChannelIndex><_text>{channelIndex}</_text></mChannelIndex>
+<item class_id="8" tracking_level="0" version="21">
+  <mChannel class_id="5" tracking_level="0" version="21">
+    <mDeviceId>8520900333282843121</mDeviceId>
+    <mChannelIndex>0</mChannelIndex>
+    <mDataType>0</mDataType>
   </mChannel>
-  <mFullScaleMinVoltage><_text>{float}</_text></mFullScaleMinVoltage>
-  <mFullScaleMaxVoltage><_text>{float}</_text></mFullScaleMaxVoltage>
+  <mFullScaleMinVoltage>-10.444521999999999</mFullScaleMinVoltage>
+  <mFullScaleMaxVoltage>10.245801999999999</mFullScaleMaxVoltage>
 </item>
 ```
 
 These define the full ADC range in volts for each channel and are used
-to compute the ADC-to-voltage linear transform.
+to compute the ADC-to-voltage linear transform. Each channel includes
+`mDeviceId`, `mChannelIndex`, and `mDataType` (always 0 for analog).
 
-**Confidence: Confirmed** -- `extractFullScaleVoltageRanges` in bundle.js
+**Confidence: Confirmed** -- Validated against real .cal file
 
 
 ### Per-Channel, Per-Sample-Rate Calibration Set
 
 ```xml
-<item>
-  <mSampleRate><_text>{sampleRateHz}</_text></mSampleRate>
-  <mChannel>
-    <mChannelIndex><_text>{channelIndex}</_text></mChannelIndex>
+<item class_id="4" tracking_level="0" version="21">
+  <mChannel class_id="5" tracking_level="0" version="21">
+    <mDeviceId>8520900333282843121</mDeviceId>
+    <mChannelIndex>0</mChannelIndex>
+    <mDataType>0</mDataType>
   </mChannel>
-  <mGroupDelay><_text>{float}</_text></mGroupDelay>
-  <mImpulseLength><_text>{float}</_text></mImpulseLength>
+  <mSampleRate>50000000</mSampleRate>
   <mDf1SosCoefficients>
-    <item><_text>{b0_section0}</_text></item>
-    <item><_text>{b1_section0}</_text></item>
-    <item><_text>{b2_section0}</_text></item>
-    <item><_text>{a0_section0}</_text></item>   <!-- always 1.0 -->
-    <item><_text>{a1_section0}</_text></item>
-    <item><_text>{a2_section0}</_text></item>
-    <!-- repeat for sections 1-4: 30 values total -->
+    <count>30</count>
+    <item_version>0</item_version>
+    <item>1.1470743525205651</item>   <!-- b0 section 0 -->
+    <item>-1.1446541192031381</item>  <!-- b1 section 0 -->
+    <item>0</item>                     <!-- b2 section 0 -->
+    <item>1</item>                     <!-- a0 section 0 (always 1.0) -->
+    <item>-0.99757976668257287</item>  <!-- a1 section 0 -->
+    <item>0</item>                     <!-- a2 section 0 -->
+    <!-- ... 24 more values for sections 1-4 -->
   </mDf1SosCoefficients>
+  <mFirTaps>
+    <count>30</count>
+    <item_version>0</item_version>
+    <item>1.1470743525205651</item>
+    <!-- ... identical to mDf1SosCoefficients -->
+  </mFirTaps>
+  <mGroupDelay>3</mGroupDelay>
+  <mImpulseLength>3381</mImpulseLength>
 </item>
 ```
 
-**Confidence: Confirmed** -- `extractCalibrationSets` in bundle.js
+**Confidence: Confirmed** -- Validated against real .cal file
 
 Each calibration set contains:
-- `mSampleRate`: ADC sample rate in Hz (string of integer)
-- `mChannelIndex`: 0-based channel index
-- `mGroupDelay`: filter group delay in samples
-- `mImpulseLength`: effective impulse response length
+- `mChannel`: channel reference with `mDeviceId`, `mChannelIndex`, `mDataType`
+- `mSampleRate`: ADC sample rate in Hz (integer)
 - `mDf1SosCoefficients`: 30 floating-point values (5 sections x 6 values)
+- `mFirTaps`: duplicate of mDf1SosCoefficients (historical artifact, ignored by parser)
+- `mGroupDelay`: filter group delay in samples
+- `mImpulseLength`: effective impulse response length in samples
 
 
 ## IIR Filter: DF1 SOS Biquad Cascade
@@ -178,13 +229,16 @@ H(z) = -------------------------
 
 Total filter: H(z) = H_0(z) * H_1(z) * H_2(z) * H_3(z) * H_4(z)
 
-This is a 10th-order IIR filter (5 sections x 2nd order each).
+In practice, section 0 always has b2=0 and a2=0, making it effectively
+first-order. The total filter is therefore **9th order** (1 + 2 + 2 +
+2 + 2 = 9), though the code processes all 5 sections as biquads.
 
 ### Coefficient Layout
 
 The XML stores 6 values per section in order: `b0, b1, b2, a0, a1, a2`
 
-The JS parser extracts 5 values per section (skipping a0 at index 3):
+a0 is always exactly 1.0 (normalized). The JS parser extracts 5 values
+per section, skipping a0:
 
 ```javascript
 for (let A = 0, e = 0; A < coefficients.length; A += 6, e++) {
@@ -201,14 +255,48 @@ for (let A = 0, e = 0; A < coefficients.length; A += 6, e++) {
 
 **5 sections x 6 values = 30 values in the XML**
 
-### Practical Dimensions
+Note: In the JS code, `coefficients[A]._text` uses the `_text` property
+because the `xml2json` library wraps text content in `_text` keys. The
+actual XML has plain text: `<item>1.147</item>`, not
+`<item><_text>1.147</_text></item>`.
 
-For a device with 8 analog channels and 6 sample rates:
+### Section Sharing (Validated)
+
+Sections 1-4 are **identical for all channels** at a given sample rate.
+Only section 0 varies per channel. This reveals the calibration design:
+
+- **Section 0**: Per-channel AFE correction (gain matching, offset
+  compensation for component tolerances between channels)
+- **Sections 1-4**: Per-sample-rate filter correction (anti-aliasing
+  filter / decimation filter response, same for all channels)
+
+### Practical Dimensions (LogicPro8)
+
+For a Logic Pro 8 with 8 analog channels and 6 sample rates:
 - 8 * 6 = 48 calibration sets
-- Each set: 5 biquad sections with 5 coefficients + groupDelay + impulseLength
+- Each set: 5 biquad sections with 5+1 coefficients + groupDelay + impulseLength
 - Total: 48 * 30 = 1440 coefficient values
+- Unique values: 6 * 24 (shared sections) + 48 * 3 (section 0) = 288
 
-**Confidence: Confirmed** -- Direct extraction from bundle.js parsing code
+**Confidence: Confirmed** -- Validated against real .cal file
+
+
+### Available Sample Rates (LogicPro8)
+
+| Rate (Hz)  | MHz    | Division | Group Delay | Impulse Length |
+|------------|--------|----------|-------------|----------------|
+| 50000000   | 50.000 | /1       | 3           | ~3370-3381     |
+| 12500000   | 12.500 | /4       | 5           | ~993-994       |
+| 6250000    | 6.250  | /8       | 5           | ~511-524       |
+| 3125000    | 3.125  | /16      | 5           | ~256-262       |
+| 1562500    | 1.5625 | /32      | 5           | ~128-131       |
+| 781250     | 0.781  | /64      | 5           | ~64-66         |
+
+All rates are power-of-2 divisions of the 50 MHz base ADC clock. The
+25 MHz rate (50M/2) is not present. Impulse length scales approximately
+linearly with sample rate.
+
+**Confidence: Confirmed** -- Validated against real .cal file
 
 
 ### SIMD Implementation
@@ -259,8 +347,23 @@ b = minVoltage - adcMin * m
 | LogicPro8 | -10 V | 10 V |
 | LogicPro16 | -10 V | 10 V |
 
-**Confidence: Confirmed** -- `getDefaultTransformForDevice`,
-`getDefaultAdcRange` in bundle.js
+### Calibrated Voltage Ranges (LogicPro8, real data)
+
+| Channel | Min Voltage  | Max Voltage  | Span     |
+|---------|-------------|-------------|----------|
+| 0       | -10.444522  | +10.245802  | 20.690V  |
+| 1       | -10.424817  | +10.313864  | 20.739V  |
+| 2       | -10.480572  | +10.256573  | 20.737V  |
+| 3       | -10.432200  | +10.372678  | 20.805V  |
+| 4       | -10.367207  | +10.491253  | 20.858V  |
+| 5       | -10.324269  | +10.317355  | 20.642V  |
+| 6       | -10.424414  | +10.231961  | 20.656V  |
+| 7       | -10.427620  | +10.405477  | 20.833V  |
+
+The calibrated values show ~3-5% variation from the nominal +/-10V
+range, reflecting per-channel AFE component tolerances.
+
+**Confidence: Confirmed** -- Validated against real .cal file
 
 
 ### Native-Side Transform Struct
@@ -295,8 +398,9 @@ This writes to the HMCAD1100's programmable gain register. The field
 name "hittite" refers to Hittite Microwave (now Analog Devices), the
 original manufacturer of the HMCAD ADC line.
 
-**Confidence: Confirmed** -- bundle.js `sendCalibrationToGraph` and
-binary string `/hittiteAdcGainRegisterValue`
+For the validated device, mAdcGain = 0 (default gain, no adjustment).
+
+**Confidence: Confirmed** -- bundle.js and validated against real data
 
 
 ## Local Caching
@@ -319,8 +423,9 @@ File content:
 The cache key includes `lastUpdated` (timestamp from server), so new
 calibrations from the server replace old cached versions.
 
-**Confidence: Confirmed** -- `generateFileName`, `downloadOrLoadCalibrationData`
-in bundle.js
+**Confidence: Confirmed** -- Validated: file
+`8520900333282843121-1568317711765-1.cal` found in
+`~/.config/Logic/calibrations/`
 
 
 ## Calibration Application Sequence
