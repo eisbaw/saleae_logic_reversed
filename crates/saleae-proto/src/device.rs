@@ -240,6 +240,96 @@ impl std::fmt::Display for DeviceState {
 }
 
 // ---------------------------------------------------------------------------
+// USB speed (our own enum, independent of nusb)
+// ---------------------------------------------------------------------------
+
+/// USB connection speed.
+///
+/// This is our own type so that `saleae-proto` doesn't depend on `nusb`.
+/// The `saleae-usb` discovery layer converts from `nusb::Speed`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum UsbSpeed {
+    /// USB 1.x Low Speed (1.5 Mbit/s).
+    Low,
+    /// USB 1.x Full Speed (12 Mbit/s).
+    Full,
+    /// USB 2.0 High Speed (480 Mbit/s).
+    High,
+    /// USB 3.0 SuperSpeed (5 Gbit/s).
+    Super,
+    /// USB 3.1 SuperSpeed+ (10 Gbit/s).
+    SuperPlus,
+}
+
+impl std::fmt::Display for UsbSpeed {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            UsbSpeed::Low => f.write_str("Low Speed (1.5 Mbit/s)"),
+            UsbSpeed::Full => f.write_str("Full Speed (12 Mbit/s)"),
+            UsbSpeed::High => f.write_str("High Speed (480 Mbit/s)"),
+            UsbSpeed::Super => f.write_str("SuperSpeed (5 Gbit/s)"),
+            UsbSpeed::SuperPlus => f.write_str("SuperSpeed+ (10 Gbit/s)"),
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Boot state (derived from bcdDevice)
+// ---------------------------------------------------------------------------
+
+/// Device boot state, derived from the USB `bcdDevice` descriptor field.
+///
+/// Cypress FX3 devices enumerate differently depending on whether firmware
+/// has been uploaded:
+///
+/// - **bcdDevice = 0x0100 (1.00)**: Device is in bootloader/WestBridge mode.
+///   The SPI flash has booted the default Cypress image but no Saleae firmware
+///   has been uploaded yet. The device exposes only EP0 for vendor requests.
+///
+/// - **bcdDevice = 0x0000 (0.00)**: Saleae firmware is running. The device
+///   re-enumerates with the Saleae VID:PID and 4 endpoints (EP0, EP1 OUT,
+///   EP1 IN, EP2 IN).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum BootState {
+    /// Bootloader mode -- firmware needs to be uploaded.
+    Bootloader,
+    /// Firmware is running -- device is ready for FPGA programming / capture.
+    FirmwareRunning,
+    /// bcdDevice value doesn't match known patterns.
+    Unknown(u16),
+}
+
+impl BootState {
+    /// Determine boot state from the raw `bcdDevice` descriptor value.
+    pub fn from_bcd_device(bcd: u16) -> Self {
+        match bcd {
+            0x0100 => BootState::Bootloader,
+            0x0000 => BootState::FirmwareRunning,
+            other => BootState::Unknown(other),
+        }
+    }
+
+    /// Return the raw `bcdDevice` value for this state (if known).
+    pub fn bcd_device(self) -> Option<u16> {
+        match self {
+            BootState::Bootloader => Some(0x0100),
+            BootState::FirmwareRunning => Some(0x0000),
+            BootState::Unknown(v) => Some(v),
+        }
+    }
+}
+
+impl std::fmt::Display for BootState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            BootState::Bootloader => f.write_str("Bootloader (needs firmware upload)"),
+            BootState::FirmwareRunning => f.write_str("Firmware running"),
+            BootState::Unknown(bcd) => write!(f, "Unknown (bcdDevice={bcd:#06x})"),
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Discovered device info
 // ---------------------------------------------------------------------------
 
@@ -256,6 +346,10 @@ pub struct SaleaeDevice {
     pub address: u8,
     /// Serial number string (may be "SERNUM" for Saleae devices).
     pub serial: Option<String>,
+    /// Boot state derived from bcdDevice descriptor.
+    pub boot_state: BootState,
+    /// USB connection speed, if reported by the OS.
+    pub usb_speed: Option<UsbSpeed>,
 }
 
 impl std::fmt::Display for SaleaeDevice {
@@ -350,5 +444,42 @@ mod tests {
     #[test]
     fn all_usb_ids_length_matches_all_device_types() {
         assert_eq!(DeviceType::ALL.len(), DeviceType::ALL_USB_IDS.len());
+    }
+
+    #[test]
+    fn boot_state_from_bcd_device() {
+        assert_eq!(BootState::from_bcd_device(0x0100), BootState::Bootloader);
+        assert_eq!(
+            BootState::from_bcd_device(0x0000),
+            BootState::FirmwareRunning
+        );
+        assert_eq!(
+            BootState::from_bcd_device(0x0200),
+            BootState::Unknown(0x0200)
+        );
+    }
+
+    #[test]
+    fn boot_state_round_trip() {
+        assert_eq!(BootState::Bootloader.bcd_device(), Some(0x0100));
+        assert_eq!(BootState::FirmwareRunning.bcd_device(), Some(0x0000));
+        assert_eq!(BootState::Unknown(0x0042).bcd_device(), Some(0x0042));
+    }
+
+    #[test]
+    fn boot_state_display() {
+        assert_eq!(
+            BootState::Bootloader.to_string(),
+            "Bootloader (needs firmware upload)"
+        );
+        assert_eq!(BootState::FirmwareRunning.to_string(), "Firmware running");
+        assert!(BootState::Unknown(0x0200).to_string().contains("0x0200"));
+    }
+
+    #[test]
+    fn usb_speed_display() {
+        assert!(UsbSpeed::Super.to_string().contains("5 Gbit/s"));
+        assert!(UsbSpeed::High.to_string().contains("480 Mbit/s"));
+        assert!(UsbSpeed::Low.to_string().contains("1.5 Mbit/s"));
     }
 }

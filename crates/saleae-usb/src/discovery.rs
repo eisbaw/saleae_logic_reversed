@@ -2,13 +2,27 @@
 //!
 //! This module is only compiled when the `nusb-backend` feature is enabled.
 
-use saleae_proto::device::{DeviceType, SaleaeDevice, UsbId};
+use saleae_proto::device::{BootState, DeviceType, SaleaeDevice, UsbId, UsbSpeed};
 
 use crate::error::{UsbError, UsbResult};
+
+/// Convert nusb's `Speed` enum to our crate-independent `UsbSpeed`.
+fn convert_speed(speed: nusb::Speed) -> UsbSpeed {
+    match speed {
+        nusb::Speed::Low => UsbSpeed::Low,
+        nusb::Speed::Full => UsbSpeed::Full,
+        nusb::Speed::High => UsbSpeed::High,
+        nusb::Speed::Super => UsbSpeed::Super,
+        nusb::Speed::SuperPlus => UsbSpeed::SuperPlus,
+        // nusb::Speed is #[non_exhaustive], so handle future variants
+        _ => UsbSpeed::Super,
+    }
+}
 
 /// List all Saleae devices currently connected to the USB bus.
 ///
 /// Scans all USB devices and filters for known Saleae VID:PID pairs.
+/// Populates boot state (from bcdDevice) and USB speed for each device.
 pub fn list_devices() -> UsbResult<Vec<SaleaeDevice>> {
     let device_list = nusb::list_devices().map_err(|e| UsbError::OpenFailed {
         context: format!("failed to enumerate USB devices: {e}"),
@@ -22,12 +36,17 @@ pub fn list_devices() -> UsbResult<Vec<SaleaeDevice>> {
         let usb_id = UsbId::new(vid, pid);
 
         if let Ok(device_type) = DeviceType::from_usb_id(usb_id) {
+            let boot_state = BootState::from_bcd_device(info.device_version());
+            let usb_speed = info.speed().map(convert_speed);
+
             devices.push(SaleaeDevice {
                 usb_id,
                 device_type,
                 bus: info.bus_number(),
                 address: info.device_address(),
                 serial: info.serial_number().map(|s| s.to_string()),
+                boot_state,
+                usb_speed,
             });
         }
     }

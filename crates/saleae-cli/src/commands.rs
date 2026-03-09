@@ -34,6 +34,11 @@ pub fn list_devices() -> Result<()> {
                 "no"
             },
         );
+        println!("    Boot state: {}", device.boot_state);
+        match device.usb_speed {
+            Some(speed) => println!("    USB speed:  {speed}"),
+            None => println!("    USB speed:  (unknown)"),
+        }
     }
 
     Ok(())

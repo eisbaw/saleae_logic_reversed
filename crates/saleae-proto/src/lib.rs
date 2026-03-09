@@ -9,6 +9,6 @@ pub mod error;
 pub mod firmware;
 
 // Re-export key types at crate root for convenience.
-pub use device::{DeviceType, SaleaeDevice, UsbId};
+pub use device::{BootState, DeviceType, SaleaeDevice, UsbId, UsbSpeed};
 pub use error::{ProtoError, ProtoResult};
 pub use firmware::fx3::{Fx3Image, Fx3Section};
