@@ -1,9 +1,10 @@
 ---
 id: TASK-0011
 title: RE digital capture data format and streaming protocol
-status: To Do
+status: In Progress
 assignee: []
 created_date: '2026-03-08 22:44'
+updated_date: '2026-03-09 00:38'
 labels: []
 dependencies:
   - TASK-0006
@@ -33,3 +34,37 @@ Investigate:
 
 Capture USB traffic during a simple digital capture (1 channel, 1MHz) and correlate with Ghidra analysis of the deserialization code.
 <!-- SECTION:DESCRIPTION:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+## Analysis Results (2026-03-09)
+
+### Data Pipeline Traced
+Full data flow from USB to storage:
+EP2 IN -> TransferQueue -> OnDataBuffer -> DisaggregatorNode -> DigitalCreatorNode -> DigitalStore (RLE)
+
+### Key Findings
+1. Digital and analog data share EP2 IN -- DisaggregatorNode splits them
+2. Digital data stored as RLE via AppendRle function
+3. Packets have stats metadata (SamplesPerPacketMultiple_WithStats)
+4. Start packets precede data (ch, timestamp, config_id)
+5. Per-packet overflow detection (cur_overflow, prev_overflow)
+6. Digital samples packed 8 per byte (sample_count % 8 == 0)
+7. Channel count constrained to 2 or 4
+8. FPGA-specific packet size limits (Altera vs Xilinx constants)
+9. Transfer size computed dynamically per device type
+10. Three FIFO overflow types: Digital, Analog, Master
+
+### Still Needed
+- Exact numeric values of FpgaConstants (min/max packet sizes)
+- Exact WithStats alignment value
+- Binary layout of start packet
+- Interleaving pattern (sample vs chunk interleaved)
+- USB capture validation against real hardware
+
+### Artifacts Created
+- re/notes/digital-capture-format.md (working notes)
+- doc/protocol/digital-capture.md (verified protocol doc)
+- re/ghidra/scripts/TraceDigitalCapture.py (Ghidra trace script)
+<!-- SECTION:NOTES:END -->
