@@ -1,9 +1,10 @@
 ---
 id: TASK-0010
 title: RE device state machine and USB descriptor layout
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-03-08 22:43'
+updated_date: '2026-03-09 00:29'
 labels: []
 dependencies: []
 priority: high
@@ -28,3 +29,28 @@ Investigate:
 
 Once confirmed, promote state machine diagram to doc/state-machine/
 <!-- SECTION:DESCRIPTION:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+Investigated device state machine through binary string analysis, live USB descriptor capture, and cross-referencing with IPC analysis.
+
+Key findings:
+1. Three-state variant: DSInitializing | DSReady | DSError (confirmed via RTTI strings and assertion messages)
+2. Transition rules: Error is terminal (requires physical reconnect), Ready cannot go back to Initializing
+3. Capturing is a sub-state of DSReady, not a separate variant member
+4. Live USB descriptors captured from Logic Pro 8: 3 bulk endpoints (EP1 OUT, EP1 IN, EP2 IN with burst=15)
+5. EP2 IN is the high-throughput capture data endpoint (bMaxBurst=15 confirms 16-packet burst)
+6. FX3 firmware re-enumeration changes VID:PID but FPGA programming does not cause re-enumeration
+
+Created:
+- re/notes/device-state-machine.md (working notes with full analysis)
+- doc/state-machine/device-states.md (confirmed knowledge)
+- re/ghidra/scripts/TraceDeviceStates.py (Ghidra analysis script)
+<!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Device state machine fully mapped from binary analysis and live hardware interrogation. Three-state variant (DSInitializing/DSReady/DSError) with confirmed transition rules. USB descriptor layout documented from live Logic Pro 8. Ghidra script created for further analysis in loaded project.
+<!-- SECTION:FINAL_SUMMARY:END -->
