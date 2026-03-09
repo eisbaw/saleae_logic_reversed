@@ -42,6 +42,10 @@ pub enum DriverError {
         detail: String,
     },
 
+    /// FPGA programming or post-init failed.
+    #[error("FPGA programming failed: {context}")]
+    FpgaProgramming { context: String },
+
     /// HTTP error during calibration download.
     #[error("calibration download failed: {0}")]
     CalibrationDownload(String),

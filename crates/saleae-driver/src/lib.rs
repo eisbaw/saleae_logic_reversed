@@ -16,5 +16,6 @@ pub mod device;
 pub mod ep1;
 pub mod error;
 pub mod firmware;
+pub mod fpga;
 
 pub use error::{DriverError, DriverResult};

@@ -238,6 +238,102 @@ pub fn ping() -> Result<()> {
     Ok(())
 }
 
+/// Program the FPGA with a bitstream file.
+///
+/// Reads the bitstream from disk, opens the device, performs the
+/// ReseedDevice + Ping handshake, then programs the FPGA and runs
+/// the post-init sequence.
+pub fn program_fpga(bitstream_path: &str, skip_post_init: bool) -> Result<()> {
+    // Read bitstream file.
+    let bitstream = std::fs::read(bitstream_path)
+        .with_context(|| format!("failed to read bitstream file: {bitstream_path}"))?;
+
+    println!("Bitstream loaded: {} bytes from {bitstream_path}", bitstream.len());
+    println!();
+
+    // Discover device and check boot state.
+    let device =
+        saleae_usb::discovery::find_first_saleae().context("failed to find Saleae device")?;
+
+    println!("Found device: {device}");
+    println!("  Boot state: {}", device.boot_state);
+    if let Some(speed) = device.usb_speed {
+        println!("  USB speed:  {speed}");
+    }
+    println!();
+
+    match device.boot_state {
+        BootState::FirmwareRunning => {
+            println!("Firmware is running. Proceeding with FPGA programming...");
+        }
+        BootState::Bootloader => {
+            bail!(
+                "Device is in bootloader mode. Firmware must be uploaded first.\n\
+                 Run: saleae-cli upload-firmware --firmware <path>"
+            );
+        }
+        BootState::Unknown(bcd) => {
+            bail!("Device has unexpected bcdDevice value {bcd:#06x}.");
+        }
+    }
+
+    // Determine encryption mode from device type.
+    let encryption_mode = if device.device_type.is_pro() {
+        saleae_proto::obfuscation::EncryptionMode::XorAll
+    } else if device.device_type.is_fx3() {
+        saleae_proto::obfuscation::EncryptionMode::XorFirmwareOnly
+    } else {
+        saleae_proto::obfuscation::EncryptionMode::None
+    };
+
+    // Open device and create command channel.
+    let usb_device =
+        saleae_usb::discovery::open_first_device().context("failed to open Saleae device")?;
+
+    let transport = saleae_usb::nusb_backend::NusbTransport::open(usb_device)
+        .context("failed to claim USB interface")?;
+
+    let mut channel =
+        saleae_driver::ep1::Ep1CommandChannel::new(Box::new(transport), encryption_mode);
+
+    // Initialize command channel (ReseedDevice + Ping).
+    println!("Initializing command channel (ReseedDevice + Ping)...");
+    channel
+        .initialize()
+        .context("command channel initialization failed")?;
+    println!("Command channel initialized.");
+    println!();
+
+    // Program FPGA.
+    println!("Programming FPGA ({} bytes)...", bitstream.len());
+    saleae_driver::fpga::program_fpga(&mut channel, &bitstream)
+        .context("FPGA programming failed")?;
+    println!("FPGA programming verified (readback = 0xAA).");
+    println!();
+
+    // Post-init sequence.
+    if skip_post_init {
+        println!("Skipping post-init sequence (--skip-post-init).");
+    } else {
+        // Determine if this is a Lattice FPGA.
+        // For now, assume Lattice for all current-gen devices (Logic 4/8/Pro 8/Pro 16).
+        // Xilinx is only for legacy Logic 16.
+        let is_lattice = device.device_type.is_fx3();
+
+        println!(
+            "Running post-init sequence (Lattice: {is_lattice})..."
+        );
+        saleae_driver::fpga::fpga_post_init(&mut channel, is_lattice)
+            .context("FPGA post-init failed")?;
+        println!("Post-init complete.");
+    }
+
+    println!();
+    println!("FPGA is programmed and initialized. Device should be ready.");
+
+    Ok(())
+}
+
 /// Start a digital capture.
 pub fn capture_digital(sample_rate: u64, duration: f64, channels: &str) -> Result<()> {
     let _channel_list = parse_channel_list(channels)?;

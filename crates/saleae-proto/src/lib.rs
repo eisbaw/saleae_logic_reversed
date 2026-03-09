@@ -9,6 +9,7 @@ pub mod calibration;
 pub mod device;
 pub mod error;
 pub mod firmware;
+pub mod fpga_regs;
 pub mod obfuscation;
 
 // Re-export key types at crate root for convenience.

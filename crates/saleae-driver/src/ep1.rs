@@ -43,8 +43,8 @@ const USB3_CONFIG_CHUNK_DATA_MAX: usize = USB3_MAX_TRANSFER - 3;
 /// is lost or duplicated, all subsequent communication is garbled.
 pub struct Ep1CommandChannel {
     transport: Box<dyn UsbTransport>,
-    encryption: SimpleEncryption,
-    initialized: bool,
+    pub(crate) encryption: SimpleEncryption,
+    pub(crate) initialized: bool,
 }
 
 impl Ep1CommandChannel {
@@ -403,6 +403,162 @@ impl Ep1CommandChannel {
         Ok(())
     }
 
+    // -----------------------------------------------------------------------
+    // 16-bit register access (raw path)
+    // -----------------------------------------------------------------------
+
+    /// Write a 32-bit value to a 16-bit addressed FPGA register.
+    ///
+    /// This uses the raw register path: a 6-byte packet sent directly on
+    /// EP1 OUT, without opcode framing:
+    ///
+    /// ```text
+    /// [addr_hi] [addr_lo] [val_3] [val_2] [val_1] [val_0]
+    /// ```
+    ///
+    /// The value is sent big-endian on the wire.
+    ///
+    /// # Encryption
+    ///
+    /// On Pro devices, this packet is encrypted using the same XOR scheme
+    /// as opcode-based commands. We treat `addr_hi` as the "opcode" for
+    /// the control byte computation and the remaining 5 bytes as payload.
+    /// This is a hypothesis based on the fact that all EP1 traffic on Pro
+    /// devices goes through the SimpleEncryption layer. If hardware testing
+    /// shows this is wrong, we may need a separate raw-send path.
+    ///
+    /// # When to use
+    ///
+    /// Use this for register addresses > 0xFF (e.g., 0x01C0 COMMIT_CONTROL).
+    /// For addresses <= 0xFF, prefer [`write_registers`](Self::write_registers)
+    /// (opcode 0x80) which is known-good.
+    pub fn write_register_16(&mut self, addr: u16, value: u32) -> DriverResult<()> {
+        let addr_hi = (addr >> 8) as u8;
+        let addr_lo = (addr & 0xFF) as u8;
+        let val_bytes = value.to_be_bytes();
+
+        // Send as: opcode=addr_hi, payload=[addr_lo, val3, val2, val1, val0]
+        let payload = [addr_lo, val_bytes[0], val_bytes[1], val_bytes[2], val_bytes[3]];
+
+        debug!(
+            addr = format_args!("{addr:#06x}"),
+            value = format_args!("{value:#010x}"),
+            "FPGA WriteRegister (16-bit path)"
+        );
+
+        self.send_command(addr_hi, &payload)?;
+
+        // Read ACK (Pro devices send a response for all EP1 writes).
+        let mut ack = [0u8; 64];
+        let n = self.recv_response(&mut ack)?;
+        debug!(
+            ack_len = n,
+            "WriteRegister16 ACK"
+        );
+
+        Ok(())
+    }
+
+    /// Read a 32-bit value from a 16-bit addressed FPGA register.
+    ///
+    /// Sends a 2-byte address packet on EP1 OUT and reads a 4-byte
+    /// big-endian value from EP1 IN:
+    ///
+    /// ```text
+    /// Send:    [addr_hi] [addr_lo]
+    /// Receive: [val_3] [val_2] [val_1] [val_0]
+    /// ```
+    ///
+    /// See [`write_register_16`](Self::write_register_16) for encryption notes.
+    pub fn read_register_16(&mut self, addr: u16) -> DriverResult<u32> {
+        let addr_hi = (addr >> 8) as u8;
+        let addr_lo = (addr & 0xFF) as u8;
+
+        debug!(
+            addr = format_args!("{addr:#06x}"),
+            "FPGA ReadRegister (16-bit path)"
+        );
+
+        self.send_command(addr_hi, &[addr_lo])?;
+
+        let mut buf = [0u8; 64];
+        let n = self.recv_response(&mut buf)?;
+
+        if n < 4 {
+            return Err(DriverError::CommandFailed {
+                command: "ReadRegister16",
+                detail: format!("expected 4 bytes, got {n}"),
+            });
+        }
+
+        let value = u32::from_be_bytes([buf[0], buf[1], buf[2], buf[3]]);
+        debug!(
+            addr = format_args!("{addr:#06x}"),
+            value = format_args!("{value:#010x}"),
+            "FPGA ReadRegister (16-bit path) result"
+        );
+
+        Ok(value)
+    }
+
+    /// Write a single 8-bit register via the opcode-based path.
+    ///
+    /// Convenience wrapper around [`write_registers`](Self::write_registers)
+    /// for single-register writes.
+    pub fn write_register_8(&mut self, addr: u8, value: u8) -> DriverResult<()> {
+        self.write_registers(&[(addr, value)])
+    }
+
+    /// Read a single 8-bit register via the opcode-based path.
+    ///
+    /// Convenience wrapper around [`read_registers`](Self::read_registers)
+    /// for single-register reads.
+    pub fn read_register_8(&mut self, addr: u8) -> DriverResult<u8> {
+        let values = self.read_registers(&[addr])?;
+        if values.is_empty() {
+            return Err(DriverError::CommandFailed {
+                command: "ReadRegister8",
+                detail: "no value returned".into(),
+            });
+        }
+        Ok(values[0])
+    }
+
+    /// Write an FPGA register, automatically selecting the correct path.
+    ///
+    /// - Addresses <= 0xFF use the opcode-based 8-bit path (opcode 0x80).
+    /// - Addresses > 0xFF use the raw 16-bit path.
+    ///
+    /// The value is truncated to 8 bits for the opcode-based path.
+    /// For 8-bit path writes, only the low byte of `value` is used.
+    pub fn write_fpga_register(&mut self, addr: u16, value: u32) -> DriverResult<()> {
+        if saleae_proto::fpga_regs::needs_wide_path(addr) {
+            self.write_register_16(addr, value)
+        } else {
+            // 8-bit path: addr and value must fit in u8.
+            self.write_register_8(addr as u8, value as u8)
+        }
+    }
+
+    /// Read an FPGA register, automatically selecting the correct path.
+    ///
+    /// - Addresses <= 0xFF use the opcode-based 8-bit path (opcode 0x81).
+    /// - Addresses > 0xFF use the raw 16-bit path.
+    ///
+    /// For 8-bit path reads, the returned value is zero-extended to u32.
+    pub fn read_fpga_register(&mut self, addr: u16) -> DriverResult<u32> {
+        if saleae_proto::fpga_regs::needs_wide_path(addr) {
+            self.read_register_16(addr)
+        } else {
+            let val = self.read_register_8(addr as u8)?;
+            Ok(val as u32)
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // Capture control
+    // -----------------------------------------------------------------------
+
     /// Stop data path (opcode 0x86).
     ///
     /// Part of the capture stop sequence.
@@ -685,5 +841,148 @@ mod tests {
         let mock = std::sync::Arc::new(MockTransport::new());
         let mut channel = mock_channel_with_seed(&mock, 0);
         channel.read_registers(&[]).unwrap();
+    }
+
+    // -- 16-bit register path tests --
+
+    #[test]
+    fn write_register_16_sends_correct_wire_format() {
+        let mock = std::sync::Arc::new(MockTransport::new());
+        let seed = 0u32;
+
+        // Queue ACK for the write
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
+
+        let mut channel = mock_channel_with_seed(&mock, seed);
+        channel.write_register_16(0x01C0, 0xDEADBEEF).unwrap();
+
+        let ops = mock.operations();
+        match &ops[0] {
+            UsbOperation::BulkOut { data, .. } => {
+                // With seed=0, XOR is identity. Control byte + opcode + payload.
+                // opcode = addr_hi = 0x01
+                // payload = [addr_lo=0xC0, val3=0xDE, val2=0xAD, val1=0xBE, val0=0xEF]
+                //
+                // control byte = (0x01 & 0xD7) ^ (0x00 & 0xD7) = 0x01
+                assert_eq!(data[0], 0x01 & 0xD7); // control byte
+                assert_eq!(data[1], 0x01); // opcode (addr_hi)
+                assert_eq!(data[2], 0xC0); // addr_lo
+                assert_eq!(data[3], 0xDE); // val[3] (MSB, big-endian)
+                assert_eq!(data[4], 0xAD); // val[2]
+                assert_eq!(data[5], 0xBE); // val[1]
+                assert_eq!(data[6], 0xEF); // val[0] (LSB)
+            }
+            other => panic!("expected BulkOut, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn read_register_16_returns_correct_value() {
+        let mock = std::sync::Arc::new(MockTransport::new());
+        let seed = 0u32;
+
+        // Queue 4-byte big-endian response: 0xCAFEBABE
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0xCA, 0xFE, 0xBA, 0xBE]);
+
+        let mut channel = mock_channel_with_seed(&mock, seed);
+        let value = channel.read_register_16(0x0104).unwrap();
+        assert_eq!(value, 0xCAFE_BABE);
+    }
+
+    #[test]
+    fn read_register_16_fails_on_short_response() {
+        let mock = std::sync::Arc::new(MockTransport::new());
+        let seed = 0u32;
+
+        // Only 2 bytes instead of 4
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0xAA, 0xBB]);
+
+        let mut channel = mock_channel_with_seed(&mock, seed);
+        let err = channel.read_register_16(0x0104).unwrap_err();
+        let msg = err.to_string();
+        assert!(
+            msg.contains("expected 4 bytes"),
+            "error should mention expected bytes: {msg}"
+        );
+    }
+
+    #[test]
+    fn write_register_8_convenience() {
+        let mock = std::sync::Arc::new(MockTransport::new());
+        let seed = 0u32;
+
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
+
+        let mut channel = mock_channel_with_seed(&mock, seed);
+        channel.write_register_8(0x20, 0x01).unwrap();
+
+        // Verify it sent a WriteRegisters command (opcode 0x80) with 1 pair.
+        let ops = mock.operations();
+        match &ops[0] {
+            UsbOperation::BulkOut { data, .. } => {
+                // control byte for opcode 0x80 with seed=0: (0x80 & 0xD7) = 0x80
+                assert_eq!(data[0], 0x80 & 0xD7);
+                assert_eq!(data[1], 0x80); // opcode
+                assert_eq!(data[2], 0x01); // count = 1
+                assert_eq!(data[3], 0x20); // addr
+                assert_eq!(data[4], 0x01); // value
+            }
+            other => panic!("expected BulkOut, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn read_register_8_convenience() {
+        let mock = std::sync::Arc::new(MockTransport::new());
+        let seed = 0u32;
+
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x42]);
+
+        let mut channel = mock_channel_with_seed(&mock, seed);
+        let val = channel.read_register_8(0x20).unwrap();
+        assert_eq!(val, 0x42);
+    }
+
+    #[test]
+    fn write_fpga_register_selects_8bit_path() {
+        let mock = std::sync::Arc::new(MockTransport::new());
+        let seed = 0u32;
+
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
+
+        let mut channel = mock_channel_with_seed(&mock, seed);
+        // Address 0x20 fits in 8 bits -> should use opcode 0x80
+        channel.write_fpga_register(0x0020, 0x01).unwrap();
+
+        let ops = mock.operations();
+        match &ops[0] {
+            UsbOperation::BulkOut { data, .. } => {
+                // Should be opcode 0x80 (WriteRegisters)
+                assert_eq!(data[1], 0x80);
+            }
+            other => panic!("expected BulkOut, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn write_fpga_register_selects_16bit_path() {
+        let mock = std::sync::Arc::new(MockTransport::new());
+        let seed = 0u32;
+
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
+
+        let mut channel = mock_channel_with_seed(&mock, seed);
+        // Address 0x01C0 > 0xFF -> should use 16-bit path
+        channel.write_fpga_register(0x01C0, 0x0000_0001).unwrap();
+
+        let ops = mock.operations();
+        match &ops[0] {
+            UsbOperation::BulkOut { data, .. } => {
+                // 16-bit path: opcode = addr_hi = 0x01
+                assert_eq!(data[1], 0x01);
+                assert_eq!(data[2], 0xC0); // addr_lo
+            }
+            other => panic!("expected BulkOut, got {other:?}"),
+        }
     }
 }

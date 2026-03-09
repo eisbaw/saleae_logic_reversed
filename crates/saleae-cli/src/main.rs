@@ -56,6 +56,20 @@ enum Command {
     /// Requires firmware to be already running on the device.
     Ping,
 
+    /// Program the FPGA with a bitstream file.
+    ///
+    /// Requires firmware to be already running on the device.
+    /// After programming, runs the post-init sequence (DDR, JESD, GPIF).
+    ProgramFpga {
+        /// Path to the FPGA bitstream file.
+        #[arg(long)]
+        bitstream: String,
+
+        /// Skip post-init sequence (for debugging).
+        #[arg(long, default_value = "false")]
+        skip_post_init: bool,
+    },
+
     /// Raw EP1 diagnostic test (bypasses encryption).
     ///
     /// Sends raw bytes on EP1 OUT/IN to test if the endpoints are
@@ -99,6 +113,10 @@ fn main() -> anyhow::Result<()> {
         Command::ListDevices => commands::list_devices()?,
         Command::UploadFirmware { firmware } => commands::upload_firmware(&firmware)?,
         Command::Ping => commands::ping()?,
+        Command::ProgramFpga {
+            bitstream,
+            skip_post_init,
+        } => commands::program_fpga(&bitstream, skip_post_init)?,
         Command::Ep1Test => diag::raw_ep1_test()?,
         Command::CaptureDigital {
             sample_rate,
