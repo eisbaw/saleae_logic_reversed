@@ -14,18 +14,19 @@ The backend implements a directed acyclic graph (DAG) of processing nodes.
 ### Primary: In-Process (Direct Mode, Linux)
 
 The `graph-interface.node` N-API addon `dlopen()`s `libgraph_server_shared.so`
-and communicates via a C API:
+(with `RTLD_LAZY | RTLD_GLOBAL`) and communicates via a C API. The constructor
+also calls `setenv("SALEAE_PYTHONHOME", pythonHomePath)` before loading the .so.
 
 ```
-graph-interface.node  --(dlopen)-->  libgraph_server_shared.so
-     |                                    |
-     +-- DriveRequest(json_string)  ----> |
-     |                                    |
-     +-- PopResponse() <---------------- |
-     |   FreeResponseBuffer()             |
-     +-- SetLogFileName(path)             |
-     +-- SetLogCallback(fn)               |
-     +-- FlushLog()                       |
+graph-interface.node  --(dlopen RTLD_GLOBAL)-->  libgraph_server_shared.so
+     |                                                |
+     +-- DriveRequest(server, json, len)  ----------> |  (mutex-protected)
+     |                                                |
+     +-- PopResponse(server, &data, &len) <--------- |  (atomic refcount)
+     |   FreeResponseBuffer(data)                     |
+     +-- SetLogFileName(path)                         |
+     +-- SetLogCallback(fn)                           |
+     +-- FlushLog()                                   |
 ```
 
 ### Secondary: WebSocket (macOS, or --useExistingGraph)
@@ -68,16 +69,44 @@ In direct mode, the message object is sent directly via `Instance.send()`.
 
 ## C API (from dlsym resolution in graph-interface.node)
 
-| Function | Signature (inferred) | Purpose |
-|----------|---------------------|---------|
-| `CreateGraphServer` | `void*(int*, int, bool)` | Create server, returns handle |
-| `DestroyGraphServer` | `void(void*)` | Destroy server |
-| `DriveRequest` | drives a JSON request string | Send request |
-| `PopResponse` | returns JSON string or null | Get response |
-| `FreeResponseBuffer` | frees response string | Free response memory |
-| `SetLogFileName` | `void(char*)` | Set log file path |
-| `SetLogCallback` | sets callback function | Log forwarding |
-| `FlushLog` | `void()` | Flush logs |
+Resolved via `dlsym()` in this exact order (confirmed from binary disassembly
+of the Instance constructor). The addon uses `dlopen(path, RTLD_LAZY | RTLD_GLOBAL)`.
+`RTLD_GLOBAL` is needed because the .so embeds a Python interpreter whose
+extension modules must resolve symbols back into the main library.
+
+```c
+// Create graph server instance.
+// port_ptr: NULL for in-process mode, int* for WebSocket mode
+// param: always 100 (hardcoded in addon)
+// dev_mode: false in production
+// Returns: opaque server handle
+void* CreateGraphServer(int* port_ptr, int param, bool dev_mode);
+
+// Send a JSON request string. Called under mutex (one at a time).
+void DriveRequest(void* server, const char* request, size_t length);
+
+// Pop a response from the queue. Thread-safe (uses atomic refcounting).
+// Returns: non-zero if response available, 0 if queue empty
+int PopResponse(void* server, char** out_data, size_t* out_len);
+
+// Free response buffer returned by PopResponse.
+void FreeResponseBuffer(char* buffer);
+
+// Destroy the graph server instance.
+void DestroyGraphServer(void* server);
+
+// Set log output file path. Global (no server handle).
+void SetLogFileName(const char* path);
+
+// Flush log buffers. Global (no server handle).
+void FlushLog(void);
+
+// Set callback for log messages. Global (no server handle).
+void SetLogCallback(void (*callback)(unsigned char* data, size_t len));
+```
+
+See `re/notes/graph-interface-analysis.md` for the full binary analysis
+including object layout, data flow diagrams, and thread safety model.
 
 ## Graph Architecture
 
