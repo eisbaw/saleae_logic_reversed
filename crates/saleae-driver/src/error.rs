@@ -41,4 +41,12 @@ pub enum DriverError {
         command: &'static str,
         detail: String,
     },
+
+    /// HTTP error during calibration download.
+    #[error("calibration download failed: {0}")]
+    CalibrationDownload(String),
+
+    /// I/O error (file read/write during calibration caching).
+    #[error("I/O error: {0}")]
+    Io(#[from] std::io::Error),
 }

@@ -11,6 +11,7 @@
 //! All USB operations go through the [`UsbTransport`] trait, making the
 //! driver testable with mock transports.
 
+pub mod calibration;
 pub mod device;
 pub mod ep1;
 pub mod error;

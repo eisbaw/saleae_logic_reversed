@@ -6,5 +6,6 @@ description = "Wire format types and packet parsing for Saleae Logic analyzers"
 
 [dependencies]
 thiserror = { workspace = true }
+quick-xml = "0.37"
 
 [dev-dependencies]

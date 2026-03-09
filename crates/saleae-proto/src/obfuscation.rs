@@ -171,7 +171,7 @@ fn seed_byte(seed: u32, i: usize) -> u8 {
 ///
 /// // Decrypt a response
 /// let mut response = vec![0xAA];
-/// enc.decrypt_response(&mut response);
+/// enc.decrypt_response(&mut response, false);
 /// ```
 #[derive(Debug, Clone)]
 pub struct SimpleEncryption {

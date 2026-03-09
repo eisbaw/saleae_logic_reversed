@@ -10,5 +10,6 @@ saleae-usb = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }
 getrandom = { workspace = true }
+ureq = "3"
 
 [dev-dependencies]
