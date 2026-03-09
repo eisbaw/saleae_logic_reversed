@@ -1,0 +1,18 @@
+[package]
+name = "saleae-cli"
+version = "0.1.0"
+edition.workspace = true
+description = "CLI tool for Saleae Logic analyzers"
+
+[[bin]]
+name = "saleae-cli"
+path = "src/main.rs"
+
+[dependencies]
+saleae-proto = { workspace = true }
+saleae-usb = { workspace = true }
+saleae-driver = { workspace = true }
+clap = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }

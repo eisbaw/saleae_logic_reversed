@@ -1,9 +1,10 @@
 ---
 id: TASK-0017
 title: 'Scaffold Rust workspace (saleae-proto, saleae-usb, saleae-driver, saleae-cli)'
-status: To Do
+status: In Progress
 assignee: []
 created_date: '2026-03-08 22:45'
+updated_date: '2026-03-09 02:19'
 labels: []
 dependencies:
   - TASK-0001

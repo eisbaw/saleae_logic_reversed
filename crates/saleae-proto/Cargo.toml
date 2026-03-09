@@ -1,0 +1,10 @@
+[package]
+name = "saleae-proto"
+version = "0.1.0"
+edition.workspace = true
+description = "Wire format types and packet parsing for Saleae Logic analyzers"
+
+[dependencies]
+thiserror = { workspace = true }
+
+[dev-dependencies]

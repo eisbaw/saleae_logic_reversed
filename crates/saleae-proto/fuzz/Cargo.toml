@@ -1,0 +1,17 @@
+[package]
+name = "saleae-proto-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+saleae-proto = { path = ".." }
+
+[[bin]]
+name = "fx3_image"
+path = "fuzz_targets/fx3_image.rs"
+doc = false

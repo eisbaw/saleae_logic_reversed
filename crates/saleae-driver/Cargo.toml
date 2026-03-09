@@ -1,0 +1,13 @@
+[package]
+name = "saleae-driver"
+version = "0.1.0"
+edition.workspace = true
+description = "High-level driver for Saleae Logic analyzers"
+
+[dependencies]
+saleae-proto = { workspace = true }
+saleae-usb = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]

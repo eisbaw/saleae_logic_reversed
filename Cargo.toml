@@ -1,0 +1,39 @@
+[workspace]
+members = [
+    "crates/saleae-proto",
+    "crates/saleae-usb",
+    "crates/saleae-driver",
+    "crates/saleae-cli",
+]
+resolver = "2"
+
+[workspace.package]
+edition = "2021"
+license = "MIT OR Apache-2.0"
+rust-version = "1.75"
+
+[workspace.dependencies]
+# Error handling
+thiserror = "2"
+anyhow = "1"
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+
+# CLI
+clap = { version = "4", features = ["derive"] }
+
+# USB
+nusb = "0.1"
+
+# Async utilities (minimal block_on for bridging sync/async)
+futures-lite = "2"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Internal crates
+saleae-proto = { path = "crates/saleae-proto" }
+saleae-usb = { path = "crates/saleae-usb" }
+saleae-driver = { path = "crates/saleae-driver" }

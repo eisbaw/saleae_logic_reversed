@@ -1,6 +1,5 @@
 # Rust
 target/
-Cargo.lock
 
 # Extracted proprietary artifacts (do not redistribute)
 firmware/*.fw
