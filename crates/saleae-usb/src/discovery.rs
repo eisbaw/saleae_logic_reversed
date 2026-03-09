@@ -2,6 +2,8 @@
 //!
 //! This module is only compiled when the `nusb-backend` feature is enabled.
 
+use std::time::{Duration, Instant};
+
 use saleae_proto::device::{BootState, DeviceType, SaleaeDevice, UsbId, UsbSpeed};
 
 use crate::error::{UsbError, UsbResult};
@@ -96,4 +98,45 @@ pub fn open_device_by_type(device_type: DeviceType) -> UsbResult<nusb::Device> {
     }
 
     Err(UsbError::NoDeviceFound)
+}
+
+/// Find the first Saleae device and return its info without opening it.
+///
+/// This is useful for checking boot state before deciding whether to
+/// open the device for firmware upload.
+pub fn find_first_saleae() -> UsbResult<SaleaeDevice> {
+    let devices = list_devices()?;
+    devices.into_iter().next().ok_or(UsbError::NoDeviceFound)
+}
+
+/// Wait for a Saleae device to appear on the USB bus with firmware running.
+///
+/// Polls `list_devices()` every `poll_interval` until a device with
+/// `BootState::FirmwareRunning` is found or `timeout` expires.
+///
+/// This is used after firmware upload to wait for the device to
+/// re-enumerate with its new firmware.
+///
+/// Returns the discovered device info, or `UsbError::Timeout` if the
+/// device does not appear within the timeout.
+pub fn wait_for_device(timeout: Duration, poll_interval: Duration) -> UsbResult<SaleaeDevice> {
+    let start = Instant::now();
+
+    loop {
+        if let Ok(devices) = list_devices() {
+            for device in devices {
+                if device.boot_state == BootState::FirmwareRunning {
+                    return Ok(device);
+                }
+            }
+        }
+
+        if start.elapsed() >= timeout {
+            return Err(UsbError::Timeout {
+                timeout_ms: timeout.as_millis() as u64,
+            });
+        }
+
+        std::thread::sleep(poll_interval);
+    }
 }

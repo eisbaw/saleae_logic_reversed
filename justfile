@@ -295,6 +295,9 @@ extract-blobs:
     fi
     python3 re/scripts/extract-blobs.py "{{ main_so }}"
 
+# Extract firmware blobs (alias for extract-blobs)
+extract-firmware: extract-blobs
+
 # Parse GPIF II state machine descriptor from FX3 firmware
 parse-gpif FW="firmware/fw-fx3-pro8.img":
     python3 re/scripts/parse-gpif.py "{{ FW }}"
@@ -466,18 +469,31 @@ deploy: _require-cargo
     echo "  rpath:       $RPATH"
 
     echo "=== Deploying to {{ usb_host }}:{{ deploy_dir }}/{{ deploy_bin }} ==="
-    ssh {{ usb_host }} "mkdir -p {{ deploy_dir }}"
+    ssh {{ usb_host }} "mkdir -p {{ deploy_dir }}/firmware"
     scp "$PATCHED" {{ usb_host }}:{{ deploy_dir }}/{{ deploy_bin }}
     ssh {{ usb_host }} "chmod +x {{ deploy_dir }}/{{ deploy_bin }}"
     rm "$PATCHED"
+
+    # Deploy firmware blobs if they exist
+    if ls firmware/fw-fx3-*.img 1>/dev/null 2>&1; then
+        echo "=== Deploying firmware blobs ==="
+        scp firmware/fw-fx3-*.img {{ usb_host }}:{{ deploy_dir }}/firmware/
+    fi
 
     echo "=== Verifying remote binary ==="
     ssh {{ usb_host }} "ldd {{ deploy_dir }}/{{ deploy_bin }} && echo '---' && {{ deploy_dir }}/{{ deploy_bin }} --version"
     echo "Deploy complete."
 
 # Run saleae-cli on remote host (where Saleae hardware is attached)
+# Firmware paths like "firmware/fw-fx3-pro8.img" are remapped to the
+# deploy directory automatically.
 run-remote *ARGS: deploy
-    ssh {{ usb_host }} "{{ deploy_dir }}/{{ deploy_bin }} {{ ARGS }}"
+    #!/usr/bin/env bash
+    set -euo pipefail
+    REMOTE_ARGS="{{ ARGS }}"
+    # Remap local firmware/ paths to remote deploy dir
+    REMOTE_ARGS="${REMOTE_ARGS//firmware\//{{ deploy_dir }}/firmware/}"
+    ssh {{ usb_host }} "{{ deploy_dir }}/{{ deploy_bin }} $REMOTE_ARGS"
 
 # Run cargo-fuzz on packet parsers (requires nightly)
 fuzz TARGET="": _require-cargo

@@ -1,6 +1,9 @@
 //! CLI command implementations.
 
+use std::time::Duration;
+
 use anyhow::{bail, Context, Result};
+use saleae_proto::device::BootState;
 
 /// List connected Saleae devices.
 pub fn list_devices() -> Result<()> {
@@ -45,34 +48,112 @@ pub fn list_devices() -> Result<()> {
 }
 
 /// Upload firmware to a Saleae device.
+///
+/// Checks the device's boot state before attempting upload:
+/// - If firmware is already running (bcdDevice=0x0000), prints a message
+///   and exits successfully without uploading.
+/// - If in bootloader state (bcdDevice=0x0100), proceeds with upload
+///   and waits for re-enumeration.
 pub fn upload_firmware(firmware_path: &str) -> Result<()> {
-    // Read firmware file.
+    // Read and parse firmware file first (before touching USB), so we
+    // fail fast on a bad file path or corrupt image.
     let firmware_data = std::fs::read(firmware_path)
         .with_context(|| format!("failed to read firmware file: {firmware_path}"))?;
 
-    // Parse FX3 image.
     let (image, _consumed) = saleae_proto::Fx3Image::parse(&firmware_data)
         .context("failed to parse FX3 firmware image")?;
 
     println!("Firmware image parsed:");
-    println!("  Sections: {}", image.sections.len());
-    println!("  Total data: {} bytes", image.total_data_bytes());
+    println!("  Sections:    {}", image.sections.len());
+    println!("  Total data:  {} bytes", image.total_data_bytes());
     println!("  Entry point: {:#010x}", image.entry_address);
     println!();
 
-    // Open device.
+    // Discover device and check boot state.
+    let device =
+        saleae_usb::discovery::find_first_saleae().context("failed to find Saleae device")?;
+
+    println!("Found device: {device}");
+    println!("  Boot state: {}", device.boot_state);
+    if let Some(speed) = device.usb_speed {
+        println!("  USB speed:  {speed}");
+    }
+    println!();
+
+    match device.boot_state {
+        BootState::FirmwareRunning => {
+            println!("Firmware is already running on this device.");
+            println!("No upload needed. The device is ready for FPGA programming.");
+            println!();
+            println!("To force a firmware re-upload, power-cycle the device first");
+            println!("so it re-enters bootloader mode (bcdDevice=1.00).");
+            return Ok(());
+        }
+        BootState::Bootloader => {
+            println!("Device is in bootloader mode. Proceeding with firmware upload...");
+        }
+        BootState::Unknown(bcd) => {
+            bail!(
+                "Device has unexpected bcdDevice value {bcd:#06x}. \
+                 Cannot determine whether firmware upload is safe. \
+                 Expected 0x0000 (firmware running) or 0x0100 (bootloader)."
+            );
+        }
+    }
+
+    // Verify this is an FX3-based device.
+    if !device.device_type.is_fx3() {
+        bail!(
+            "Device {} is not FX3-based (it's {}). \
+             FX3 firmware upload is not applicable to this device.",
+            device.device_type,
+            if device.device_type.is_fx2() {
+                "FX2-based"
+            } else {
+                "unknown controller"
+            }
+        );
+    }
+
+    // Open the device and upload firmware.
     let usb_device =
         saleae_usb::discovery::open_first_device().context("failed to open Saleae device")?;
 
     let transport = saleae_usb::nusb_backend::NusbTransport::open(usb_device)
         .context("failed to claim USB interface")?;
 
-    // Upload.
     saleae_driver::firmware::upload_fx3_firmware(&transport, &image)
         .context("firmware upload failed")?;
 
-    println!("Firmware uploaded successfully.");
-    println!("Device should re-enumerate momentarily.");
+    println!("Firmware uploaded. Waiting for device to re-enumerate...");
+
+    // Drop the transport so the old device handle is released before
+    // we poll for the re-enumerated device.
+    drop(transport);
+
+    // Wait for the device to reappear with firmware running.
+    let timeout = Duration::from_secs(10);
+    let poll_interval = Duration::from_millis(500);
+
+    match saleae_usb::discovery::wait_for_device(timeout, poll_interval) {
+        Ok(new_device) => {
+            println!();
+            println!("Device re-enumerated successfully:");
+            println!("  {new_device}");
+            println!("  Boot state: {}", new_device.boot_state);
+            if let Some(speed) = new_device.usb_speed {
+                println!("  USB speed:  {speed}");
+            }
+            println!();
+            println!("Firmware upload complete. Device is ready for FPGA programming.");
+        }
+        Err(_) => {
+            println!();
+            println!("WARNING: Device did not re-enumerate within {timeout:?}.");
+            println!("The firmware may still be loading, or the device may need");
+            println!("a power cycle. Try 'saleae-cli list-devices' to check.");
+        }
+    }
 
     Ok(())
 }
