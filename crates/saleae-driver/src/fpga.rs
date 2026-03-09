@@ -179,10 +179,7 @@ pub fn fpga_post_init(ep1: &mut Ep1CommandChannel, is_lattice: bool) -> DriverRe
 
     // Step 2: CAPTURE_CONTROL (0x0040) -- fits in 8-bit path.
     debug!("Writing CAPTURE_CONTROL");
-    ep1.write_fpga_register(
-        fpga_regs::REG_CAPTURE_CONTROL,
-        init_values::CAPTURE_CONTROL,
-    )?;
+    ep1.write_fpga_register(fpga_regs::REG_CAPTURE_CONTROL, init_values::CAPTURE_CONTROL)?;
 
     // Step 3: INIT_CONFIG (0x00E0) -- fits in 8-bit path.
     debug!("Writing INIT_CONFIG");
@@ -378,8 +375,8 @@ fn set_ads528x_drive(ep1: &mut Ep1CommandChannel) -> DriverResult<()> {
 fn set_ads528x_enabled(ep1: &mut Ep1CommandChannel) -> DriverResult<()> {
     debug!("Enabling ADS528x ADC");
 
-    let spi_word = (fpga_regs::ADC_SPI_ENABLE_ADDR & 0x7F_FFFF)
-        | (fpga_regs::ADC_SPI_ENABLE_VALUE << 8);
+    let spi_word =
+        (fpga_regs::ADC_SPI_ENABLE_ADDR & 0x7F_FFFF) | (fpga_regs::ADC_SPI_ENABLE_VALUE << 8);
 
     ep1.write_fpga_register(fpga_regs::REG_SPI_DATA, spi_word)?;
     Ok(())
@@ -401,10 +398,7 @@ fn set_ads528x_enabled(ep1: &mut Ep1CommandChannel) -> DriverResult<()> {
 /// The exact JESD status bits being checked are hypothetical. The mask
 /// `JESD_READY_MASK` (link_up + sync_status + spll_locked + cpll_locked)
 /// is a conservative guess.
-fn wait_for_jesd_lock(
-    ep1: &mut Ep1CommandChannel,
-    timeout: Duration,
-) -> DriverResult<bool> {
+fn wait_for_jesd_lock(ep1: &mut Ep1CommandChannel, timeout: Duration) -> DriverResult<bool> {
     debug!("Waiting for JESD lock (timeout: {:?})", timeout);
 
     let start = Instant::now();
@@ -492,8 +486,7 @@ fn run_bitslip_detection(ep1: &mut Ep1CommandChannel) -> DriverResult<()> {
     // Log a warning but don't return an error.
     info!(
         max_retries = BITSLIP_MAX_RETRIES,
-        "Bitslip detection did not converge after {} retries",
-        BITSLIP_MAX_RETRIES
+        "Bitslip detection did not converge after {} retries", BITSLIP_MAX_RETRIES
     );
     Ok(())
 }
@@ -510,10 +503,16 @@ fn reset_jesd_phy(ep1: &mut Ep1CommandChannel) -> DriverResult<()> {
 
     // Assert reset (write a value with reset bits set).
     // PLACEHOLDER: The exact bit pattern is TBD from USB capture.
-    ep1.write_fpga_register(fpga_regs::REG_STATUS_DDR_JESD, fpga_regs::JESD_PHY_RESET_ASSERT)?;
+    ep1.write_fpga_register(
+        fpga_regs::REG_STATUS_DDR_JESD,
+        fpga_regs::JESD_PHY_RESET_ASSERT,
+    )?;
 
     // Deassert reset.
-    ep1.write_fpga_register(fpga_regs::REG_STATUS_DDR_JESD, fpga_regs::JESD_PHY_RESET_DEASSERT)?;
+    ep1.write_fpga_register(
+        fpga_regs::REG_STATUS_DDR_JESD,
+        fpga_regs::JESD_PHY_RESET_DEASSERT,
+    )?;
 
     debug!("JESD PHY reset complete");
     Ok(())
@@ -566,9 +565,9 @@ fn wait_for_ddr_ready(ep1: &mut Ep1CommandChannel, timeout: Duration) -> DriverR
 #[cfg(test)]
 mod tests {
     use super::*;
+    use saleae_proto::device::endpoint;
     use saleae_proto::obfuscation::EncryptionMode;
     use saleae_usb::mock::{MockTransport, UsbOperation};
-    use saleae_proto::device::endpoint;
 
     /// Create a mock channel with XorAll encryption and seed=0 (identity XOR).
     fn mock_channel(mock: &std::sync::Arc<MockTransport>) -> Ep1CommandChannel {
@@ -866,10 +865,7 @@ mod tests {
             out_ops[0][1], 0x01,
             "first write should use addr_hi=0x01 (COMMIT_CONTROL 0x01C0)"
         );
-        assert_eq!(
-            out_ops[0][2], 0xC0,
-            "first write should have addr_lo=0xC0"
-        );
+        assert_eq!(out_ops[0][2], 0xC0, "first write should have addr_lo=0xC0");
 
         // Op 1: CAPTURE_CONTROL via 8-bit path (opcode 0x80)
         assert_eq!(
@@ -1008,7 +1004,10 @@ mod tests {
         let result = common_device_init(&mut channel, false).unwrap();
 
         assert_eq!(result.device_id, device_id);
-        assert!(!result.jesd_locked, "JESD should not be locked for non-Lattice");
+        assert!(
+            !result.jesd_locked,
+            "JESD should not be locked for non-Lattice"
+        );
         assert!(!result.ddr_ready, "DDR ready not checked for non-Lattice");
 
         // Verify only 1 OUT transfer (the EEPROM read command).

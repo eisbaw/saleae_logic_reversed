@@ -78,6 +78,20 @@ pub const REG_ANALOG_CH_CONFIG_4: u16 = 0x0064;
 /// Analog channel configuration 5.
 pub const REG_ANALOG_CH_CONFIG_5: u16 = 0x0068;
 
+/// Compute per-channel analog config register address.
+///
+/// Registers 0x0054..0x0068 cover channels 0..5. For Logic Pro 8,
+/// channels 0-5 use these registers; channels 6-7 may use a different
+/// range (not yet confirmed).
+///
+/// # Panics
+///
+/// Panics if `channel >= 6`.
+pub const fn analog_ch_config_addr(channel: u8) -> u16 {
+    assert!(channel < 6, "analog channel must be 0..5");
+    REG_ANALOG_CH_CONFIG_0 + (channel as u16) * 4
+}
+
 // ---------------------------------------------------------------------------
 // Trigger registers
 // ---------------------------------------------------------------------------
@@ -311,12 +325,24 @@ mod tests {
             REG_DIGITAL_TEST_PATTERN,
         ];
         for addr in addrs {
-            assert_eq!(
-                addr % 4,
-                0,
-                "register {addr:#06x} is not 4-byte aligned"
-            );
+            assert_eq!(addr % 4, 0, "register {addr:#06x} is not 4-byte aligned");
         }
+    }
+
+    #[test]
+    fn analog_ch_config_addresses() {
+        assert_eq!(analog_ch_config_addr(0), 0x0054);
+        assert_eq!(analog_ch_config_addr(1), 0x0058);
+        assert_eq!(analog_ch_config_addr(2), 0x005C);
+        assert_eq!(analog_ch_config_addr(3), 0x0060);
+        assert_eq!(analog_ch_config_addr(4), 0x0064);
+        assert_eq!(analog_ch_config_addr(5), 0x0068);
+    }
+
+    #[test]
+    #[should_panic(expected = "analog channel must be 0..5")]
+    fn analog_ch_config_panics_on_invalid_channel() {
+        let _ = analog_ch_config_addr(6);
     }
 
     #[test]

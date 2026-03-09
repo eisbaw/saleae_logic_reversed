@@ -438,7 +438,13 @@ impl Ep1CommandChannel {
         let val_bytes = value.to_be_bytes();
 
         // Send as: opcode=addr_hi, payload=[addr_lo, val3, val2, val1, val0]
-        let payload = [addr_lo, val_bytes[0], val_bytes[1], val_bytes[2], val_bytes[3]];
+        let payload = [
+            addr_lo,
+            val_bytes[0],
+            val_bytes[1],
+            val_bytes[2],
+            val_bytes[3],
+        ];
 
         debug!(
             addr = format_args!("{addr:#06x}"),
@@ -451,10 +457,7 @@ impl Ep1CommandChannel {
         // Read ACK (Pro devices send a response for all EP1 writes).
         let mut ack = [0u8; 64];
         let n = self.recv_response(&mut ack)?;
-        debug!(
-            ack_len = n,
-            "WriteRegister16 ACK"
-        );
+        debug!(ack_len = n, "WriteRegister16 ACK");
 
         Ok(())
     }
@@ -593,17 +596,14 @@ impl Ep1CommandChannel {
         if n < 8 {
             return Err(DriverError::CommandFailed {
                 command: "ReadEepromDeviceId",
-                detail: format!(
-                    "expected at least 8 bytes for device ID, got {n}"
-                ),
+                detail: format!("expected at least 8 bytes for device ID, got {n}"),
             });
         }
 
         // Parse as little-endian u64 (HYPOTHESIS -- endianness needs
         // USB capture confirmation).
         let device_id = u64::from_le_bytes([
-            buf[0], buf[1], buf[2], buf[3],
-            buf[4], buf[5], buf[6], buf[7],
+            buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6], buf[7],
         ]);
 
         info!(

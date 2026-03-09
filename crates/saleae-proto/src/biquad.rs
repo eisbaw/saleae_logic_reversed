@@ -64,9 +64,7 @@ impl BiquadFilter {
     pub fn process_sample(&mut self, x: f64) -> f64 {
         let mut signal = x;
         for (section, state) in self.sections.iter().zip(self.state.iter_mut()) {
-            let y = section.b0 * signal
-                + section.b1 * state.x1
-                + section.b2 * state.x2
+            let y = section.b0 * signal + section.b1 * state.x1 + section.b2 * state.x2
                 - section.a1 * state.y1
                 - section.a2 * state.y2;
 

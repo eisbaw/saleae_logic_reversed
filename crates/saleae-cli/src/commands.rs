@@ -248,7 +248,10 @@ pub fn program_fpga(bitstream_path: &str, skip_post_init: bool) -> Result<()> {
     let bitstream = std::fs::read(bitstream_path)
         .with_context(|| format!("failed to read bitstream file: {bitstream_path}"))?;
 
-    println!("Bitstream loaded: {} bytes from {bitstream_path}", bitstream.len());
+    println!(
+        "Bitstream loaded: {} bytes from {bitstream_path}",
+        bitstream.len()
+    );
     println!();
 
     // Discover device and check boot state.
@@ -320,9 +323,7 @@ pub fn program_fpga(bitstream_path: &str, skip_post_init: bool) -> Result<()> {
         // Xilinx is only for legacy Logic 16.
         let is_lattice = device.device_type.is_fx3();
 
-        println!(
-            "Running post-init sequence (Lattice: {is_lattice})..."
-        );
+        println!("Running post-init sequence (Lattice: {is_lattice})...");
         saleae_driver::fpga::fpga_post_init(&mut channel, is_lattice)
             .context("FPGA post-init failed")?;
         println!("Post-init complete.");
@@ -404,7 +405,10 @@ pub fn device_init(bitstream_path: Option<&str>, skip_fpga: bool) -> Result<()> 
         let bitstream = std::fs::read(bs_path)
             .with_context(|| format!("failed to read bitstream file: {bs_path}"))?;
 
-        println!("Programming FPGA ({} bytes from {bs_path})...", bitstream.len());
+        println!(
+            "Programming FPGA ({} bytes from {bs_path})...",
+            bitstream.len()
+        );
         saleae_driver::fpga::program_fpga(&mut channel, &bitstream)
             .context("FPGA programming failed")?;
         println!("FPGA programming verified.");
@@ -430,7 +434,10 @@ pub fn device_init(bitstream_path: Option<&str>, skip_fpga: bool) -> Result<()> 
 
     println!();
     println!("CommonDeviceInit results:");
-    println!("  Device ID:   {:#018x} ({})", result.device_id, result.device_id);
+    println!(
+        "  Device ID:   {:#018x} ({})",
+        result.device_id, result.device_id
+    );
     println!("  JESD locked: {}", result.jesd_locked);
     println!("  DDR ready:   {}", result.ddr_ready);
     println!();
@@ -507,21 +514,187 @@ pub fn capture_digital(sample_rate: u64, duration: f64, channels: &str) -> Resul
 }
 
 /// Start an analog capture.
+///
+/// Validates the analog capture configuration, loads calibration data,
+/// creates per-channel AnalogProcessors (VoltageTransform + BiquadFilter),
+/// and prints the capture plan.
+///
+/// Hardware streaming is blocked (device stuck with red LED), so this
+/// performs a dry-run: validates everything, prints diagnostics, and exits.
 pub fn capture_analog(sample_rate: u64, duration: f64, channels: &str) -> Result<()> {
-    let _channel_list = parse_channel_list(channels)?;
+    let channel_list = parse_channel_list(channels)?;
+
+    // Build analog capture configuration.
+    let duration_samples = if duration > 0.0 {
+        (sample_rate as f64 * duration) as u64
+    } else {
+        0
+    };
+
+    let config = saleae_driver::capture::AnalogCaptureConfig {
+        sample_rate,
+        analog_channels: channel_list.clone(),
+        duration_samples,
+        samples_per_chunk: saleae_driver::capture::DEFAULT_SAMPLES_PER_CHUNK,
+        stats_enabled: true,
+    };
+
+    // Validate configuration.
+    config
+        .validate()
+        .map_err(|e| anyhow::anyhow!("invalid analog capture config: {e}"))?;
+
+    println!("Analog capture configuration:");
+    println!("  Sample rate:       {} Hz", config.sample_rate);
+    println!("  Channels:          {:?}", config.analog_channels);
+    println!("  Duration samples:  {}", config.duration_samples);
+    println!("  Stats enabled:     {}", config.stats_enabled);
+    println!("  Samples per chunk: {}", config.samples_per_chunk);
+    println!(
+        "  Sample data bytes: {} bytes/chunk",
+        config.sample_data_bytes_per_chunk()
+    );
+    println!();
+
+    // Try to load calibration data from local file.
+    // Look for .cal files in re/ directory.
+    let cal_dir = std::path::PathBuf::from("re");
+    let cal_result = find_and_load_calibration(&cal_dir);
+
+    match cal_result {
+        Ok(cal) => {
+            println!("Calibration data loaded:");
+            println!("  Device ID:        {:#018x}", cal.device_id);
+            println!("  Device type:      {}", cal.device_type);
+            println!("  Calibration date: {}", cal.calibration_date);
+            println!("  Voltage ranges:   {} channels", cal.voltage_ranges.len());
+            println!(
+                "  Cal sets:         {} (channel, rate) combos",
+                cal.calibration_sets.len()
+            );
+            println!();
+
+            // Create per-channel AnalogProcessors.
+            println!("Per-channel processor setup:");
+            for &ch in &channel_list {
+                match create_channel_processor(&cal, ch, sample_rate) {
+                    Ok(proc) => {
+                        let vr = cal.find_voltage_range(ch).unwrap();
+                        println!("  Channel {ch}:");
+                        println!(
+                            "    Voltage range: [{:.3}, {:.3}] V",
+                            vr.min_voltage, vr.max_voltage
+                        );
+                        println!(
+                            "    Transform:     scale={:.6}, offset={:.6}",
+                            proc.transform().scale,
+                            proc.transform().offset
+                        );
+                        println!(
+                            "    IIR filter:    {} biquad sections",
+                            proc.filter().num_sections()
+                        );
+                    }
+                    Err(e) => {
+                        println!("  Channel {ch}: FAILED - {e}");
+                    }
+                }
+            }
+            println!();
+        }
+        Err(e) => {
+            println!("No calibration data available: {e}");
+            println!("  Without calibration, analog output would be uncalibrated.");
+            println!("  Place a .cal file in re/ or download with device ID.");
+            println!();
+        }
+    }
+
+    // Print AFE configuration (placeholder).
+    println!("AFE configuration (PLACEHOLDER - not validated against hardware):");
+    for &ch in &channel_list {
+        let afe = saleae_driver::capture::AfeChannelConfig::default();
+        println!(
+            "  Channel {ch}: attn1={} attn2={} preamp={} ladder={} gain={} dac_offset={} -> reg={:#010x}",
+            afe.attn1,
+            afe.attn2,
+            afe.preamp,
+            afe.ladder,
+            afe.gain,
+            afe.dac_offset,
+            afe.to_register_value()
+        );
+    }
+    println!();
 
     bail!(
-        "Analog capture not yet implemented.\n\
+        "Hardware capture not yet available.\n\
          \n\
-         This requires reverse engineering of:\n\
-         - Analog data streaming format and ADC encoding\n\
-         - Calibration data download and application\n\
-         - FIR filter reconstruction\n\
+         The analog capture pipeline is implemented:\n\
+         - AnalogCaptureConfig with validation\n\
+         - Analog disaggregation (interleaved int16 -> per-channel)\n\
+         - AnalogProcessor (VoltageTransform + IIR biquad calibration filter)\n\
+         - AFE channel config (placeholder register packing)\n\
          \n\
-         Sample rate: {sample_rate} Hz\n\
-         Duration: {duration}s\n\
-         Channels: {channels}"
+         But hardware is currently blocked. Once the device is recovered,\n\
+         this command will:\n\
+         \n\
+         1. Open the device and initialize the command channel\n\
+         2. Write AFE config to FPGA registers 0x0054-0x0068\n\
+         3. Write capture parameters to FPGA registers\n\
+         4. Send StartSampling (0x01) to begin data flow on EP2 IN\n\
+         5. Read and parse data chunks (header + int16 samples + stats)\n\
+         6. Disaggregate interleaved channels into per-channel int16 streams\n\
+         7. Apply VoltageTransform + IIR biquad filter per channel\n\
+         8. Output calibrated voltage samples (CSV to stdout)\n\
+         9. Send StopDataPath (0x86) + StopStream (0x02) to end capture"
     );
+}
+
+/// Find and load the first .cal file in a directory.
+fn find_and_load_calibration(dir: &std::path::Path) -> Result<saleae_proto::CalibrationData> {
+    if !dir.exists() {
+        bail!("calibration directory {} does not exist", dir.display());
+    }
+
+    let entries = std::fs::read_dir(dir)
+        .with_context(|| format!("failed to read directory {}", dir.display()))?;
+
+    for entry in entries {
+        let entry = entry?;
+        let path = entry.path();
+        if path.extension().map_or(false, |ext| ext == "cal") {
+            return saleae_driver::calibration::load_calibration_file(&path)
+                .map_err(|e| anyhow::anyhow!("failed to load {}: {}", path.display(), e));
+        }
+    }
+
+    bail!("no .cal files found in {}", dir.display());
+}
+
+/// Create an AnalogProcessor for a specific channel and sample rate.
+fn create_channel_processor(
+    cal: &saleae_proto::CalibrationData,
+    channel: u8,
+    sample_rate: u64,
+) -> Result<saleae_proto::AnalogProcessor> {
+    let vr = cal
+        .find_voltage_range(channel)
+        .ok_or_else(|| anyhow::anyhow!("no voltage range for channel {}", channel))?;
+
+    let set = cal.find_set(channel, sample_rate).ok_or_else(|| {
+        anyhow::anyhow!(
+            "no calibration set for channel {} at {} Hz",
+            channel,
+            sample_rate
+        )
+    })?;
+
+    let transform =
+        saleae_proto::VoltageTransform::from_range(vr.min_voltage, vr.max_voltage, -2048, 2047);
+    let filter = saleae_proto::BiquadFilter::new(&set.sections);
+
+    Ok(saleae_proto::AnalogProcessor::new(transform, filter))
 }
 
 /// Parse a comma-separated channel list like "0,1,2,3" into a Vec<u8>.

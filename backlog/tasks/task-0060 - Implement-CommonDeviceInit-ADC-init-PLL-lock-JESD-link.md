@@ -1,9 +1,10 @@
 ---
 id: TASK-0060
 title: 'Implement CommonDeviceInit (ADC init, PLL lock, JESD link)'
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-03-09 11:21'
+updated_date: '2026-03-09 13:36'
 labels:
   - rust
   - hardware-testing

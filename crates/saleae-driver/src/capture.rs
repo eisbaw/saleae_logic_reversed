@@ -165,8 +165,194 @@ impl CaptureConfig {
     pub fn sample_data_bytes_per_chunk(&self) -> usize {
         // Each byte holds (8 / channel_group_count) samples.
         let samples_per_byte = 8 / self.channel_group_count();
-        let byte_count = (self.samples_per_chunk as usize + samples_per_byte - 1) / samples_per_byte;
-        byte_count
+        (self.samples_per_chunk as usize + samples_per_byte - 1) / samples_per_byte
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Analog capture configuration
+// ---------------------------------------------------------------------------
+
+/// Configuration for an analog capture session.
+///
+/// Separate from [`CaptureConfig`] because analog capture has different
+/// parameters: per-channel AFE configuration, calibration-dependent
+/// sample processing, and different data formats (int16 vs 1-bit).
+#[derive(Debug, Clone)]
+pub struct AnalogCaptureConfig {
+    /// Sample rate in Hz.
+    ///
+    /// Valid rates for Logic Pro 8 analog: 50_000_000, 12_500_000,
+    /// 6_250_000, 3_125_000, 1_562_500, 781_250 (same as calibration rates).
+    pub sample_rate: u64,
+
+    /// Enabled analog channel indices (0-based, 0-7 for Pro 8).
+    pub analog_channels: Vec<u8>,
+
+    /// Number of samples to capture per channel. 0 = capture until stop.
+    pub duration_samples: u64,
+
+    /// Samples per chunk (must be multiple of 256 when stats enabled).
+    ///
+    /// PLACEHOLDER: The actual value depends on the device and FPGA type.
+    pub samples_per_chunk: u32,
+
+    /// Whether to enable per-packet stats collection.
+    pub stats_enabled: bool,
+}
+
+/// Known analog sample rates for Logic Pro 8/16.
+///
+/// These correspond to the sample rates present in calibration data.
+pub const ANALOG_SAMPLE_RATES: &[u64] = &[
+    50_000_000, 12_500_000, 6_250_000, 3_125_000, 1_562_500, 781_250,
+];
+
+/// Maximum analog channel index for Logic Pro 8.
+pub const MAX_ANALOG_CHANNEL_PRO8: u8 = 7;
+
+/// Maximum analog channel index for Logic Pro 16.
+pub const MAX_ANALOG_CHANNEL_PRO16: u8 = 15;
+
+/// Per-channel analog front-end (AFE) configuration.
+///
+/// The AFE settings control the analog signal path before the ADC:
+/// attenuators, VGA gain, and DAC offset. These are written to FPGA
+/// registers 0x0054-0x0068.
+///
+/// # PLACEHOLDER
+///
+/// The exact register bit layout is unknown. The field names are from
+/// string analysis of `libgraph_server_shared.so`. The actual values
+/// need USB capture from the Saleae app during analog capture setup.
+#[derive(Debug, Clone, Copy)]
+pub struct AfeChannelConfig {
+    /// First attenuator stage (0 or 1). PLACEHOLDER.
+    pub attn1: u8,
+    /// Second attenuator stage (0 or 1). PLACEHOLDER.
+    pub attn2: u8,
+    /// Preamplifier enable (0 or 1). PLACEHOLDER.
+    pub preamp: u8,
+    /// Resistor ladder gain select. PLACEHOLDER.
+    pub ladder: u8,
+    /// Fine gain adjust. PLACEHOLDER.
+    pub gain: u8,
+    /// DAC offset correction code. PLACEHOLDER.
+    pub dac_offset: u16,
+}
+
+impl Default for AfeChannelConfig {
+    /// Default AFE configuration (no attenuation, no gain, zero offset).
+    ///
+    /// PLACEHOLDER: These defaults are guesses. The correct values
+    /// depend on the voltage range and sample rate, and need USB
+    /// capture confirmation.
+    fn default() -> Self {
+        Self {
+            attn1: 0,
+            attn2: 0,
+            preamp: 0,
+            ladder: 0,
+            gain: 0,
+            dac_offset: 0,
+        }
+    }
+}
+
+impl AfeChannelConfig {
+    /// Pack the AFE config into a 32-bit register value.
+    ///
+    /// PLACEHOLDER: The bit layout is completely unknown. This packs
+    /// the fields into a minimal format for now. Will need to be
+    /// updated once the real format is reverse-engineered from USB
+    /// captures.
+    pub fn to_register_value(&self) -> u32 {
+        // PLACEHOLDER packing:
+        // [7:0]   = attn1 | attn2 | preamp | ladder | gain
+        // [23:8]  = dac_offset
+        // [31:24] = reserved
+        let mut value: u32 = 0;
+        value |= (self.attn1 as u32) & 0x01;
+        value |= ((self.attn2 as u32) & 0x01) << 1;
+        value |= ((self.preamp as u32) & 0x01) << 2;
+        value |= ((self.ladder as u32) & 0x0F) << 3;
+        value |= ((self.gain as u32) & 0x01) << 7;
+        value |= (self.dac_offset as u32) << 8;
+        value
+    }
+}
+
+impl Default for AnalogCaptureConfig {
+    fn default() -> Self {
+        Self {
+            sample_rate: 1_000_000,
+            analog_channels: vec![0],
+            duration_samples: 0,
+            samples_per_chunk: DEFAULT_SAMPLES_PER_CHUNK,
+            stats_enabled: true,
+        }
+    }
+}
+
+impl AnalogCaptureConfig {
+    /// Validate the analog capture configuration.
+    pub fn validate(&self) -> DriverResult<()> {
+        if self.sample_rate == 0 {
+            return Err(DriverError::InvalidCaptureConfig {
+                reason: "sample rate must be > 0".into(),
+            });
+        }
+
+        if self.analog_channels.is_empty() {
+            return Err(DriverError::InvalidCaptureConfig {
+                reason: "at least one analog channel must be enabled".into(),
+            });
+        }
+
+        for &ch in &self.analog_channels {
+            if ch > MAX_ANALOG_CHANNEL_PRO16 {
+                return Err(DriverError::InvalidCaptureConfig {
+                    reason: format!(
+                        "analog channel {} out of range (max {})",
+                        ch, MAX_ANALOG_CHANNEL_PRO16
+                    ),
+                });
+            }
+        }
+
+        if self.stats_enabled
+            && self.samples_per_chunk
+                % (capture_data::SAMPLES_PER_PACKET_MULTIPLE_WITH_STATS as u32)
+                != 0
+        {
+            return Err(DriverError::InvalidCaptureConfig {
+                reason: format!(
+                    "samples_per_chunk ({}) must be a multiple of {} when stats enabled",
+                    self.samples_per_chunk,
+                    capture_data::SAMPLES_PER_PACKET_MULTIPLE_WITH_STATS
+                ),
+            });
+        }
+
+        if self.samples_per_chunk < 64 {
+            return Err(DriverError::InvalidCaptureConfig {
+                reason: format!(
+                    "samples_per_chunk ({}) must be >= 64",
+                    self.samples_per_chunk
+                ),
+            });
+        }
+
+        Ok(())
+    }
+
+    /// Number of bytes of analog sample data per chunk.
+    ///
+    /// Each analog sample is 2 bytes (int16 LE). With N channels,
+    /// each sample row is 2*N bytes.
+    pub fn sample_data_bytes_per_chunk(&self) -> usize {
+        let num_channels = self.analog_channels.len();
+        self.samples_per_chunk as usize * 2 * num_channels
     }
 }
 
@@ -188,10 +374,7 @@ impl CaptureConfig {
 /// The capture configuration data blob format sent via
 /// WriteConfigurationData (0x7F) is also UNKNOWN. This function writes
 /// reasonable placeholder values that will need USB capture validation.
-pub fn configure_capture(
-    ep1: &mut Ep1CommandChannel,
-    config: &CaptureConfig,
-) -> DriverResult<()> {
+pub fn configure_capture(ep1: &mut Ep1CommandChannel, config: &CaptureConfig) -> DriverResult<()> {
     config.validate()?;
 
     info!(
@@ -262,8 +445,7 @@ pub fn configure_capture(
 /// approximation assuming 0-3.3V range mapped to 0-255.
 fn voltage_to_threshold_code(voltage: f64) -> u32 {
     let clamped = voltage.clamp(0.0, 3.3);
-    let code = ((clamped / 3.3) * 255.0) as u32;
-    code
+    ((clamped / 3.3) * 255.0) as u32
 }
 
 /// Build the capture configuration data blob.
@@ -379,10 +561,7 @@ impl CaptureStream {
                 );
             }
         } else if ch < self.channel_started.len() && !self.channel_started[ch] {
-            warn!(
-                channel = ch,
-                "Received digital data without start packet"
-            );
+            warn!(channel = ch, "Received digital data without start packet");
         }
 
         // Count samples.
@@ -560,41 +739,51 @@ mod tests {
 
     #[test]
     fn config_zero_sample_rate_invalid() {
-        let mut config = CaptureConfig::default();
-        config.sample_rate = 0;
+        let config = CaptureConfig {
+            sample_rate: 0,
+            ..CaptureConfig::default()
+        };
         let err = config.validate().unwrap_err();
         assert!(err.to_string().contains("sample rate"));
     }
 
     #[test]
     fn config_no_channels_invalid() {
-        let mut config = CaptureConfig::default();
-        config.digital_channels = vec![];
+        let config = CaptureConfig {
+            digital_channels: vec![],
+            ..CaptureConfig::default()
+        };
         let err = config.validate().unwrap_err();
         assert!(err.to_string().contains("channel"));
     }
 
     #[test]
     fn config_channel_out_of_range() {
-        let mut config = CaptureConfig::default();
-        config.digital_channels = vec![0, 16]; // 16 is out of range
+        let config = CaptureConfig {
+            digital_channels: vec![0, 16],
+            ..CaptureConfig::default()
+        };
         let err = config.validate().unwrap_err();
         assert!(err.to_string().contains("16"));
     }
 
     #[test]
     fn config_misaligned_samples_per_chunk() {
-        let mut config = CaptureConfig::default();
-        config.samples_per_chunk = 100; // not multiple of 256
+        let config = CaptureConfig {
+            samples_per_chunk: 100,
+            ..CaptureConfig::default()
+        };
         let err = config.validate().unwrap_err();
         assert!(err.to_string().contains("multiple of 256"));
     }
 
     #[test]
     fn config_small_samples_per_chunk() {
-        let mut config = CaptureConfig::default();
-        config.samples_per_chunk = 32;
-        config.stats_enabled = false; // disable stats so the size check triggers, not alignment
+        let config = CaptureConfig {
+            samples_per_chunk: 32,
+            stats_enabled: false,
+            ..CaptureConfig::default()
+        };
         let err = config.validate().unwrap_err();
         assert!(err.to_string().contains(">= 64"));
     }
@@ -799,7 +988,7 @@ mod tests {
         // For stop, we need the EP1 command channel.
         // StopDataPath sends 0x86 and tries to read response.
         mock.push_bulk_in_response(ep::BULK_IN, vec![0x00]); // StopDataPath response
-        // StopStream sends 0x02 and reads response.
+                                                             // StopStream sends 0x02 and reads response.
         mock.push_bulk_in_response(ep::BULK_IN, vec![0x00]); // StopStream response
 
         let mut channel = mock_channel(&mock);
@@ -815,7 +1004,11 @@ mod tests {
                 _ => None,
             })
             .collect();
-        assert_eq!(out_ops.len(), 2, "should send 2 commands (stop_data_path + stop_stream)");
+        assert_eq!(
+            out_ops.len(),
+            2,
+            "should send 2 commands (stop_data_path + stop_stream)"
+        );
 
         // First command: StopDataPath (0x86)
         assert_eq!(out_ops[0][1], 0x86, "first stop command should be 0x86");
@@ -863,7 +1056,7 @@ mod tests {
         assert_eq!(voltage_to_threshold_code(3.3), 255);
         // 1.65V should be about half (127 or 128)
         let mid = voltage_to_threshold_code(1.65);
-        assert!(mid >= 126 && mid <= 128, "mid should be ~127, got {mid}");
+        assert!((126..=128).contains(&mid), "mid should be ~127, got {mid}");
     }
 
     #[test]
@@ -926,5 +1119,134 @@ mod tests {
             ..CaptureConfig::default()
         };
         assert_eq!(config.channel_group_count(), 4);
+    }
+
+    // -------------------------------------------------------------------
+    // AnalogCaptureConfig tests
+    // -------------------------------------------------------------------
+
+    #[test]
+    fn analog_config_default_is_valid() {
+        AnalogCaptureConfig::default().validate().unwrap();
+    }
+
+    #[test]
+    fn analog_config_zero_sample_rate_invalid() {
+        let config = AnalogCaptureConfig {
+            sample_rate: 0,
+            ..AnalogCaptureConfig::default()
+        };
+        let err = config.validate().unwrap_err();
+        assert!(err.to_string().contains("sample rate"));
+    }
+
+    #[test]
+    fn analog_config_no_channels_invalid() {
+        let config = AnalogCaptureConfig {
+            analog_channels: vec![],
+            ..AnalogCaptureConfig::default()
+        };
+        let err = config.validate().unwrap_err();
+        assert!(err.to_string().contains("channel"));
+    }
+
+    #[test]
+    fn analog_config_channel_out_of_range() {
+        let config = AnalogCaptureConfig {
+            analog_channels: vec![0, 16],
+            ..AnalogCaptureConfig::default()
+        };
+        let err = config.validate().unwrap_err();
+        assert!(err.to_string().contains("16"));
+    }
+
+    #[test]
+    fn analog_config_misaligned_samples_per_chunk() {
+        let config = AnalogCaptureConfig {
+            samples_per_chunk: 100,
+            ..AnalogCaptureConfig::default()
+        };
+        let err = config.validate().unwrap_err();
+        assert!(err.to_string().contains("multiple of 256"));
+    }
+
+    #[test]
+    fn analog_config_valid_custom() {
+        let config = AnalogCaptureConfig {
+            sample_rate: 50_000_000,
+            analog_channels: vec![0, 1, 2, 3],
+            duration_samples: 1_000_000,
+            samples_per_chunk: 512,
+            stats_enabled: true,
+        };
+        config.validate().unwrap();
+    }
+
+    #[test]
+    fn analog_sample_data_bytes_per_chunk() {
+        let config = AnalogCaptureConfig {
+            analog_channels: vec![0, 1],
+            samples_per_chunk: 256,
+            ..AnalogCaptureConfig::default()
+        };
+        // 256 samples * 2 bytes/sample * 2 channels = 1024
+        assert_eq!(config.sample_data_bytes_per_chunk(), 1024);
+    }
+
+    #[test]
+    fn analog_sample_data_bytes_single_channel() {
+        let config = AnalogCaptureConfig {
+            analog_channels: vec![0],
+            samples_per_chunk: 256,
+            ..AnalogCaptureConfig::default()
+        };
+        // 256 samples * 2 bytes/sample * 1 channel = 512
+        assert_eq!(config.sample_data_bytes_per_chunk(), 512);
+    }
+
+    #[test]
+    fn analog_sample_data_bytes_eight_channels() {
+        let config = AnalogCaptureConfig {
+            analog_channels: vec![0, 1, 2, 3, 4, 5, 6, 7],
+            samples_per_chunk: 256,
+            ..AnalogCaptureConfig::default()
+        };
+        // 256 samples * 2 bytes/sample * 8 channels = 4096
+        assert_eq!(config.sample_data_bytes_per_chunk(), 4096);
+    }
+
+    // -------------------------------------------------------------------
+    // AfeChannelConfig tests
+    // -------------------------------------------------------------------
+
+    #[test]
+    fn afe_default_register_is_zero() {
+        let afe = AfeChannelConfig::default();
+        assert_eq!(afe.to_register_value(), 0);
+    }
+
+    #[test]
+    fn afe_register_packing() {
+        let afe = AfeChannelConfig {
+            attn1: 1,
+            attn2: 1,
+            preamp: 1,
+            ladder: 0x0A,
+            gain: 1,
+            dac_offset: 0x1234,
+        };
+        let val = afe.to_register_value();
+        // bit 0 = attn1 = 1
+        assert_eq!(val & 0x01, 1);
+        // bit 1 = attn2 = 1
+        assert_eq!((val >> 1) & 0x01, 1);
+        // bit 2 = preamp = 1
+        assert_eq!((val >> 2) & 0x01, 1);
+        // bits 6:3 = ladder = 0x0A
+        assert_eq!((val >> 3) & 0x0F, 0x0A);
+        // bit 7 = gain = 1
+        assert_eq!((val >> 7) & 0x01, 1);
+        // bits 23:8 = dac_offset = 0x1234
+        assert_eq!((val >> 8) & 0xFFFF, 0x1234);
     }
 }

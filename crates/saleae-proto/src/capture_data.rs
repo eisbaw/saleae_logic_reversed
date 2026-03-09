@@ -200,9 +200,8 @@ impl StatsHeader {
         let packet_id = u32::from_le_bytes([data[0], data[1], data[2], data[3]]);
 
         // 48-bit timestamp: 6 bytes LE, zero-extended to u64
-        let timestamp_48 = u64::from_le_bytes([
-            data[4], data[5], data[6], data[7], data[8], data[9], 0, 0,
-        ]);
+        let timestamp_48 =
+            u64::from_le_bytes([data[4], data[5], data[6], data[7], data[8], data[9], 0, 0]);
 
         let flags = u16::from_le_bytes([data[10], data[11]]);
 
@@ -476,9 +475,9 @@ pub fn disaggregate_digital(interleaved: &[u8], num_channels: usize) -> Vec<Vec<
         // Each byte has `samples_per_byte` groups of `num_channels` bits.
         for sample in 0..samples_per_byte {
             let offset = sample * num_channels;
-            for ch in 0..num_channels {
+            for (ch, ch_vec) in channels.iter_mut().enumerate() {
                 let bit = (byte >> (offset + ch)) & 1 != 0;
-                channels[ch].push(bit);
+                ch_vec.push(bit);
             }
         }
     }
@@ -496,6 +495,56 @@ pub fn disaggregate_digital(interleaved: &[u8], num_channels: usize) -> Vec<Vec<
             bytes
         })
         .collect()
+}
+
+// ---------------------------------------------------------------------------
+// Analog sample helpers
+// ---------------------------------------------------------------------------
+
+/// Disaggregate interleaved multi-channel analog data into per-channel
+/// sample streams.
+///
+/// Analog samples are 16-bit signed integers (int16, little-endian), 2
+/// bytes each. With N analog channels enabled, every `2*N` bytes in the
+/// interleaved stream contain one sample per channel, in channel order
+/// (channel 0 first, then channel 1, etc.).
+///
+/// # Arguments
+///
+/// - `data`: The interleaved byte stream from EP2 IN.
+/// - `num_channels`: Number of enabled analog channels (1-8 for Pro 8).
+///
+/// # Returns
+///
+/// A vector of per-channel sample vectors. `result[ch]` contains all
+/// samples for channel `ch`.
+///
+/// # Panics
+///
+/// Panics if `num_channels` is 0.
+///
+/// # Note
+///
+/// Trailing bytes that do not form a complete sample row (2 * num_channels
+/// bytes) are silently discarded.
+pub fn disaggregate_analog(data: &[u8], num_channels: usize) -> Vec<Vec<i16>> {
+    assert!(num_channels > 0, "num_channels must be > 0");
+
+    let row_size = 2 * num_channels;
+    let num_rows = data.len() / row_size;
+
+    let mut channels: Vec<Vec<i16>> = vec![Vec::with_capacity(num_rows); num_channels];
+
+    for row_idx in 0..num_rows {
+        let row_start = row_idx * row_size;
+        for (ch, ch_vec) in channels.iter_mut().enumerate() {
+            let offset = row_start + ch * 2;
+            let sample = i16::from_le_bytes([data[offset], data[offset + 1]]);
+            ch_vec.push(sample);
+        }
+    }
+
+    channels
 }
 
 // ---------------------------------------------------------------------------
@@ -575,7 +624,10 @@ mod tests {
     fn chunk_header_parse_too_short() {
         let data = [0u8; 3];
         let err = ChunkHeader::parse(&data).unwrap_err();
-        assert!(matches!(err, ProtoError::BufferTooShort { need: 4, have: 3 }));
+        assert!(matches!(
+            err,
+            ProtoError::BufferTooShort { need: 4, have: 3 }
+        ));
     }
 
     // -------------------------------------------------------------------
@@ -613,10 +665,7 @@ mod tests {
         let err = StartPacketFields::parse(&data).unwrap_err();
         assert!(matches!(
             err,
-            ProtoError::BufferTooShort {
-                need: 12,
-                have: 11
-            }
+            ProtoError::BufferTooShort { need: 12, have: 11 }
         ));
     }
 
@@ -677,10 +726,7 @@ mod tests {
         let err = StatsHeader::parse(&data).unwrap_err();
         assert!(matches!(
             err,
-            ProtoError::BufferTooShort {
-                need: 20,
-                have: 19
-            }
+            ProtoError::BufferTooShort { need: 20, have: 19 }
         ));
     }
 
@@ -835,11 +881,12 @@ mod tests {
         let data = [0xFF, 0x00]; // 8 high, 8 low
         let samples = unpack_digital_samples(&data);
         assert_eq!(samples.len(), 16);
-        for i in 0..8 {
-            assert!(samples[i], "sample {i} should be high");
-        }
-        for i in 8..16 {
-            assert!(!samples[i], "sample {i} should be low");
+        for (i, &s) in samples.iter().enumerate() {
+            if i < 8 {
+                assert!(s, "sample {i} should be high");
+            } else {
+                assert!(!s, "sample {i} should be low");
+            }
         }
     }
 
@@ -868,15 +915,15 @@ mod tests {
         let ch1_samples = unpack_digital_samples(&channels[1]);
 
         // We only have 4 samples per channel (padded to 8 in the output byte)
-        assert_eq!(ch0_samples[0], false); // period0 ch0
-        assert_eq!(ch0_samples[1], true); // period1 ch0
-        assert_eq!(ch0_samples[2], false); // period2 ch0
-        assert_eq!(ch0_samples[3], true); // period3 ch0
+        assert!(!ch0_samples[0]); // period0 ch0
+        assert!(ch0_samples[1]); // period1 ch0
+        assert!(!ch0_samples[2]); // period2 ch0
+        assert!(ch0_samples[3]); // period3 ch0
 
-        assert_eq!(ch1_samples[0], false); // period0 ch1
-        assert_eq!(ch1_samples[1], false); // period1 ch1
-        assert_eq!(ch1_samples[2], true); // period2 ch1
-        assert_eq!(ch1_samples[3], true); // period3 ch1
+        assert!(!ch1_samples[0]); // period0 ch1
+        assert!(!ch1_samples[1]); // period1 ch1
+        assert!(ch1_samples[2]); // period2 ch1
+        assert!(ch1_samples[3]); // period3 ch1
     }
 
     #[test]
@@ -900,17 +947,17 @@ mod tests {
         let ch3 = unpack_digital_samples(&channels[3]);
 
         // 2 samples per channel
-        assert_eq!(ch0[0], true); // period0
-        assert_eq!(ch0[1], false); // period1
+        assert!(ch0[0]); // period0
+        assert!(!ch0[1]); // period1
 
-        assert_eq!(ch1[0], false);
-        assert_eq!(ch1[1], true);
+        assert!(!ch1[0]);
+        assert!(ch1[1]);
 
-        assert_eq!(ch2[0], true);
-        assert_eq!(ch2[1], false);
+        assert!(ch2[0]);
+        assert!(!ch2[1]);
 
-        assert_eq!(ch3[0], false);
-        assert_eq!(ch3[1], true);
+        assert!(!ch3[0]);
+        assert!(ch3[1]);
     }
 
     #[test]
@@ -954,10 +1001,10 @@ mod tests {
 
         let ch0 = unpack_digital_samples(&channels[0]);
         // ch0 samples: 1, 1, 0, 0 (from byte0-period0, byte0-period1, byte1-period0, byte1-period1)
-        assert_eq!(ch0[0], true);
-        assert_eq!(ch0[1], true);
-        assert_eq!(ch0[2], false);
-        assert_eq!(ch0[3], false);
+        assert!(ch0[0]);
+        assert!(ch0[1]);
+        assert!(!ch0[2]);
+        assert!(!ch0[3]);
     }
 
     // -------------------------------------------------------------------
@@ -1017,5 +1064,93 @@ mod tests {
         assert_eq!(chunk.sample_data.len(), 256);
         assert!(chunk.stats.is_some());
         assert_eq!(chunk.stats.unwrap().packet_id, 42);
+    }
+
+    // -------------------------------------------------------------------
+    // Analog disaggregation tests
+    // -------------------------------------------------------------------
+
+    #[test]
+    fn disaggregate_analog_single_channel() {
+        // 3 samples for 1 channel: [100, -200, 2047]
+        let mut data = Vec::new();
+        data.extend_from_slice(&100i16.to_le_bytes());
+        data.extend_from_slice(&(-200i16).to_le_bytes());
+        data.extend_from_slice(&2047i16.to_le_bytes());
+
+        let channels = disaggregate_analog(&data, 1);
+        assert_eq!(channels.len(), 1);
+        assert_eq!(channels[0], vec![100, -200, 2047]);
+    }
+
+    #[test]
+    fn disaggregate_analog_two_channels() {
+        // 2 sample rows, 2 channels: row0=[100, -100], row1=[200, -200]
+        let mut data = Vec::new();
+        // Row 0
+        data.extend_from_slice(&100i16.to_le_bytes());
+        data.extend_from_slice(&(-100i16).to_le_bytes());
+        // Row 1
+        data.extend_from_slice(&200i16.to_le_bytes());
+        data.extend_from_slice(&(-200i16).to_le_bytes());
+
+        let channels = disaggregate_analog(&data, 2);
+        assert_eq!(channels.len(), 2);
+        assert_eq!(channels[0], vec![100, 200]);
+        assert_eq!(channels[1], vec![-100, -200]);
+    }
+
+    #[test]
+    fn disaggregate_analog_eight_channels() {
+        // 1 sample row, 8 channels: [0, 1, 2, 3, 4, 5, 6, 7]
+        let mut data = Vec::new();
+        for ch in 0..8i16 {
+            data.extend_from_slice(&ch.to_le_bytes());
+        }
+
+        let channels = disaggregate_analog(&data, 8);
+        assert_eq!(channels.len(), 8);
+        for (ch, ch_data) in channels.iter().enumerate() {
+            assert_eq!(*ch_data, vec![ch as i16]);
+        }
+    }
+
+    #[test]
+    fn disaggregate_analog_boundary_values() {
+        // Test ADC code boundaries: -2048 (min) and 2047 (max) for 12-bit
+        let mut data = Vec::new();
+        data.extend_from_slice(&(-2048i16).to_le_bytes());
+        data.extend_from_slice(&2047i16.to_le_bytes());
+
+        let channels = disaggregate_analog(&data, 2);
+        assert_eq!(channels[0], vec![-2048]);
+        assert_eq!(channels[1], vec![2047]);
+    }
+
+    #[test]
+    fn disaggregate_analog_trailing_bytes_discarded() {
+        // 2 channels = 4 bytes per row. 5 bytes -> 1 row, 1 byte discarded.
+        let mut data = Vec::new();
+        data.extend_from_slice(&42i16.to_le_bytes());
+        data.extend_from_slice(&(-42i16).to_le_bytes());
+        data.push(0xFF); // trailing byte
+
+        let channels = disaggregate_analog(&data, 2);
+        assert_eq!(channels[0], vec![42]);
+        assert_eq!(channels[1], vec![-42]);
+    }
+
+    #[test]
+    fn disaggregate_analog_empty_input() {
+        let channels = disaggregate_analog(&[], 2);
+        assert_eq!(channels.len(), 2);
+        assert!(channels[0].is_empty());
+        assert!(channels[1].is_empty());
+    }
+
+    #[test]
+    #[should_panic(expected = "num_channels must be > 0")]
+    fn disaggregate_analog_zero_channels_panics() {
+        disaggregate_analog(&[0, 0], 0);
     }
 }

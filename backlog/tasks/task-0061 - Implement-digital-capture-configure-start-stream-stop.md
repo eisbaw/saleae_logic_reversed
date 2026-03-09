@@ -1,9 +1,10 @@
 ---
 id: TASK-0061
 title: 'Implement digital capture: configure, start, stream, stop'
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-03-09 11:22'
+updated_date: '2026-03-09 13:47'
 labels:
   - rust
   - hardware-testing

@@ -116,11 +116,7 @@ pub fn download_calibration(
 pub fn load_calibration_file(path: &Path) -> DriverResult<CalibrationData> {
     let data = fs::read(path)?;
     calibration::parse_calibration(&data).map_err(|e| {
-        DriverError::CalibrationDownload(format!(
-            "failed to parse {}: {}",
-            path.display(),
-            e
-        ))
+        DriverError::CalibrationDownload(format!("failed to parse {}: {}", path.display(), e))
     })
 }
 
@@ -168,8 +164,8 @@ mod tests {
         fs::copy(&src, &dest).expect("copy reference cal to cache");
 
         // Now download_calibration should use the cache
-        let cal = download_calibration(8520900333282843121, Some(&tmp))
-            .expect("download (cache hit)");
+        let cal =
+            download_calibration(8520900333282843121, Some(&tmp)).expect("download (cache hit)");
         assert_eq!(cal.device_id, 8520900333282843121);
 
         // Clean up

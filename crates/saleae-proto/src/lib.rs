@@ -4,6 +4,7 @@
 //! and parsers for the Saleae USB protocol. It has no USB dependency and is
 //! fully testable with byte slices.
 
+pub mod analog;
 pub mod biquad;
 pub mod calibration;
 pub mod capture_data;
@@ -14,6 +15,7 @@ pub mod fpga_regs;
 pub mod obfuscation;
 
 // Re-export key types at crate root for convenience.
+pub use analog::AnalogProcessor;
 pub use biquad::BiquadFilter;
 pub use calibration::{
     BiquadSection, CalibrationData, CalibrationSet, VoltageRange, VoltageTransform,

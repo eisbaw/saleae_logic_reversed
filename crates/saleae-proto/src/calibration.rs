@@ -258,7 +258,9 @@ pub fn parse_calibration(xml_data: &[u8]) -> ProtoResult<CalibrationData> {
                         });
                         in_item = false;
                     }
-                    "item" if in_item && in_voltage_ranges && !in_sos_coefficients && !in_fir_taps => {
+                    "item"
+                        if in_item && in_voltage_ranges && !in_sos_coefficients && !in_fir_taps =>
+                    {
                         let channel = vr_channel.ok_or_else(|| {
                             ProtoError::parse("voltage range item missing mChannelIndex")
                         })?;
@@ -349,10 +351,7 @@ pub fn parse_calibration(xml_data: &[u8]) -> ProtoResult<CalibrationData> {
                     }
                     "mImpulseLength" if in_item && in_calibration_data => {
                         item_impulse_length = Some(text.parse::<u64>().map_err(|e| {
-                            ProtoError::parse(format!(
-                                "invalid impulse length '{}': {}",
-                                text, e
-                            ))
+                            ProtoError::parse(format!("invalid impulse length '{}': {}", text, e))
                         })?);
                     }
                     "mFullScaleMinVoltage" if in_item && in_voltage_ranges => {
@@ -439,13 +438,7 @@ fn parse_sections(coeffs: &[f64]) -> ProtoResult<[BiquadSection; NUM_SECTIONS]> 
             )));
         }
 
-        *section = BiquadSection {
-            b0,
-            b1,
-            b2,
-            a1,
-            a2,
-        };
+        *section = BiquadSection { b0, b1, b2, a1, a2 };
     }
 
     Ok(sections)
@@ -573,10 +566,10 @@ mod tests {
 
         // Section 0 coefficients from reference file
         let s0 = &set.sections[0];
-        assert!((s0.b0 - 1.1470743525205651).abs() < 1e-12);
-        assert!((s0.b1 - (-1.1446541192031381)).abs() < 1e-12);
+        assert!((s0.b0 - 1.147_074_352_520_565).abs() < 1e-12);
+        assert!((s0.b1 - (-1.144_654_119_203_138)).abs() < 1e-12);
         assert!((s0.b2 - 0.0).abs() < 1e-12);
-        assert!((s0.a1 - (-0.99757976668257287)).abs() < 1e-12);
+        assert!((s0.a1 - (-0.997_579_766_682_572_9)).abs() < 1e-12);
         assert!((s0.a2 - 0.0).abs() < 1e-12);
     }
 
@@ -607,25 +600,22 @@ mod tests {
     fn sections_1_4_shared_across_channels_at_same_rate() {
         let cal = load_reference_cal();
         // Group by sample rate
-        let mut rates: Vec<u64> = cal
-            .calibration_sets
-            .iter()
-            .map(|s| s.sample_rate)
-            .collect();
+        let mut rates: Vec<u64> = cal.calibration_sets.iter().map(|s| s.sample_rate).collect();
         rates.sort();
         rates.dedup();
 
         for rate in rates {
-            let sets: Vec<&CalibrationSet> =
-                cal.calibration_sets.iter().filter(|s| s.sample_rate == rate).collect();
+            let sets: Vec<&CalibrationSet> = cal
+                .calibration_sets
+                .iter()
+                .filter(|s| s.sample_rate == rate)
+                .collect();
             if sets.len() < 2 {
                 continue;
             }
             let reference = &sets[0].sections;
             for set in &sets[1..] {
-                for section_idx in 1..NUM_SECTIONS {
-                    let ref_s = &reference[section_idx];
-                    let cur_s = &set.sections[section_idx];
+                for (ref_s, cur_s) in reference.iter().zip(set.sections.iter()).skip(1) {
                     assert!(
                         (ref_s.b0 - cur_s.b0).abs() < 1e-15
                             && (ref_s.b1 - cur_s.b1).abs() < 1e-15
@@ -672,7 +662,9 @@ mod tests {
         let rates: std::collections::HashSet<u64> =
             cal.calibration_sets.iter().map(|s| s.sample_rate).collect();
         assert_eq!(rates.len(), 6);
-        let expected_rates = [50_000_000, 12_500_000, 6_250_000, 3_125_000, 1_562_500, 781_250];
+        let expected_rates = [
+            50_000_000, 12_500_000, 6_250_000, 3_125_000, 1_562_500, 781_250,
+        ];
         for r in expected_rates {
             assert!(rates.contains(&r), "missing sample rate {}", r);
         }
@@ -750,8 +742,16 @@ mod tests {
     fn voltage_transform_logic4_unsigned() {
         // Logic 4: 8-bit unsigned ADC, 0-5V range
         let tx = VoltageTransform::from_range(0.0, 5.0, 0, 255);
-        assert!((tx.apply(0) - 0.0).abs() < 1e-10, "code 0 = {} V", tx.apply(0));
-        assert!((tx.apply(255) - 5.0).abs() < 1e-10, "code 255 = {} V", tx.apply(255));
+        assert!(
+            (tx.apply(0) - 0.0).abs() < 1e-10,
+            "code 0 = {} V",
+            tx.apply(0)
+        );
+        assert!(
+            (tx.apply(255) - 5.0).abs() < 1e-10,
+            "code 255 = {} V",
+            tx.apply(255)
+        );
         assert!(
             (tx.apply(128) - 2.5098).abs() < 0.01,
             "code 128 = {} V",
