@@ -39,6 +39,7 @@ access, capture start/stop, EEPROM access, I2C tunneling, and diagnostics.
 | 0x81 | ReadRegisters | OUT | 2 bytes (addr) | 4 bytes (value) |
 | 0x82 | ResetAndReEnumerate | OUT | None | (device resets) |
 | 0x86 | StopDataPath | OUT | None | Unknown |
+| 0x87 | WriteI2C | OUT | I2C addr + data | Confirmation |
 | 0x88 | ReadI2c | OUT | Variable | Variable |
 | 0x89 | Device2_1 | OUT | Unknown | Variable |
 | 0x8A | CMD_ASSERT_TEST | OUT | Unknown | Unknown |
@@ -113,6 +114,46 @@ Register addresses are 16-bit, values are 32-bit big-endian.
 
 Note: There is a separate direct register access path (without the 0x81
 opcode) used by MsoFpga code. See `doc/protocol/fpga-registers.md`.
+
+### WriteEeprom (0x55)
+
+Writes data to the on-device EEPROM via the FX3 I2C bus.
+
+```
+Host -> Device (EP1 OUT):  [0x55] [addr_hi] [addr_lo] [data...]
+Device -> Host (EP1 IN):   (read-back confirmation)
+```
+
+Address is 16-bit (U16). Data length is bounded by EepromPageSize()
+(the EEPROM chip's page write limit). The host logs "Write eeprom
+response read" after receiving the confirmation.
+
+### WriteI2C (0x87)
+
+Raw I2C write tunnel through the FX3. Used for crypto IC communication
+and other I2C peripherals.
+
+```
+Host -> Device (EP1 OUT):  [0x87] [i2c_addr] [data...]
+Device -> Host (EP1 IN):   (confirmation)
+```
+
+The host logs "WriteI2C request" before sending and "WriteI2C response"
+after receiving the reply.
+
+### ReadI2c (0x88)
+
+I2C read tunnel through the FX3. Used for EEPROM reads and crypto IC
+communication.
+
+```
+Host -> Device (EP1 OUT):  [0x88] [params...]
+Device -> Host (EP1 IN):   [data...]
+```
+
+The host logs "ReadI2c request" before sending and "ReadI2c response"
+after receiving. On error: "I2c tunnel error code {:#X}" or
+"I2c tunnel op timed out {:#X}".
 
 ### ReseedDevice (0x22)
 

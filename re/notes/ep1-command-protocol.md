@@ -68,7 +68,7 @@ There are two distinct paths for FPGA register access:
 
 ## Command Opcode Map
 
-12 distinct command opcodes identified through binary analysis:
+13 distinct command opcodes identified through binary analysis:
 
 | Opcode | Name | Payload | Response | Evidence |
 |--------|------|---------|----------|----------|
@@ -81,6 +81,7 @@ There are two distinct paths for FPGA register access:
 | 0x81 | ReadRegisters | 3 bytes: `[0x81] [addr_hi] [addr_lo]` | 4 bytes (32-bit value) | FPGA register read with opcode prefix |
 | 0x82 | ResetAndReEnumerate | 1 byte (opcode only) | Unknown | Near Fx2DeviceFeatures code |
 | 0x86 | StopDataPath | 1 byte (opcode only) | Unknown | Appears in stop sequence |
+| 0x87 | WriteI2C | Variable (I2C addr + data) | Confirmation | "WriteI2C request/response" strings, MOV 0x87 at VA 0x1c5157d |
 | 0x88 | ReadI2c | Variable | Variable | I2C tunnel through FX3 |
 | 0x89 | Device2_1 | Unknown | Variable | "Device2_1 reply" string |
 | 0x8A | CMD_ASSERT_TEST | Unknown | Unknown | Firmware assertion test |
