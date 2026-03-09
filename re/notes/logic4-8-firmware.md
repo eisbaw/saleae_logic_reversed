@@ -19,8 +19,10 @@ and Logic 8?
 firmware, just like the original Logic and Logic 16. The PRD assumption
 that Logic 4 uses FX3 was incorrect.
 
-**Logic 8 shares the Pro 8 FX3 firmware.** After upload, the reseed
-mechanism patches the USB PID to match the device's actual identity.
+**Logic 8 shares the Pro 8 FX3 firmware.** After upload, the device
+re-enumerates with the PID embedded in the firmware image. The "reseed"
+mechanism is unrelated to PID patching -- it establishes an XOR seed for
+command obfuscation (see `re/notes/reseed-mechanism.md`).
 
 **Logic Pro 16 has no embedded firmware fallback.** It checks for a
 custom firmware file first; if none is found, it throws an exception.
@@ -129,11 +131,14 @@ both inherit from Logic2FpgaDevice, confirming they are FX3-based.
 | Logic Pro 8     | 0x1005 | 7         | FX3 Pro 16 FW        | FX3           |
 | Logic Pro 16    | 0x1006 | 12        | Custom file or assert | FX3           |
 
-Logic 8 gets the Pro 8 firmware image (PID 0x1005 embedded), then the
-reseed mechanism patches the PID to 0x1004 after upload.
+Logic 8 gets the Pro 8 firmware image (PID 0x1005 embedded). After
+upload, the FX3 re-enumerates with PID 0x1005. The host identifies the
+device by its original pre-firmware PID, not the re-enumerated PID.
+(Note: the "reseed" mechanism is unrelated to PID; it sets an XOR seed
+for command obfuscation.)
 
-Logic Pro 8 gets the Pro 16 firmware image (PID 0x1006 embedded), then
-the reseed mechanism patches the PID to 0x1005 after upload.
+Logic Pro 8 gets the Pro 16 firmware image (PID 0x1006 embedded). The
+same logic applies.
 
 
 ## Corrections to prior documentation
@@ -153,15 +158,17 @@ the reseed mechanism patches the PID to 0x1005 after upload.
    Where does this file come from? Is it extracted from the .so at first
    run and cached on disk?
 
-2. **Reseed protocol**: The exact USB bulk transfer command for changing
-   the device PID (reseed) has not been reversed yet. The function
-   `LinuxUsbDevice::ReseedDevice(UsbEndpoint &)` uses bulk transfers.
+2. **Reseed protocol**: RESOLVED. ReseedDevice does NOT change the PID.
+   It sends 4 random bytes as an XOR seed for SimpleEncryption. See
+   `re/notes/reseed-mechanism.md` for full analysis.
 
 3. **DeviceType 0**: What device uses IHex group 1? Might be a test/debug
    device type or an older Saleae product variant.
 
 4. **Why the offset firmware assignment?**: Logic 8 gets Pro 8 FW (next PID
-   up) and Pro 8 gets Pro 16 FW (next PID up). This pattern suggests the
-   firmware is intentionally assigned one PID higher than the device, with
-   the reseed mechanism correcting it. The reason for this indirection is
-   unclear -- possibly related to the boot sequence or factory programming.
+   up) and Pro 8 gets Pro 16 FW (next PID up). Since the reseed mechanism
+   is NOT PID patching (it's XOR seed exchange), the offset firmware
+   assignment may indicate that the firmware images are actually shared /
+   generic across device types, and the host differentiates devices by
+   their pre-firmware VID:PID. The FX3 re-enumeration PID is a firmware
+   build artifact, not necessarily the device's true identity.

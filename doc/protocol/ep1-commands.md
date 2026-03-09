@@ -32,8 +32,8 @@ access, capture start/stop, EEPROM access, I2C tunneling, and diagnostics.
 |--------|------|-----------|---------|----------|
 | 0x01 | COMMAND_START_READ | OUT | None | 2 bytes: `[0x07, 0x00]` |
 | 0x02 | COMMAND_STOP_STREAM | OUT | None | 2 bytes: `[0x07, 0x00]` |
-| 0x22 | ReseedDevice | OUT | None | Read-back verification |
 | 0x55 | WriteEeprom | OUT | Address + data | Read-back confirmation |
+| 0x7D | Ping | OUT | 1 byte | 1 byte: complement of input |
 | 0x7E | ResetFpga | OUT | None | 1 byte: `0x00` |
 | 0x7F | WriteConfigurationData | OUT | Length + data | 1 byte: `0x00` |
 | 0x81 | ReadRegisters | OUT | 2 bytes (addr) | 4 bytes (value) |
@@ -155,15 +155,38 @@ The host logs "ReadI2c request" before sending and "ReadI2c response"
 after receiving. On error: "I2c tunnel error code {:#X}" or
 "I2c tunnel op timed out {:#X}".
 
-### ReseedDevice (0x22)
+### ReseedDevice (no fixed opcode)
 
-Firmware responsiveness test. Sent via direct `libusb_bulk_transfer`
-rather than the vtable command dispatch.
+Cryptographic seed exchange for XOR obfuscation of subsequent commands.
+Sends 4 random bytes to the FX3 via direct `libusb_bulk_transfer` (not
+through the vtable command dispatch). Both host and device use this
+shared seed for SimpleEncryption (XOR-based obfuscation).
 
 ```
-Host -> Device (EP1 OUT):  [0x22]
-Device -> Host (EP1 IN):   (read-back for verification)
+Host -> Device (EP1 OUT):  [seed_0] [seed_1] [seed_2] [seed_3]  (4 bytes)
 ```
+
+The host generates the seed using OpenSSL `RAND_bytes()`. The seed is
+stored at `this->offset_0x64` and used by `SetControlByte()` in
+`SimpleEncryption.cpp`. Timeout: 2000ms.
+
+Note: The prior entry listing this as opcode 0x22 was incorrect. The
+0x22 byte was an ASCII double-quote in the error string "Random not
+seeded", not a command opcode.
+
+### Ping (0x7D)
+
+Firmware liveness check. Sends a test byte; firmware returns its
+bitwise complement.
+
+```
+Host -> Device (EP1 OUT):  [0x7D] [0x55]
+Device -> Host (EP1 IN):   [0xAA]
+```
+
+Used by `TestFirmwareResponsivnessAndReseed` before each capture start.
+The host sends `0x55` and expects `0xAA` (`0x55 XOR 0xFF`). Retried
+up to 5 times. On failure: "ping command produced incorrect result".
 
 
 ## Register Access: Two Paths
@@ -221,7 +244,9 @@ Unrecognized opcodes produce: "unrecognized command"
 ```
 1. SetBankPower()                    (register writes, direct path)
 2. SetCaptureParameters()            (0x7F WriteConfigurationData, chunked)
-3. TestFirmwareResponsivnessAndReseed() (0x22 ReseedDevice)
+3. TestFirmwareResponsivnessAndReseed():
+   a. ReseedDevice()                 (send 4 random bytes, establish XOR seed)
+   b. Ping [0x7D, 0x55]             (expect 0xAA back, up to 5 retries)
 4. ComputeTransferSize()             (host-side calculation)
 5. SendStartCommand()                (0x01 COMMAND_START_READ)
 6. [Async bulk reads begin on EP2 IN]

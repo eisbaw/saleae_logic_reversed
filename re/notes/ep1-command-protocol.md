@@ -68,14 +68,14 @@ There are two distinct paths for FPGA register access:
 
 ## Command Opcode Map
 
-13 distinct command opcodes identified through binary analysis:
+14 distinct command opcodes identified through binary analysis:
 
 | Opcode | Name | Payload | Response | Evidence |
 |--------|------|---------|----------|----------|
 | 0x01 | COMMAND_START_READ | 1 byte (opcode only) | 2 bytes: `[0x07, 0x00]` = success | String "COMMAND_START_READ reply" at 0x3be25b |
 | 0x02 | COMMAND_STOP_STREAM | 1 byte (opcode only) | 2 bytes: `[0x07, 0x00]` = success | String "COMMAND_STOP_STREAM reply" at 0x3c4e7d |
-| 0x22 | ReseedDevice | Direct bulk write, not vtable | Read back for verification | Used by TestFirmwareResponsivnessAndReseed |
 | 0x55 | WriteEeprom | Variable (addr + data) | Confirmed via "Write eeprom response read" | String at multiple offsets |
+| 0x7D | Ping | 2 bytes: `[0x7D] [test_byte]` | 1 byte: complement of test_byte | TestFirmwareResponsivnessAndReseed sends 0x55, expects 0xAA |
 | 0x7E | ResetFpga | 1 byte (opcode only) | 1 byte: `0x00` = success | Near FPGA bitstream code |
 | 0x7F | WriteConfigurationData | Variable (see below) | 1 byte: `0x00` = success | Assertion strings for 62/509 limits |
 | 0x81 | ReadRegisters | 3 bytes: `[0x81] [addr_hi] [addr_lo]` | 4 bytes (32-bit value) | FPGA register read with opcode prefix |
@@ -149,16 +149,31 @@ Device -> Host (EP1 IN):   [val_3] [val_2] [val_1] [val_0] (4 bytes, big-endian)
 
 This is the command-wrapped register read path used by FpgaDeviceFeatures.
 
-### ReseedDevice (0x22)
+### ReseedDevice (no fixed opcode -- CORRECTED)
+
+**Previous entry listed this as opcode 0x22. That was wrong.** The 0x22
+byte was ASCII double-quote in the error string construction, not a
+command opcode. See `re/notes/reseed-mechanism.md` for full analysis.
+
+ReseedDevice sends 4 random bytes directly via `libusb_bulk_transfer`
+(not through the vtable command protocol). These bytes establish a shared
+XOR seed used by `SimpleEncryption.cpp` for subsequent command obfuscation.
 
 ```
-Host -> Device (EP1 OUT):  [0x22]    (1 byte, via direct bulk write)
-Device -> Host (EP1 IN):   (read back for verification)
+Host -> Device (EP1 OUT):  [seed_0] [seed_1] [seed_2] [seed_3]  (4 bytes)
 ```
 
-Sent via `libusb_bulk_transfer` directly (not through the vtable command
-protocol). Used by `TestFirmwareResponsivnessAndReseed` to verify the FX3
-is responsive before starting capture.
+### Ping (0x7D)
+
+Firmware liveness check, part of `TestFirmwareResponsivnessAndReseed`.
+
+```
+Host -> Device (EP1 OUT):  [0x7D] [0x55]                (2 bytes)
+Device -> Host (EP1 IN):   [0xAA]                       (1 byte)
+```
+
+The firmware returns the bitwise complement of the second byte.
+`0x55 XOR 0xFF = 0xAA`. Retried up to 5 times before failing.
 
 
 ## Stop Sequence Command Order
@@ -213,7 +228,9 @@ diagnostic commands flow through EP1 using these opcodes.
 | Vtable offsets 0x18/0x20/0x28 | Confirmed | Multiple independent call sites use same pattern |
 | Response format [0x07, 0x00] | High | Extracted from immediate values near response check |
 | Opcodes 0x55, 0x86-0x8B | Medium-High | Immediate values + nearby string context |
-| Opcode 0x22 (ReseedDevice) | High | Direct bulk transfer path, not vtable |
+| Opcode 0x22 was WRONG | Corrected | 0x22 was ASCII '"' in error string, not an opcode |
+| ReseedDevice sends 4-byte seed | High | RAND_bytes(4) + libusb_bulk_transfer, no opcode |
+| Opcode 0x7D (Ping) | High | Sends 0x55 expects 0xAA, clear complement pattern |
 | Two register access paths | Confirmed | Different VA regions, different vtable offsets |
 
 
