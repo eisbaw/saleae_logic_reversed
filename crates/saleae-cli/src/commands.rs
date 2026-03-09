@@ -158,6 +158,86 @@ pub fn upload_firmware(firmware_path: &str) -> Result<()> {
     Ok(())
 }
 
+/// Ping the device: ReseedDevice + Ping handshake.
+///
+/// This tests firmware responsiveness and verifies the XOR encryption
+/// is working correctly. It is the first real hardware validation of
+/// the LFSR implementation.
+pub fn ping() -> Result<()> {
+    // Discover device and check boot state.
+    let device =
+        saleae_usb::discovery::find_first_saleae().context("failed to find Saleae device")?;
+
+    println!("Found device: {device}");
+    println!("  Boot state: {}", device.boot_state);
+    if let Some(speed) = device.usb_speed {
+        println!("  USB speed:  {speed}");
+    }
+    println!();
+
+    match device.boot_state {
+        BootState::FirmwareRunning => {
+            println!("Firmware is running. Proceeding with ping...");
+        }
+        BootState::Bootloader => {
+            bail!(
+                "Device is in bootloader mode. Firmware must be uploaded first.\n\
+                 Run: saleae-cli upload-firmware --firmware <path>"
+            );
+        }
+        BootState::Unknown(bcd) => {
+            bail!("Device has unexpected bcdDevice value {bcd:#06x}.");
+        }
+    }
+
+    // Determine encryption mode from device type.
+    let encryption_mode = if device.device_type.is_pro() {
+        saleae_proto::obfuscation::EncryptionMode::XorAll
+    } else if device.device_type.is_fx3() {
+        // Non-Pro FX3 devices only encrypt during firmware download.
+        // For normal commands after firmware is running, no encryption.
+        saleae_proto::obfuscation::EncryptionMode::XorFirmwareOnly
+    } else {
+        saleae_proto::obfuscation::EncryptionMode::None
+    };
+
+    println!("Encryption mode: {encryption_mode:?}");
+    println!();
+
+    // Open device and create command channel.
+    let usb_device =
+        saleae_usb::discovery::open_first_device().context("failed to open Saleae device")?;
+
+    let transport = saleae_usb::nusb_backend::NusbTransport::open(usb_device)
+        .context("failed to claim USB interface")?;
+
+    let mut channel =
+        saleae_driver::ep1::Ep1CommandChannel::new(Box::new(transport), encryption_mode);
+
+    // Run the ReseedDevice + Ping handshake.
+    println!("Running ReseedDevice + Ping...");
+    match channel.initialize() {
+        Ok(()) => {
+            println!();
+            println!("SUCCESS: Ping returned correct complement.");
+            println!("XOR encryption is in sync with firmware.");
+        }
+        Err(e) => {
+            println!();
+            println!("FAILED: {e}");
+            println!();
+            println!("If this is a ping response mismatch, the LFSR");
+            println!("implementation may be incorrect. Check:");
+            println!("  - crates/saleae-proto/src/obfuscation.rs");
+            println!("  - The LFSR taps (bits 1, 21, 22)");
+            println!("  - The advance_seed iteration count formula");
+            return Err(e.into());
+        }
+    }
+
+    Ok(())
+}
+
 /// Start a digital capture.
 pub fn capture_digital(sample_rate: u64, duration: f64, channels: &str) -> Result<()> {
     let _channel_list = parse_channel_list(channels)?;

@@ -1,9 +1,10 @@
 ---
 id: TASK-0057
 title: Implement firmware upload and re-enumeration against real hardware
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-03-09 11:21'
+updated_date: '2026-03-09 12:26'
 labels:
   - rust
   - hardware-testing
@@ -38,3 +39,9 @@ Test: `just run-remote -- upload-firmware --firmware firmware/fw-fx3-pro8.img`
 
 References: doc/protocol/fx3-firmware.md, re/notes/bootloader-descriptors.md
 <!-- SECTION:DESCRIPTION:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Implemented boot state detection and re-enumeration wait for firmware upload.\n\n## Changes\n\n- **crates/saleae-usb/src/discovery.rs**: Added `find_first_saleae()` (returns SaleaeDevice info without opening) and `wait_for_device()` (polls for device with FirmwareRunning boot state, configurable timeout/interval)\n- **crates/saleae-cli/src/commands.rs**: Enhanced `upload_firmware()` to check bcdDevice before upload -- skips if firmware running, proceeds if bootloader, rejects unknown states. Also validates FX3 device type. After upload, drops transport and polls for re-enumeration up to 10s.\n- **justfile**: Deploy now copies firmware blobs to remote host. run-remote remaps `firmware/` paths to remote deploy dir. Added `extract-firmware` alias.\n\n## Hardware test results (nvdk-msdlab-09, Logic Pro 8)\n\n- Device correctly detected as FirmwareRunning (bcdDevice=0.00)\n- SuperSpeed (5 Gbit/s) USB connection confirmed\n- Upload correctly skipped with informative message\n- Cannot test actual upload path since device already has firmware from SPI flash\n\n## Limitations\n\n- Actual firmware upload path (bootloader -> upload -> re-enumerate) cannot be tested without power-cycling the device, which requires physical access\n- The wait_for_device polling loop is tested in concept but the re-enumeration path has not been exercised against real hardware\n\nCommit: b2be13c
+<!-- SECTION:FINAL_SUMMARY:END -->

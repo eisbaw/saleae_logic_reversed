@@ -12,6 +12,7 @@
 //! driver testable with mock transports.
 
 pub mod device;
+pub mod ep1;
 pub mod error;
 pub mod firmware;
 

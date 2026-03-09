@@ -34,4 +34,11 @@ pub enum DriverError {
     /// Capture configuration is invalid.
     #[error("invalid capture config: {reason}")]
     InvalidCaptureConfig { reason: String },
+
+    /// An EP1 command failed.
+    #[error("{command} failed: {detail}")]
+    CommandFailed {
+        command: &'static str,
+        detail: String,
+    },
 }

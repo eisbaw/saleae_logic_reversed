@@ -29,6 +29,9 @@ nusb = "0.1"
 # Async utilities (minimal block_on for bridging sync/async)
 futures-lite = "2"
 
+# Random
+getrandom = "0.3"
+
 # Logging
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }

@@ -6,6 +6,7 @@
 use clap::{Parser, Subcommand};
 
 mod commands;
+mod diag;
 
 /// Saleae Logic analyzer CLI tool.
 ///
@@ -49,6 +50,18 @@ enum Command {
         channels: String,
     },
 
+    /// Ping the device (ReseedDevice + Ping handshake).
+    ///
+    /// Tests firmware responsiveness and XOR encryption sync.
+    /// Requires firmware to be already running on the device.
+    Ping,
+
+    /// Raw EP1 diagnostic test (bypasses encryption).
+    ///
+    /// Sends raw bytes on EP1 OUT/IN to test if the endpoints are
+    /// responsive at all. Used for debugging.
+    Ep1Test,
+
     /// Start an analog capture (Pro devices only).
     CaptureAnalog {
         /// Sample rate in Hz.
@@ -85,6 +98,8 @@ fn main() -> anyhow::Result<()> {
     match cli.command {
         Command::ListDevices => commands::list_devices()?,
         Command::UploadFirmware { firmware } => commands::upload_firmware(&firmware)?,
+        Command::Ping => commands::ping()?,
+        Command::Ep1Test => diag::raw_ep1_test()?,
         Command::CaptureDigital {
             sample_rate,
             duration,
