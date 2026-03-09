@@ -1,9 +1,10 @@
 ---
 id: TASK-0046
 title: Extract and disassemble FX3 GPIF II state machine descriptor
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-03-09 02:33'
+updated_date: '2026-03-09 08:06'
 labels:
   - firmware
   - gpif
@@ -23,3 +24,24 @@ Starting point: fw-fx3-pro8.img, look for the CyU3PGpifLoad call site and its da
 
 See: re/notes/fx3-usb-events.md (GPIF references)
 <!-- SECTION:DESCRIPTION:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Extracted and fully decoded the GPIF II state machine descriptor from the FX3 firmware (fw-fx3-pro8.img).
+
+Key findings:
+- 3-state GPIF II state machine implementing a synchronous 32-bit parallel slave FIFO interface
+- FX3 is clock master, 50-100 MHz, SDR mode
+- Simple 2-phase handshake: CTRL[0] from FPGA toggles to clock data across the 32-bit bus
+- State 0/2: Sample input data when CTRL[0] asserts
+- State 1: Push sampled data to DMA write queue when CTRL[0] deasserts
+- 4 DMA threads enabled with 64-byte burst, THREAD_IN_STATE mode for dynamic thread selection
+- CTRL[2] outputs DMA watermark flag to FPGA for backpressure
+- Configuration is IDENTICAL between Pro 8 and Pro 16 firmware
+- 16-bit mode is likely a runtime reconfiguration via WriteConfigurationData (0x7F)
+
+Deliverables:
+- re/scripts/parse-gpif.py: Complete parser for CyU3PGpifConfig_t from firmware binary
+- re/notes/gpif-state-machine.md: Full analysis with state diagram, register decode, cross-references
+<!-- SECTION:FINAL_SUMMARY:END -->

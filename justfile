@@ -290,6 +290,10 @@ extract-blobs:
     fi
     python3 re/scripts/extract-blobs.py "{{ main_so }}"
 
+# Parse GPIF II state machine descriptor from FX3 firmware
+parse-gpif FW="firmware/fw-fx3-pro8.img":
+    python3 re/scripts/parse-gpif.py "{{ FW }}"
+
 # List all .so files in Saleae distribution with sizes and types
 list-libs:
     #!/usr/bin/env bash
