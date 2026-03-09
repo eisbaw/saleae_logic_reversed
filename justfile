@@ -279,6 +279,17 @@ binwalk-scan:
     echo "=== Entropy Analysis ==="
     binwalk -E "{{ main_so }}"
 
+# Extract embedded firmware and FPGA bitstream blobs to firmware/
+extract-blobs:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ ! -f "{{ main_so }}" ]; then
+        echo "ERROR: {{ main_so }} not found" >&2
+        echo "Is SALEAE_PATH set? Are you in nix-shell?" >&2
+        exit 1
+    fi
+    python3 re/scripts/extract-blobs.py "{{ main_so }}"
+
 # List all .so files in Saleae distribution with sizes and types
 list-libs:
     #!/usr/bin/env bash
