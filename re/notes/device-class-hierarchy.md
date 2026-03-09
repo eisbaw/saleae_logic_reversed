@@ -361,9 +361,11 @@ RTTI name strings reside in `.rodata` (section at VA 0x34a580).
    SetCaptureParameters). Is there a mixin, template, or composition pattern
    that explains this? Or was the inheritance refactored?
 
-2. **FpgaDeviceFeatures slot [1] and [3] overrides in ProFpga**: Which
-   virtual methods do these correspond to? Likely ReadRegisters and
-   WriteRegisters (or a register width/addressing change for Pro devices).
+2. **RESOLVED (TASK-0045)**: FpgaDeviceFeatures slot [1] = deleting
+   destructor (D0), slot [3] = WriteRegisters. Pro overrides the destructor
+   (compiler-generated, semantically identical) and WriteRegisters (adds
+   response verification after EP1 write). The register addressing width
+   is NOT changed -- both use U8 addresses. See `re/notes/fpga-features-vtable.md`.
 
 3. **DevicesManager VMI**: What interfaces does DevicesManager multiply
    inherit from? Likely a callback interface plus a task queue.

@@ -36,7 +36,8 @@ access, capture start/stop, EEPROM access, I2C tunneling, and diagnostics.
 | 0x7D | Ping | OUT | 1 byte | 1 byte: complement of input |
 | 0x7E | ResetFpga | OUT | None | 1 byte: `0x00` |
 | 0x7F | WriteConfigurationData | OUT | Length + data | 1 byte: `0x00` |
-| 0x81 | ReadRegisters | OUT | 2 bytes (addr) | 4 bytes (value) |
+| 0x80 | WriteRegisters | OUT | Count + addr/val pairs | None (base) or 1 byte ACK (Pro) |
+| 0x81 | ReadRegisters | OUT | Count + addresses | Count bytes (values) |
 | 0x82 | ResetAndReEnumerate | OUT | None | (device resets) |
 | 0x86 | StopDataPath | OUT | None | Unknown |
 | 0x87 | WriteI2C | OUT | I2C addr + data | Confirmation |
@@ -101,19 +102,47 @@ Maximum data payload: 509 bytes.
 The caller loops, sending chunks until all data is written. Each chunk
 gets an individual `0x00` success response.
 
+### WriteRegisters (0x80)
+
+Batch FPGA register write via the FpgaDeviceFeatures command path.
+
+```
+Host -> Device (EP1 OUT):  [0x80] [count] [addr0] [val0] [addr1] [val1] ... [addrN] [valN]
+Device -> Host (EP1 IN):   (none for base devices, 1 byte ACK for Pro devices)
+```
+
+Register addresses are 8-bit (U8), values are 8-bit (U8). Maximum 31
+registers per batch (assertion: `num_registers < 32`).
+
+On Pro devices (ProFpgaDeviceFeatures), the host reads back a confirmation
+byte after the write ("write register response check"). On non-Pro devices
+(FpgaDeviceFeatures), the write is fire-and-forget with no response.
+
+Note: This 8-bit register access path is distinct from the 16-bit MsoFpga
+direct register path documented in `doc/protocol/fpga-registers.md`.
+
 ### ReadRegisters (0x81)
 
-Reads an FPGA register via the command protocol.
+Reads FPGA registers via the FpgaDeviceFeatures command path.
 
+**Single register read**:
 ```
-Host -> Device (EP1 OUT):  [0x81] [addr_hi] [addr_lo]
-Device -> Host (EP1 IN):   [val_3] [val_2] [val_1] [val_0]
+Host -> Device (EP1 OUT):  [0x81] [0x01] [addr]     (3 bytes)
+Device -> Host (EP1 IN):   [value]                   (1 byte)
 ```
 
-Register addresses are 16-bit, values are 32-bit big-endian.
+**Batch register read**:
+```
+Host -> Device (EP1 OUT):  [0x81] [count] [addr0] [addr1] ... [addrN]
+Device -> Host (EP1 IN):   [val0] [val1] ... [valN]  (count bytes)
+```
+
+Register addresses are 8-bit (U8), values are 8-bit (U8). Maximum 63
+registers per batch read.
 
 Note: There is a separate direct register access path (without the 0x81
-opcode) used by MsoFpga code. See `doc/protocol/fpga-registers.md`.
+opcode) used by MsoFpga code that uses 16-bit addresses and 32-bit values.
+See `doc/protocol/fpga-registers.md`.
 
 ### WriteEeprom (0x55)
 
