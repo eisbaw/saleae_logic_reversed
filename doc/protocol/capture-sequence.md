@@ -383,9 +383,8 @@ is terminal -- the device must be physically reconnected.
    `FPGA WriteRegister 0x{:04x} = 0x{:08x}` shows 16-bit addresses
    and 32-bit values, but the address assignments are unknown.
 
-4. **Exact FpgaConstants values**: Numeric values of MinSamplesPerPacket,
-   MaxSamplesPerPacket, and SamplesPerPacketMultiple_WithStats for both
-   Altera and Xilinx need extraction via Ghidra or USB capture analysis.
+4. ~~**Exact FpgaConstants values**~~: RESOLVED in TASK-0023.
+   See `doc/protocol/capture-constants.md` for all extracted values.
 
 5. **DisaggregatorSettingsData format**: How does this struct describe the
    channel interleaving layout in the USB stream?
