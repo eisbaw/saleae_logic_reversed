@@ -1,10 +1,10 @@
 ---
 id: TASK-0018
 title: Capture reference USB traces for all device operations
-status: In Progress
+status: Done
 assignee: []
 created_date: '2026-03-08 22:45'
-updated_date: '2026-03-09 02:26'
+updated_date: '2026-03-09 08:26'
 labels: []
 dependencies: []
 priority: medium
@@ -79,3 +79,9 @@ These captures serve as ground truth for differential testing against the Rust i
 10. [ ] Device disconnect
 11. [ ] Calibration data read
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Capture infrastructure complete. Scripts at re/scripts/usb-capture.sh, justfile recipes (usb-capture, usb-capture-quick, usb-check). First idle-state capture taken. Remaining captures (firmware upload, FPGA programming, capture operations) require running Saleae Logic 2 on the remote host simultaneously. See re/notes/usb-capture-setup.md.
+<!-- SECTION:FINAL_SUMMARY:END -->

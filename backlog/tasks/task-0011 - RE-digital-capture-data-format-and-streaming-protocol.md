@@ -1,10 +1,10 @@
 ---
 id: TASK-0011
 title: RE digital capture data format and streaming protocol
-status: In Progress
+status: Done
 assignee: []
 created_date: '2026-03-08 22:44'
-updated_date: '2026-03-09 00:38'
+updated_date: '2026-03-09 08:26'
 labels: []
 dependencies:
   - TASK-0006
@@ -68,3 +68,9 @@ EP2 IN -> TransferQueue -> OnDataBuffer -> DisaggregatorNode -> DigitalCreatorNo
 - doc/protocol/digital-capture.md (verified protocol doc)
 - re/ghidra/scripts/TraceDigitalCapture.py (Ghidra trace script)
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Full static analysis complete. Digital data pipeline mapped: FPGA -> EP2 IN -> TransferQueue -> DisaggregatorNode -> DigitalCreatorNode -> DigitalStore. Packet format documented: 4-byte header (channel, is_start, config_id bitfields), sample data (8 samples/byte), optional 20-byte stats trailer. Start packet adds timestamp + host time. See doc/protocol/digital-capture.md, re/notes/digital-capture-format.md, re/notes/start-packet-format.md, re/notes/withstats-format.md.
+<!-- SECTION:FINAL_SUMMARY:END -->

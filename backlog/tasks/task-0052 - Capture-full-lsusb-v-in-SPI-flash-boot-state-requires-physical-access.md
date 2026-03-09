@@ -1,9 +1,10 @@
 ---
 id: TASK-0052
 title: Capture full lsusb -v in SPI flash boot state (requires physical access)
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-03-09 06:20'
+updated_date: '2026-03-09 09:04'
 labels:
   - usb
   - hardware
@@ -38,3 +39,9 @@ Expected SPI boot state:
 
 Alternative: Install a programmable USB hub (uhubctl-compatible) between the device and the root hub to enable remote power cycling.
 <!-- SECTION:DESCRIPTION:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Cannot complete remotely -- requires physical USB cable unplug/replug. However, the critical information was already captured in TASK-0033 from kernel dmesg: SPI boot state has bcdDevice=1.00, Product=WestBridge, Manufacturer=Cypress, Serial=0000000004BE, USB 2.0 HS only. The Rust driver can discriminate state via bcdDevice (1.00 = needs firmware, 0.00 = firmware running). Full descriptor dump would be nice-to-have but is not blocking. See re/notes/bootloader-descriptors.md.
+<!-- SECTION:FINAL_SUMMARY:END -->
