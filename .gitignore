@@ -32,6 +32,7 @@ re/extracted-asar/
 
 # USB captures (large binary files)
 re/captures/*.pcapng
+re/captures/*.pcap
 
 # Nix
 result

@@ -306,19 +306,33 @@ list-libs:
 
 # ─── RE - USB ───────────────────────────────────────────────────────────────
 
-# Capture USB traffic from Saleae device for DURATION seconds (default 10)
-usb-capture DURATION="10":
+# Capture USB traffic from Saleae device with a named operation label
+# Usage: just usb-capture idle                      (5s default)
+#        just usb-capture firmware-upload 30         (30s)
+#        just usb-capture digital-capture 60 "1ch 1MHz"
+usb-capture OPERATION DURATION="5" NOTES="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    ARGS="-d {{ DURATION }}"
+    if [ -n "{{ NOTES }}" ]; then
+        ARGS="$ARGS -n '{{ NOTES }}'"
+    fi
+    eval bash re/scripts/usb-capture.sh "{{ OPERATION }}" $ARGS
+
+# Quick unlabeled USB capture for DURATION seconds (tcpdump, streams to local file)
+usb-capture-quick DURATION="10":
     #!/usr/bin/env bash
     set -euo pipefail
     TIMESTAMP=$(date +%Y%m%d-%H%M%S)
-    OUTFILE="re/captures/saleae_${TIMESTAMP}.pcapng"
+    OUTFILE="re/captures/quick_${TIMESTAMP}.pcap"
     mkdir -p re/captures
-    echo "Capturing USB traffic on {{ usb_host }} for {{ DURATION }}s..."
+    # Detect USB bus for Saleae device
+    BUS=$(ssh {{ usb_host }} 'lsusb -d {{ saleae_vid }}:' | head -1 | sed 's/Bus \([0-9]*\).*/\1/' | sed 's/^0*//')
+    echo "Capturing USB traffic on {{ usb_host }} bus $BUS for {{ DURATION }}s..."
     echo "Output: $OUTFILE"
     ssh {{ usb_host }} "sudo modprobe usbmon 2>/dev/null; \
-        tshark -i usbmon0 -a duration:{{ DURATION }} \
-        -f 'host {{ saleae_vid }}' \
-        -w -" > "$OUTFILE" 2>/dev/null
+        sudo timeout $(({{ DURATION }} + 2)) tcpdump -i usbmon${BUS} -w - 2>/dev/null" \
+        > "$OUTFILE" 2>/dev/null || true
     echo "Capture complete: $(stat -c%s "$OUTFILE" 2>/dev/null || echo '?') bytes"
     echo "Analyze with: tshark -r $OUTFILE"
 
@@ -343,16 +357,35 @@ usb-descriptors:
     ssh {{ usb_host }} 'lsusb -v -d {{ saleae_vid }}: 2>/dev/null' || true
     ssh {{ usb_host }} 'lsusb -v -d {{ saleae_vid_legacy }}: 2>/dev/null' || true
 
-# Live USB monitor with Saleae display filter on remote host
+# Live USB monitor on remote host (tcpdump, raw output, Ctrl-C to stop)
 usb-monitor:
     #!/usr/bin/env bash
     set -euo pipefail
-    echo "Live USB monitor on {{ usb_host }} (Ctrl-C to stop)..."
-    echo "Filtering for Saleae VID {{ saleae_vid }}"
+    BUS=$(ssh {{ usb_host }} 'lsusb -d {{ saleae_vid }}:' | head -1 | sed 's/Bus \([0-9]*\).*/\1/' | sed 's/^0*//')
+    echo "Live USB monitor on {{ usb_host }} bus $BUS (Ctrl-C to stop)..."
     ssh {{ usb_host }} "sudo modprobe usbmon 2>/dev/null; \
-        tshark -i usbmon0 -Y 'usb.idVendor == 0x{{ saleae_vid }} || usb.idVendor == 0x{{ saleae_vid_legacy }}' \
-        -T fields -e frame.number -e frame.time_relative -e usb.transfer_type \
-        -e usb.endpoint_address -e usb.data_len -e usb.capdata"
+        sudo tcpdump -i usbmon${BUS} -nn -v"
+
+# Check USB capture prerequisites on remote host
+usb-check:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "=== USB Capture Prerequisites on {{ usb_host }} ==="
+    echo ""
+    echo "--- Device ---"
+    ssh {{ usb_host }} 'lsusb -d {{ saleae_vid }}: 2>/dev/null' && echo "  [ok]" || echo "  [MISSING] No Saleae device"
+    echo ""
+    echo "--- tcpdump ---"
+    ssh {{ usb_host }} 'which tcpdump && tcpdump --version 2>&1 | head -1' && echo "  [ok]" || echo "  [MISSING]"
+    echo ""
+    echo "--- tshark ---"
+    ssh {{ usb_host }} 'which tshark 2>/dev/null' && echo "  [ok]" || echo "  [NOT INSTALLED] Install with: sudo dnf install wireshark-cli"
+    echo ""
+    echo "--- usbmon ---"
+    ssh {{ usb_host }} 'sudo modprobe usbmon 2>/dev/null && ls /dev/usbmon* 2>/dev/null' && echo "  [ok]" || echo "  [ISSUE] Cannot load usbmon"
+    echo ""
+    echo "--- sudo ---"
+    ssh {{ usb_host }} 'sudo -n true 2>/dev/null' && echo "  [ok] passwordless sudo" || echo "  [WARN] sudo requires password"
 
 # ─── Rust ───────────────────────────────────────────────────────────────────
 
