@@ -13,8 +13,9 @@ streamed back to the local machine and saved to `re/captures/`.
 - **Device**: Saleae Logic Pro 8 (21a9:1005)
 - **USB Bus**: 002, Device 003
 - **USB Speed**: SuperSpeed (5Gbps) -- USB 3.0
-- **Serial**: SERNUM (Saleae's default label, not a real serial)
-- **Endpoints** (bootloader state):
+- **Serial (post-firmware)**: SERNUM (generic label set by Saleae firmware)
+- **Serial (SPI boot)**: 0000000004BE (real hardware serial, see bootloader-descriptors.md)
+- **Endpoints** (post-firmware state):
   - EP1 OUT (0x01): Bulk, 1024 bytes, bMaxBurst=0 -- command/control
   - EP1 IN  (0x81): Bulk, 1024 bytes, bMaxBurst=0 -- command/control response
   - EP2 IN  (0x82): Bulk, 1024 bytes, bMaxBurst=15 -- high-throughput data
