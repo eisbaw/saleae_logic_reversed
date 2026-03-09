@@ -1,9 +1,10 @@
 ---
 id: TASK-0016
 title: Explore ProFpgaDeviceFeatures vs FpgaDeviceFeatures class hierarchy
-status: To Do
+status: In Progress
 assignee: []
 created_date: '2026-03-08 22:45'
+updated_date: '2026-03-09 01:48'
 labels: []
 dependencies:
   - TASK-0003
