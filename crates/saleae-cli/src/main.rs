@@ -70,6 +70,22 @@ enum Command {
         skip_post_init: bool,
     },
 
+    /// Run CommonDeviceInit (ADC init, JESD link, EEPROM read).
+    ///
+    /// Requires firmware to be running and FPGA to be programmed.
+    /// Initializes the ADC, establishes the JESD204B link, and reads
+    /// the device ID from EEPROM. The device ID is used for calibration
+    /// data download.
+    DeviceInit {
+        /// Path to the FPGA bitstream file (programs FPGA first if provided).
+        #[arg(long)]
+        bitstream: Option<String>,
+
+        /// Skip FPGA programming (assume already programmed).
+        #[arg(long, default_value = "false")]
+        skip_fpga: bool,
+    },
+
     /// Raw EP1 diagnostic test (bypasses encryption).
     ///
     /// Sends raw bytes on EP1 OUT/IN to test if the endpoints are
@@ -117,6 +133,10 @@ fn main() -> anyhow::Result<()> {
             bitstream,
             skip_post_init,
         } => commands::program_fpga(&bitstream, skip_post_init)?,
+        Command::DeviceInit {
+            bitstream,
+            skip_fpga,
+        } => commands::device_init(bitstream.as_deref(), skip_fpga)?,
         Command::Ep1Test => diag::raw_ep1_test()?,
         Command::CaptureDigital {
             sample_rate,

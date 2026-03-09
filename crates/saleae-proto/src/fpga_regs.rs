@@ -164,6 +164,98 @@ pub const DDR_CALIBRATED_BIT: u32 = 1 << 3;
 pub const DDR_READY_MASK: u32 = DDR_LOCKED_BIT | DDR_CALIBRATED_BIT;
 
 // ---------------------------------------------------------------------------
+// JESD204B link status bits in REG_STATUS_DDR_JESD (0x0008)
+// ---------------------------------------------------------------------------
+// NOTE: These bit positions are PLACEHOLDER / HYPOTHETICAL. The exact bit
+// assignments have not been confirmed by USB capture. They are reasonable
+// guesses based on common JESD204B status register layouts and the names
+// found in libgraph_server_shared.so string analysis (link_up, sync_status,
+// spll_locked, cpll_locked).
+
+/// JESD link_up status bit (PLACEHOLDER -- bit 0).
+///
+/// Set when the JESD204B link is established between the FPGA deserializer
+/// and the ADC serializer.
+pub const JESD_LINK_UP_BIT: u32 = 1 << 0;
+
+/// JESD sync_status bit (PLACEHOLDER -- bit 1).
+///
+/// Set when JESD synchronization is achieved (K28.5 sync chars detected).
+pub const JESD_SYNC_STATUS_BIT: u32 = 1 << 1;
+
+/// JESD SerDes PLL locked bit (PLACEHOLDER -- bit 5).
+pub const JESD_SPLL_LOCKED_BIT: u32 = 1 << 5;
+
+/// JESD Channel PLL locked bit (PLACEHOLDER -- bit 6).
+pub const JESD_CPLL_LOCKED_BIT: u32 = 1 << 6;
+
+/// Mask for JESD link ready: link_up + sync_status + both PLLs locked.
+///
+/// PLACEHOLDER -- the actual required bits are unknown. This is the
+/// conservative check: all four status bits must be set.
+pub const JESD_READY_MASK: u32 =
+    JESD_LINK_UP_BIT | JESD_SYNC_STATUS_BIT | JESD_SPLL_LOCKED_BIT | JESD_CPLL_LOCKED_BIT;
+
+// ---------------------------------------------------------------------------
+// ADC SPI register addresses (via REG_SPI_DATA at 0x0004)
+// ---------------------------------------------------------------------------
+// The ADS528x ADC is configured via SPI writes tunneled through the FPGA.
+// A write to REG_SPI_DATA (0x0004) sends an SPI transaction to the ADC.
+// The format is: bits [22:0] = address + data, bit 23 = R/W.
+//
+// NOTE: These ADC register addresses and values are PLACEHOLDER. The actual
+// ADS528x register map values need USB capture or datasheet confirmation.
+
+/// SPI write to set ADC drive strength (PLACEHOLDER).
+///
+/// ADS528x output driver configuration register. The value controls the
+/// LVDS output swing for the JESD204B data lanes.
+pub const ADC_SPI_DRIVE_STRENGTH_ADDR: u32 = 0x0000_0042;
+
+/// ADC drive strength value for normal operation (PLACEHOLDER).
+///
+/// This sets the output swing to the appropriate level for the FPGA's
+/// JESD204B receiver input requirements.
+pub const ADC_SPI_DRIVE_STRENGTH_VALUE: u32 = 0x0000_0001;
+
+/// SPI write to enable the ADC (PLACEHOLDER).
+///
+/// Powers on the ADC analog core and starts conversion.
+pub const ADC_SPI_ENABLE_ADDR: u32 = 0x0000_0000;
+
+/// ADC enable value (PLACEHOLDER).
+pub const ADC_SPI_ENABLE_VALUE: u32 = 0x0000_0001;
+
+// ---------------------------------------------------------------------------
+// JESD PHY reset values for REG_STATUS_DDR_JESD (0x0008)
+// ---------------------------------------------------------------------------
+// NOTE: These are PLACEHOLDER values. The exact reset pattern for the
+// ECP5 JESD PHY transceivers needs USB capture confirmation.
+
+/// Value to assert JESD PHY transceiver reset (PLACEHOLDER).
+///
+/// Written to REG_STATUS_DDR_JESD to put the SerDes transceivers into
+/// reset state.
+pub const JESD_PHY_RESET_ASSERT: u32 = 0x0000_0001;
+
+/// Value to deassert JESD PHY transceiver reset (PLACEHOLDER).
+///
+/// Written to REG_STATUS_DDR_JESD to release the SerDes transceivers
+/// from reset.
+pub const JESD_PHY_RESET_DEASSERT: u32 = 0x0000_0000;
+
+// ---------------------------------------------------------------------------
+// SPI bridge configuration for REG_SPI_DATA (0x0004)
+// ---------------------------------------------------------------------------
+
+/// Value to configure the SPI bridge for ADC access (PLACEHOLDER).
+///
+/// Written to REG_SPI_DATA before any ADC SPI transactions. This
+/// configures the FPGA's SPI bridge (clock rate, CS polarity, etc.)
+/// for the ADS528x.
+pub const SPI_BRIDGE_CONFIG_FOR_ADC: u32 = 0x0000_0000;
+
+// ---------------------------------------------------------------------------
 // FPGA programming verification
 // ---------------------------------------------------------------------------
 

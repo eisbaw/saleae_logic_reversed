@@ -556,6 +556,64 @@ impl Ep1CommandChannel {
     }
 
     // -----------------------------------------------------------------------
+    // EEPROM / I2C tunnel
+    // -----------------------------------------------------------------------
+
+    /// Read the 64-bit device ID from EEPROM via the I2C tunnel (opcode 0x88).
+    ///
+    /// The device ID is stored in EEPROM and is used to download per-device
+    /// calibration data from `https://downloads.saleae.com/calibration/{id:x}.cal`.
+    ///
+    /// # Wire format (HYPOTHESIS)
+    ///
+    /// The I2C tunnel parameters (slave address, register offset, read length)
+    /// are UNKNOWN. Based on RE analysis, opcode 0x88 triggers an I2C read
+    /// from the EEPROM. The exact payload format needs USB capture confirmation.
+    ///
+    /// Current hypothesis:
+    /// ```text
+    /// EP1 OUT: [0x88]              (no payload -- firmware knows what to read)
+    /// EP1 IN:  [8 bytes]           (64-bit device ID, little-endian)
+    /// ```
+    ///
+    /// # Returns
+    ///
+    /// The 64-bit device ID, or an error if the read fails.
+    pub fn read_eeprom_device_id(&mut self) -> DriverResult<u64> {
+        info!("Reading EEPROM device ID (opcode 0x88)");
+
+        // PLACEHOLDER: We send opcode 0x88 with no payload. The actual
+        // I2C parameters (slave address, register offset) may need to be
+        // included in the payload. This needs USB capture confirmation.
+        self.send_command(0x88, &[])?;
+
+        let mut buf = [0u8; 64];
+        let n = self.recv_response(&mut buf)?;
+
+        if n < 8 {
+            return Err(DriverError::CommandFailed {
+                command: "ReadEepromDeviceId",
+                detail: format!(
+                    "expected at least 8 bytes for device ID, got {n}"
+                ),
+            });
+        }
+
+        // Parse as little-endian u64 (HYPOTHESIS -- endianness needs
+        // USB capture confirmation).
+        let device_id = u64::from_le_bytes([
+            buf[0], buf[1], buf[2], buf[3],
+            buf[4], buf[5], buf[6], buf[7],
+        ]);
+
+        info!(
+            device_id = format_args!("{device_id:#018x}"),
+            "EEPROM device ID read"
+        );
+        Ok(device_id)
+    }
+
+    // -----------------------------------------------------------------------
     // Capture control
     // -----------------------------------------------------------------------
 
@@ -984,5 +1042,64 @@ mod tests {
             }
             other => panic!("expected BulkOut, got {other:?}"),
         }
+    }
+
+    // -- EEPROM device ID read tests --
+
+    #[test]
+    fn read_eeprom_device_id_sends_opcode_0x88() {
+        let mock = std::sync::Arc::new(MockTransport::new());
+        let seed = 0u32;
+
+        let device_id: u64 = 0x764051b51bd4d9f1;
+        let id_bytes = device_id.to_le_bytes();
+        mock.push_bulk_in_response(endpoint::BULK_IN, id_bytes.to_vec());
+
+        let mut channel = mock_channel_with_seed(&mock, seed);
+        let result = channel.read_eeprom_device_id().unwrap();
+        assert_eq!(result, device_id);
+
+        // Verify opcode 0x88 was sent.
+        let ops = mock.operations();
+        match &ops[0] {
+            UsbOperation::BulkOut { data, .. } => {
+                // With seed=0, XorAll: data[1] = opcode
+                assert_eq!(data[1], 0x88, "should send opcode 0x88");
+            }
+            other => panic!("expected BulkOut, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn read_eeprom_device_id_fails_on_short_response() {
+        let mock = std::sync::Arc::new(MockTransport::new());
+        let seed = 0u32;
+
+        // Only 4 bytes instead of 8.
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x01, 0x02, 0x03, 0x04]);
+
+        let mut channel = mock_channel_with_seed(&mock, seed);
+        let err = channel.read_eeprom_device_id().unwrap_err();
+        let msg = err.to_string();
+        assert!(
+            msg.contains("expected at least 8 bytes"),
+            "error should mention expected bytes: {msg}"
+        );
+    }
+
+    #[test]
+    fn read_eeprom_device_id_parses_le_bytes() {
+        let mock = std::sync::Arc::new(MockTransport::new());
+        let seed = 0u32;
+
+        // Little-endian: first byte is LSB.
+        mock.push_bulk_in_response(
+            endpoint::BULK_IN,
+            vec![0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00],
+        );
+
+        let mut channel = mock_channel_with_seed(&mock, seed);
+        let result = channel.read_eeprom_device_id().unwrap();
+        assert_eq!(result, 1, "should parse little-endian");
     }
 }

@@ -334,6 +334,116 @@ pub fn program_fpga(bitstream_path: &str, skip_post_init: bool) -> Result<()> {
     Ok(())
 }
 
+/// Run CommonDeviceInit: ADC initialization, JESD link, EEPROM device ID.
+///
+/// Optionally programs the FPGA first if a bitstream path is provided.
+pub fn device_init(bitstream_path: Option<&str>, skip_fpga: bool) -> Result<()> {
+    // Discover device and check boot state.
+    let device =
+        saleae_usb::discovery::find_first_saleae().context("failed to find Saleae device")?;
+
+    println!("Found device: {device}");
+    println!("  Boot state: {}", device.boot_state);
+    if let Some(speed) = device.usb_speed {
+        println!("  USB speed:  {speed}");
+    }
+    println!();
+
+    match device.boot_state {
+        BootState::FirmwareRunning => {
+            println!("Firmware is running. Proceeding...");
+        }
+        BootState::Bootloader => {
+            bail!(
+                "Device is in bootloader mode. Firmware must be uploaded first.\n\
+                 Run: saleae-cli upload-firmware --firmware <path>"
+            );
+        }
+        BootState::Unknown(bcd) => {
+            bail!("Device has unexpected bcdDevice value {bcd:#06x}.");
+        }
+    }
+
+    // Determine encryption mode from device type.
+    let encryption_mode = if device.device_type.is_pro() {
+        saleae_proto::obfuscation::EncryptionMode::XorAll
+    } else if device.device_type.is_fx3() {
+        saleae_proto::obfuscation::EncryptionMode::XorFirmwareOnly
+    } else {
+        saleae_proto::obfuscation::EncryptionMode::None
+    };
+
+    // Open device and create command channel.
+    let usb_device =
+        saleae_usb::discovery::open_first_device().context("failed to open Saleae device")?;
+
+    let transport = saleae_usb::nusb_backend::NusbTransport::open(usb_device)
+        .context("failed to claim USB interface")?;
+
+    let mut channel =
+        saleae_driver::ep1::Ep1CommandChannel::new(Box::new(transport), encryption_mode);
+
+    // Initialize command channel (ReseedDevice + Ping).
+    println!("Initializing command channel (ReseedDevice + Ping)...");
+    channel
+        .initialize()
+        .context("command channel initialization failed")?;
+    println!("Command channel initialized.");
+    println!();
+
+    // Optionally program FPGA.
+    if !skip_fpga {
+        let bs_path = bitstream_path.ok_or_else(|| {
+            anyhow::anyhow!(
+                "No bitstream provided and --skip-fpga not set.\n\
+                 Either provide --bitstream <path> or use --skip-fpga \
+                 if FPGA is already programmed."
+            )
+        })?;
+
+        let bitstream = std::fs::read(bs_path)
+            .with_context(|| format!("failed to read bitstream file: {bs_path}"))?;
+
+        println!("Programming FPGA ({} bytes from {bs_path})...", bitstream.len());
+        saleae_driver::fpga::program_fpga(&mut channel, &bitstream)
+            .context("FPGA programming failed")?;
+        println!("FPGA programming verified.");
+        println!();
+
+        // Post-init.
+        let is_lattice = device.device_type.is_fx3();
+        println!("Running FPGA post-init (Lattice: {is_lattice})...");
+        saleae_driver::fpga::fpga_post_init(&mut channel, is_lattice)
+            .context("FPGA post-init failed")?;
+        println!("Post-init complete.");
+        println!();
+    } else {
+        println!("Skipping FPGA programming (--skip-fpga).");
+        println!();
+    }
+
+    // Run CommonDeviceInit.
+    let is_lattice = device.device_type.is_fx3();
+    println!("Running CommonDeviceInit (Lattice: {is_lattice})...");
+    let result = saleae_driver::fpga::common_device_init(&mut channel, is_lattice)
+        .context("CommonDeviceInit failed")?;
+
+    println!();
+    println!("CommonDeviceInit results:");
+    println!("  Device ID:   {:#018x} ({})", result.device_id, result.device_id);
+    println!("  JESD locked: {}", result.jesd_locked);
+    println!("  DDR ready:   {}", result.ddr_ready);
+    println!();
+
+    // Print calibration URL for convenience.
+    println!(
+        "Calibration URL: https://downloads.saleae.com/calibration/{:x}.cal",
+        result.device_id
+    );
+
+    Ok(())
+}
+
 /// Start a digital capture.
 pub fn capture_digital(sample_rate: u64, duration: f64, channels: &str) -> Result<()> {
     let _channel_list = parse_channel_list(channels)?;

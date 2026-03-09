@@ -1,10 +1,10 @@
 ---
 id: TASK-0059
 title: Implement FPGA bitstream programming against real hardware
-status: In Progress
+status: Done
 assignee: []
 created_date: '2026-03-09 11:21'
-updated_date: '2026-03-09 13:27'
+updated_date: '2026-03-09 13:28'
 labels:
   - rust
   - hardware-testing
