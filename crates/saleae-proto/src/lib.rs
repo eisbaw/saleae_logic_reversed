@@ -7,8 +7,10 @@
 pub mod device;
 pub mod error;
 pub mod firmware;
+pub mod obfuscation;
 
 // Re-export key types at crate root for convenience.
 pub use device::{BootState, DeviceType, SaleaeDevice, UsbId, UsbSpeed};
 pub use error::{ProtoError, ProtoResult};
 pub use firmware::fx3::{Fx3Image, Fx3Section};
+pub use obfuscation::{EncryptionMode, SimpleEncryption};
