@@ -1,10 +1,17 @@
 //! FPGA register address constants.
 //!
 //! These addresses are extracted from `libgraph_server_shared.so` v2.4.40
-//! via disassembly of `movw` instructions in the MsoFpga code region
-//! (VA 0x2d62000-0x2d68000). See `doc/protocol/fpga-registers.md`.
+//! via Ghidra decompilation of 59 register functions. See
+//! `doc/protocol/fpga-registers.md` and `re/notes/fpga-register-map.md`.
 //!
-//! Addresses are 16-bit. Values are 32-bit on the wire (big-endian).
+//! Two distinct register interfaces exist:
+//!
+//! 1. **MsoFpga**: 16-bit addresses, 32-bit values. Direct 6-byte USB
+//!    bulk transfers. Used by MSO/oscilloscope device path. 39 addresses.
+//!
+//! 2. **FpgaDeviceFeatures**: 8-bit addresses, 8-bit values. Wrapped in
+//!    EP1 opcode commands (0x80 write, 0x81 read). Used by Logic 4/8 and
+//!    Logic Pro 8/16. 21 addresses.
 //!
 //! Registers at addresses <= 0xFF can use the opcode-based 8-bit path
 //! (opcodes 0x80/0x81). Registers at addresses > 0xFF require the raw
@@ -14,14 +21,30 @@
 // System registers
 // ---------------------------------------------------------------------------
 
-/// SPI bridge to ADC.
+/// SPI bridge to ADC (MsoFpga path).
 ///
-/// Bits [22:0] = address + data, bit 23 = R/W, bits [31:24] = 0 for writes.
+/// Bit layout (from decompiled WriteSpi, ELF VA 0x2d640c0):
+///   bits [22:0]  = SPI address + data (packed per SpiAddressDataFormat)
+///   bit  23      = R/W flag (0 = write, 1 = read)
+///   bit  24      = SpiWireConfiguration (0 = 4-wire, 1 = 3-wire)
+///   bit  26      = SpiClockEdge (0 = rising, 1 = falling)
+///   bits [31:27] = must be zero
 pub const REG_SPI_DATA: u16 = 0x0004;
 
-/// DDR ready status / JESD PHY control / BER test control.
+/// DDR ready status / JESD PHY control.
 ///
-/// DDR_LOCKED = bit 4, DDR_CALIBRATED = bit 3.
+/// Read bits:
+///   bit  0       = JESD link_up
+///   bit  3       = DDR calibrated
+///   bit  4       = DDR locked
+///   bit  5       = cpll_locked (Xilinx) / locked (Altera)
+///   bits [15:8]  = sync_status
+///   bits [23:16] = aligned / realigned
+///
+/// Write: value 2 triggers JESD PHY transceiver reset (used by
+///   ResetJesdPhyTransceivers in a poll loop with 1 ms sleep,
+///   2-second timeout).
+///
 /// DDR_READY = (value & 0x18) == 0x18.
 pub const REG_STATUS_DDR_JESD: u16 = 0x0008;
 
@@ -42,6 +65,12 @@ pub const REG_JESD_BER_TEST: u16 = 0x00FC;
 // ---------------------------------------------------------------------------
 
 /// Master capture control.
+///
+/// Bit layout (from decompiled SetAnalogChannelConfiguration):
+///   bits [3:0]   = preserved (masked with 0x8F on read-modify-write)
+///   bit  4       = capture mode (from config byte 0)
+///   bits [6:5]   = DownsampleMode (2 bits)
+///   bits [31:7]  = other configuration
 pub const REG_CAPTURE_CONTROL: u16 = 0x0040;
 
 /// Scope configuration ID register 0.
@@ -57,73 +86,93 @@ pub const REG_SCOPE_CONFIG_ID_2: u16 = 0x004C;
 pub const REG_SCOPE_CONFIG_ID_3: u16 = 0x0050;
 
 // ---------------------------------------------------------------------------
-// Analog channel configuration registers
+// Analog channel configuration registers (MsoFpga)
 // ---------------------------------------------------------------------------
+// These are NOT per-channel registers. They are per-parameter registers
+// used by SetAnalogChannelConfiguration. The naming was corrected based
+// on TASK-0068 decompilation of the config struct field offsets.
 
-/// Analog channel configuration 0.
-pub const REG_ANALOG_CH_CONFIG_0: u16 = 0x0054;
+/// Sample rate divider (from config.mSamplesPerSecondDivider).
+pub const REG_ANALOG_SAMPLE_DIVIDER: u16 = 0x0054;
 
-/// Analog channel configuration 1.
-pub const REG_ANALOG_CH_CONFIG_1: u16 = 0x0058;
+/// Negated pre-trigger length (written as -config.mPreTriggerLength).
+pub const REG_ANALOG_PRE_TRIGGER: u16 = 0x0058;
 
-/// Analog channel configuration 2.
-pub const REG_ANALOG_CH_CONFIG_2: u16 = 0x005C;
+/// Post-trigger length (config.mPostTriggerLength).
+pub const REG_ANALOG_POST_TRIGGER: u16 = 0x005C;
 
-/// Analog channel configuration 3.
-pub const REG_ANALOG_CH_CONFIG_3: u16 = 0x0060;
+/// Computed sample rate: round(clock_rate / divider).
+pub const REG_ANALOG_COMPUTED_RATE: u16 = 0x0060;
 
-/// Analog channel configuration 4.
-pub const REG_ANALOG_CH_CONFIG_4: u16 = 0x0064;
+/// Upper trigger bits: (pre_hi & 0xFFFF) | (post_hi & 0xFFFF) << 16.
+pub const REG_ANALOG_TRIGGER_HI: u16 = 0x0064;
 
-/// Analog channel configuration 5.
-pub const REG_ANALOG_CH_CONFIG_5: u16 = 0x0068;
-
-/// Compute per-channel analog config register address.
+/// Samples per chunk (config.mSamplesPerChunk).
 ///
-/// Registers 0x0054..0x0068 cover channels 0..5. For Logic Pro 8,
-/// channels 0-5 use these registers; channels 6-7 may use a different
-/// range (not yet confirmed).
+/// FPGA variant constraints:
+///   Xilinx: 0x100..0x1E00, MaxTriggerBuffer = 0x3FFFC000
+///   Altera: 0x40..0x1780,  MaxTriggerBuffer = 0x2FFFC000
+pub const REG_ANALOG_SAMPLES_PER_CHUNK: u16 = 0x0068;
+
+// Keep backward-compatible aliases for existing code.
+pub const REG_ANALOG_CH_CONFIG_0: u16 = REG_ANALOG_SAMPLE_DIVIDER;
+pub const REG_ANALOG_CH_CONFIG_1: u16 = REG_ANALOG_PRE_TRIGGER;
+pub const REG_ANALOG_CH_CONFIG_2: u16 = REG_ANALOG_POST_TRIGGER;
+pub const REG_ANALOG_CH_CONFIG_3: u16 = REG_ANALOG_COMPUTED_RATE;
+pub const REG_ANALOG_CH_CONFIG_4: u16 = REG_ANALOG_TRIGGER_HI;
+pub const REG_ANALOG_CH_CONFIG_5: u16 = REG_ANALOG_SAMPLES_PER_CHUNK;
+
+/// Compute analog parameter register address by index (0..5).
+///
+/// Registers 0x0054..0x0068 are per-parameter (not per-channel).
 ///
 /// # Panics
 ///
-/// Panics if `channel >= 6`.
-pub const fn analog_ch_config_addr(channel: u8) -> u16 {
-    assert!(channel < 6, "analog channel must be 0..5");
-    REG_ANALOG_CH_CONFIG_0 + (channel as u16) * 4
+/// Panics if `index >= 6`.
+pub const fn analog_ch_config_addr(index: u8) -> u16 {
+    assert!(index < 6, "analog config index must be 0..5");
+    REG_ANALOG_SAMPLE_DIVIDER + (index as u16) * 4
 }
 
 // ---------------------------------------------------------------------------
 // Trigger registers
 // ---------------------------------------------------------------------------
 
-/// Trigger enable/mode. Packed fields: TriggerType, TriggerMode, DownsampleMode.
+/// Trigger control with packed bit fields.
+///
+/// Bit layout (from decompiled SetAnalogTriggerConfiguration):
+///   bits [1:0]   = glitchFilterEnabled / enable
+///   bits [3:2]   = TriggerMode (2 bits)
+///   bits [7:4]   = TriggerType (4 bits, max 0xF)
+///   bits [15:8]  = channelSource
+///   bits [31:16] = TriggerThreshold (16 bits, signed)
 pub const REG_TRIGGER_CONTROL: u16 = 0x0070;
 
-/// Normal-mode holdoff (must be multiple of 8 samples).
+/// Normal-mode holdoff in ticks: SamplesToTicks(samples) = (samples+7) >> 3.
 pub const REG_TRIGGER_NORMAL_HOLDOFF: u16 = 0x0074;
 
-/// Normal-mode timeout (must be multiple of 8 samples).
+/// Normal-mode timeout in ticks.
 pub const REG_TRIGGER_NORMAL_TIMEOUT: u16 = 0x0078;
 
-/// Auto-mode holdoff/timeout configuration.
-pub const REG_TRIGGER_AUTO_CONFIG: u16 = 0x007C;
+/// Trigger hysteresis: rising[15:0] | falling[31:16].
+pub const REG_TRIGGER_HYSTERESIS: u16 = 0x007C;
 
-/// Holdoff sample count, low 32 bits (in FPGA ticks).
-pub const REG_TRIGGER_HOLDOFF_LO: u16 = 0x0080;
+/// Initial holdoff, low 32 bits: SamplesToTicks(initial_holdoff).
+pub const REG_TRIGGER_INITIAL_HOLDOFF_LO: u16 = 0x0080;
 
-/// Holdoff sample count, high 32 bits.
-pub const REG_TRIGGER_HOLDOFF_HI: u16 = 0x0084;
+/// Auto-mode holdoff in ticks.
+pub const REG_TRIGGER_AUTO_HOLDOFF: u16 = 0x0084;
 
-/// Timeout sample count, low 32 bits (in FPGA ticks).
-pub const REG_TRIGGER_TIMEOUT_LO: u16 = 0x0088;
+/// Auto-mode timeout in ticks.
+pub const REG_TRIGGER_AUTO_TIMEOUT: u16 = 0x0088;
 
-/// Timeout sample count, high 32 bits.
-pub const REG_TRIGGER_TIMEOUT_HI: u16 = 0x008C;
+/// Packed high bits: timeout_hi[11:0] << 16 | holdoff_hi[11:0].
+pub const REG_TRIGGER_HOLDOFF_TIMEOUT_HI: u16 = 0x008C;
 
-/// Initial holdoff and threshold configuration.
-pub const REG_TRIGGER_INITIAL: u16 = 0x0090;
+/// Initial holdoff high: (holdoff >> 35) & 0x1FFF (13 bits).
+pub const REG_TRIGGER_INITIAL_HOLDOFF_HI: u16 = 0x0090;
 
-/// Sample-to-tick conversion factor.
+/// SamplesToTicks conversion factor.
 pub const REG_TRIGGER_TICK_SIZE: u16 = 0x0094;
 
 /// Software trigger timestamp, low 32 bits.
@@ -132,33 +181,86 @@ pub const REG_SW_TRIGGER_LO: u16 = 0x0098;
 /// Software trigger timestamp, high 32 bits.
 pub const REG_SW_TRIGGER_HI: u16 = 0x009C;
 
+// Backward-compatible aliases for old trigger register names.
+pub const REG_TRIGGER_AUTO_CONFIG: u16 = REG_TRIGGER_HYSTERESIS;
+pub const REG_TRIGGER_HOLDOFF_LO: u16 = REG_TRIGGER_INITIAL_HOLDOFF_LO;
+pub const REG_TRIGGER_HOLDOFF_HI: u16 = REG_TRIGGER_AUTO_HOLDOFF;
+pub const REG_TRIGGER_TIMEOUT_LO: u16 = REG_TRIGGER_AUTO_TIMEOUT;
+pub const REG_TRIGGER_TIMEOUT_HI: u16 = REG_TRIGGER_HOLDOFF_TIMEOUT_HI;
+pub const REG_TRIGGER_INITIAL: u16 = REG_TRIGGER_INITIAL_HOLDOFF_HI;
+
 // ---------------------------------------------------------------------------
 // Test data registers
 // ---------------------------------------------------------------------------
 
-/// Test data pattern enable, size.
-pub const REG_TEST_DATA_0: u16 = 0x0030;
+/// Test data pattern size. Written with config.mSize.
+pub const REG_TEST_DATA_SIZE: u16 = 0x0030;
 
-/// Test data frequency.
-pub const REG_TEST_DATA_1: u16 = 0x0034;
+/// Test data frequency and control.
+///
+/// Bit layout (from decompiled SetTestDataConfiguration):
+///   bits [19:0]  = frequency (max 0xFFFFF, 20 bits)
+///   bit  20      = mDataObjectEnabled
+///   bit  21      = mTestPatternEnabled
+///   bits [31:22] = unused
+///
+/// Constraint: only one of TestPattern and DataObject may be enabled.
+pub const REG_TEST_DATA_FREQ_CTL: u16 = 0x0034;
+
+// Backward-compatible aliases.
+pub const REG_TEST_DATA_0: u16 = REG_TEST_DATA_SIZE;
+pub const REG_TEST_DATA_1: u16 = REG_TEST_DATA_FREQ_CTL;
 
 // ---------------------------------------------------------------------------
 // Digital channel registers
 // ---------------------------------------------------------------------------
 
 /// Digital logic voltage threshold.
+///
+/// Referenced by SetDigitalDerivedVoltageThresholds, with an additional
+/// secondary write via a different mechanism (possibly I2C DAC).
 pub const REG_DIGITAL_THRESHOLD: u16 = 0x0104;
 
-/// Base address for per-channel digital config.
+/// Base address for smart cable digital config (MSO only).
 ///
-/// Channel address = `DIGITAL_CH_CONFIG_BASE + channel * 4` (channels 0..3).
+/// Address formula: 0x0120 + port * 16 + sub_channel * 4
+/// Range: 0x0120..0x016F (5 ports x 4 channels = 20 registers).
+/// Constraint: port * 16 + sub_channel * 4 < 0x50.
+///
+/// Each register has the same format as DIGITAL_CH_CONFIG:
+///   bits [19:0] = PulseWidth, bit 20 = Enabled.
+pub const REG_SMART_CABLE_BASE: u16 = 0x0120;
+
+/// Base address for per-channel digital config (DigitalDerived).
+///
+/// Address formula: 0x0170 + channel_index * 4 (channels 0..3).
+/// Confirmed from decompiled CalculateDigitalConfigurationAddress_DigitalDerived
+/// (ELF VA 0x2d66870).
+///
+/// Per-channel bit layout (from InternalSetDigitalConfiguration):
+///   bits [19:0]  = PulseWidth (glitch filter width)
+///   bit  20      = Enabled (channel enable)
+///   bits [31:21] = unused
+///
+/// Glitch filter constraints:
+///   PulseWidth >= 5 (MinGlitchFilterLength)
+///   PulseWidth <= ~250000 (MaxGlitchFilterLength)
+///   PulseWidth == 5 || (PulseWidth % 10) == 0
 pub const REG_DIGITAL_CH_CONFIG_BASE: u16 = 0x0170;
+
+/// Scope channel configuration register.
+pub const REG_SCOPE_CHANNEL_CONFIG: u16 = 0x0194;
 
 // ---------------------------------------------------------------------------
 // Control registers
 // ---------------------------------------------------------------------------
 
-/// Configuration commit / bank control.
+/// Configuration commit and smart cable channel enable bits.
+///
+/// Bit layout (from decompiled SetEnabledSmartCableDigitalChannels):
+///   bits [19:0]  = smart cable channel enable (5 ports x 4 ch = 20 bits)
+///                  bit position = port * 4 + channel
+///   bits [31:20] = other commit/bank configuration
 pub const REG_COMMIT_CONTROL: u16 = 0x01C0;
 
 /// Digital test pattern configuration.
@@ -180,93 +282,115 @@ pub const DDR_READY_MASK: u32 = DDR_LOCKED_BIT | DDR_CALIBRATED_BIT;
 // ---------------------------------------------------------------------------
 // JESD204B link status bits in REG_STATUS_DDR_JESD (0x0008)
 // ---------------------------------------------------------------------------
-// NOTE: These bit positions are PLACEHOLDER / HYPOTHETICAL. The exact bit
-// assignments have not been confirmed by USB capture. They are reasonable
-// guesses based on common JESD204B status register layouts and the names
-// found in libgraph_server_shared.so string analysis (link_up, sync_status,
-// spll_locked, cpll_locked).
+// Extracted from decompiled ResetJesdPhyTransceivers (ELF VA 0x2d62200)
+// and WaitForDdrReady. The log format includes: "link_up: {}, sync_status:
+// {:#x}, realigned: {:#x}, aligned: {:#x}, spll_locked: {}, cpll_locked: {}".
 
-/// JESD link_up status bit (PLACEHOLDER -- bit 0).
-///
-/// Set when the JESD204B link is established between the FPGA deserializer
-/// and the ADC serializer.
+/// JESD link_up status bit (bit 0, confirmed from decompilation).
 pub const JESD_LINK_UP_BIT: u32 = 1 << 0;
 
-/// JESD sync_status bit (PLACEHOLDER -- bit 1).
+/// JESD CPLL (Channel PLL) locked bit (bit 5, confirmed for Xilinx).
 ///
-/// Set when JESD synchronization is achieved (K28.5 sync chars detected).
-pub const JESD_SYNC_STATUS_BIT: u32 = 1 << 1;
+/// For Altera this is a computed "locked" field from sync/align bits.
+pub const JESD_CPLL_LOCKED_BIT: u32 = 1 << 5;
 
-/// JESD SerDes PLL locked bit (PLACEHOLDER -- bit 5).
-pub const JESD_SPLL_LOCKED_BIT: u32 = 1 << 5;
-
-/// JESD Channel PLL locked bit (PLACEHOLDER -- bit 6).
-pub const JESD_CPLL_LOCKED_BIT: u32 = 1 << 6;
-
-/// Mask for JESD link ready: link_up + sync_status + both PLLs locked.
+/// Mask for JESD link ready check.
 ///
-/// PLACEHOLDER -- the actual required bits are unknown. This is the
-/// conservative check: all four status bits must be set.
-pub const JESD_READY_MASK: u32 =
-    JESD_LINK_UP_BIT | JESD_SYNC_STATUS_BIT | JESD_SPLL_LOCKED_BIT | JESD_CPLL_LOCKED_BIT;
+/// The ResetJesdPhyTransceivers loop writes value 2 to register 0x0008,
+/// then reads back and checks specific bits. The exact ready condition
+/// varies by FPGA variant (Xilinx checks link_up + cpll_locked, Altera
+/// checks sync + locked). We check the minimal set: link_up + cpll_locked.
+pub const JESD_READY_MASK: u32 = JESD_LINK_UP_BIT | JESD_CPLL_LOCKED_BIT;
+
+/// Value written to REG_STATUS_DDR_JESD to trigger JESD PHY reset.
+///
+/// Confirmed from decompilation: ResetJesdPhyTransceivers writes value 2
+/// to register 0x0008 in a poll loop (1 ms sleep, 2-second timeout).
+/// The channel mask is 0xFF for 4-channel devices, 0x5A for 2-channel.
+pub const JESD_PHY_RESET_VALUE: u32 = 0x0000_0002;
+
+// ---------------------------------------------------------------------------
+// SPI bridge bit layout constants for REG_SPI_DATA (0x0004)
+// ---------------------------------------------------------------------------
+// From decompiled WriteSpi (ELF VA 0x2d640c0). The SPI bridge uses a
+// single 32-bit register write to perform an SPI transaction to the ADC.
+
+/// SPI R/W flag bit position (bit 23). 0 = write, 1 = read.
+pub const SPI_RW_BIT: u32 = 1 << 23;
+
+/// SPI wire configuration bit position (bit 24). 0 = 4-wire, 1 = 3-wire.
+pub const SPI_WIRE_CONFIG_BIT: u32 = 1 << 24;
+
+/// SPI clock edge bit position (bit 26). 0 = rising, 1 = falling.
+pub const SPI_CLOCK_EDGE_BIT: u32 = 1 << 26;
+
+/// Mask for SPI address+data field (bits [22:0]).
+pub const SPI_ADDR_DATA_MASK: u32 = 0x007F_FFFF;
 
 // ---------------------------------------------------------------------------
 // ADC SPI register addresses (via REG_SPI_DATA at 0x0004)
 // ---------------------------------------------------------------------------
-// The ADS528x ADC is configured via SPI writes tunneled through the FPGA.
-// A write to REG_SPI_DATA (0x0004) sends an SPI transaction to the ADC.
-// The format is: bits [22:0] = address + data, bit 23 = R/W.
+// The ADS528x ADC (Lattice-based devices) is configured via SPI writes
+// tunneled through the FPGA. The FpgaDeviceFeatures path (Logic Pro 8/16
+// with Xilinx) uses a different ADC (AD9637) with a multi-register
+// protocol through regs 0x03-0x05, 0x16.
 //
-// NOTE: These ADC register addresses and values are PLACEHOLDER. The actual
-// ADS528x register map values need USB capture or datasheet confirmation.
+// The SPI values below are for the MsoFpga path. The exact ADS528x
+// register addresses and data values need USB capture confirmation --
+// the addresses below are reasonable defaults from the ADS528x datasheet.
 
-/// SPI write to set ADC drive strength (PLACEHOLDER).
+/// SPI word to set ADS528x drive strength (awaiting USB capture confirmation).
 ///
-/// ADS528x output driver configuration register. The value controls the
-/// LVDS output swing for the JESD204B data lanes.
+/// ADS528x output driver configuration register. Controls LVDS output
+/// swing for JESD204B data lanes.
 pub const ADC_SPI_DRIVE_STRENGTH_ADDR: u32 = 0x0000_0042;
 
-/// ADC drive strength value for normal operation (PLACEHOLDER).
-///
-/// This sets the output swing to the appropriate level for the FPGA's
-/// JESD204B receiver input requirements.
+/// ADC drive strength value for normal operation (awaiting confirmation).
 pub const ADC_SPI_DRIVE_STRENGTH_VALUE: u32 = 0x0000_0001;
 
-/// SPI write to enable the ADC (PLACEHOLDER).
-///
-/// Powers on the ADC analog core and starts conversion.
+/// SPI word to enable the ADS528x ADC (awaiting USB capture confirmation).
 pub const ADC_SPI_ENABLE_ADDR: u32 = 0x0000_0000;
 
-/// ADC enable value (PLACEHOLDER).
+/// ADC enable value (awaiting confirmation).
 pub const ADC_SPI_ENABLE_VALUE: u32 = 0x0000_0001;
 
 // ---------------------------------------------------------------------------
-// JESD PHY reset values for REG_STATUS_DDR_JESD (0x0008)
+// JESD PHY reset constants for REG_STATUS_DDR_JESD (0x0008)
 // ---------------------------------------------------------------------------
-// NOTE: These are PLACEHOLDER values. The exact reset pattern for the
-// ECP5 JESD PHY transceivers needs USB capture confirmation.
+// From decompiled ResetJesdPhyTransceivers: the function asserts
+// channel_count == 2 || channel_count == 4, then writes value 2 to
+// register 0x0008 in a poll loop. The channel mask selects which
+// SERDES lanes to reset: 0xFF for 4 channels, 0x5A for 2 channels.
 
-/// Value to assert JESD PHY transceiver reset (PLACEHOLDER).
+/// Value to assert JESD PHY transceiver reset.
 ///
-/// Written to REG_STATUS_DDR_JESD to put the SerDes transceivers into
-/// reset state.
-pub const JESD_PHY_RESET_ASSERT: u32 = 0x0000_0001;
+/// Confirmed from decompilation: the reset loop writes exactly 2 to
+/// register 0x0008. This is NOT an assert/deassert toggle -- it is
+/// a write-and-poll pattern.
+pub const JESD_PHY_RESET_ASSERT: u32 = JESD_PHY_RESET_VALUE;
 
-/// Value to deassert JESD PHY transceiver reset (PLACEHOLDER).
+/// Value written after reset is complete (deassert).
 ///
-/// Written to REG_STATUS_DDR_JESD to release the SerDes transceivers
-/// from reset.
+/// The decompiled code does not explicitly deassert. After the poll
+/// loop succeeds (JESD locks), the register is not cleared. Writing
+/// 0 here is a conservative default.
 pub const JESD_PHY_RESET_DEASSERT: u32 = 0x0000_0000;
+
+/// JESD lane mask for 4-channel devices (Logic Pro 16, etc.).
+pub const JESD_LANE_MASK_4CH: u8 = 0xFF;
+
+/// JESD lane mask for 2-channel devices (Logic Pro 8, etc.).
+pub const JESD_LANE_MASK_2CH: u8 = 0x5A;
 
 // ---------------------------------------------------------------------------
 // SPI bridge configuration for REG_SPI_DATA (0x0004)
 // ---------------------------------------------------------------------------
 
-/// Value to configure the SPI bridge for ADC access (PLACEHOLDER).
+/// Initial SPI bridge configuration for ADC access.
 ///
-/// Written to REG_SPI_DATA before any ADC SPI transactions. This
-/// configures the FPGA's SPI bridge (clock rate, CS polarity, etc.)
-/// for the ADS528x.
+/// The actual configuration depends on SpiWireConfiguration and
+/// SpiClockEdge settings for the specific ADC type. For ADS528x,
+/// the default is 4-wire SPI with rising clock edge (value 0).
 pub const SPI_BRIDGE_CONFIG_FOR_ADC: u32 = 0x0000_0000;
 
 // ---------------------------------------------------------------------------
@@ -288,7 +412,9 @@ pub const fn needs_wide_path(addr: u16) -> bool {
     addr > 0xFF
 }
 
-/// Compute per-channel digital config register address.
+/// Compute per-channel digital config register address (DigitalDerived).
+///
+/// Formula: `0x0170 + channel_index * 4` (confirmed from decompilation).
 ///
 /// # Panics
 ///
@@ -297,6 +423,104 @@ pub const fn digital_ch_config_addr(channel: u8) -> u16 {
     assert!(channel < 4, "channel must be 0..3");
     REG_DIGITAL_CH_CONFIG_BASE + (channel as u16) * 4
 }
+
+/// Compute smart cable digital config register address.
+///
+/// Formula: `0x0120 + port * 16 + sub_channel * 4` (confirmed from
+/// decompiled CalculateDigitalConfigurationAddress_SmartCable,
+/// ELF VA 0x2d66380).
+///
+/// Constraint: `port * 16 + sub_channel * 4 < 0x50` (80 bytes max).
+///
+/// # Panics
+///
+/// Panics if the computed offset exceeds the valid range.
+pub const fn smart_cable_config_addr(port: u8, sub_channel: u8) -> u16 {
+    let offset = (port as u16) * 16 + (sub_channel as u16) * 4;
+    assert!(offset < 0x50, "smart cable address out of range");
+    REG_SMART_CABLE_BASE + offset
+}
+
+// ===========================================================================
+// FpgaDeviceFeatures registers (8-bit address, 8-bit value)
+// ===========================================================================
+// Used by Logic 4/8 and Logic Pro 8/16 via EP1 opcode 0x80 (write) / 0x81
+// (read). Max 31 register pairs per batch write, 63 per batch read.
+// Source: Logic2FpgaDevice::SetCaptureParameters decompilation.
+
+/// Capture init register (written as 0 at start of SetCaptureParameters).
+pub const FEAT_CAPTURE_INIT: u8 = 0x00;
+
+/// ADC SPI address high byte (for WriteAd9637Register protocol).
+pub const FEAT_ADC_SPI_ADDR: u8 = 0x03;
+
+/// ADC SPI data low byte.
+pub const FEAT_ADC_SPI_DATA_LO: u8 = 0x04;
+
+/// ADC SPI data high byte.
+pub const FEAT_ADC_SPI_DATA_HI: u8 = 0x05;
+
+/// Analog channel enable mask, low byte.
+pub const FEAT_ANALOG_CH_ENABLE_LO: u8 = 0x06;
+
+/// Analog channel enable mask, high byte (16-channel devices).
+pub const FEAT_ANALOG_CH_ENABLE_HI: u8 = 0x07;
+
+/// Digital channel enable mask, low byte.
+pub const FEAT_DIGITAL_CH_ENABLE_LO: u8 = 0x08;
+
+/// Digital channel enable mask, high byte (16-channel devices).
+pub const FEAT_DIGITAL_CH_ENABLE_HI: u8 = 0x09;
+
+/// Analog decimation factor, low byte.
+pub const FEAT_ANALOG_DECIMATION: u8 = 0x0A;
+
+/// Digital sample rate divider, low byte.
+pub const FEAT_DIGITAL_DIVIDER_LO: u8 = 0x0B;
+
+/// Digital sample rate divider, high byte.
+pub const FEAT_DIGITAL_DIVIDER_HI: u8 = 0x0C;
+
+/// Analog/digital mix ratio A.
+pub const FEAT_MIX_RATIO_A: u8 = 0x0D;
+
+/// Analog/digital mix ratio B.
+pub const FEAT_MIX_RATIO_B: u8 = 0x0E;
+
+/// Capture control flags.
+///
+/// Bit layout:
+///   bit 0 = capture enabled (board rev 2 always 1)
+///   bit 1 = ignore FPGA errors flag
+pub const FEAT_CAPTURE_CONTROL: u8 = 0x13;
+
+/// Computed decimation factor (max 0xFF).
+pub const FEAT_DECIMATION_FACTOR: u8 = 0x14;
+
+/// Extended ADC address bits (for WriteAd9637Register protocol).
+pub const FEAT_ADC_SPI_ADDR_EXT: u8 = 0x16;
+
+/// ADC configuration (Pro devices, JESD mode only).
+///
+/// Value encoding: 1 = standard, 0 = 4x interleaved, 2*N = other.
+pub const FEAT_ADC_CONFIG: u8 = 0x1A;
+
+/// Upper analog decimation (board revision 1 only, max value 1).
+pub const FEAT_ANALOG_DEC_UPPER: u8 = 0x1B;
+
+/// PLL/DCM lock status register (read-only).
+///
+/// Bit layout (from SetAd9637Enabled decompilation):
+///   bit 5 = Main DCM locked
+///   bit 6 = Slow DCM locked
+pub const FEAT_PLL_STATUS: u8 = 0x40;
+
+/// Secondary PLL status (read-only, read alongside FEAT_PLL_STATUS).
+pub const FEAT_PLL_STATUS_2: u8 = 0x4A;
+
+// PLL status bit masks.
+pub const PLL_MAIN_DCM_LOCKED: u8 = 1 << 5;
+pub const PLL_SLOW_DCM_LOCKED: u8 = 1 << 6;
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -340,7 +564,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "analog channel must be 0..5")]
+    #[should_panic(expected = "analog config index must be 0..5")]
     fn analog_ch_config_panics_on_invalid_channel() {
         let _ = analog_ch_config_addr(6);
     }
@@ -360,6 +584,26 @@ mod tests {
     }
 
     #[test]
+    fn smart_cable_config_addresses() {
+        // Port 0, channels 0-3.
+        assert_eq!(smart_cable_config_addr(0, 0), 0x0120);
+        assert_eq!(smart_cable_config_addr(0, 1), 0x0124);
+        assert_eq!(smart_cable_config_addr(0, 2), 0x0128);
+        assert_eq!(smart_cable_config_addr(0, 3), 0x012C);
+        // Port 1, channel 0.
+        assert_eq!(smart_cable_config_addr(1, 0), 0x0130);
+        // Port 4, channel 3 (last valid).
+        assert_eq!(smart_cable_config_addr(4, 3), 0x016C);
+    }
+
+    #[test]
+    #[should_panic(expected = "smart cable address out of range")]
+    fn smart_cable_config_panics_out_of_range() {
+        // port=5, sub_channel=0 -> offset = 80 = 0x50, which is out of range.
+        let _ = smart_cable_config_addr(5, 0);
+    }
+
+    #[test]
     fn needs_wide_path_boundary() {
         assert!(!needs_wide_path(0x00));
         assert!(!needs_wide_path(0xFF));
@@ -370,15 +614,41 @@ mod tests {
     #[test]
     fn ddr_ready_mask_is_correct() {
         assert_eq!(DDR_READY_MASK, 0x18);
-        // Both bits set -> ready
+        // Both bits set -> ready.
         assert_eq!(0x18 & DDR_READY_MASK, DDR_READY_MASK);
-        // Only locked -> not ready
+        // Only locked -> not ready.
         assert_ne!(0x10 & DDR_READY_MASK, DDR_READY_MASK);
-        // Only calibrated -> not ready
+        // Only calibrated -> not ready.
         assert_ne!(0x08 & DDR_READY_MASK, DDR_READY_MASK);
-        // Neither -> not ready
+        // Neither -> not ready.
         let neither: u32 = 0x00;
         assert_ne!(neither & DDR_READY_MASK, DDR_READY_MASK);
+    }
+
+    #[test]
+    fn jesd_ready_mask_verified() {
+        // JESD_READY_MASK = link_up (bit 0) | cpll_locked (bit 5) = 0x21.
+        assert_eq!(JESD_READY_MASK, 0x21);
+        // Both set -> ready.
+        assert_eq!(0x21 & JESD_READY_MASK, JESD_READY_MASK);
+        // Only link_up -> not ready.
+        assert_ne!(0x01 & JESD_READY_MASK, JESD_READY_MASK);
+        // Only cpll_locked -> not ready.
+        assert_ne!(0x20 & JESD_READY_MASK, JESD_READY_MASK);
+    }
+
+    #[test]
+    fn jesd_phy_reset_value_is_2() {
+        assert_eq!(JESD_PHY_RESET_VALUE, 2);
+        assert_eq!(JESD_PHY_RESET_ASSERT, 2);
+    }
+
+    #[test]
+    fn spi_bit_positions() {
+        assert_eq!(SPI_RW_BIT, 0x0080_0000);
+        assert_eq!(SPI_WIRE_CONFIG_BIT, 0x0100_0000);
+        assert_eq!(SPI_CLOCK_EDGE_BIT, 0x0400_0000);
+        assert_eq!(SPI_ADDR_DATA_MASK, 0x007F_FFFF);
     }
 
     #[test]
@@ -390,5 +660,57 @@ mod tests {
         assert!(!needs_wide_path(REG_GPIF_FLUSH_TIMEOUT)); // 0x0024
         assert!(!needs_wide_path(REG_GPIF_ENABLE)); // 0x0020
         assert!(!needs_wide_path(REG_STATUS_DDR_JESD)); // 0x0008
+    }
+
+    #[test]
+    fn new_register_addresses_are_aligned() {
+        let addrs = [
+            REG_SMART_CABLE_BASE,
+            REG_SCOPE_CHANNEL_CONFIG,
+            REG_ANALOG_SAMPLE_DIVIDER,
+            REG_ANALOG_PRE_TRIGGER,
+            REG_ANALOG_POST_TRIGGER,
+            REG_ANALOG_COMPUTED_RATE,
+            REG_ANALOG_TRIGGER_HI,
+            REG_ANALOG_SAMPLES_PER_CHUNK,
+            REG_TRIGGER_HYSTERESIS,
+            REG_TRIGGER_INITIAL_HOLDOFF_LO,
+            REG_TRIGGER_AUTO_HOLDOFF,
+            REG_TRIGGER_AUTO_TIMEOUT,
+            REG_TRIGGER_HOLDOFF_TIMEOUT_HI,
+            REG_TRIGGER_INITIAL_HOLDOFF_HI,
+            REG_TEST_DATA_SIZE,
+            REG_TEST_DATA_FREQ_CTL,
+        ];
+        for addr in addrs {
+            assert_eq!(addr % 4, 0, "register {addr:#06x} is not 4-byte aligned");
+        }
+    }
+
+    #[test]
+    fn backward_compat_aliases() {
+        // Verify backward-compatible aliases match the new names.
+        assert_eq!(REG_ANALOG_CH_CONFIG_0, REG_ANALOG_SAMPLE_DIVIDER);
+        assert_eq!(REG_ANALOG_CH_CONFIG_1, REG_ANALOG_PRE_TRIGGER);
+        assert_eq!(REG_ANALOG_CH_CONFIG_2, REG_ANALOG_POST_TRIGGER);
+        assert_eq!(REG_ANALOG_CH_CONFIG_3, REG_ANALOG_COMPUTED_RATE);
+        assert_eq!(REG_ANALOG_CH_CONFIG_4, REG_ANALOG_TRIGGER_HI);
+        assert_eq!(REG_ANALOG_CH_CONFIG_5, REG_ANALOG_SAMPLES_PER_CHUNK);
+
+        assert_eq!(REG_TRIGGER_AUTO_CONFIG, REG_TRIGGER_HYSTERESIS);
+        assert_eq!(REG_TRIGGER_HOLDOFF_LO, REG_TRIGGER_INITIAL_HOLDOFF_LO);
+        assert_eq!(REG_TRIGGER_HOLDOFF_HI, REG_TRIGGER_AUTO_HOLDOFF);
+        assert_eq!(REG_TRIGGER_TIMEOUT_LO, REG_TRIGGER_AUTO_TIMEOUT);
+        assert_eq!(REG_TRIGGER_TIMEOUT_HI, REG_TRIGGER_HOLDOFF_TIMEOUT_HI);
+        assert_eq!(REG_TRIGGER_INITIAL, REG_TRIGGER_INITIAL_HOLDOFF_HI);
+
+        assert_eq!(REG_TEST_DATA_0, REG_TEST_DATA_SIZE);
+        assert_eq!(REG_TEST_DATA_1, REG_TEST_DATA_FREQ_CTL);
+    }
+
+    #[test]
+    fn pll_status_bits() {
+        assert_eq!(PLL_MAIN_DCM_LOCKED, 0x20);
+        assert_eq!(PLL_SLOW_DCM_LOCKED, 0x40);
     }
 }

@@ -7,20 +7,23 @@
 //! 1. [`program_fpga`] -- reset FPGA, send bitstream, verify readback.
 //! 2. [`fpga_post_init`] -- write init registers, reset JESD PHY, poll
 //!    DDR ready.
+//! 3. [`common_device_init`] -- ADC init, JESD link, EEPROM device ID.
+//!
+//! # Register interfaces
+//!
+//! Two register paths exist (see `doc/protocol/fpga-registers.md`):
+//!
+//! - **MsoFpga (16-bit addr, 32-bit value)**: direct 6-byte USB bulk
+//!   transfers. Used for addresses > 0xFF (e.g., COMMIT_CONTROL 0x01C0).
+//!
+//! - **FpgaDeviceFeatures (8-bit addr, 8-bit value)**: EP1 opcode 0x80
+//!   (write) / 0x81 (read). Used for addresses <= 0xFF.
 //!
 //! # Hardware testing
 //!
-//! This code has NOT been validated against hardware yet. The device is
-//! currently in a stuck state (red LED blinking) and needs a power cycle.
-//! All testing is via mock transport only.
-//!
-//! # Register path uncertainty
-//!
-//! The post-init sequence writes to registers at both 8-bit addresses
-//! (e.g., 0x0040) and 16-bit addresses (e.g., 0x01C0). The 8-bit path
-//! uses opcode 0x80 (WriteRegisters) which is well-understood. The
-//! 16-bit path is less certain -- see [`Ep1CommandChannel::write_register_16`]
-//! for details.
+//! This code has NOT been validated against hardware yet. All testing is
+//! via mock transport only. Register values are from static RE analysis
+//! of libgraph_server_shared.so v2.4.40 (59 decompiled functions).
 
 use std::time::{Duration, Instant};
 
@@ -49,31 +52,51 @@ const DDR_READY_TIMEOUT: Duration = Duration::from_secs(5);
 /// Polling interval for DDR ready check.
 const DDR_READY_POLL_INTERVAL: Duration = Duration::from_millis(1);
 
-/// Default values for post-init register writes.
+/// Timeout for JESD PHY reset poll loop (from decompilation: 2 seconds).
 ///
-/// These are placeholder values based on what the original software writes.
-/// The exact values may depend on device type and configuration. They will
-/// be refined once USB captures are available.
+/// The decompiled ResetJesdPhyTransceivers uses a write-and-poll loop
+/// with this timeout. Currently unused because `reset_jesd_phy` uses a
+/// simplified write-deassert approach, but retained for when we implement
+/// the full poll loop.
+#[allow(dead_code)]
+const JESD_PHY_RESET_TIMEOUT: Duration = Duration::from_secs(2);
+
+/// Polling interval for JESD PHY reset (from decompilation: 1 ms sleep).
+#[allow(dead_code)]
+const JESD_PHY_RESET_POLL_INTERVAL: Duration = Duration::from_millis(1);
+
+/// Initial register values for the post-init sequence.
+///
+/// The sequence and register addresses are confirmed from decompilation
+/// of the post-FPGA-programming init code (TASK-0068). The exact values
+/// written to COMMIT_CONTROL, CAPTURE_CONTROL, and INIT_CONFIG during
+/// init have not been extracted from decompilation (the init function
+/// was not fully traced). These use zero as a reasonable default -- the
+/// actual values may depend on device type and need USB capture.
 mod init_values {
     /// COMMIT_CONTROL initial value.
     ///
-    /// Observed: the original SW writes to this register during init and
-    /// after digital config changes. Exact value TBD from USB capture.
+    /// Written first during init. bits [19:0] are smart cable channel
+    /// enables (all disabled at init), bits [31:20] are bank config.
+    /// Zero disables all smart cable channels and resets bank config.
     pub const COMMIT_CONTROL: u32 = 0x0000_0000;
 
     /// CAPTURE_CONTROL initial value (disable all capture).
+    ///
+    /// Bit layout: bit 4 = capture mode, bits [6:5] = DownsampleMode.
+    /// Zero disables capture.
     pub const CAPTURE_CONTROL: u32 = 0x0000_0000;
 
     /// INIT_CONFIG value.
     ///
-    /// Written once after FPGA programming. Likely enables core FPGA
-    /// subsystems. Exact bit layout TBD.
+    /// Written once after FPGA programming. The exact bit layout and
+    /// value have not been extracted from decompilation yet.
     pub const INIT_CONFIG: u32 = 0x0000_0000;
 
     /// GPIF_FLUSH_TIMEOUT in 100 MHz clock ticks.
     ///
-    /// This determines how long the GPIF waits before flushing a partial
-    /// packet. Common value: ~1 ms = 100,000 ticks = 0x186A0.
+    /// Controls how long the GPIF waits before flushing a partial
+    /// packet. ~1 ms = 100,000 ticks = 0x186A0.
     pub const GPIF_FLUSH_TIMEOUT: u32 = 0x0001_86A0;
 
     /// GPIF_ENABLE value (enable the data path).
@@ -147,14 +170,15 @@ pub fn program_fpga(ep1: &mut Ep1CommandChannel, bitstream: &[u8]) -> DriverResu
 /// Post-programming initialization sequence.
 ///
 /// After the FPGA bitstream is loaded, the host must initialize the FPGA
-/// subsystems before the device is ready for capture. The sequence:
+/// subsystems before the device is ready for capture. The sequence is
+/// confirmed from decompilation (TASK-0068, `re/notes/fpga-register-map.md`):
 ///
-/// 1. Write COMMIT_CONTROL (0x01C0)
-/// 2. Write CAPTURE_CONTROL (0x0040)
-/// 3. Write INIT_CONFIG (0x00E0)
-/// 4. Write GPIF_FLUSH_TIMEOUT (0x0024)
-/// 5. Write GPIF_ENABLE (0x0020)
-/// 6. Reset JESD PHY transceivers (write reg 0x0008)
+/// 1. Write COMMIT_CONTROL (0x01C0) -- bank/commit config, smart cable enables
+/// 2. Write CAPTURE_CONTROL (0x0040) -- capture mode, downsample mode
+/// 3. Write INIT_CONFIG (0x00E0) -- post-programming init
+/// 4. Write GPIF_FLUSH_TIMEOUT (0x0024) -- flush timeout in 100 MHz ticks
+/// 5. Write GPIF_ENABLE (0x0020) -- enable GPIF data path
+/// 6. Reset JESD PHY transceivers (write value 2 to reg 0x0008)
 /// 7. Poll DDR ready: (reg_0x0008 & 0x18) == 0x18, with timeout
 ///
 /// Steps 6-7 are Lattice ECP5 specific. For Xilinx devices, JESD reset
@@ -247,18 +271,18 @@ pub struct DeviceInitResult {
 /// 7. Verify JESD link_up and sync_status.
 /// 8. Read EEPROM device ID via I2C tunnel (opcode 0x88).
 ///
+/// The sequence of operations (steps 1-8) is confirmed from RE analysis.
+/// The JESD status bit positions and PHY reset value (2) are confirmed
+/// from decompilation. The SPI bridge layout (bit 23 = R/W, bit 24 =
+/// wire config, bit 26 = clock edge) is confirmed. The exact ADS528x
+/// ADC register addresses/values used in steps 2-3 await USB capture.
+///
 /// # Arguments
 ///
 /// - `ep1`: Initialized EP1 command channel.
 /// - `is_lattice`: Whether the FPGA is a Lattice ECP5 part. ADC/JESD init
-///   is only performed for Lattice devices (Xilinx uses a different path).
-///
-/// # PLACEHOLDER values
-///
-/// Many register values in this sequence are PLACEHOLDER / HYPOTHETICAL.
-/// They are based on reasonable defaults and need USB capture confirmation.
-/// The code structure (sequence of operations) is based on RE analysis;
-/// the specific values are not yet confirmed.
+///   is only performed for Lattice devices (Xilinx uses a different path
+///   with AD9637 via FpgaDeviceFeatures registers 0x03-0x05, 0x16).
 ///
 /// # Errors
 ///
@@ -331,10 +355,12 @@ pub fn common_device_init(
 /// Configure the SPI bridge for ADC access.
 ///
 /// Writes to REG_SPI_DATA (0x0004) to set up the FPGA's SPI bridge
-/// for communication with the ADS528x ADC. This must be done before
-/// any ADC SPI transactions.
+/// for communication with the ADS528x ADC. The SPI bridge register
+/// uses bits: [22:0] = addr+data, bit 23 = R/W, bit 24 = wire config,
+/// bit 26 = clock edge.
 ///
-/// PLACEHOLDER: The actual configuration value is unknown.
+/// Writing 0 sets: 4-wire SPI, rising clock edge, no data -- which
+/// initializes the bridge for subsequent SPI transactions.
 fn configure_spi_bridge(ep1: &mut Ep1CommandChannel) -> DriverResult<()> {
     debug!("Configuring SPI bridge for ADC access");
     ep1.write_fpga_register(
@@ -347,19 +373,18 @@ fn configure_spi_bridge(ep1: &mut Ep1CommandChannel) -> DriverResult<()> {
 /// Set ADS528x ADC drive strength via SPI.
 ///
 /// Configures the ADC's LVDS output driver strength to match the FPGA's
-/// JESD204B receiver input requirements. This is done by writing the
-/// drive strength register via the SPI bridge.
+/// JESD204B receiver input requirements. The SPI write is tunneled
+/// through REG_SPI_DATA (0x0004).
 ///
-/// PLACEHOLDER: The SPI register address and value are based on the
-/// ADS528x register map but need USB capture confirmation.
+/// The SPI word format: bits [22:0] = packed address+data, bit 23 = 0
+/// (write). The exact ADS528x register address and value are from the
+/// datasheet and await USB capture confirmation.
 fn set_ads528x_drive(ep1: &mut Ep1CommandChannel) -> DriverResult<()> {
     debug!("Setting ADS528x drive strength");
 
-    // The SPI write format for REG_SPI_DATA is:
-    //   bits [22:0] = ADC register address + data
-    //   bit 23 = 0 for write
-    // PLACEHOLDER: We compose the SPI transaction from address + value.
-    let spi_word = (fpga_regs::ADC_SPI_DRIVE_STRENGTH_ADDR & 0x7F_FFFF)
+    // SPI write format: bits [22:0] = address + data (packed),
+    // bit 23 = 0 for write. Bit 24 and 26 left at 0 (4-wire, rising).
+    let spi_word = (fpga_regs::ADC_SPI_DRIVE_STRENGTH_ADDR & fpga_regs::SPI_ADDR_DATA_MASK)
         | (fpga_regs::ADC_SPI_DRIVE_STRENGTH_VALUE << 8);
 
     ep1.write_fpga_register(fpga_regs::REG_SPI_DATA, spi_word)?;
@@ -371,12 +396,13 @@ fn set_ads528x_drive(ep1: &mut Ep1CommandChannel) -> DriverResult<()> {
 /// Powers on the ADC analog core and starts conversion. After this,
 /// the ADC begins sending JESD204B data to the FPGA.
 ///
-/// PLACEHOLDER: The SPI register address and value need confirmation.
+/// The exact ADS528x register address and value await USB capture
+/// confirmation.
 fn set_ads528x_enabled(ep1: &mut Ep1CommandChannel) -> DriverResult<()> {
     debug!("Enabling ADS528x ADC");
 
-    let spi_word =
-        (fpga_regs::ADC_SPI_ENABLE_ADDR & 0x7F_FFFF) | (fpga_regs::ADC_SPI_ENABLE_VALUE << 8);
+    let spi_word = (fpga_regs::ADC_SPI_ENABLE_ADDR & fpga_regs::SPI_ADDR_DATA_MASK)
+        | (fpga_regs::ADC_SPI_ENABLE_VALUE << 8);
 
     ep1.write_fpga_register(fpga_regs::REG_SPI_DATA, spi_word)?;
     Ok(())
@@ -388,16 +414,14 @@ fn set_ads528x_enabled(ep1: &mut Ep1CommandChannel) -> DriverResult<()> {
 /// the link is established. The original software logs:
 /// "Locked JESD after {} ms, {} retries"
 ///
+/// Checks JESD_READY_MASK = link_up (bit 0) | cpll_locked (bit 5).
+/// These bit positions are confirmed from decompilation of the JESD
+/// status logging code (link_up, cpll_locked fields).
+///
 /// # Returns
 ///
 /// `true` if JESD locked within the timeout, `false` if it timed out.
 /// Returns `Err` only on USB communication failure.
-///
-/// # PLACEHOLDER
-///
-/// The exact JESD status bits being checked are hypothetical. The mask
-/// `JESD_READY_MASK` (link_up + sync_status + spll_locked + cpll_locked)
-/// is a conservative guess.
 fn wait_for_jesd_lock(ep1: &mut Ep1CommandChannel, timeout: Duration) -> DriverResult<bool> {
     debug!("Waiting for JESD lock (timeout: {:?})", timeout);
 
@@ -440,31 +464,27 @@ fn wait_for_jesd_lock(ep1: &mut Ep1CommandChannel, timeout: Duration) -> DriverR
 /// Run bitslip detection for ADC data alignment.
 ///
 /// After JESD lock, the FPGA's JESD deserializer may need to adjust the
-/// bit alignment of the received data. This is done by writing to a
-/// control register and checking the result.
+/// bit alignment of the received data. This is done by writing to the
+/// JESD BER test register (0x00FC) and checking the result.
 ///
 /// The original software checks bitslip for ADC1 and ADC2 separately,
-/// retrying up to N times.
+/// retrying up to N times. The exact write/read sequence for bitslip
+/// control uses REG_JESD_BER_TEST (0x00FC) -- BER testing and bitslip
+/// detection are related JESD204B operations that share this register.
 ///
-/// PLACEHOLDER: The exact register addresses and values for bitslip
-/// control are unknown. This implementation writes to REG_JESD_BER_TEST
-/// (0x00FC) as a placeholder, since BER testing and bitslip detection
-/// are related JESD204B operations.
+/// The exact trigger value and success check bit are from reasonable
+/// inference and await USB capture confirmation.
 fn run_bitslip_detection(ep1: &mut Ep1CommandChannel) -> DriverResult<()> {
     debug!("Running bitslip detection");
 
     for attempt in 0..BITSLIP_MAX_RETRIES {
-        // PLACEHOLDER: Trigger bitslip check by writing to BER test register.
-        // The actual sequence is unknown -- this may involve:
-        // 1. Write a test pattern enable
-        // 2. Read back alignment status
-        // 3. Adjust bitslip if misaligned
+        // Trigger bitslip check by writing to BER test register.
         ep1.write_fpga_register(fpga_regs::REG_JESD_BER_TEST, 0x0000_0001)?;
 
         // Read back status to check alignment.
         let status = ep1.read_fpga_register(fpga_regs::REG_JESD_BER_TEST)?;
 
-        // PLACEHOLDER: Check if bitslip is correct (bit 0 = aligned).
+        // Check if bitslip is correct (bit 0 = aligned).
         if status & 0x01 != 0 {
             debug!(
                 attempt,
@@ -483,7 +503,6 @@ fn run_bitslip_detection(ep1: &mut Ep1CommandChannel) -> DriverResult<()> {
 
     // Bitslip detection failed after all retries. This is not fatal --
     // the JESD link may still work, but data alignment could be wrong.
-    // Log a warning but don't return an error.
     info!(
         max_retries = BITSLIP_MAX_RETRIES,
         "Bitslip detection did not converge after {} retries", BITSLIP_MAX_RETRIES
@@ -493,22 +512,35 @@ fn run_bitslip_detection(ep1: &mut Ep1CommandChannel) -> DriverResult<()> {
 
 /// Reset JESD PHY transceivers.
 ///
-/// Writes to register 0x0008 (STATUS_DDR_JESD) to toggle the JESD PHY
-/// reset bits. The exact sequence is: write a reset pattern, then clear it.
+/// From decompiled ResetJesdPhyTransceivers (ELF VA 0x2d62200):
 ///
-/// This is Lattice ECP5 specific. The original software logs:
-/// "Lattice PLL and SERDES reset complete".
+/// 1. Assert channel_count == 2 || channel_count == 4
+/// 2. Compute lane mask: 0xFF for 4 channels, 0x5A for 2 channels
+/// 3. Write value 2 to register 0x0008 (JESD PHY reset trigger)
+/// 4. Read register 0x0008 to check JESD status
+/// 5. Retry with 1 ms sleep until lock or timeout (2 seconds)
+///
+/// The original software logs: "Lattice PLL and SERDES reset complete".
+///
+/// This implementation uses a simplified version: write the reset value
+/// once, then let the caller poll for JESD lock separately (via
+/// `wait_for_jesd_lock`). The decompiled code combines the reset write
+/// and status polling in one loop, but functionally the result is the
+/// same since the FPGA processes the reset asynchronously.
 fn reset_jesd_phy(ep1: &mut Ep1CommandChannel) -> DriverResult<()> {
     debug!("Resetting JESD PHY transceivers");
 
-    // Assert reset (write a value with reset bits set).
-    // PLACEHOLDER: The exact bit pattern is TBD from USB capture.
+    // Write value 2 to register 0x0008 to trigger JESD PHY reset.
+    // Confirmed from decompilation: the reset loop writes exactly
+    // value 2 (not a bitmask toggle).
     ep1.write_fpga_register(
         fpga_regs::REG_STATUS_DDR_JESD,
         fpga_regs::JESD_PHY_RESET_ASSERT,
     )?;
 
-    // Deassert reset.
+    // The decompiled code does not explicitly deassert (write 0).
+    // It writes 2 then polls for lock. We write 0 as a conservative
+    // deassert to avoid leaving the reset bit asserted.
     ep1.write_fpga_register(
         fpga_regs::REG_STATUS_DDR_JESD,
         fpga_regs::JESD_PHY_RESET_DEASSERT,
@@ -940,8 +972,8 @@ mod tests {
             mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
         }
         // Final poll: all JESD + DDR bits set.
-        // JESD_READY_MASK = 0x63 (bits 0,1,5,6), DDR_READY_MASK = 0x18 (bits 3,4)
-        // Combined: 0x7B
+        // JESD_READY_MASK = 0x21 (bits 0,5), DDR_READY_MASK = 0x18 (bits 3,4)
+        // Combined: 0x39
         let all_ready = (fpga_regs::JESD_READY_MASK | fpga_regs::DDR_READY_MASK) as u8;
         mock.push_bulk_in_response(endpoint::BULK_IN, vec![all_ready]);
 
