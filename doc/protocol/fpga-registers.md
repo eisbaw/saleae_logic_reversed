@@ -130,10 +130,10 @@ FPGA variant constraints:
 
 | Address | Name | Description |
 |---------|------|-------------|
-| 0x0070 | TRIGGER_CONTROL | Packed: threshold[31:16], TriggerType[7:4], TriggerMode[3:2], enable. |
+| 0x0070 | TRIGGER_CONTROL | Packed: threshold[31:16], channelSource[15:8], TriggerType[7:4], TriggerMode[3:2], glitchFilterEnabled[1:0]. |
 | 0x0074 | TRIGGER_NORMAL_HOLDOFF | Normal-mode holdoff in ticks: `(samples+7) >> 3`. |
 | 0x0078 | TRIGGER_NORMAL_TIMEOUT | Normal-mode timeout in ticks. |
-| 0x007C | TRIGGER_AUTO_CONFIG | Auto-mode: `hysteresis_falling | threshold << 16`. |
+| 0x007C | TRIGGER_HYSTERESIS | Hysteresis: `rising[15:0] | falling[31:16]`. |
 | 0x0080 | TRIGGER_INITIAL_HOLDOFF_LO | Initial holdoff, low 32 bits (in ticks). |
 | 0x0084 | TRIGGER_AUTO_HOLDOFF | Auto-mode holdoff in ticks. |
 | 0x0088 | TRIGGER_AUTO_TIMEOUT | Auto-mode timeout in ticks. |
@@ -179,6 +179,12 @@ Address formula: `address = 0x0120 + port * 16 + sub_channel * 4`
 | 0x0160-0x016C | 4 | Port 4, channels 0-3 |
 
 Same bit layout as DIGITAL_CH_CONFIG: `enabled<<20 | pulseWidth[19:0]`.
+
+### Scope Channel Registers
+
+| Address | Name | Description |
+|---------|------|-------------|
+| 0x0194 | SCOPE_CHANNEL_CONFIG | Scope channel configuration (purpose TBD). |
 
 ### Control Registers
 
@@ -267,6 +273,7 @@ MsoFpga (16-bit addresses, 32-bit values):
   0x0104         Digital voltage threshold
   0x0120-0x016F  Smart cable digital config (5 ports x 4 channels)
   0x0170-0x017C  Per-channel digital config (4 channels, stride 4)
+  0x0194         Scope channel configuration
   0x01C0-0x01C4  Commit/bank control, digital test pattern
 
 FpgaDeviceFeatures (8-bit addresses, 8-bit values):
