@@ -392,7 +392,7 @@ pub fn unpack_digital_samples(data: &[u8]) -> Vec<bool> {
 ///
 /// This is the inverse of [`unpack_digital_samples`].
 pub fn pack_digital_samples(samples: &[bool]) -> Vec<u8> {
-    let byte_count = (samples.len() + 7) / 8;
+    let byte_count = samples.len().div_ceil(8);
     let mut bytes = vec![0u8; byte_count];
     for (i, &sample) in samples.iter().enumerate() {
         if sample {
@@ -467,7 +467,7 @@ pub fn disaggregate_digital(interleaved: &[u8], num_channels: usize) -> Vec<Vec<
     // Samples per input byte: 8 bits / num_channels bits per sample period
     let samples_per_byte = 8 / num_channels;
     let total_samples = interleaved.len() * samples_per_byte;
-    let output_bytes_per_channel = (total_samples + 7) / 8;
+    let output_bytes_per_channel = total_samples.div_ceil(8);
 
     let mut channels: Vec<Vec<bool>> = vec![Vec::with_capacity(total_samples); num_channels];
 

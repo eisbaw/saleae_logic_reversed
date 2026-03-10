@@ -47,9 +47,7 @@ pub fn upload_fx3_firmware(transport: &dyn UsbTransport, image: &Fx3Image) -> Dr
             w_index: (addr >> 16) as u16,
         };
 
-        transport
-            .control_transfer_out(&params, chunk)
-            .map_err(saleae_usb::UsbError::from)?;
+        transport.control_transfer_out(&params, chunk)?;
     }
 
     // Send zero-length transfer to entry address to trigger execution.
@@ -65,9 +63,7 @@ pub fn upload_fx3_firmware(transport: &dyn UsbTransport, image: &Fx3Image) -> Dr
         w_index: (image.entry_address >> 16) as u16,
     };
 
-    transport
-        .control_transfer_out(&params, &[])
-        .map_err(saleae_usb::UsbError::from)?;
+    transport.control_transfer_out(&params, &[])?;
 
     info!("firmware upload complete; device should re-enumerate");
     Ok(())

@@ -308,8 +308,16 @@ pub fn program_fpga(bitstream_path: &str, skip_post_init: bool) -> Result<()> {
     println!();
 
     // Program FPGA.
+    let profile = device
+        .device_type
+        .profile()
+        .context("no device profile for this device type")?;
+    let usb_speed = device
+        .usb_speed
+        .unwrap_or_else(|| profile.default_forced_usb_speed());
+
     println!("Programming FPGA ({} bytes)...", bitstream.len());
-    saleae_driver::fpga::program_fpga(&mut channel, &bitstream)
+    saleae_driver::fpga::program_fpga(&mut channel, &bitstream, profile, usb_speed)
         .context("FPGA programming failed")?;
     println!("FPGA programming verified (readback = 0xAA).");
     println!();
@@ -392,6 +400,15 @@ pub fn device_init(bitstream_path: Option<&str>, skip_fpga: bool) -> Result<()> 
     println!("Command channel initialized.");
     println!();
 
+    // Get device profile and USB speed for FPGA programming.
+    let profile = device
+        .device_type
+        .profile()
+        .context("no device profile for this device type")?;
+    let usb_speed = device
+        .usb_speed
+        .unwrap_or_else(|| profile.default_forced_usb_speed());
+
     // Optionally program FPGA.
     if !skip_fpga {
         let bs_path = bitstream_path.ok_or_else(|| {
@@ -409,7 +426,7 @@ pub fn device_init(bitstream_path: Option<&str>, skip_fpga: bool) -> Result<()> 
             "Programming FPGA ({} bytes from {bs_path})...",
             bitstream.len()
         );
-        saleae_driver::fpga::program_fpga(&mut channel, &bitstream)
+        saleae_driver::fpga::program_fpga(&mut channel, &bitstream, profile, usb_speed)
             .context("FPGA programming failed")?;
         println!("FPGA programming verified.");
         println!();
@@ -663,7 +680,7 @@ fn find_and_load_calibration(dir: &std::path::Path) -> Result<saleae_proto::Cali
     for entry in entries {
         let entry = entry?;
         let path = entry.path();
-        if path.extension().map_or(false, |ext| ext == "cal") {
+        if path.extension().is_some_and(|ext| ext == "cal") {
             return saleae_driver::calibration::load_calibration_file(&path)
                 .map_err(|e| anyhow::anyhow!("failed to load {}: {}", path.display(), e));
         }

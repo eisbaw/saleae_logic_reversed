@@ -187,6 +187,355 @@ impl std::fmt::Display for DeviceType {
 }
 
 // ---------------------------------------------------------------------------
+// FPGA type enum
+// ---------------------------------------------------------------------------
+
+/// FPGA device features class, determines register interface and capabilities.
+///
+/// From the Saleae class hierarchy (`re/notes/device-class-hierarchy.md`):
+///
+/// - **NonPro**: `FpgaDeviceFeatures` -- 8-bit register writes, fire-and-forget
+///   (no read-back verification), 62-byte FPGA programming chunks.
+/// - **Pro**: `ProFpgaDeviceFeatures` -- 16-bit register writes with read-back
+///   verification, 508/1020-byte FPGA programming chunks (USB 2.0/3.0).
+/// - **Mso**: Separate oscilloscope device path (out of scope).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum FpgaType {
+    /// FpgaDeviceFeatures: Logic 4, Logic 8.
+    /// Fire-and-forget register writes, 62-byte bitstream chunks.
+    NonPro,
+    /// ProFpgaDeviceFeatures: Logic Pro 8, Logic Pro 16.
+    /// Register writes with read-back verification, larger bitstream chunks.
+    Pro,
+    /// MsoFpga: MSO device (out of scope for this driver).
+    Mso,
+}
+
+impl std::fmt::Display for FpgaType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            FpgaType::NonPro => f.write_str("NonPro (FpgaDeviceFeatures)"),
+            FpgaType::Pro => f.write_str("Pro (ProFpgaDeviceFeatures)"),
+            FpgaType::Mso => f.write_str("Mso (MsoFpga)"),
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Device profile
+// ---------------------------------------------------------------------------
+
+/// Static hardware profile for a device type.
+///
+/// Contains all hardware-dependent parameters needed for device operation,
+/// derived from RE analysis in `re/notes/multi-device-differences.md`.
+/// This is a data struct, not a trait -- dispatch is data-driven to keep
+/// complexity low. See TASK-0073 for the source analysis.
+///
+/// # Usage
+///
+/// ```
+/// use saleae_proto::device::DeviceType;
+///
+/// let profile = DeviceType::LogicPro8.profile().unwrap();
+/// assert_eq!(profile.digital_channels, 8);
+/// assert!(profile.supports_encryption);
+/// ```
+#[derive(Debug, Clone)]
+pub struct DeviceProfile {
+    /// Which device this profile describes.
+    pub device_type: DeviceType,
+
+    /// Number of digital channels.
+    pub digital_channels: u8,
+
+    /// Number of analog channels.
+    pub analog_channels: u8,
+
+    /// FPGA register interface type.
+    pub fpga_type: FpgaType,
+
+    /// ADC bit depth (8 for HMCAD1100 Xilinx revisions, 12 for AD9637/ADS528x).
+    ///
+    /// Note: actual ADC type depends on hardware revision, not device model.
+    /// This is the typical/default value for the device.
+    pub adc_bits: u8,
+
+    /// GPIF bus width in bits (16 for non-Pro, 32 for Pro).
+    ///
+    /// Determines deinterleaving packet size (2 or 4 bytes per digital sample)
+    /// and analog packing format (6 bytes/4 samples vs 12 bytes/8 samples).
+    pub gpif_width: u8,
+
+    /// Whether EP1 commands use full XOR encryption (Pro) or only during
+    /// firmware download (non-Pro).
+    pub supports_encryption: bool,
+
+    /// Maximum digital sample rate at USB 3.0 (Hz).
+    pub max_digital_rate_usb3: u64,
+
+    /// Maximum digital sample rate at USB 2.0 (Hz).
+    pub max_digital_rate_usb2: u64,
+
+    /// Maximum analog sample rate (Hz).
+    /// For Pro devices at USB 3.0, 100 MHz is available; at USB 2.0, 50 MHz max.
+    pub max_analog_rate: u64,
+}
+
+impl DeviceProfile {
+    /// FPGA bitstream programming chunk size for this device at the given USB speed.
+    ///
+    /// From `re/notes/usb2-fallback.md`:
+    /// - NonPro: always 62 bytes (regardless of USB speed)
+    /// - Pro USB 2.0: 508 bytes
+    /// - Pro USB 3.0: 1020 bytes
+    pub const fn fpga_chunk_size(&self, usb_speed: UsbSpeed) -> usize {
+        match self.fpga_type {
+            FpgaType::NonPro => 62,
+            FpgaType::Pro => match usb_speed {
+                UsbSpeed::Super | UsbSpeed::SuperPlus => 1020,
+                _ => 508,
+            },
+            FpgaType::Mso => 508, // placeholder
+        }
+    }
+
+    /// Whether register writes require read-back verification.
+    ///
+    /// Pro devices read back a 1-byte ACK after every EP1 register write.
+    /// Non-Pro devices fire-and-forget.
+    pub const fn register_write_verifies(&self) -> bool {
+        matches!(self.fpga_type, FpgaType::Pro)
+    }
+
+    /// Default USB speed when the forced-speed flag is set.
+    ///
+    /// From `re/notes/usb2-fallback.md`:
+    /// - Non-Pro: defaults to USB 2.0 (speed=1)
+    /// - Pro: defaults to USB 3.0 (speed=2)
+    pub const fn default_forced_usb_speed(&self) -> UsbSpeed {
+        match self.fpga_type {
+            FpgaType::Pro => UsbSpeed::Super,
+            _ => UsbSpeed::High,
+        }
+    }
+
+    /// Maximum digital sample rate for the given USB speed.
+    pub const fn max_digital_rate(&self, usb_speed: UsbSpeed) -> u64 {
+        match usb_speed {
+            UsbSpeed::Super | UsbSpeed::SuperPlus => self.max_digital_rate_usb3,
+            _ => self.max_digital_rate_usb2,
+        }
+    }
+
+    /// Number of interleave slots for disaggregator deinterleaving.
+    ///
+    /// From `re/notes/disaggregator-interleaving.md`:
+    /// - Logic Pro 8: 32 slots
+    /// - Logic Pro 16: 16 slots
+    /// - Non-Pro: not applicable (different deinterleave path)
+    pub const fn interleave_slots(&self) -> u8 {
+        match self.device_type {
+            DeviceType::LogicPro8 => 32,
+            DeviceType::LogicPro16 => 16,
+            _ => 0,
+        }
+    }
+
+    /// Disaggregator type enum value for deinterleaving dispatch.
+    ///
+    /// From `re/notes/disaggregator-interleaving.md`:
+    /// - 1 = Logic 8, 2 = Logic 16, 3 = Logic 4, 4 = Logic Pro 8,
+    ///   5 = Logic Pro 16
+    pub const fn disaggregator_type(&self) -> u8 {
+        match self.device_type {
+            DeviceType::Logic8 => 1,
+            DeviceType::Logic16 => 2,
+            DeviceType::Logic4 => 3,
+            DeviceType::LogicPro8 => 4,
+            DeviceType::LogicPro16 => 5,
+            DeviceType::LogicOriginal => 0,
+        }
+    }
+
+    /// Whether this device has an analog front-end with VGA/attenuators.
+    pub const fn has_afe(&self) -> bool {
+        matches!(self.fpga_type, FpgaType::Pro)
+    }
+
+    /// USB transfer block alignment size for the given USB speed.
+    ///
+    /// From `re/notes/usb2-fallback.md`:
+    /// - USB 2.0: 4096 bytes
+    /// - USB 3.0: 16384 bytes
+    pub const fn transfer_block_alignment(&self, usb_speed: UsbSpeed) -> usize {
+        match usb_speed {
+            UsbSpeed::Super | UsbSpeed::SuperPlus => 16384,
+            _ => 4096,
+        }
+    }
+
+    /// Validate a capture configuration against this device's capabilities.
+    ///
+    /// Checks:
+    /// - Digital sample rate does not exceed max for the USB speed.
+    /// - Analog sample rate does not exceed max.
+    /// - Digital channel count does not exceed device capacity.
+    /// - Analog channel count does not exceed device capacity.
+    /// - For Logic Pro 16 at USB 2.0: analog channels must be 0-7.
+    ///
+    /// Returns `Ok(())` if the configuration is valid, or a descriptive
+    /// error string if not.
+    pub fn validate_config(
+        &self,
+        digital_sample_rate: u64,
+        analog_sample_rate: u64,
+        digital_channel_mask: u16,
+        analog_channel_mask: u16,
+        usb_speed: UsbSpeed,
+    ) -> Result<(), String> {
+        // Check digital sample rate.
+        let max_digital = self.max_digital_rate(usb_speed);
+        if digital_sample_rate > max_digital {
+            return Err(format!(
+                "digital sample rate {} Hz exceeds maximum {} Hz for {} at {usb_speed}",
+                digital_sample_rate, max_digital, self.device_type,
+            ));
+        }
+
+        // Check analog sample rate.
+        if analog_sample_rate > self.max_analog_rate {
+            return Err(format!(
+                "analog sample rate {} Hz exceeds maximum {} Hz for {}",
+                analog_sample_rate, self.max_analog_rate, self.device_type,
+            ));
+        }
+
+        // Check digital channel range.
+        let max_digital_mask: u16 = if self.digital_channels >= 16 {
+            u16::MAX
+        } else {
+            (1u16 << self.digital_channels) - 1
+        };
+        if digital_channel_mask & !max_digital_mask != 0 {
+            return Err(format!(
+                "digital channel mask {:#06x} exceeds {} channels for {}",
+                digital_channel_mask, self.digital_channels, self.device_type,
+            ));
+        }
+
+        // Check analog channel range.
+        let max_analog_mask: u16 = if self.analog_channels >= 16 {
+            u16::MAX
+        } else if self.analog_channels > 0 {
+            (1u16 << self.analog_channels) - 1
+        } else {
+            0
+        };
+        if analog_channel_mask & !max_analog_mask != 0 {
+            return Err(format!(
+                "analog channel mask {:#06x} exceeds {} channels for {}",
+                analog_channel_mask, self.analog_channels, self.device_type,
+            ));
+        }
+
+        // Logic Pro 16 at USB 2.0: channels 8-15 are digital-only.
+        if self.device_type == DeviceType::LogicPro16
+            && !matches!(usb_speed, UsbSpeed::Super | UsbSpeed::SuperPlus)
+            && analog_channel_mask & 0xFF00 != 0
+        {
+            return Err(format!(
+                "analog channels 8-15 are not available on {} at {usb_speed} \
+                 (digital-only at USB 2.0)",
+                self.device_type,
+            ));
+        }
+
+        Ok(())
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Static device profiles
+// ---------------------------------------------------------------------------
+
+/// Device profile for Logic 4 (21a9:1003).
+///
+/// FX2LP-based (NOT FX3). Our FX3 driver code cannot drive this device
+/// without a separate FX2LP code path. Included for completeness.
+pub static LOGIC_4_PROFILE: DeviceProfile = DeviceProfile {
+    device_type: DeviceType::Logic4,
+    digital_channels: 4,
+    analog_channels: 4,
+    fpga_type: FpgaType::NonPro,
+    adc_bits: 8,   // HMCAD1100 (Xilinx rev), 12 for ADS528x (Lattice rev)
+    gpif_width: 16, // FX2LP has 8 or 16-bit GPIF
+    supports_encryption: false,
+    max_digital_rate_usb3: 12_000_000,  // Logic 4 is USB 2.0 only
+    max_digital_rate_usb2: 12_000_000,
+    max_analog_rate: 6_000_000,
+};
+
+/// Device profile for Logic 8 (21a9:1004).
+pub static LOGIC_8_PROFILE: DeviceProfile = DeviceProfile {
+    device_type: DeviceType::Logic8,
+    digital_channels: 8,
+    analog_channels: 8,
+    fpga_type: FpgaType::NonPro,
+    adc_bits: 12,
+    gpif_width: 16, // FpgaDeviceFeatures, 16-bit default
+    supports_encryption: false,
+    max_digital_rate_usb3: 200_000_000,
+    max_digital_rate_usb2: 100_000_000,
+    max_analog_rate: 20_000_000,
+};
+
+/// Device profile for Logic Pro 8 (21a9:1005).
+pub static LOGIC_PRO_8_PROFILE: DeviceProfile = DeviceProfile {
+    device_type: DeviceType::LogicPro8,
+    digital_channels: 8,
+    analog_channels: 8,
+    fpga_type: FpgaType::Pro,
+    adc_bits: 12,
+    gpif_width: 32,
+    supports_encryption: true,
+    max_digital_rate_usb3: 500_000_000,
+    max_digital_rate_usb2: 100_000_000,
+    max_analog_rate: 50_000_000, // 100 MHz at USB 3.0, but 50 MHz default
+};
+
+/// Device profile for Logic Pro 16 (21a9:1006).
+pub static LOGIC_PRO_16_PROFILE: DeviceProfile = DeviceProfile {
+    device_type: DeviceType::LogicPro16,
+    digital_channels: 16,
+    analog_channels: 16, // channels 8-15 become digital-only at USB 2.0
+    fpga_type: FpgaType::Pro,
+    adc_bits: 12,
+    gpif_width: 32,
+    supports_encryption: true,
+    max_digital_rate_usb3: 500_000_000,
+    max_digital_rate_usb2: 100_000_000,
+    max_analog_rate: 50_000_000,
+};
+
+impl DeviceType {
+    /// Return the static hardware profile for this device type.
+    ///
+    /// Returns `None` for legacy devices (LogicOriginal, Logic16) which
+    /// use a completely different architecture and are not supported by
+    /// this driver.
+    pub const fn profile(&self) -> Option<&'static DeviceProfile> {
+        match self {
+            DeviceType::Logic4 => Some(&LOGIC_4_PROFILE),
+            DeviceType::Logic8 => Some(&LOGIC_8_PROFILE),
+            DeviceType::LogicPro8 => Some(&LOGIC_PRO_8_PROFILE),
+            DeviceType::LogicPro16 => Some(&LOGIC_PRO_16_PROFILE),
+            DeviceType::LogicOriginal | DeviceType::Logic16 => None,
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
 // USB endpoint constants (post-firmware)
 // ---------------------------------------------------------------------------
 
@@ -481,5 +830,268 @@ mod tests {
         assert!(UsbSpeed::Super.to_string().contains("5 Gbit/s"));
         assert!(UsbSpeed::High.to_string().contains("480 Mbit/s"));
         assert!(UsbSpeed::Low.to_string().contains("1.5 Mbit/s"));
+    }
+
+    // -----------------------------------------------------------------------
+    // FpgaType tests
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn fpga_type_display() {
+        assert!(FpgaType::NonPro.to_string().contains("NonPro"));
+        assert!(FpgaType::Pro.to_string().contains("Pro"));
+        assert!(FpgaType::Mso.to_string().contains("Mso"));
+    }
+
+    // -----------------------------------------------------------------------
+    // DeviceProfile tests
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn fx3_devices_have_profiles() {
+        assert!(DeviceType::Logic4.profile().is_some());
+        assert!(DeviceType::Logic8.profile().is_some());
+        assert!(DeviceType::LogicPro8.profile().is_some());
+        assert!(DeviceType::LogicPro16.profile().is_some());
+    }
+
+    #[test]
+    fn legacy_devices_have_no_profile() {
+        assert!(DeviceType::LogicOriginal.profile().is_none());
+        assert!(DeviceType::Logic16.profile().is_none());
+    }
+
+    #[test]
+    fn profile_device_types_match() {
+        for &dt in &[
+            DeviceType::Logic4,
+            DeviceType::Logic8,
+            DeviceType::LogicPro8,
+            DeviceType::LogicPro16,
+        ] {
+            let profile = dt.profile().unwrap();
+            assert_eq!(profile.device_type, dt);
+        }
+    }
+
+    #[test]
+    fn profile_channel_counts() {
+        assert_eq!(LOGIC_4_PROFILE.digital_channels, 4);
+        assert_eq!(LOGIC_4_PROFILE.analog_channels, 4);
+
+        assert_eq!(LOGIC_8_PROFILE.digital_channels, 8);
+        assert_eq!(LOGIC_8_PROFILE.analog_channels, 8);
+
+        assert_eq!(LOGIC_PRO_8_PROFILE.digital_channels, 8);
+        assert_eq!(LOGIC_PRO_8_PROFILE.analog_channels, 8);
+
+        assert_eq!(LOGIC_PRO_16_PROFILE.digital_channels, 16);
+        assert_eq!(LOGIC_PRO_16_PROFILE.analog_channels, 16);
+    }
+
+    #[test]
+    fn profile_fpga_types() {
+        assert_eq!(LOGIC_4_PROFILE.fpga_type, FpgaType::NonPro);
+        assert_eq!(LOGIC_8_PROFILE.fpga_type, FpgaType::NonPro);
+        assert_eq!(LOGIC_PRO_8_PROFILE.fpga_type, FpgaType::Pro);
+        assert_eq!(LOGIC_PRO_16_PROFILE.fpga_type, FpgaType::Pro);
+    }
+
+    #[test]
+    fn profile_encryption() {
+        assert!(!LOGIC_4_PROFILE.supports_encryption);
+        assert!(!LOGIC_8_PROFILE.supports_encryption);
+        assert!(LOGIC_PRO_8_PROFILE.supports_encryption);
+        assert!(LOGIC_PRO_16_PROFILE.supports_encryption);
+    }
+
+    #[test]
+    fn profile_max_rates() {
+        assert_eq!(LOGIC_4_PROFILE.max_digital_rate_usb3, 12_000_000);
+        assert_eq!(LOGIC_8_PROFILE.max_digital_rate_usb3, 200_000_000);
+        assert_eq!(LOGIC_PRO_8_PROFILE.max_digital_rate_usb3, 500_000_000);
+        assert_eq!(LOGIC_PRO_16_PROFILE.max_digital_rate_usb3, 500_000_000);
+
+        assert_eq!(LOGIC_4_PROFILE.max_analog_rate, 6_000_000);
+        assert_eq!(LOGIC_8_PROFILE.max_analog_rate, 20_000_000);
+        assert_eq!(LOGIC_PRO_8_PROFILE.max_analog_rate, 50_000_000);
+        assert_eq!(LOGIC_PRO_16_PROFILE.max_analog_rate, 50_000_000);
+    }
+
+    #[test]
+    fn profile_adc_bits() {
+        assert_eq!(LOGIC_4_PROFILE.adc_bits, 8);
+        assert_eq!(LOGIC_8_PROFILE.adc_bits, 12);
+        assert_eq!(LOGIC_PRO_8_PROFILE.adc_bits, 12);
+        assert_eq!(LOGIC_PRO_16_PROFILE.adc_bits, 12);
+    }
+
+    #[test]
+    fn profile_gpif_width() {
+        assert_eq!(LOGIC_4_PROFILE.gpif_width, 16);
+        assert_eq!(LOGIC_8_PROFILE.gpif_width, 16);
+        assert_eq!(LOGIC_PRO_8_PROFILE.gpif_width, 32);
+        assert_eq!(LOGIC_PRO_16_PROFILE.gpif_width, 32);
+    }
+
+    // -----------------------------------------------------------------------
+    // Derived profile method tests
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn fpga_chunk_size_non_pro() {
+        let p = &LOGIC_8_PROFILE;
+        assert_eq!(p.fpga_chunk_size(UsbSpeed::High), 62);
+        assert_eq!(p.fpga_chunk_size(UsbSpeed::Super), 62);
+    }
+
+    #[test]
+    fn fpga_chunk_size_pro() {
+        let p = &LOGIC_PRO_8_PROFILE;
+        assert_eq!(p.fpga_chunk_size(UsbSpeed::High), 508);
+        assert_eq!(p.fpga_chunk_size(UsbSpeed::Super), 1020);
+        assert_eq!(p.fpga_chunk_size(UsbSpeed::SuperPlus), 1020);
+    }
+
+    #[test]
+    fn register_write_verifies() {
+        assert!(!LOGIC_4_PROFILE.register_write_verifies());
+        assert!(!LOGIC_8_PROFILE.register_write_verifies());
+        assert!(LOGIC_PRO_8_PROFILE.register_write_verifies());
+        assert!(LOGIC_PRO_16_PROFILE.register_write_verifies());
+    }
+
+    #[test]
+    fn default_forced_usb_speed() {
+        assert_eq!(
+            LOGIC_8_PROFILE.default_forced_usb_speed(),
+            UsbSpeed::High
+        );
+        assert_eq!(
+            LOGIC_PRO_8_PROFILE.default_forced_usb_speed(),
+            UsbSpeed::Super
+        );
+    }
+
+    #[test]
+    fn max_digital_rate_by_speed() {
+        let p = &LOGIC_PRO_8_PROFILE;
+        assert_eq!(p.max_digital_rate(UsbSpeed::Super), 500_000_000);
+        assert_eq!(p.max_digital_rate(UsbSpeed::High), 100_000_000);
+    }
+
+    #[test]
+    fn interleave_slots() {
+        assert_eq!(LOGIC_PRO_8_PROFILE.interleave_slots(), 32);
+        assert_eq!(LOGIC_PRO_16_PROFILE.interleave_slots(), 16);
+        assert_eq!(LOGIC_8_PROFILE.interleave_slots(), 0);
+    }
+
+    #[test]
+    fn disaggregator_types() {
+        assert_eq!(LOGIC_8_PROFILE.disaggregator_type(), 1);
+        assert_eq!(LOGIC_4_PROFILE.disaggregator_type(), 3);
+        assert_eq!(LOGIC_PRO_8_PROFILE.disaggregator_type(), 4);
+        assert_eq!(LOGIC_PRO_16_PROFILE.disaggregator_type(), 5);
+    }
+
+    #[test]
+    fn has_afe() {
+        assert!(!LOGIC_4_PROFILE.has_afe());
+        assert!(!LOGIC_8_PROFILE.has_afe());
+        assert!(LOGIC_PRO_8_PROFILE.has_afe());
+        assert!(LOGIC_PRO_16_PROFILE.has_afe());
+    }
+
+    #[test]
+    fn transfer_block_alignment() {
+        let p = &LOGIC_PRO_8_PROFILE;
+        assert_eq!(p.transfer_block_alignment(UsbSpeed::High), 4096);
+        assert_eq!(p.transfer_block_alignment(UsbSpeed::Super), 16384);
+    }
+
+    // -----------------------------------------------------------------------
+    // validate_config tests
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn validate_config_pro8_valid() {
+        let p = &LOGIC_PRO_8_PROFILE;
+        p.validate_config(500_000_000, 50_000_000, 0xFF, 0xFF, UsbSpeed::Super)
+            .unwrap();
+    }
+
+    #[test]
+    fn validate_config_digital_rate_too_high() {
+        let p = &LOGIC_PRO_8_PROFILE;
+        let err = p
+            .validate_config(600_000_000, 0, 0xFF, 0, UsbSpeed::Super)
+            .unwrap_err();
+        assert!(err.contains("digital sample rate"));
+        assert!(err.contains("500000000"));
+    }
+
+    #[test]
+    fn validate_config_analog_rate_too_high() {
+        let p = &LOGIC_PRO_8_PROFILE;
+        let err = p
+            .validate_config(100_000_000, 100_000_000, 0xFF, 0xFF, UsbSpeed::Super)
+            .unwrap_err();
+        assert!(err.contains("analog sample rate"));
+    }
+
+    #[test]
+    fn validate_config_digital_channel_out_of_range() {
+        let p = &LOGIC_8_PROFILE;
+        let err = p
+            .validate_config(100_000_000, 0, 0x1FF, 0, UsbSpeed::Super)
+            .unwrap_err();
+        assert!(err.contains("digital channel mask"));
+        assert!(err.contains("8 channels"));
+    }
+
+    #[test]
+    fn validate_config_analog_channel_out_of_range() {
+        let p = &LOGIC_8_PROFILE;
+        let err = p
+            .validate_config(100_000_000, 10_000_000, 0xFF, 0x1FF, UsbSpeed::Super)
+            .unwrap_err();
+        assert!(err.contains("analog channel mask"));
+    }
+
+    #[test]
+    fn validate_config_pro16_usb2_analog_upper_channels() {
+        let p = &LOGIC_PRO_16_PROFILE;
+        // Analog on channels 8-15 at USB 2.0 should fail.
+        let err = p
+            .validate_config(100_000_000, 10_000_000, 0xFFFF, 0x0100, UsbSpeed::High)
+            .unwrap_err();
+        assert!(err.contains("channels 8-15"));
+        assert!(err.contains("digital-only"));
+    }
+
+    #[test]
+    fn validate_config_pro16_usb3_analog_upper_channels_ok() {
+        let p = &LOGIC_PRO_16_PROFILE;
+        // Analog on channels 8-15 at USB 3.0 should be fine.
+        p.validate_config(500_000_000, 50_000_000, 0xFFFF, 0xFF00, UsbSpeed::Super)
+            .unwrap();
+    }
+
+    #[test]
+    fn validate_config_usb2_rate_limits() {
+        let p = &LOGIC_PRO_8_PROFILE;
+        // 500 MHz digital at USB 2.0 should fail (max 100 MHz).
+        let err = p
+            .validate_config(500_000_000, 0, 0xFF, 0, UsbSpeed::High)
+            .unwrap_err();
+        assert!(err.contains("digital sample rate"));
+        assert!(err.contains("100000000"));
+    }
+
+    #[test]
+    fn validate_config_zero_rates_ok() {
+        let p = &LOGIC_PRO_8_PROFILE;
+        p.validate_config(0, 0, 0, 0, UsbSpeed::Super).unwrap();
     }
 }

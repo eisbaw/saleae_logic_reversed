@@ -18,15 +18,15 @@ use tracing::{debug, info, warn};
 
 use crate::error::{DriverError, DriverResult};
 
-/// Maximum USB 3.0 bulk transfer size for EP1 commands.
+/// Default FPGA bitstream chunk size for Pro devices at USB 3.0.
 ///
-/// The FX3 firmware uses 512-byte EP1 buffers at SuperSpeed.
-const USB3_MAX_TRANSFER: usize = 512;
-
-/// Maximum data bytes per WriteConfigurationData chunk at USB 3.0.
+/// The actual chunk size depends on device type and USB speed. See
+/// [`DeviceProfile::fpga_chunk_size`](saleae_proto::device::DeviceProfile::fpga_chunk_size).
 ///
-/// Format: `[0x7F] [len_lo] [len_hi] [data...]` = 3 header + 509 data = 512.
-const USB3_CONFIG_CHUNK_DATA_MAX: usize = USB3_MAX_TRANSFER - 3;
+/// - Non-Pro: 62 bytes (regardless of USB speed)
+/// - Pro USB 2.0: 508 bytes
+/// - Pro USB 3.0: 1020 bytes
+pub const DEFAULT_CONFIG_CHUNK_SIZE: usize = 1020;
 
 /// EP1 command channel for a Saleae device.
 ///
@@ -335,20 +335,54 @@ impl Ep1CommandChannel {
         Ok(())
     }
 
-    /// Write configuration data (opcode 0x7F), chunked for USB 3.0.
+    /// Write configuration data (opcode 0x7F), chunked for the device.
     ///
     /// Used for FPGA bitstream download and capture configuration.
-    /// Automatically splits data into 509-byte chunks (USB 3.0 max).
+    /// Uses the default Pro USB 3.0 chunk size (1020 bytes). For
+    /// device-specific chunk sizes, use
+    /// [`write_config_data_chunked`](Self::write_config_data_chunked).
     pub fn write_config_data(&mut self, data: &[u8]) -> DriverResult<()> {
+        self.write_config_data_chunked(data, DEFAULT_CONFIG_CHUNK_SIZE, true)
+    }
+
+    /// Write configuration data (opcode 0x7F) with explicit chunk size.
+    ///
+    /// The chunk size should come from
+    /// [`DeviceProfile::fpga_chunk_size`](saleae_proto::device::DeviceProfile::fpga_chunk_size).
+    ///
+    /// # Arguments
+    ///
+    /// - `data`: The configuration/bitstream data to send.
+    /// - `chunk_size`: Maximum data bytes per chunk (62, 508, or 1020).
+    /// - `read_ack`: Whether to read a response ACK after each chunk.
+    ///   Pro devices verify writes; non-Pro devices are fire-and-forget
+    ///   (though non-Pro uses a different header format -- see below).
+    ///
+    /// # Wire format
+    ///
+    /// - **Pro devices** (read_ack=true): `[0x7F][len_lo][len_hi][data...]`,
+    ///   expects 1-byte ACK (0x00) response.
+    /// - **Non-Pro devices** (read_ack=false): `[0x7F][len_8bit][data...]`,
+    ///   no response. Note: non-Pro uses an 8-bit length field since max
+    ///   chunk is 62 bytes. However, this method always uses the 16-bit
+    ///   length format; for non-Pro compatibility, the actual chunk sizes
+    ///   are small enough that len_hi will be 0, which may or may not be
+    ///   accepted by non-Pro firmware. This needs hardware validation.
+    pub fn write_config_data_chunked(
+        &mut self,
+        data: &[u8],
+        chunk_size: usize,
+        read_ack: bool,
+    ) -> DriverResult<()> {
         let total = data.len();
         let mut offset = 0;
 
         while offset < total {
             let remaining = total - offset;
-            let chunk_len = remaining.min(USB3_CONFIG_CHUNK_DATA_MAX);
+            let chunk_len = remaining.min(chunk_size);
             let chunk = &data[offset..offset + chunk_len];
 
-            // USB 3.0 format: [len_lo] [len_hi] [data...]
+            // Pro format: [len_lo] [len_hi] [data...]
             let len16 = chunk_len as u16;
             let mut payload = Vec::with_capacity(2 + chunk_len);
             payload.push(len16 as u8); // len_lo
@@ -357,15 +391,20 @@ impl Ep1CommandChannel {
 
             self.send_command(0x7F, &payload)?;
 
-            // Read success response (0x00).
-            let mut ack = [0u8; 64];
-            let n = self.recv_response(&mut ack)?;
+            if read_ack {
+                // Read success response (0x00).
+                let mut ack = [0u8; 64];
+                let n = self.recv_response(&mut ack)?;
 
-            if n >= 1 && ack[0] != 0x00 {
-                return Err(DriverError::CommandFailed {
-                    command: "WriteConfigurationData",
-                    detail: format!("expected 0x00 ack, got {:#04x} at offset {offset}", ack[0]),
-                });
+                if n >= 1 && ack[0] != 0x00 {
+                    return Err(DriverError::CommandFailed {
+                        command: "WriteConfigurationData",
+                        detail: format!(
+                            "expected 0x00 ack, got {:#04x} at offset {offset}",
+                            ack[0]
+                        ),
+                    });
+                }
             }
 
             offset += chunk_len;
@@ -856,12 +895,10 @@ mod tests {
         let mock = std::sync::Arc::new(MockTransport::new());
         let seed = 0u32;
 
-        // Data larger than one chunk (509 bytes max per chunk).
-        let data = vec![0xABu8; 1024];
+        // Data larger than one chunk. Default chunk size is 1020 bytes (Pro USB 3.0).
+        // 2048 bytes -> ceil(2048/1020) = 3 chunks: 1020, 1020, 8.
+        let data = vec![0xABu8; 2048];
 
-        // Two chunks needed: 509 + 515 -- wait, 1024 / 509 = 2 full + 6 remaining
-        // Actually: chunk 0 = 509 bytes, chunk 1 = 515 bytes -- no, 1024 - 509 = 515, but max is 509.
-        // So: chunk 0 = 509, chunk 1 = 509, chunk 2 = 6. That's 3 chunks.
         // Queue 3 ACK responses.
         mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
         mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
@@ -876,7 +913,7 @@ mod tests {
             .iter()
             .filter(|op| matches!(op, UsbOperation::BulkOut { .. }))
             .count();
-        assert_eq!(out_count, 3, "expected 3 OUT transfers for 1024 bytes");
+        assert_eq!(out_count, 3, "expected 3 OUT transfers for 2048 bytes");
     }
 
     #[test]

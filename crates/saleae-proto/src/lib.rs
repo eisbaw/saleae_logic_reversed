@@ -20,7 +20,10 @@ pub use biquad::BiquadFilter;
 pub use calibration::{
     BiquadSection, CalibrationData, CalibrationSet, VoltageRange, VoltageTransform,
 };
-pub use device::{BootState, DeviceType, SaleaeDevice, UsbId, UsbSpeed};
+pub use device::{
+    BootState, DeviceProfile, DeviceType, FpgaType, SaleaeDevice, UsbId, UsbSpeed,
+    LOGIC_4_PROFILE, LOGIC_8_PROFILE, LOGIC_PRO_8_PROFILE, LOGIC_PRO_16_PROFILE,
+};
 pub use error::{ProtoError, ProtoResult};
 pub use firmware::fx3::{Fx3Image, Fx3Section};
 pub use obfuscation::{EncryptionMode, SimpleEncryption};

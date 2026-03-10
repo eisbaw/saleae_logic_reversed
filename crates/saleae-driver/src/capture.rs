@@ -165,7 +165,7 @@ impl CaptureConfig {
     pub fn sample_data_bytes_per_chunk(&self) -> usize {
         // Each byte holds (8 / channel_group_count) samples.
         let samples_per_byte = 8 / self.channel_group_count();
-        (self.samples_per_chunk as usize + samples_per_byte - 1) / samples_per_byte
+        (self.samples_per_chunk as usize).div_ceil(samples_per_byte)
     }
 }
 

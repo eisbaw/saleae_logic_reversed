@@ -27,6 +27,7 @@
 
 use std::time::{Duration, Instant};
 
+use saleae_proto::device::{DeviceProfile, UsbSpeed};
 use saleae_proto::fpga_regs;
 use tracing::{debug, info};
 
@@ -112,17 +113,36 @@ mod init_values {
 /// Follows the sequence documented in `doc/protocol/fpga-bitstream.md`:
 ///
 /// 1. Send ResetFpga command (opcode 0x7E).
-/// 2. Send bitstream via WriteConfigurationData (opcode 0x7F) in 509-byte
-///    chunks (USB 3.0).
+/// 2. Send bitstream via WriteConfigurationData (opcode 0x7F) in chunks
+///    sized by device profile (62/508/1020 bytes depending on device and
+///    USB speed).
 /// 3. Verify: read register 0x00, expect 0xAA.
+///
+/// # Arguments
+///
+/// - `ep1`: Initialized EP1 command channel.
+/// - `bitstream`: Raw FPGA bitstream data.
+/// - `profile`: Device hardware profile (determines chunk size and ACK behavior).
+/// - `usb_speed`: Current USB connection speed (affects chunk size for Pro devices).
 ///
 /// # Errors
 ///
 /// Returns [`DriverError::FpgaProgramming`] if the readback verification
 /// fails after bitstream upload.
-pub fn program_fpga(ep1: &mut Ep1CommandChannel, bitstream: &[u8]) -> DriverResult<()> {
+pub fn program_fpga(
+    ep1: &mut Ep1CommandChannel,
+    bitstream: &[u8],
+    profile: &DeviceProfile,
+    usb_speed: UsbSpeed,
+) -> DriverResult<()> {
+    let chunk_size = profile.fpga_chunk_size(usb_speed);
+    let read_ack = profile.register_write_verifies();
+
     info!(
         bitstream_len = bitstream.len(),
+        chunk_size,
+        read_ack,
+        device = %profile.device_type,
         "Programming FPGA bitstream"
     );
 
@@ -130,9 +150,9 @@ pub fn program_fpga(ep1: &mut Ep1CommandChannel, bitstream: &[u8]) -> DriverResu
     debug!("Resetting FPGA");
     ep1.reset_fpga()?;
 
-    // Step 2: Send the bitstream data.
-    debug!("Sending bitstream data ({} bytes)", bitstream.len());
-    ep1.write_config_data(bitstream)?;
+    // Step 2: Send the bitstream data, chunked per device profile.
+    debug!("Sending bitstream data ({} bytes, chunk_size={})", bitstream.len(), chunk_size);
+    ep1.write_config_data_chunked(bitstream, chunk_size, read_ack)?;
 
     // Step 3: Verify readback.
     //
@@ -597,7 +617,7 @@ fn wait_for_ddr_ready(ep1: &mut Ep1CommandChannel, timeout: Duration) -> DriverR
 #[cfg(test)]
 mod tests {
     use super::*;
-    use saleae_proto::device::endpoint;
+    use saleae_proto::device::{endpoint, LOGIC_PRO_8_PROFILE};
     use saleae_proto::obfuscation::EncryptionMode;
     use saleae_usb::mock::{MockTransport, UsbOperation};
 
@@ -663,7 +683,7 @@ mod tests {
         let mut channel = mock_channel(&mock);
         let bitstream = vec![0xFF; 100]; // 100-byte test bitstream
 
-        program_fpga(&mut channel, &bitstream).unwrap();
+        program_fpga(&mut channel, &bitstream, &LOGIC_PRO_8_PROFILE, UsbSpeed::Super).unwrap();
 
         // Verify sequence of operations.
         let ops = mock.operations();
@@ -721,7 +741,7 @@ mod tests {
         mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x55]); // Wrong readback!
 
         let mut channel = mock_channel(&mock);
-        let err = program_fpga(&mut channel, &[0xFF; 10]).unwrap_err();
+        let err = program_fpga(&mut channel, &[0xFF; 10], &LOGIC_PRO_8_PROFILE, UsbSpeed::Super).unwrap_err();
         let msg = err.to_string();
         assert!(
             msg.contains("0x55") && msg.contains("0xaa"),
@@ -738,7 +758,7 @@ mod tests {
         mock.push_bulk_in_response(endpoint::BULK_IN, vec![]); // Empty!
 
         let mut channel = mock_channel(&mock);
-        let err = program_fpga(&mut channel, &[0xFF; 10]).unwrap_err();
+        let err = program_fpga(&mut channel, &[0xFF; 10], &LOGIC_PRO_8_PROFILE, UsbSpeed::Super).unwrap_err();
         let msg = err.to_string();
         assert!(
             msg.contains("no data"),
@@ -754,8 +774,9 @@ mod tests {
         let bitstream_size = 150_000;
         let bitstream = vec![0xAB; bitstream_size];
 
-        // Number of chunks: ceil(150000 / 509) = 295
-        let num_chunks = (bitstream_size + 508) / 509;
+        // Chunk size from profile: Pro at USB 3.0 = 1020 bytes.
+        let chunk_size = LOGIC_PRO_8_PROFILE.fpga_chunk_size(UsbSpeed::Super);
+        let num_chunks = bitstream_size.div_ceil(chunk_size);
 
         // Queue responses:
         mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]); // ResetFpga
@@ -765,7 +786,7 @@ mod tests {
         mock.push_bulk_in_response(endpoint::BULK_IN, vec![0xAA]); // Readback OK
 
         let mut channel = mock_channel(&mock);
-        program_fpga(&mut channel, &bitstream).unwrap();
+        program_fpga(&mut channel, &bitstream, &LOGIC_PRO_8_PROFILE, UsbSpeed::Super).unwrap();
 
         // Count OUT operations
         let ops = mock.operations();
@@ -936,7 +957,7 @@ mod tests {
 
         let mut channel = mock_channel(&mock);
         // An empty bitstream should still succeed (reset + verify, no data).
-        program_fpga(&mut channel, &[]).unwrap();
+        program_fpga(&mut channel, &[], &LOGIC_PRO_8_PROFILE, UsbSpeed::Super).unwrap();
     }
 
     // -----------------------------------------------------------------------
