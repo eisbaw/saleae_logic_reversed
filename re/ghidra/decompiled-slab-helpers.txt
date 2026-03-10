@@ -1,0 +1,293 @@
+// Slab/Deque helper functions
+
+// ----------------------------------------------------------------
+// Function at Ghidra VA 0x2e08130
+// ELF VA: 0x2d08130
+// Name: FUN_02e08130
+// Size: 166 bytes
+// ----------------------------------------------------------------
+
+void FUN_02e08130(void *param_1,size_t param_2)
+
+{
+  int iVar1;
+  undefined8 *puVar2;
+  runtime_error *this;
+  undefined8 *puVar3;
+  undefined8 local_58;
+  undefined8 uStack_50;
+  undefined8 local_48;
+  string local_38 [24];
+  
+  iVar1 = mprotect(param_1,param_2,3);
+  if (iVar1 == 0) {
+    return;
+  }
+  puVar2 = (undefined8 *)__cxa_allocate_exception(8);
+                    /* try { // try from 02e08162 to 02e0816b has its CatchHandler @ 02e08231 */
+  this = (runtime_error *)operator_new(0x10);
+  __errno_location();
+                    /* try { // try from 02e08176 to 02e0817f has its CatchHandler @ 02e08224 */
+  std::to_string((int)local_38);
+                    /* try { // try from 02e08180 to 02e08192 has its CatchHandler @ 02e08206 */
+  puVar3 = (undefined8 *)std::string::insert(local_38,0,"mprotect failed: ");
+  local_48 = puVar3[2];
+  local_58 = *puVar3;
+  uStack_50 = puVar3[1];
+  *puVar3 = 0;
+  puVar3[1] = 0;
+  puVar3[2] = 0;
+                    /* try { // try from 02e081b4 to 02e081d5 has its CatchHandler @ 02e081d6 */
+  std::runtime_error::runtime_error(this,(string *)&local_58);
+  *puVar2 = this;
+                    /* WARNING: Subroutine does not return */
+  __cxa_throw(puVar2,PTR_typeinfo_02fe9980,0);
+}
+
+
+
+// ----------------------------------------------------------------
+// Function at Ghidra VA 0x2e08250
+// ELF VA: 0x2d08250
+// Name: FUN_02e08250
+// Size: 244 bytes
+// ----------------------------------------------------------------
+
+void FUN_02e08250(ulong *param_1,long param_2)
+
+{
+  runtime_error *this;
+  ulong uVar1;
+  ulong uVar2;
+  ulong uVar3;
+  long lVar4;
+  ulong uVar5;
+  ulong uVar6;
+  
+  if (param_2 != 0) {
+    uVar6 = param_2 + param_1[3];
+    if (param_1[4] < uVar6) {
+      this = (runtime_error *)__cxa_allocate_exception(0x10);
+                    /* try { // try from 02e0831f to 02e0832d has its CatchHandler @ 02e08344 */
+      std::runtime_error::runtime_error
+                (this,"attempted to erase more bytes from collection than exist");
+                    /* WARNING: Subroutine does not return */
+      __cxa_throw(this,PTR_typeinfo_02fe8e78,PTR__runtime_error_02fe8e80);
+    }
+    uVar3 = *param_1;
+    uVar5 = param_1[2];
+    if ((uVar6 | uVar5) >> 0x20 == 0) {
+      uVar1 = (uVar6 & 0xffffffff) % (uVar5 & 0xffffffff);
+    }
+    else {
+      uVar1 = uVar6 % uVar5;
+    }
+    uVar2 = param_1[5];
+    if ((uVar2 | uVar5) >> 0x20 == 0) {
+      uVar2 = (uVar2 & 0xffffffff) % (uVar5 & 0xffffffff);
+    }
+    else {
+      uVar2 = uVar2 % uVar5;
+    }
+    uVar5 = uVar3 + uVar2;
+    if ((long)uVar1 < (long)uVar2) {
+      uVar2 = param_1[1];
+      FUN_02e08360(uVar5,uVar2 - uVar5);
+      param_1[5] = param_1[5] + (uVar2 - uVar5);
+      uVar5 = *param_1;
+    }
+    uVar3 = uVar3 + uVar1 & 0xffffffffffe00000;
+    if (uVar5 < uVar3) {
+      lVar4 = uVar3 - uVar5;
+      FUN_02e08360(uVar5,lVar4);
+      param_1[5] = param_1[5] + lVar4;
+    }
+    param_1[3] = uVar6;
+  }
+  return;
+}
+
+
+
+// ----------------------------------------------------------------
+// Function at Ghidra VA 0x2e08520
+// ELF VA: 0x2d08520
+// Name: FUN_02e08520
+// Size: 286 bytes
+// ----------------------------------------------------------------
+
+void FUN_02e08520(long *param_1,ulong param_2)
+
+{
+  long lVar1;
+  runtime_error *this;
+  ulong uVar2;
+  ulong uVar3;
+  ulong uVar4;
+  long lVar5;
+  
+  if (param_2 == 0) {
+    return;
+  }
+  if ((ulong)(param_1[4] - param_1[3]) < param_2) {
+    this = (runtime_error *)__cxa_allocate_exception(0x10);
+                    /* try { // try from 02e08619 to 02e08627 has its CatchHandler @ 02e0863e */
+    std::runtime_error::runtime_error
+              (this,"attempted to erase more bytes from collection than exist");
+                    /* WARNING: Subroutine does not return */
+    __cxa_throw(this,PTR_typeinfo_02fe8e78,PTR__runtime_error_02fe8e80);
+  }
+  param_2 = param_1[4] - param_2;
+  lVar1 = *param_1;
+  uVar4 = param_1[2];
+  if ((param_2 | uVar4) >> 0x20 == 0) {
+    uVar2 = (param_2 & 0xffffffff) % (uVar4 & 0xffffffff);
+  }
+  else {
+    uVar2 = param_2 % uVar4;
+  }
+  uVar3 = param_1[6];
+  if ((uVar3 | uVar4) >> 0x20 == 0) {
+    uVar3 = (uVar3 & 0xffffffff) % (uVar4 & 0xffffffff);
+    if ((long)uVar2 <= (long)uVar3) goto LAB_02e085d7;
+LAB_02e08599:
+    FUN_02e08360(lVar1,uVar3);
+    param_1[6] = param_1[6] - uVar3;
+    uVar4 = lVar1 + uVar2 + 0x1fffff & 0xffffffffffe00000;
+    lVar5 = (*param_1 + param_1[2]) - uVar4;
+    if ((ulong)(*param_1 + param_1[2]) < uVar4 || lVar5 == 0) goto LAB_02e085fd;
+  }
+  else {
+    uVar3 = uVar3 % uVar4;
+    if ((long)uVar3 < (long)uVar2) goto LAB_02e08599;
+LAB_02e085d7:
+    uVar4 = lVar1 + uVar2 + 0x1fffff & 0xffffffffffe00000;
+    lVar5 = (lVar1 + uVar3) - uVar4;
+    if (lVar1 + uVar3 < uVar4 || lVar5 == 0) goto LAB_02e085fd;
+  }
+  FUN_02e08360(uVar4,lVar5);
+  param_1[6] = param_1[6] - lVar5;
+LAB_02e085fd:
+  param_1[4] = param_2;
+  return;
+}
+
+
+
+// ----------------------------------------------------------------
+// Function at Ghidra VA 0x2e06dc0
+// ELF VA: 0x2d06dc0
+// Name: FUN_02e06dc0
+// Size: 195 bytes
+// ----------------------------------------------------------------
+
+void FUN_02e06dc0(undefined8 *param_1,size_t param_2)
+
+{
+  void *pvVar1;
+  undefined8 *puVar2;
+  runtime_error *this;
+  undefined8 *puVar3;
+  undefined8 local_58;
+  undefined8 uStack_50;
+  undefined8 local_48;
+  string local_38 [24];
+  
+  param_1[1] = param_2;
+  *(undefined1 *)(param_1 + 2) = 0;
+  pvVar1 = mmap((void *)0x0,param_2,3,0x22,0,0);
+  *param_1 = pvVar1;
+  if (pvVar1 != (void *)0xffffffffffffffff) {
+    return;
+  }
+  puVar2 = (undefined8 *)__cxa_allocate_exception(8);
+                    /* try { // try from 02e06e0f to 02e06e18 has its CatchHandler @ 02e06ede */
+  this = (runtime_error *)operator_new(0x10);
+  __errno_location();
+                    /* try { // try from 02e06e23 to 02e06e2c has its CatchHandler @ 02e06ed1 */
+  std::to_string((int)local_38);
+                    /* try { // try from 02e06e2d to 02e06e3f has its CatchHandler @ 02e06eb3 */
+  puVar3 = (undefined8 *)std::string::insert(local_38,0,"mmap failed: ");
+  local_48 = puVar3[2];
+  local_58 = *puVar3;
+  uStack_50 = puVar3[1];
+  *puVar3 = 0;
+  puVar3[1] = 0;
+  puVar3[2] = 0;
+                    /* try { // try from 02e06e61 to 02e06e82 has its CatchHandler @ 02e06e83 */
+  std::runtime_error::runtime_error(this,(string *)&local_58);
+  *puVar2 = this;
+                    /* WARNING: Subroutine does not return */
+  __cxa_throw(puVar2,PTR_typeinfo_02fe9980,0);
+}
+
+
+
+// ----------------------------------------------------------------
+// Function at Ghidra VA 0x2e07b60
+// ELF VA: 0x2d07b60
+// Name: FUN_02e07b60
+// Size: 12 bytes
+// ----------------------------------------------------------------
+
+long FUN_02e07b60(undefined8 *param_1)
+
+{
+  return param_1[4] * *(long *)*param_1;
+}
+
+
+
+// ----------------------------------------------------------------
+// Function at Ghidra VA 0x2e06070
+// ELF VA: 0x2d06070
+// Name: FUN_02e06070
+// Size: 173 bytes
+// ----------------------------------------------------------------
+
+void FUN_02e06070(long param_1,undefined8 *param_2)
+
+{
+  long *plVar1;
+  long *plVar2;
+  long *plVar3;
+  undefined8 local_30;
+  
+  std::mutex::lock((mutex *)(param_1 + 0x10));
+  if (*(long **)(param_1 + 0x40) != (long *)(param_1 + 0x48)) {
+    plVar3 = *(long **)(param_1 + 0x40);
+    do {
+      local_30 = *param_2;
+      plVar1 = (long *)plVar3[10];
+      if (plVar1 == (long *)0x0) {
+                    /* WARNING: Subroutine does not return */
+                    /* try { // try from 02e06128 to 02e0612c has its CatchHandler @ 02e0612f */
+        FUN_01b292f0();
+      }
+                    /* try { // try from 02e060cc to 02e060d1 has its CatchHandler @ 02e0612d */
+      (**(code **)(*plVar1 + 0x30))(plVar1,&local_30);
+      plVar1 = (long *)plVar3[1];
+      if ((long *)plVar3[1] == (long *)0x0) {
+        plVar2 = (long *)plVar3[2];
+        if ((long *)*plVar2 != plVar3) {
+          do {
+            plVar3 = (long *)plVar3[2];
+            plVar2 = (long *)plVar3[2];
+          } while ((long *)*plVar2 != plVar3);
+        }
+      }
+      else {
+        do {
+          plVar2 = plVar1;
+          plVar1 = (long *)*plVar2;
+        } while ((long *)*plVar2 != (long *)0x0);
+      }
+      plVar3 = plVar2;
+    } while (plVar2 != (long *)(param_1 + 0x48));
+  }
+  std::mutex::unlock((mutex *)(param_1 + 0x10));
+  return;
+}
+
+
+
