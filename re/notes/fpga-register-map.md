@@ -1,384 +1,635 @@
 # FPGA Register Map Analysis
 
-Analysis date: 2026-03-09
+Analysis date: 2026-03-10
 Binary: libgraph_server_shared.so (48MB, stripped, ELF 64-bit x86-64)
 Source: Saleae Logic 2 v2.4.40
-Task: TASK-0031
+Tasks: TASK-0031, TASK-0068
 
 
 ## Summary
 
-The host communicates with the FPGA through a register interface tunneled via
-the FX3 microcontroller. Registers have **16-bit addresses** and **32-bit
-values**, transferred in **big-endian** byte order over USB bulk EP1 OUT/IN.
+The host communicates with the FPGA through two distinct register interfaces:
 
-The register interface is implemented in `Saleae::MsoFpga` (source file:
-`/workspace/monorepo/graph-io/devices/mso_device/src/mso_device/component/mso_fpga.cpp`)
-and used by `FpgaDeviceFeatures::WriteRegisters` / `ReadRegisters`.
+1. **MsoFpga (16-bit address, 32-bit value)** -- Used by the MSO/oscilloscope
+   device path. Register writes go directly as 6-byte USB packets over EP1.
+   39 register addresses documented.
+
+2. **FpgaDeviceFeatures (8-bit address, 8-bit value)** -- Used by the Logic 4/8
+   and Logic Pro 8/16 device path. Register writes are wrapped in EP1 opcode
+   0x80 (write) and 0x81 (read) commands. Max 31 registers per batch.
+   21 register addresses documented.
+
+Both paths ultimately reach the FPGA through the FX3 microcontroller over
+USB bulk EP1 OUT/IN.
 
 
 ## Extraction Method
 
-1. Located the format strings `"FPGA WriteRegister 0x{:04x} = 0x{:08x} ({})"`
-   (at file offset 0x0041fd7b) and `"FPGA ReadRegister 0x{:04X} = 0x{:08X}"`
-   (at file offset 0x003e6a79) in the binary.
+1. Located format strings `"FPGA WriteRegister 0x{:04x} = 0x{:08x} ({})"`
+   and `"FPGA ReadRegister 0x{:04X} = 0x{:08X}"` in the binary.
 
-2. Scanned the .text section for RIP-relative LEA instructions referencing
-   these format strings. Found **57 WriteRegister log sites** and **1
-   ReadRegister log site**, all in the VA range 0x2d62000-0x2d68000
-   (the MsoFpga code region).
+2. Found 59 WriteRegister log sites and 1 ReadRegister log site via Ghidra
+   xref analysis.
 
-3. For each log site, looked backward for `movw $imm16` instructions that
-   set up the register address on the stack. Found **49 distinct movw
-   instructions** with values < 0x200.
+3. Extracted register addresses from `movw $imm16` immediates and decompiled
+   function bodies.
 
-4. Cross-referenced with nearby string references (function labels, assertion
-   messages, log messages) to determine what function each register write
-   belongs to.
+4. Decompiled key functions using Ghidra headless (DecompileFpgaRegisters.java):
+   59 functions total, including all MsoFpga register writers, FpgaDeviceFeatures
+   vtable methods, Logic2FpgaDevice capture configuration, and SetField
+   instantiations for bit-field layout.
 
-5. Disassembled key functions to understand register address computation
-   formulas (e.g., CalculateDigitalConfigurationAddress).
+5. Cross-referenced assertion strings (__PRETTY_FUNCTION__) to identify functions.
 
 
-## USB Transport Protocol
+## MsoFpga Register Interface (16-bit address)
 
-The ReadRegister wrapper function (at VA 0x2d62690) reveals the wire protocol:
+### Wire Protocol
 
-```
-Write (register address to FPGA):
-  1. Take 16-bit register address
-  2. Byte-swap via ROL $8, %si (big-endian conversion)
-  3. Send 2-byte request via EP1 OUT bulk write
-  4. Receive 4-byte response via EP1 IN bulk read
-
-Read response:
-  1. 4-byte big-endian value returned in response
-  2. Byte-swapped back to host endianness
-```
-
-The WriteRegister path is similar but sends 6 bytes: 2 bytes address + 4 bytes
-value, both big-endian.
-
-
-## Function Signatures
-
-```cpp
-virtual std::vector<U8> FpgaDeviceFeatures::ReadRegisters(
-    std::vector<U8> &addrs, const S8 *label)
-
-virtual void FpgaDeviceFeatures::WriteRegisters(
-    std::vector<std::pair<U8, U8>> &addr_val_pairs, const S8 *label)
-
-void FpgaDeviceFeatures::WriteRegisterBit(
-    U8 reg, U8 bit, U8 val, const S8 *label)
-```
-
-Note: Despite the U8 types in the function signatures, the log format shows
-16-bit addresses and 32-bit values. The U8 pairs may be serialized into a
-larger buffer, or the function signatures may use U8 as a typedef for
-something larger. The actual wire protocol uses 2-byte addresses and 4-byte
-values based on disassembly of the ReadRegister function.
-
-
-## Complete Register Map
-
-### SPI / Status / JESD Control (0x0004-0x0008)
-
-| Address | Name | Functions | Description |
-|---------|------|-----------|-------------|
-| 0x0004 | SPI_DATA | WriteSpi, ReadSpi_7BitAddress, ReadSpi_15BitAddress | SPI data register for ADC communication. Bit 23 is R/W flag; upper 8 bits (24-31) must be zero for writes. |
-| 0x0008 | STATUS_DDR_JESD_CONTROL | WaitForDdrReady, ResetJesdPhyTransceivers, StartJesdBerTest, StopJesdBerTest, GetJesdBerTestResults | Multi-purpose status/control: bits [4:3] = DDR locked+calibrated, also used for JESD PHY transceiver reset and BER test control. |
-
-### GPIF Control (0x0020-0x0024)
-
-| Address | Name | Functions | Description |
-|---------|------|-----------|-------------|
-| 0x0020 | GPIF_ENABLE | EnableGpif | Enables the GPIF (General Programmable Interface) between FX3 and FPGA. |
-| 0x0024 | GPIF_FLUSH_TIMEOUT | EnableGpif | GPIF flush timeout in 100MHz clock ticks. Logged as: "Flush timeout set to {}ns (every {} ticks @ 100Mhz)". |
-
-### Test Data Configuration (0x0030-0x0034)
-
-| Address | Name | Functions | Description |
-|---------|------|-----------|-------------|
-| 0x0030 | TEST_DATA_CONFIG_0 | SetTestDataConfiguration | Test data pattern/object enable and size. Mutual exclusion: cannot have both test pattern and data object enabled. |
-| 0x0034 | TEST_DATA_CONFIG_1 | SetTestDataConfiguration | Test data frequency. |
-
-### Capture and Analog Channel Configuration (0x0040-0x0068)
-
-| Address | Name | Functions | Description |
-|---------|------|-----------|-------------|
-| 0x0040 | CAPTURE_CONTROL | init, SetAnalogChannelConfiguration, DisableAnalogChannels | Main capture control register. Written during post-programming init, analog channel config, and when disabling analog channels. Appears to be the "master" configuration register. |
-| 0x0044 | SCOPE_CONFIG_ID_0 | SetConfigurationIds | Configuration ID for scope. Four IDs are logged: "Setting scope configuration IDs: {} {} {} {}". |
-| 0x0048 | SCOPE_CONFIG_ID_1 | SetConfigurationIds | Configuration ID 1. |
-| 0x004C | SCOPE_CONFIG_ID_2 | SetConfigurationIds | Configuration ID 2. |
-| 0x0050 | SCOPE_CONFIG_ID_3 | SetConfigurationIds | Configuration ID 3. |
-| 0x0054 | ANALOG_CH_CONFIG_0 | SetAnalogChannelConfiguration | Analog channel configuration registers. Six registers (0x54-0x68) suggest configuration for up to 6 parameters or channel-specific settings. |
-| 0x0058 | ANALOG_CH_CONFIG_1 | SetAnalogChannelConfiguration | |
-| 0x005C | ANALOG_CH_CONFIG_2 | SetAnalogChannelConfiguration | |
-| 0x0060 | ANALOG_CH_CONFIG_3 | SetAnalogChannelConfiguration | |
-| 0x0064 | ANALOG_CH_CONFIG_4 | SetAnalogChannelConfiguration | |
-| 0x0068 | ANALOG_CH_CONFIG_5 | SetAnalogChannelConfiguration | |
-
-### Trigger Configuration (0x0070-0x009C)
-
-| Address | Name | Functions | Description |
-|---------|------|-----------|-------------|
-| 0x0070 | TRIGGER_CONTROL | SetAnalogTriggerConfiguration, DisableAnalogTrigger | Trigger enable/disable and mode. Contains packed fields: TriggerType (via SetField), TriggerMode (via SetField). Written twice in SetAnalogTriggerConfiguration (initial setup and final commit). |
-| 0x0074 | TRIGGER_CONFIG_0 | SetAnalogTriggerConfiguration | Normal-mode holdoff configuration. Holdoff must be a multiple of 8 samples (warned if not). |
-| 0x0078 | TRIGGER_CONFIG_1 | SetAnalogTriggerConfiguration | Normal-mode timeout configuration. Timeout must be a multiple of 8 samples. |
-| 0x007C | TRIGGER_CONFIG_2 | SetAnalogTriggerConfiguration | Auto-mode holdoff/timeout configuration. |
-| 0x0080 | TRIGGER_HOLDOFF_LO | SetAnalogTriggerConfiguration | Holdoff sample count, low 32 bits. Values are converted from sample counts to FPGA clock ticks via SamplesToTicks. |
-| 0x0084 | TRIGGER_HOLDOFF_HI | SetAnalogTriggerConfiguration | Holdoff sample count, high 32 bits. |
-| 0x0088 | TRIGGER_TIMEOUT_LO | SetAnalogTriggerConfiguration | Timeout sample count, low 32 bits. |
-| 0x008C | TRIGGER_TIMEOUT_HI | SetAnalogTriggerConfiguration | Timeout sample count, high 32 bits. |
-| 0x0090 | TRIGGER_CONFIG_3 | SetAnalogTriggerConfiguration | Initial holdoff and threshold configuration. |
-| 0x0094 | TRIGGER_TIMESTAMP_SIZE | SamplesToTicks | Timestamp/sample size register. Written near trigger holdoff computation; converts sample-domain values to tick-domain. |
-| 0x0098 | SW_TRIGGER_LO | SetSoftwareTrigger | Software trigger timestamp, low 32 bits. Logged: "Setting software trigger at timestamp {}". |
-| 0x009C | SW_TRIGGER_HI | SetSoftwareTrigger | Software trigger timestamp, high 32 bits. |
-
-### Initialization (0x00E0)
-
-| Address | Name | Functions | Description |
-|---------|------|-----------|-------------|
-| 0x00E0 | INIT_CONFIG | CommonDeviceInit (post-FPGA-programming) | Written during post-programming initialization sequence. Part of the init triple: 0x01C0 -> 0x0040 -> 0x00E0. |
-
-### JESD BER Test (0x00FC)
-
-| Address | Name | Functions | Description |
-|---------|------|-----------|-------------|
-| 0x00FC | JESD_BER_TEST | StartJesdBerTest, StopJesdBerTest | JESD204B Bit Error Rate test control. Separate from the main JESD status in register 0x0008. |
-
-### Digital Voltage Threshold (0x0104)
-
-| Address | Name | Functions | Description |
-|---------|------|-----------|-------------|
-| 0x0104 | DIGITAL_VOLTAGE_THRESHOLD | SetDigitalDerivedVoltageThresholds | Sets the digital logic voltage threshold for all digital channels. Logic Pro feature. The nearby code also writes via "Write 0x{:x} to 0x{:x}" format (separate from the FPGA register log). |
-
-### Per-Channel Digital Configuration (0x0170-0x017C)
-
-| Address | Name | Functions | Description |
-|---------|------|-----------|-------------|
-| 0x0170 | DIGITAL_CH_CONFIG[0] | InternalSetDigitalConfiguration | Per-channel digital configuration. Address formula: `0x0170 + channel_index * 4`. Contains glitch filter settings (pulse width must be 5 or multiple of 10). |
-| 0x0174 | DIGITAL_CH_CONFIG[1] | InternalSetDigitalConfiguration | |
-| 0x0178 | DIGITAL_CH_CONFIG[2] | InternalSetDigitalConfiguration | |
-| 0x017C | DIGITAL_CH_CONFIG[3] | InternalSetDigitalConfiguration | |
-
-Bounded by assertion: `address < DigitalConfiguration_DigitalDerived_END`
-
-### Smart Cable Digital Configuration (0x0180+, MSO only)
-
-| Address | Name | Functions | Description |
-|---------|------|-----------|-------------|
-| 0x0180+ | SMART_CABLE_CH_CONFIG | SetEnabledSmartCableDigitalChannels, CalculateDigitalConfigurationAddress_SmartCable | Per-port, per-channel digital config for smart cable channels. Observed value 0x0194 in the code. |
-
-Bounded by assertion: `address < DigitalConfiguration_SmartCable_END`
-
-Smart cables are MSO-only and out of scope for Logic Pro RE.
-
-### Commit / Bank Control (0x01C0-0x01C4)
-
-| Address | Name | Functions | Description |
-|---------|------|-----------|-------------|
-| 0x01C0 | COMMIT_BANK_CONTROL | init, InternalSetDigitalConfiguration | Written during init (first register in the init sequence), and after setting digital channel configuration. Likely a configuration commit or PLL/bank enable register. |
-| 0x01C4 | DIGITAL_TEST_PATTERN | SetDigitalTestPattern | Digital test pattern configuration. |
-
-
-## Register Bit Fields (Partially Decoded)
-
-### Register 0x0008 (STATUS_DDR_JESD_CONTROL)
+- **Address width**: 16 bits
+- **Value width**: 32 bits
+- **Byte order**: Big-endian on wire (byte-swapped via x86 ROL instruction)
+- **Transport**: USB bulk EP1 OUT (write) and EP1 IN (read)
 
 ```
-Bit 4: DDR locked status
-Bit 3: DDR calibrated status
-
-WaitForDdrReady reads register 0x0008 and checks:
-  (value & 0x18) == 0x18   (both bits 3 and 4 set = DDR ready)
-
-During JESD init, the register is read, OR'd with 0x10 (bit 4), and written
-back. This suggests bit 4 can also be used as a control bit.
+Write: [addr_hi] [addr_lo] [val_3] [val_2] [val_1] [val_0]  (6 bytes)
+Read:  [addr_hi] [addr_lo]  -> response: [val_3] [val_2] [val_1] [val_0]
 ```
 
-### Register 0x0004 (SPI_DATA)
+Source file:
+`/workspace/monorepo/graph-io/devices/mso_device/src/mso_device/component/mso_fpga.cpp`
 
+
+### Complete Register Map
+
+#### SPI / Status / JESD Control (0x0004-0x0008)
+
+| Address | Name | Description |
+|---------|------|-------------|
+| 0x0004 | SPI_DATA | SPI bridge to ADC. See bit-field layout below. |
+| 0x0008 | STATUS_DDR_JESD | DDR/JESD status and control. See bit-field layout below. |
+
+#### GPIF Control (0x0020-0x0024)
+
+| Address | Name | Description |
+|---------|------|-------------|
+| 0x0020 | GPIF_ENABLE | Enables GPIF data interface between FX3 and FPGA. |
+| 0x0024 | GPIF_FLUSH_TIMEOUT | GPIF flush timeout in 100MHz clock ticks. |
+
+#### Test Data Configuration (0x0030-0x0034)
+
+| Address | Name | Description |
+|---------|------|-------------|
+| 0x0030 | TEST_DATA_SIZE | Test data pattern size. Written with `config.mSize`. |
+| 0x0034 | TEST_DATA_FREQ_CTL | Packed: `mDataObjectEnabled << 20 | mTestPatternEnabled << 21 | mFrequency[19:0]`. |
+
+**TEST_DATA_FREQ_CTL (0x0034) bit fields**:
 ```
-WriteSpi:
-  Assertion: "Upper 8 bits of data cannot be used in WriteSpi"
-  Assertion: "( data & 0xFF000000 ) == 0"  -- bits [31:24] must be zero
-  Assertion: "R/W cannot be set when writing to SPI"
-  Assertion: "( data & ( 1 << 23 ) ) == 0"  -- bit 23 must be zero for write
-
-ReadSpi_7BitAddress:
-  Assertion: "Upper bit of address cannot be used"
-  Assertion: "( address & 0x80 ) == 0"  -- 7-bit address, bit 7 must be zero
-
-ReadSpi_15BitAddress:
-  Assertion: "( address & 0x8000 ) == 0"  -- 15-bit address, bit 15 must be zero
-
-The SPI register packs address + data + control bits:
-  Bits [22:16] or [22:8]: SPI address (7-bit or 15-bit)
-  Bits [7:0] or [15:0]:   SPI data
-  Bit 23:                  R/W flag (1=read, 0=write)
-  Bits [31:24]:            Must be zero
-
-Additional packed fields via SetField:
-  - SpiClockEdge
-  - SpiWireConfiguration
-  - SpiAddressDataFormat
-```
-
-### Register 0x0070 (TRIGGER_CONTROL)
-
-```
-Contains packed bit fields set via Saleae::Utilities::SetField:
-  - TriggerType (from Saleae::MsoFpga::TriggerType_impl::TriggerType enum)
-  - TriggerMode (from Saleae::MsoFpga::TriggerMode_impl::TriggerMode enum)
-  - DownsampleMode (from Saleae::DownsampleMode_impl::DownsampleMode enum)
-  - unsigned char fields (generic configuration bits)
-
-Assertions in SetAnalogTriggerConfiguration:
-  - mTriggerHysteresisFalling >= mTriggerThreshold
-  - mTriggerHysteresisRising <= mTriggerThreshold
-  - isfinite(mTriggerThreshold)
+bits [19:0]:  Frequency (max 0xFFFFF, 20 bits)
+bit  20:      DataObject enabled
+bit  21:      TestPattern enabled
+bits [31:22]: Unused
 ```
 
-### Digital Channel Config (0x0170+)
+Constraint: Only one of TestPattern and DataObject may be enabled at a time.
+
+#### Capture Control (0x0040)
+
+| Address | Name | Description |
+|---------|------|-------------|
+| 0x0040 | CAPTURE_CONTROL | Master capture control. See bit-field layout below. |
+
+**CAPTURE_CONTROL (0x0040) bit fields** (from SetAnalogChannelConfiguration):
+```
+bit  4:       Capture mode (from config byte 0)
+bits [6:5]:   DownsampleMode (2 bits, via SetField<DownsampleMode>)
+bits [3:0]:   Preserved from previous value (masked with 0x8F)
+bits [31:7]:  Other configuration (preserved/set elsewhere)
+```
+
+The field assembly is:
+`value = (config.mCaptureMode << 4) | (DownsampleMode & 3) << 5 | (prev_value & 0x8F)`
+
+#### Scope Configuration IDs (0x0044-0x0050)
+
+| Address | Name | Description |
+|---------|------|-------------|
+| 0x0044 | SCOPE_CONFIG_ID_0 | Configuration ID 0. |
+| 0x0048 | SCOPE_CONFIG_ID_1 | Configuration ID 1. |
+| 0x004C | SCOPE_CONFIG_ID_2 | Configuration ID 2. |
+| 0x0050 | SCOPE_CONFIG_ID_3 | Configuration ID 3. |
+
+Logged as: "Setting scope configuration IDs: {} {} {} {}"
+
+#### Analog Channel Configuration (0x0054-0x0068)
+
+| Address | Name | Struct Offset | Description |
+|---------|------|---------------|-------------|
+| 0x0054 | ANALOG_SAMPLE_DIVIDER | +0x04 | Sample rate divider. `config.mSamplesPerSecondDivider`. |
+| 0x0058 | ANALOG_PRE_TRIGGER | +0x10 | Negated pre-trigger length: `-(config.mPreTriggerLength)`. |
+| 0x005C | ANALOG_POST_TRIGGER | +0x18 | Post-trigger length: `config.mPostTriggerLength`. |
+| 0x0060 | ANALOG_COMPUTED_RATE | computed | `round(DAT_0044e1c8 / divider)` -- derived from 0x0054 value. |
+| 0x0064 | ANALOG_TRIGGER_HI | computed | Upper bits: `(pre_hi & 0xFFFF) | (post_hi & 0xFFFF) << 16`. |
+| 0x0068 | ANALOG_SAMPLES_PER_CHUNK | +0x20 | Samples per chunk: `config.mSamplesPerChunk`. |
+
+Constraints (from assertions):
+- `sample_length >= MsoConstants::MinTriggerBufferSamples` (8)
+- `sample_length <= MaxTriggerBufferSamples_Xilinx` (0x3FFFC000) or `_Altera` (0x2FFFC000)
+- `-config.mPreTriggerLength >= MinTriggerBufferIndex_Xilinx/Altera`
+- `config.mPostTriggerLength <= MsoConstants::MaxTriggerBufferIndex` (0xBFFF)
+- `config.mSamplesPerChunk` must be in range (Xilinx: 0x100-0x1E00, Altera: 0x40-0x1780)
+- `SamplesPerPacketMultiple_WithStats` alignment required
+
+The FPGA variant (Xilinx vs Altera) is detected via `FUN_02e62780()`: return value
+`& 0xFE == 0` means Altera, otherwise Xilinx.
+
+#### Trigger Configuration (0x0070-0x009C)
+
+| Address | Name | Description |
+|---------|------|-------------|
+| 0x0070 | TRIGGER_CONTROL | Trigger control with packed bit fields. See layout below. |
+| 0x0074 | TRIGGER_NORMAL_HOLDOFF | Normal-mode holdoff: `SamplesToTicks(normal_holdoff_samples)`. |
+| 0x0078 | TRIGGER_NORMAL_TIMEOUT | Normal-mode timeout: `SamplesToTicks(normal_timeout_samples)`. |
+| 0x007C | TRIGGER_AUTO_CONFIG | Auto-mode config: `hysteresis_falling | threshold << 16`. |
+| 0x0080 | TRIGGER_INITIAL_HOLDOFF_LO | Initial holdoff low 32: `SamplesToTicks(initial_holdoff)`. |
+| 0x0084 | TRIGGER_AUTO_HOLDOFF | Auto-mode holdoff: `SamplesToTicks(auto_holdoff_samples)`. |
+| 0x0088 | TRIGGER_AUTO_TIMEOUT | Auto-mode timeout: `SamplesToTicks(auto_timeout_samples)`. |
+| 0x008C | TRIGGER_HOLDOFF_TIMEOUT_HI | Packed high bits: `timeout_hi[11:0] << 16 | holdoff_hi[11:0]`. |
+| 0x0090 | TRIGGER_INITIAL_HOLDOFF_HI | Initial holdoff high: `(holdoff >> 35) & 0x1FFF` (13 bits). |
+| 0x0094 | TRIGGER_TICK_SIZE | SamplesToTicks conversion factor (written near holdoff computation). |
+| 0x0098 | SW_TRIGGER_LO | Software trigger timestamp, low 32 bits. |
+| 0x009C | SW_TRIGGER_HI | Software trigger timestamp, high 32 bits. |
+
+**SamplesToTicks conversion**: `ticks = (samples + 7) >> 3` (divide by 8, round up).
+Holdoff/timeout values must be multiples of 8 samples (warning logged if not).
+
+**TRIGGER_CONTROL (0x0070) bit fields** (from decompiled SetAnalogTriggerConfiguration):
+```
+bits [7:0]:   Enable/config byte: threshold[7:0] << 0 (TriggerThreshold low byte)
+bits [7:4]:   Actually reinterpreted: see packed formula below
+bits [9:8]:   TriggerMode (2 bits) -- Saleae::MsoFpga::TriggerMode_impl::TriggerMode
+bit  [1:0]:   From SetField<DownsampleMode> check area
+bits [31:16]: TriggerThreshold (16 bits, signed)
+```
+
+The full packed value from decompilation:
+```
+value = (config.mDownsampleMode & 3) << 6    // not confirmed, see assertion check area
+      | (config.mTriggerType & 0xF) << 4     // TriggerType: 4 bits [7:4]
+      | (config.mTriggerMode & 3) << 2       // TriggerMode: 2 bits [3:2]
+      | (config.mTriggerThreshold << 16)      // Threshold: 16 bits [31:16]
+      | (config.mEnable)                      // Enable: bit [0] or similar
+```
+
+SetField bounds checks (from assertion strings):
+- TriggerType: `(value & 0xF0) == 0` -> max 4 bits (0-15)
+- TriggerMode: `(value & 0xFC) == 0` -> max 2 bits (0-3)
+- DownsampleMode (in 0x0040, not 0x0070): `(value & 0xFC) == 0` -> max 2 bits
+
+**TRIGGER_AUTO_CONFIG (0x007C) bit fields**:
+```
+bits [15:0]:  Hysteresis rising value (from config+6)
+bits [31:16]: Hysteresis falling value (from config+4)
+```
+
+**TRIGGER_HOLDOFF_TIMEOUT_HI (0x008C) bit fields**:
+```
+bits [11:0]:  Holdoff high (12 bits, from holdoff >> 35)
+bits [27:16]: Timeout high (12 bits, from timeout >> 35)
+bits [31:28]: Unused
+```
+
+Constraint: holdoff and timeout high values must be < 0x1000 (12 bits).
+
+#### Initialization (0x00E0)
+
+| Address | Name | Description |
+|---------|------|-------------|
+| 0x00E0 | INIT_CONFIG | Post-programming initialization register. |
+
+#### JESD BER Test (0x00FC)
+
+| Address | Name | Description |
+|---------|------|-------------|
+| 0x00FC | JESD_BER_TEST | JESD204B Bit Error Rate test control. |
+
+#### Digital Voltage Threshold (0x0104)
+
+| Address | Name | Description |
+|---------|------|-------------|
+| 0x0104 | DIGITAL_VOLTAGE_THRESHOLD | Sets digital logic voltage threshold. |
+
+Referenced by `SetDigitalDerivedVoltageThresholds` with an additional
+secondary write via a different mechanism (possibly I2C DAC).
+
+#### Smart Cable Digital Configuration (0x0120-0x016F)
+
+Address formula: `address = 0x0120 + port * 16 + sub_channel * 4`
+
+| Address Range | Description |
+|---------------|-------------|
+| 0x0120-0x012C | Port 0, channels 0-3 |
+| 0x0130-0x013C | Port 1, channels 0-3 |
+| 0x0140-0x014C | Port 2, channels 0-3 |
+| 0x0150-0x015C | Port 3, channels 0-3 |
+| 0x0160-0x016C | Port 4, channels 0-3 |
+
+Constraint: `port * 16 + sub_channel * 4 < 0x50` (80 bytes, 20 registers max).
+Bound check: `address < DigitalConfiguration_SmartCable_END`.
+
+Smart cables are MSO-only. Max ports: `MsoConstants::MaxSmartCablePortCount`.
+
+Each register has the same format as DigitalDerived (see below).
+
+#### Per-Channel Digital Configuration (0x0170-0x017C)
+
+Address formula: `address = 0x0170 + channel_index * 4` (channels 0-3)
+
+| Address | Name | Description |
+|---------|------|-------------|
+| 0x0170 | DIGITAL_CH_CONFIG[0] | Channel 0 digital config. |
+| 0x0174 | DIGITAL_CH_CONFIG[1] | Channel 1 digital config. |
+| 0x0178 | DIGITAL_CH_CONFIG[2] | Channel 2 digital config. |
+| 0x017C | DIGITAL_CH_CONFIG[3] | Channel 3 digital config. |
+
+Bound check: `address < DigitalConfiguration_DigitalDerived_END`.
+
+**Digital channel config bit fields** (from InternalSetDigitalConfiguration):
+```
+bits [19:0]:  PulseWidth (glitch filter width)
+bit  20:      Enabled (channel enable)
+bits [31:21]: Unused
+```
+
+The packed value: `value = (config.mEnabled & 1) << 20 | config.mPulseWidth`
+
+Glitch filter constraints:
+- `PulseWidth >= MsoConstants::MinGlitchFilterLength` (5)
+- `PulseWidth <= MsoConstants::MaxGlitchFilterLength` (0x3D08C + 5 = 250000)
+- `PulseWidth == 5 || (PulseWidth % 10) == 0`
+
+#### Commit / Bank Control (0x01C0-0x01C4)
+
+| Address | Name | Description |
+|---------|------|-------------|
+| 0x01C0 | COMMIT_BANK_CONTROL | Configuration commit and smart cable channel enable bits. |
+| 0x01C4 | DIGITAL_TEST_PATTERN | Digital test pattern configuration. |
+
+**COMMIT_BANK_CONTROL (0x01C0) bit fields** (from SetEnabledSmartCableDigitalChannels):
+```
+bits [19:0]:  Smart cable channel enable bits (5 ports x 4 channels = 20 bits)
+              Bit position = port * 4 + channel
+bits [31:20]: Other commit/bank configuration
+```
+
+Constraint: `msb < 20` (max 20 channel enable bits).
+The function clears bits for the target port, then sets individual channel bits
+using SetField<bool> at positions port*4+0..port*4+3.
+
+
+### Register Address Ranges Summary
 
 ```
-InternalSetDigitalConfiguration receives:
-  - uint16_t address (computed by CalculateDigitalConfigurationAddress)
-  - DigitalChannelConfiguration struct containing:
-    - mPulseWidth:  glitch filter pulse width (must be 5 or multiple of 10)
-    - mEnabled:     channel enable bit
+0x0004-0x0008  SPI / Status / JESD control
+0x0020-0x0024  GPIF (FX3 data interface) control
+0x0030-0x0034  Test data generation
+0x0040         Capture control (mode, downsample)
+0x0044-0x0050  Scope configuration IDs (4 registers)
+0x0054-0x0068  Analog channel configuration (6 registers)
+0x0070-0x009C  Trigger configuration (12 registers)
+0x00E0         Post-programming initialization
+0x00FC         JESD BER test
+0x0104         Digital voltage threshold
+0x0120-0x016F  Smart cable digital config (5 ports x 4 ch, MSO only)
+0x0170-0x017C  Per-channel digital config (4 channels, stride 4)
+0x01C0-0x01C4  Commit/bank control, digital test pattern
+```
 
-Additional bits via SetField:
-  - bool fields (enable/disable bits)
-  - unsigned char fields
+Total: 39 unique 16-bit register addresses confirmed from MsoFpga code region.
+
+
+## FpgaDeviceFeatures Register Interface (8-bit address)
+
+### Wire Protocol
+
+- **Address width**: 8 bits
+- **Value width**: 8 bits
+- **Transport**: USB bulk EP1 OUT with opcode prefix
+- **Opcodes**: 0x80 (WriteRegisters), 0x81 (ReadRegisters)
+
+```
+WriteRegisters (opcode 0x80):
+  EP1 OUT: [0x80] [count] [addr0] [val0] [addr1] [val1] ...
+  Max 31 register pairs per batch.
+  Fire-and-forget (no response check) for base class.
+  ProFpgaDeviceFeatures: adds response verification (reads back confirmation).
+
+ReadRegister (opcode 0x81):
+  EP1 OUT: [0x81] [count=1] [addr]
+  EP1 IN:  [value]  (1 byte)
+
+ReadRegisters (opcode 0x81, batch):
+  EP1 OUT: [0x81] [count] [addr0] [addr1] ...
+  EP1 IN:  [val0] [val1] ...  (count bytes)
+  Max 63 registers per batch.
+```
+
+Source file:
+`/workspace/monorepo/graph-io/devices/logic_interface/src/Logic2FpgaDevice.cpp`
+
+### Vtable Layout
+
+```
+[0] ~FpgaDeviceFeatures() [D1 complete destructor]
+[1] ~FpgaDeviceFeatures() [D0 deleting destructor]
+[2] WriteRegister(U8 addr, U8 val)
+[3] WriteRegisters(vector<pair<U8,U8>>&, const S8*)
+[4] ReadRegister(U8 addr, const S8*) -> U8
+[5] ReadRegisters(vector<U8>&, const S8*) -> vector<U8>
+[6] DownloadBitstream(const U8*, U64, callback, double)
+[7] ResetFpga()
+```
+
+ProFpgaDeviceFeatures overrides slots [1] and [3] (adds response verification).
+
+### Non-Virtual Methods
+
+```
+WriteRegisterBit(U8 reg, U8 bit, U8 val, const S8*)  -- read-modify-write helper
+WriteConfigurationData(const U8*, U32)                 -- EP1 opcode 0x7F (bitstream data)
+```
+
+### Complete Register Map
+
+The 8-bit registers are used by Logic2FpgaDevice::SetCaptureParameters and
+Logic2FpgaDevice::WriteAd9637Register.
+
+#### ADC SPI Registers (via WriteAd9637Register)
+
+WriteAd9637Register builds a vector of (addr, value) pairs to write ADC SPI
+registers through the FPGA's SPI bridge:
+
+| Reg | Name | Description |
+|-----|------|-------------|
+| 0x03 | ADC_SPI_ADDR | ADC SPI address: `adc_addr[15:8]`. Lower bits in next reg. |
+| 0x04 | ADC_SPI_DATA_LO | ADC SPI data low byte: `adc_data[7:0]`. |
+| 0x05 | ADC_SPI_DATA_HI | ADC SPI data high bits: `adc_data[15:8]`. |
+| 0x16 | ADC_SPI_ADDR_EXT | Extended ADC address: `adc_addr[12:8] | 0x16`. |
+
+The AD9637 is the ADC used in Logic Pro 8/16 (Xilinx-based).
+Data constraint: `adc_data < 0x100` (8-bit ADC register values).
+
+#### Capture Configuration Registers (via SetCaptureParameters)
+
+| Reg | Name | Description |
+|-----|------|-------------|
+| 0x00 | CAPTURE_INIT | Initial register (written as 0). |
+| 0x06 | ANALOG_CH_ENABLE_LO | Analog channel enable mask, low byte. |
+| 0x07 | ANALOG_CH_ENABLE_HI | Analog channel enable mask, high byte (16ch devices). |
+| 0x08 | DIGITAL_CH_ENABLE_LO | Digital channel enable mask, low byte. |
+| 0x09 | DIGITAL_CH_ENABLE_HI | Digital channel enable mask, high byte (16ch devices). |
+| 0x0A | ANALOG_DECIMATION | Analog decimation factor, low byte. |
+| 0x0B | DIGITAL_DIVIDER_LO | Digital sample rate divider, low byte. |
+| 0x0C | DIGITAL_DIVIDER_HI | Digital sample rate divider, high byte. |
+| 0x0D | MIX_RATIO_A | Analog/digital mix ratio A. |
+| 0x0E | MIX_RATIO_B | Analog/digital mix ratio B. |
+| 0x13 | CAPTURE_CONTROL | Capture control flags byte. |
+| 0x14 | DECIMATION_FACTOR | Computed decimation factor (max 0xFF). |
+| 0x1A | ADC_CONFIG | ADC configuration (Pro devices, JESD mode). |
+| 0x1B | ANALOG_DEC_UPPER | Upper analog decimation (board revision 1 only). |
+
+**CAPTURE_CONTROL (reg 0x13) bit fields**:
+```
+bit 0:  Capture enabled (revision 2 = always 1)
+bit 1:  Ignore FPGA errors flag
+bits [7:2]: Reserved
+```
+
+**MIX_RATIO constraints**: `(mix_ratio_a | mix_ratio_b) < 0x100` (8-bit values).
+
+**DECIMATION_FACTOR (reg 0x14)**: Computed as
+`min(0xFF, (base_rate / total_channel_rate + padding) / (base_rate / total_channel_rate))`
+where padding depends on whether JESD mode is active (40M vs 100M).
+
+**ADC_CONFIG (reg 0x1A)**: Written only when `local_17c != 0` (JESD/Pro mode).
+```
+Value encoding:
+  1 = standard mode
+  0 = 4x interleaved mode (local_188 = 1)
+  2*N = other interleave (local_168 * 2)
+```
+
+**ANALOG_DEC_UPPER (reg 0x1B)**: Written only for board revision 1
+(`*(param_1 + 0x21c) == 1`). Upper bit of analog decimation.
+Constraint: `analog_decimation_upper <= 1`.
+
+#### PLL and DCM Lock Registers (read via FpgaDeviceFeatures)
+
+| Reg | Name | Description |
+|-----|------|-------------|
+| 0x40 | PLL_STATUS | PLL/DCM lock status register. |
+| 0x4A | PLL_STATUS_2 | Secondary PLL status (read alongside 0x40). |
+
+**PLL_STATUS (reg 0x40) bit fields** (from SetAd9637Enabled):
+```
+bit 5:  Main DCM locked
+bit 6:  Slow DCM locked
+```
+
+Both DCMs must lock after ADC enable. If Main DCM does not lock, throws
+"Main DCM didn't lock". If Slow DCM does not lock, throws "Slow DCM didn't lock".
+
+The PLL lock check function (FUN_01d22af0) also checks system PLL and PCLK PLL,
+and logs: "PLL(s) failed to lock after PLL reset! system PLL: {}, PCLK PLL: {}.
+status register: {:#x}"
+
+#### WriteAd9637Register Protocol
+
+The AD9637 ADC is programmed through the FPGA's 8-bit register interface.
+Each ADC register write requires 4 register writes in sequence:
+
+```
+Step 1: Write reg 0x03 = (adc_addr >> 8) | 0x03    -- ADC address high byte
+Step 2: Write reg 0x16 = (adc_addr & 0x1F00) >> 8  -- Extended address bits
+Step 3: Write reg 0x04 = adc_data                   -- ADC data
+Step 4: Write reg 0x05 = 0                          -- ADC data high (zero for 8-bit)
+```
+
+This is different from the MsoFpga SPI bridge (reg 0x0004) which uses a single
+32-bit register write. The FpgaDeviceFeatures path uses multiple 8-bit writes
+through the 0x80 opcode batch mechanism.
+
+
+## SPI Bridge Details (MsoFpga Register 0x0004)
+
+**SPI_DATA (0x0004) bit fields** (from WriteSpi decompilation):
+```
+bits [22:0]:  SPI address + data (packed format depends on SpiAddressDataFormat)
+bit  23:      R/W flag (0 = write, 1 = read)
+bit  24:      SpiWireConfiguration (0 = 4-wire, 1 = 3-wire)
+bits [25]:    Unused
+bit  26:      SpiClockEdge (0 = rising, 1 = falling)
+bits [31:27]: Must be zero
+```
+
+WriteSpi packed value construction:
+```
+value = data[22:0] | (SpiClockEdge & 1) << 26 | (SpiWireConfig & 1) << 24
+```
+
+ReadSpi_7BitAddress: Sets bit 23 (R/W = read), address in bits [22:16].
+  Constraint: `(address & 0x80) == 0` (7-bit address).
+
+ReadSpi_15BitAddress: Sets bit 23 (R/W = read), address in bits [22:8].
+  Constraint: `(address & 0x8000) == 0` (15-bit address).
+
+SPI modes (from SetField assertions):
+- SpiClockEdge: 1 bit (0 or 1)
+- SpiWireConfiguration: 1 bit (0 or 1)
+- SpiAddressDataFormat: multi-bit (controls address/data bit packing)
+
+
+## STATUS_DDR_JESD_CONTROL (MsoFpga Register 0x0008) Details
+
+**Bit fields** (from WaitForDdrReady and ResetJesdPhyTransceivers decompilation):
+```
+bit  3:  DDR calibrated status
+bit  4:  DDR locked status
+
+WaitForDdrReady: (value & 0x18) == 0x18  (both bits 3 and 4 set = DDR ready)
+```
+
+ResetJesdPhyTransceivers sequence:
+1. Asserts `channel_count == 2 || channel_count == 4`
+2. Sets mask: `0xFF` for 4 channels, `0x5A` for 2 channels
+3. Writes register 0x0008 with value 2 in a loop
+4. Reads register 0x0008 to check JESD status
+5. Retries with 1ms sleep until lock or timeout (2 seconds)
+
+JESD status fields (from log format):
+```
+For Xilinx FPGA:
+  link_up:     bit 0
+  sync_status: byte at bits [15:8]
+  realigned:   byte at bits [23:16]  (specific bits extracted)
+  aligned:     byte at bits [23:16]  (different bit)
+  spll_locked: bit 4
+  cpll_locked: bit 5
+
+For Altera FPGA:
+  synced:      extracted from bits [23:16] & bits [15:8]
+  locked:      computed from above
 ```
 
 
 ## Initialization Sequence
 
-Post-FPGA-programming register write sequence:
-
+Post-FPGA-programming register write sequence (MsoFpga):
 ```
 1. Write 0x01C0 (COMMIT_BANK_CONTROL) -- initial bank/commit config
 2. Write 0x0040 (CAPTURE_CONTROL) -- initial capture config
 3. Write 0x00E0 (INIT_CONFIG) -- init-specific config
 4. Write 0x0024 (GPIF_FLUSH_TIMEOUT) -- set GPIF flush timeout
 5. Write 0x0020 (GPIF_ENABLE) -- enable GPIF data interface
-6. [Lattice devices]: ResetJesdPhyTransceivers
-7. [Lattice devices]: WaitForDdrReady (polls register 0x0008)
+6. [Lattice devices]: ResetJesdPhyTransceivers (writes reg 0x0008 in loop)
+7. [Lattice devices]: WaitForDdrReady (polls reg 0x0008 for bits [4:3])
 ```
 
 
-## JESD204B Initialization (Lattice ECP5 devices)
+## ADC Types and SPI Interfaces
 
-```
-ResetJesdPhyTransceivers:
-  1. Writes to register 0x0008 (multiple times in a loop)
-  2. Reads JESD status: "FPGA JESD lock=0x{:x} synced=0x{:x} error=0x{:x}"
-  3. Extended status: "power_good={} init_done={} sync_err={}, lane_0-3_pll={}, lane_4-7_pll={}, smpl_pll={}"
-  4. Retries until lock or timeout: "Locked JESD after {} ms, {} retries"
-  5. JesdStatus struct: link_up, sync_status, realigned, aligned, spll_locked, cpll_locked
-
-WaitForDdrReady:
-  1. Reads register 0x0008 in a polling loop
-  2. Checks (value & 0x18) == 0x18 (both DDR locked and calibrated)
-  3. Sleeps 1ms between polls
-  4. "Locked and calibrated DDR after {} ms"
-```
+| ADC | Devices | SPI Path | Init Function |
+|-----|---------|----------|---------------|
+| AD9637 | Logic Pro 8/16 (Xilinx) | FpgaDeviceFeatures regs 0x03-0x05,0x16 | WriteAd9637Register, SetAd9637Enabled |
+| ADS528x | Lattice-based devices | MsoFpga SPI bridge (reg 0x0004) | SetAds528xEnabled, SetAds528xDrive |
+| HMCAD1100 | Logic 8 (Xilinx, non-Pro) | FpgaDeviceFeatures | InitHmcad1100 |
 
 
-## ADC SPI Interface
+## SetField Instantiations
 
-The FPGA provides an SPI bridge to the ADC via register 0x0004:
+The `Saleae::Utilities::SetField<T,S>(target, value, bit_pos, bit_width)` template
+function is used to pack bit fields into registers. All observed instantiations:
 
-```
-ADC Write 0x{:x} = 0x{:x}   -- write to ADC SPI register
-ADC Read 0x{:x} = 0x{:x}    -- read from ADC SPI register
-ADC Vendor ID: {:04x}        -- read ADC vendor ID register
-
-SPI modes:
-  - 7-bit address:  ReadSpi_7BitAddress(addr, clock_edge, wire_config)
-  - 15-bit address: ReadSpi_15BitAddress(addr, clock_edge, wire_config)
-  - Write:          WriteSpi(data, clock_edge, wire_config)
-
-SPI configuration enums:
-  - SpiClockEdge:           rising/falling edge
-  - SpiWireConfiguration:   3-wire/4-wire SPI
-  - SpiAddressDataFormat:   address+data bit packing
-```
-
-ADC types accessed via SPI:
-- AD9637: `WriteAd9637Register(U16, U16)` - Xilinx-based Pro devices
-- ADS528x: `SetAds528xEnabled`, `SetAds528xDrive` - Lattice-based devices
-- HMCAD1100: `InitHmcad1100(Hmcad1100Settings)` - Xilinx-based non-Pro devices
+| Target Type | Value Type | Used For |
+|-------------|-----------|----------|
+| unsigned int | DownsampleMode | CAPTURE_CONTROL reg 0x0040, bits [6:5] |
+| unsigned int | TriggerType | TRIGGER_CONTROL reg 0x0070, bits [7:4] |
+| unsigned int | TriggerMode | TRIGGER_CONTROL reg 0x0070, bits [3:2] |
+| unsigned int | SpiClockEdge | SPI_DATA reg 0x0004, bit 26 |
+| unsigned int | SpiWireConfiguration | SPI_DATA reg 0x0004, bit 24 |
+| unsigned int | SpiAddressDataFormat | SPI_DATA reg 0x0004, bit packing mode |
+| unsigned int | unsigned int | TEST_DATA_FREQ_CTL reg 0x0034, frequency field |
+| unsigned int | unsigned short | Various 16-bit fields |
+| unsigned int | unsigned char | TRIGGER_CONTROL reg 0x0070, sub-fields |
+| unsigned int | unsigned long | TRIGGER_HOLDOFF_TIMEOUT_HI reg 0x008C |
+| unsigned int | bool | COMMIT_BANK_CONTROL reg 0x01C0, channel enable bits |
+| unsigned char | bool | Digital channel InternalSetDigitalConfiguration enable |
+| unsigned char | unsigned char | Various byte-level fields |
 
 
 ## Confidence Assessment
 
-| Finding | Confidence | Sources |
-|---------|-----------|---------|
-| Register addresses extracted from movw immediates | **Confirmed** | Direct disassembly of 49 instruction sites |
-| Register addresses are 16-bit, values 32-bit | **Confirmed** | ReadRegister function disassembly + format strings |
-| Big-endian byte order on wire | **Confirmed** | ROL $8 byte-swap in ReadRegister/WriteRegister code |
-| DigitalDerived address = 0x170 + ch*4 | **Confirmed** | LEA instruction in CalculateDigitalConfigurationAddress |
-| DDR ready check: (reg 0x08 & 0x18) == 0x18 | **Confirmed** | AND + CMP instruction sequence in WaitForDdrReady |
-| SPI register bit layout (bit 23 = R/W) | **Confirmed** | Assertion strings in WriteSpi/ReadSpi |
-| Function attributions (which function writes which register) | **High** | String references near each xref site |
-| Register name assignments (descriptive names) | **Hypothesis** | Inferred from function context, not from the binary |
-| Smart cable register range (0x0180-0x01BF) | **Hypothesis** | Based on DigitalDerived ending at 0x0180 and one observed address 0x0194 |
+| Finding | Confidence | Source |
+|---------|-----------|--------|
+| MsoFpga register addresses (39 addresses) | **Confirmed** | Direct from 49 movw immediates + decompilation |
+| FpgaDeviceFeatures register addresses (14 addresses) | **Confirmed** | Decompilation of SetCaptureParameters |
+| DigitalDerived address = 0x170 + ch*4 | **Confirmed** | Decompiled CalculateDigitalConfigurationAddress |
+| SmartCable address = 0x120 + port*16 + sub_ch*4 | **Confirmed** | Decompiled CalculateDigitalConfigurationAddress_SmartCable |
+| Digital channel config: enabled<<20 | pulseWidth | **Confirmed** | Decompiled InternalSetDigitalConfiguration |
+| Trigger register bit layouts | **Confirmed** | Decompiled SetAnalogTriggerConfiguration + SetField assertions |
+| SamplesToTicks = (samples+7)>>3 | **Confirmed** | Decompiled trigger holdoff/timeout computation |
+| SPI_DATA bit layout (bit 23=R/W, 24=wire, 26=clock) | **Confirmed** | Decompiled WriteSpi with assertion checks |
+| TEST_DATA_FREQ_CTL layout | **Confirmed** | Decompiled SetTestDataConfiguration |
+| COMMIT_BANK_CONTROL channel enable bits | **Confirmed** | Decompiled SetEnabledSmartCableDigitalChannels |
+| WriteAd9637Register multi-step protocol | **Confirmed** | Decompiled WriteAd9637Register |
+| SetCaptureParameters register list | **Confirmed** | Decompiled Logic2FpgaDevice::SetCaptureParameters |
+| PLL_STATUS bit 5=Main DCM, bit 6=Slow DCM | **Confirmed** | Decompiled SetAd9637Enabled |
+| CAPTURE_CONTROL bit 4=mode, [6:5]=downsample | **High** | Decompiled SetAnalogChannelConfiguration, some bit ambiguity |
+| Analog channel reg semantics (0x54-0x68) | **High** | Decompiled with struct offset correlation |
+| Register name assignments | **Hypothesis** | Inferred from function context, not from binary symbols |
 
 
-## Open Questions
+## Resolved Open Questions (from TASK-0031)
 
-1. **Exact analog channel register mapping**: The six registers 0x0054-0x0068
-   are written in SetAnalogChannelConfiguration, but are they per-channel
-   (one per analog channel) or per-parameter (one per configuration field)?
-   Need decompilation of SetAnalogChannelConfiguration to determine.
+1. **Analog channel register mapping (0x0054-0x0068)**: RESOLVED. These are NOT
+   per-channel registers. They are per-parameter: sample divider, pre-trigger,
+   post-trigger, computed rate, trigger high bits, and samples-per-chunk.
 
-2. **Trigger register field layout**: Registers 0x0070-0x009C are used for
-   trigger configuration with packed bit fields. The exact bit positions for
-   TriggerType, TriggerMode, and DownsampleMode need Ghidra analysis of the
-   SetField instantiations.
+2. **Trigger register field layout (0x0070-0x009C)**: RESOLVED. Full bit-field
+   layout extracted from decompiled SetAnalogTriggerConfiguration. TriggerType
+   is 4 bits at [7:4], TriggerMode is 2 bits at [3:2], threshold is 16 bits
+   at [31:16].
 
-3. **Register 0x00E0 purpose**: Only written during init. What specific
-   hardware configuration does it control?
+3. **Register 0x01C0 dual use**: RESOLVED. It is genuinely dual-purpose:
+   - During init: bank/commit configuration
+   - During smart cable config: per-channel enable bits at positions port*4+ch
 
-4. **Register 0x01C0 dual use**: Written during both init and digital channel
-   config. Is this a genuine dual-purpose register, or does it have different
-   bit fields used in different contexts?
+4. **Smart cable register range**: RESOLVED. Formula is `0x120 + port*16 + ch*4`,
+   range 0x0120-0x016F (not 0x0180-0x01BF as previously hypothesized).
 
-5. **JESD register bit layout in 0x0008**: The loop in ResetJesdPhyTransceivers
-   writes computed values to register 0x0008 multiple times. Need decompilation
-   to understand the full bit field layout and the JESD reset sequence.
-
-6. **Missing registers**: There may be registers only accessed via
-   WriteConfigurationData (bulk config writes during SetCaptureParameters)
-   rather than individual WriteRegister calls. These would not appear in
-   this analysis.
-
-7. **Computed register addresses**: Several WriteRegister calls use register
-   addresses computed at runtime (not from immediate constants). These include
-   the loop in ResetJesdPhyTransceivers and some SetAnalogTriggerConfiguration
-   paths. Full decompilation is needed to resolve these.
+5. **Computed register addresses**: RESOLVED. The loop in ResetJesdPhyTransceivers
+   always writes value 2 to register 0x0008 (not computed addresses).
 
 
-## New Leads
+## Remaining Open Questions
 
-- The `SamplesToTicks` function near register 0x0094 converts sample counts to
-  FPGA clock ticks. The conversion factor depends on `MsoDeviceConstants::clockRateHz`.
-  This function is key to understanding the trigger timing registers.
+1. **Register 0x00E0 (INIT_CONFIG)**: What specific value is written during init?
+   Need decompilation of the init function to determine.
 
-- The `SetField` utility is a generic bit-field packer that takes (target_register,
-  value, bit_position, bit_width). Tracing all SetField instantiations in the
-  MsoFpga code would fully decode every register's bit layout.
+2. **CAPTURE_CONTROL (0x0040) full bit layout**: The SetAnalogChannelConfiguration
+   only modifies bits [6:4]. What are bits [3:0], [7], and [31:8]?
 
-- The `GetJesdBerTestResults`, `StartJesdBerTest`, and `StopJesdBerTest`
-  functions all access registers 0x0008 and 0x00FC. These are diagnostic
-  functions that could be useful for validating the JESD link quality.
+3. **SCOPE_CONFIG_ID registers (0x0044-0x0050)**: What values are written? Need
+   decompilation of SetConfigurationIds.
 
-- Register 0x0104 (DIGITAL_VOLTAGE_THRESHOLD) is written alongside a separate
-  "Write 0x{:x} to 0x{:x}" log (different from the FPGA register log). This
-  may indicate a second-level write through a different mechanism (possibly
-  an I2C DAC for the threshold voltage).
+4. **Register 0x0094 (TRIGGER_TICK_SIZE)**: What value is written? This appears to
+   be a clock rate configuration for the sample-to-tick conversion.
+
+5. **FpgaDeviceFeatures registers above 0x1B**: Are there undiscovered 8-bit
+   registers beyond 0x1B? SetCaptureParameters only covers the known set.
+
+6. **DIGITAL_VOLTAGE_THRESHOLD (0x0104)**: What is the secondary write mechanism?
+   The code also writes via "Write 0x{:x} to 0x{:x}" format, possibly I2C DAC.
+
+7. **HMCAD1100 initialization registers**: InitHmcad1100 uses a different register
+   set than AD9637. Need decompilation to document HMCAD1100-specific registers.
