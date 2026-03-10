@@ -1,0 +1,2382 @@
+openjdk version "21.0.9" 2025-10-21
+OpenJDK Runtime Environment (build 21.0.9+-nixos)
+OpenJDK 64-Bit Server VM (build 21.0.9+-nixos, mixed mode)
+Module manifest file error on line 2 of file: /home/mpedersen/.config/ghidra/ghidra_11.3.2_NIX/Extensions/GhidraMCP/Module.manifest
+	-> Invalid line encountered: GHIDRA_MODULE_NAME=GhidraMCP
+Module manifest file error on line 3 of file: /home/mpedersen/.config/ghidra/ghidra_11.3.2_NIX/Extensions/GhidraMCP/Module.manifest
+	-> Invalid line encountered: GHIDRA_MODULE_DESC=An HTTP server plugin for Ghidra
+Module manifest file error on line 2 of file: /home/mpedersen/.config/ghidra/ghidra_11.3.2_NIX/Extensions/GhidraMCP/Module.manifest
+	-> Invalid line encountered: GHIDRA_MODULE_NAME=GhidraMCP
+Module manifest file error on line 3 of file: /home/mpedersen/.config/ghidra/ghidra_11.3.2_NIX/Extensions/GhidraMCP/Module.manifest
+	-> Invalid line encountered: GHIDRA_MODULE_DESC=An HTTP server plugin for Ghidra
+INFO  Using log config file: jar:file:/nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Framework/Generic/lib/Generic.jar!/generic.log4j.xml (LoggingInitialization)  
+INFO  Using log file: /home/mpedersen/.config/ghidra/ghidra_11.3.2_NIX/application.log (LoggingInitialization)  
+INFO  Loading user preferences: /home/mpedersen/.config/ghidra/ghidra_11.3.2_NIX/preferences (Preferences)  
+INFO  Searching for classes... (ClassSearcher)  
+INFO  Class search complete (674 ms) (ClassSearcher)  
+INFO  Initializing SSL Context (SSLContextInitializer)  
+INFO  Initializing Random Number Generator... (SecureRandomFactory)  
+INFO  Random Number Generator initialization complete: NativePRNGNonBlocking (SecureRandomFactory)  
+INFO  Trust manager disabled, cacerts have not been set (ApplicationTrustManagerFactory)  
+INFO  Headless startup complete (1400 ms) (AnalyzeHeadless)  
+INFO  Class searcher loaded 57 extension points (18 false positives) (ClassSearcher)  
+INFO  HEADLESS Script Paths:
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Processors/DATA/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/Jython/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/MicrosoftCodeAnalyzer/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Processors/PIC/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Debug/Debugger/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/SwiftDemangler/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/Base/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/PyGhidra/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/FunctionID/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Debug/Debugger-rmi-trace/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/DecompilerDependent/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/BSim/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/BytePatterns/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/Decompiler/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/WildcardAssembler/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/GnuDemangler/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/PDB/ghidra_scripts
+    /home/mpedersen/nvidia/saleae_reverse/re/ghidra/scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Processors/Atmel/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/FileFormats/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/SystemEmulation/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Processors/JVM/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Processors/8051/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/VersionTracking/ghidra_scripts (HeadlessAnalyzer)  
+INFO  HEADLESS: execution starts (HeadlessAnalyzer)  
+INFO  Opening existing project: /home/mpedersen/nvidia/saleae_reverse/ghidra_proj2/sal_rev2 (HeadlessAnalyzer)  
+INFO  Opening project: /home/mpedersen/nvidia/saleae_reverse/ghidra_proj2/sal_rev2 (HeadlessProject)  
+INFO  REPORT: Processing project file: /libgraph_server_shared.so (HeadlessAnalyzer)  
+INFO  SCRIPT: /home/mpedersen/nvidia/saleae_reverse/re/ghidra/scripts/DecompileExporter.java (HeadlessAnalyzer)  
+INFO  DecompileExporter.java> ### String at 0x4b7410: /workspace/monorepo/graph-io/nodes/export_node/src/exporter.cpp (GhidraScript)  
+INFO  DecompileExporter.java> ### 16 cross-reference(s) (GhidraScript)  
+INFO  DecompileExporter.java> === FUN_01bff5e0 @ Ghidra:01bff5e0 ELF:0x1aff5e0 (xref from 01bff6d0) === (GhidraScript)  
+INFO  DecompileExporter.java>   Referenced string: /workspace/monorepo/graph-io/nodes/export_node/src/exporter.cpp (GhidraScript)  
+INFO  DecompileExporter.java> 
+/* WARNING: Type propagation algorithm not settling */
+/* WARNING: Globals starting with '_' overlap smaller symbols at the same address */
+
+void FUN_01bff5e0(path *param_1)
+
+{
+  undefined *puVar1;
+  undefined *puVar2;
+  long *plVar3;
+  undefined8 uVar4;
+  string *psVar5;
+  path *ppVar6;
+  FILE *pFVar7;
+  string *psVar8;
+  char cVar9;
+  byte bVar10;
+  int iVar11;
+  int iVar12;
+  ulong uVar13;
+  ulong *puVar14;
+  undefined8 *puVar15;
+  ulong uVar16;
+  string *psVar17;
+  long lVar18;
+  string *psVar19;
+  long lVar20;
+  uint local_398;
+  undefined4 uStack_394;
+  undefined1 uStack_390;
+  undefined2 uStack_38f;
+  undefined1 uStack_38d;
+  uint uStack_38c;
+  char *local_388;
+  int local_37c;
+  string *local_378;
+  string *psStack_370;
+  undefined8 local_368;
+  path *local_358;
+  undefined *local_350;
+  ulong local_348;
+  ulong uStack_340;
+  void *local_338;
+  string local_328 [16];
+  void *local_318;
+  path *local_310;
+  string **local_308;
+  path **local_300;
+  iostream local_2f8 [2];
+  undefined6 uStack_2f6;
+  undefined1 uStack_2f0;
+  undefined1 uStack_2ef;
+  undefined6 uStack_2ee;
+  char *local_2e8;
+  long local_2e0;
+  uint auStack_2d8 [28];
+  FILE *local_268;
+  undefined *local_238 [19];
+  char local_1a0;
+  ulong local_138;
+  undefined8 uStack_130;
+  string *local_128;
+  ulong local_118;
+  undefined8 uStack_110;
+  string *local_108;
+  undefined **local_f8;
+  int *local_f0;
+  path *local_e8;
+  undefined ***local_d8;
+  undefined **local_c8;
+  int *local_c0;
+  path *local_b8;
+  undefined ***local_a8;
+  undefined **local_98;
+  path *local_90;
+  undefined ***local_78;
+  undefined **local_68;
+  path *local_60;
+  undefined ***local_48;
+  
+  local_2f8[0] = (iostream)0x10;
+  local_2f8[1] = (iostream)0x45;
+  uStack_2f6 = 0x6574726f7078;
+  uStack_2f0 = 0x72;
+  uStack_2ef = 0;
+                    /* try { // try from 01bff616 to 01bff622 has its CatchHandler @ 01c00b0c */
+  FUN_02ec7c70(local_2f8);
+  if (((byte)local_2f8[0] & 1) != 0) {
+    operator_delete(local_2e8);
+  }
+                    /* try { // try from 01bff642 to 01bff682 has its CatchHandler @ 01c00ed3 */
+  local_358 = param_1;
+  std::__fs::filesystem::__status((filesystem *)&local_398,param_1,(error_code *)0x0);
+  if ((byte)((char)local_398._0_1_ + 1U) < 2) {
+                    /* try { // try from 01bff789 to 01bff792 has its CatchHandler @ 01c00ed3 */
+    cVar9 = std::__fs::filesystem::__create_directories(param_1,(error_code *)0x0);
+    if (cVar9 != '\0') goto LAB_01bff79b;
+                    /* try { // try from 01bffb16 to 01bffb1f has its CatchHandler @ 01c00ed3 */
+    local_128 = (string *)operator_new(0x20);
+    ppVar6 = local_358;
+    uVar4 = s_Failed_to_create_directory_0052040e._18_8_;
+    local_138 = _DAT_0044b820;
+    uStack_130 = _UNK_0044b828;
+    *(ulong *)(local_128 + 10) =
+         CONCAT26(s_Failed_to_create_directory_0052040e._16_2_,
+                  s_Failed_to_create_directory_0052040e._10_6_);
+    *(undefined8 *)(local_128 + 0x12) = uVar4;
+    uVar4 = CONCAT62(s_Failed_to_create_directory_0052040e._10_6_,
+                     s_Failed_to_create_directory_0052040e._8_2_);
+    *(undefined8 *)local_128 = s_Failed_to_create_directory_0052040e._0_8_;
+    *(undefined8 *)(local_128 + 8) = uVar4;
+    local_128[0x1a] = (string)0x0;
+    local_398 = 0x4b7410;
+    uStack_394 = 0;
+    uStack_390 = 0x88;
+    uStack_38f = 1;
+    uStack_38d = 0;
+    local_388 = "operator()";
+                    /* try { // try from 01bffb82 to 01bffbff has its CatchHandler @ 01c008a1 */
+    FUN_01c04800(DAT_030b0118,4,"Exporter error: {}",0x12,&local_138);
+    LOCK();
+    *(undefined4 *)(ppVar6 + 0xc4) = 1;
+    UNLOCK();
+    local_310 = (path *)CONCAT71(local_310._1_7_,1);
+    local_398 = 0;
+    uStack_394 = 0x3ff00000;
+    plVar3 = *(long **)(ppVar6 + 0xb0);
+    if (plVar3 == (long *)0x0) {
+                    /* WARNING: Subroutine does not return */
+                    /* try { // try from 01c00688 to 01c0068c has its CatchHandler @ 01c008a1 */
+      FUN_01b292f0();
+    }
+    (**(code **)(*plVar3 + 0x30))(plVar3,&local_310,&local_138,&local_398);
+    psVar19 = local_128;
+    uVar16 = local_138;
+  }
+  else {
+    std::__fs::filesystem::__status((filesystem *)&local_398,param_1,(error_code *)0x0);
+    if (local_398._0_1_ == (filesystem)0x2) {
+LAB_01bff79b:
+      puVar2 = PTR_vtable_02fe9770;
+      local_378 = (string *)0x0;
+      psStack_370 = (string *)0x0;
+      local_368 = 0;
+      local_308 = &local_378;
+      local_300 = &local_358;
+      local_310 = param_1;
+      if ((*(long *)(param_1 + 0x48) == *(long *)(param_1 + 0x40)) ||
+         (((byte)param_1[0xc0] & 1) != 0)) {
+LAB_01bffc20:
+        if (*(long *)(param_1 + 0x60) != *(long *)(param_1 + 0x58)) {
+LAB_01bffc2e:
+          puVar2 = PTR_vtable_02fe9770;
+          if (((byte)param_1[0xc0] & 1) == 0) {
+            if (*(int *)(param_1 + 0x38) == 0) {
+              local_398 = 0x616e6114;
+              uStack_394 = 0x2e676f6c;
+              uStack_390 = 99;
+              uStack_38f = 0x7673;
+              uStack_38d = 0;
+                    /* try { // try from 01c00085 to 01c000a3 has its CatchHandler @ 01c0082c */
+              FUN_01c03b50(local_2f8,&local_310,&local_398,0x10);
+              if ((local_398 & 1) != 0) {
+                operator_delete(local_388);
+              }
+              if (local_1a0 == '\0') goto LAB_01c00624;
+              local_98 = &PTR_FUN_02f3b1c0;
+                    /* try { // try from 01c000f7 to 01c00134 has its CatchHandler @ 01c006e5 */
+              local_90 = param_1;
+              local_78 = &local_98;
+              FUN_01c03410(local_2f8,param_1 + 0x58,(long)*(int *)(param_1 + 0x70),param_1 + 0xc0,
+                           param_1[0x74],&local_98,*(undefined4 *)(param_1 + 0x18),
+                           *(undefined4 *)(param_1 + 0x20),*(undefined8 *)(param_1 + 0x28),
+                           *(undefined4 *)(param_1 + 0x30),*(undefined4 *)(param_1 + 0x78),
+                           *(undefined4 *)(param_1 + 0x80),*(undefined8 *)(param_1 + 0x88));
+              if (&local_98 == local_78) {
+                (*(code *)(*local_78)[4])();
+              }
+              else if (local_78 != (undefined ***)0x0) {
+                (*(code *)(*local_78)[5])();
+              }
+              pFVar7 = local_268;
+              if (local_268 == (FILE *)0x0) {
+LAB_01c002b0:
+                lVar20 = *(long *)(CONCAT62(uStack_2f6,CONCAT11(local_2f8[1],local_2f8[0])) + -0x18)
+                ;
+                std::ios_base::clear
+                          ((ios_base *)(local_2f8 + lVar20),
+                           *(uint *)((long)auStack_2d8 + lVar20) | 4);
+              }
+              else {
+                    /* try { // try from 01c0027a to 01c0027f has its CatchHandler @ 01c006be */
+                iVar11 = (**(code **)(local_2e0 + 0x30))((filebuf *)&local_2e0);
+                iVar12 = fclose(pFVar7);
+                local_268 = (FILE *)0x0;
+                    /* try { // try from 01c002a1 to 01c002d5 has its CatchHandler @ 01c00740 */
+                (**(code **)(local_2e0 + 0x18))((filebuf *)&local_2e0,0,0);
+                if (iVar12 != 0 || iVar11 != 0) goto LAB_01c002b0;
+              }
+              if (local_1a0 != '\0') {
+                puVar2 = PTR_vtable_02fe9770 + 0x18;
+                local_2f8[0] = SUB81(puVar2,0);
+                local_2f8[1] = SUB81((ulong)puVar2 >> 8,0);
+                uStack_2f6 = (undefined6)((ulong)puVar2 >> 0x10);
+                local_238[0] = PTR_vtable_02fe9770 + 0x68;
+                local_2e8 = PTR_vtable_02fe9770 + 0x40;
+                std::filebuf::~filebuf((filebuf *)&local_2e0);
+                std::iostream::~iostream(local_2f8);
+                std::ios::~ios((ios *)local_238);
+              }
+            }
+            else {
+              local_37c = 0;
+              lVar20 = *(long *)(param_1 + 0x58);
+              if (*(long *)(param_1 + 0x60) != lVar20) {
+                uVar16 = 0;
+                local_350 = PTR_PTR_02fe9768 + 8;
+                do {
+                    /* try { // try from 01bffce7 to 01bffcee has its CatchHandler @ 01c00a27 */
+                  std::to_string((int)local_328);
+                    /* try { // try from 01bffcef to 01bffcff has its CatchHandler @ 01c009d1 */
+                  puVar14 = (ulong *)std::string::insert(local_328,0,"analog_");
+                  local_338 = (void *)puVar14[2];
+                  local_348 = *puVar14;
+                  uStack_340 = puVar14[1];
+                  *puVar14 = 0;
+                  puVar14[1] = 0;
+                  puVar14[2] = 0;
+                    /* try { // try from 01bffd25 to 01bffd38 has its CatchHandler @ 01c009e8 */
+                  puVar15 = (undefined8 *)std::string::append((string *)&local_348,".bin");
+                  local_388 = (char *)puVar15[2];
+                  uVar4 = puVar15[1];
+                  local_398 = (uint)*puVar15;
+                  uStack_394 = (undefined4)((ulong)*puVar15 >> 0x20);
+                  uStack_390 = (undefined1)uVar4;
+                  uStack_38f = (undefined2)((ulong)uVar4 >> 8);
+                  uStack_38d = (undefined1)((ulong)uVar4 >> 0x18);
+                  uStack_38c = (uint)((ulong)uVar4 >> 0x20);
+                  *puVar15 = 0;
+                  puVar15[1] = 0;
+                  puVar15[2] = 0;
+                    /* try { // try from 01bffd58 to 01bffd76 has its CatchHandler @ 01c00993 */
+                  FUN_01c03b50(local_2f8,&local_310,&local_398,0x14);
+                  if ((local_398 & 1) != 0) {
+                    operator_delete(local_388);
+                  }
+                  if ((local_348 & 1) != 0) {
+                    operator_delete(local_338);
+                  }
+                  if (((byte)local_328[0] & 1) != 0) {
+                    operator_delete(local_318);
+                  }
+                  if (local_1a0 == '\0') goto LAB_01c00624;
+                  local_f8 = &PTR_FUN_02f3b240;
+                  local_f0 = &local_37c;
+                    /* try { // try from 01bffe31 to 01bffe5a has its CatchHandler @ 01c0095c */
+                  local_e8 = param_1;
+                  local_d8 = &local_f8;
+                  FUN_01c03120(local_2f8,lVar20 + uVar16 * 0xb0,(long)*(int *)(param_1 + 0x70),
+                               param_1 + 0xc0,&local_f8);
+                  if (&local_f8 == local_d8) {
+                    (*(code *)(*local_d8)[4])();
+                    if (local_268 != (FILE *)0x0) goto LAB_01bffea3;
+LAB_01bffedf:
+                    lVar20 = *(long *)(CONCAT62(uStack_2f6,CONCAT11(local_2f8[1],local_2f8[0])) +
+                                      -0x18);
+                    std::ios_base::clear
+                              ((ios_base *)(local_2f8 + lVar20),
+                               *(uint *)((long)auStack_2d8 + lVar20) | 4);
+                  }
+                  else {
+                    if (local_d8 != (undefined ***)0x0) {
+                      (*(code *)(*local_d8)[5])();
+                    }
+                    if (local_268 == (FILE *)0x0) goto LAB_01bffedf;
+LAB_01bffea3:
+                    pFVar7 = local_268;
+                    /* try { // try from 01bffeab to 01bffeb0 has its CatchHandler @ 01c00870 */
+                    iVar11 = (**(code **)(local_2e0 + 0x30))((filebuf *)&local_2e0);
+                    iVar12 = fclose(pFVar7);
+                    local_268 = (FILE *)0x0;
+                    /* try { // try from 01bffed1 to 01bfff04 has its CatchHandler @ 01c00b32 */
+                    (**(code **)(local_2e0 + 0x18))((filebuf *)&local_2e0,0,0);
+                    if (iVar12 != 0 || iVar11 != 0) goto LAB_01bffedf;
+                  }
+                  if (local_1a0 != '\0') {
+                    puVar1 = puVar2 + 0x18;
+                    local_2f8[0] = SUB81(puVar1,0);
+                    local_2f8[1] = SUB81((ulong)puVar1 >> 8,0);
+                    uStack_2f6 = (undefined6)((ulong)puVar1 >> 0x10);
+                    local_238[0] = puVar2 + 0x68;
+                    local_2e8 = puVar2 + 0x40;
+                    std::filebuf::~filebuf((filebuf *)&local_2e0);
+                    std::iostream::~iostream(local_2f8);
+                    std::ios::~ios((ios *)local_238);
+                  }
+                  uVar16 = (long)local_37c + 1;
+                  local_37c = (int)uVar16;
+                  lVar20 = *(long *)(param_1 + 0x58);
+                  uVar13 = (*(long *)(param_1 + 0x60) - lVar20 >> 4) * 0x2e8ba2e8ba2e8ba3;
+                } while (uVar16 <= uVar13 && uVar13 - uVar16 != 0);
+              }
+            }
+          }
+        }
+LAB_01c0033e:
+        lVar20 = DAT_030b0118;
+        if (((byte)param_1[0xc0] & 1) != 0) {
+          local_398 = 0x4b7410;
+          uStack_394 = 0;
+          uStack_390 = 0x3a;
+          uStack_38f = 2;
+          uStack_38d = 0;
+          local_388 = "RunExportOnThread";
+          iVar11 = *(int *)(DAT_030b0118 + 0x38);
+                    /* try { // try from 01c0037e to 01c003fd has its CatchHandler @ 01c0089a */
+          bVar10 = FUN_02edfa80(DAT_030b0118 + 0x70);
+          if ((2 < iVar11 & (bVar10 ^ 1)) == 0) {
+            if ((*(byte *)(lVar20 + 8) & 1) == 0) {
+              lVar18 = lVar20 + 9;
+              uVar16 = (ulong)(*(byte *)(lVar20 + 8) >> 1);
+            }
+            else {
+              lVar18 = *(long *)(lVar20 + 0x18);
+              uVar16 = *(ulong *)(lVar20 + 0x10);
+            }
+            FUN_02ee25b0(local_2f8,lVar18,uVar16,2,"Exporter was canceled, deleting files",0x25,
+                         local_398,CONCAT13(uStack_38d,CONCAT21(uStack_38f,uStack_390)),local_388);
+            FUN_02ee4120(lVar20,local_2f8,iVar11 < 3,bVar10);
+          }
+          psVar19 = psStack_370;
+          if (local_378 != psStack_370) {
+            psVar17 = local_378;
+            do {
+                    /* try { // try from 01c0043d to 01c00447 has its CatchHandler @ 01c004f2 */
+              std::string::string((string *)&local_398,psVar17);
+              local_2e8 = local_388;
+              local_2f8[0] = SUB41(local_398,0);
+              local_2f8[1] = SUB41(local_398 >> 8,0);
+              uStack_2f6 = (undefined6)(CONCAT44(uStack_394,local_398) >> 0x10);
+              uStack_2f0 = uStack_390;
+              uStack_2ef = (undefined1)uStack_38f;
+              uStack_2ee = (undefined6)
+                           (CONCAT44(uStack_38c,CONCAT13(uStack_38d,CONCAT21(uStack_38f,uStack_390))
+                                    ) >> 0x10);
+              local_398 = 0;
+              uStack_394 = 0;
+              uStack_390 = 0;
+              uStack_38f = 0;
+              uStack_38d = 0;
+              uStack_38c = 0;
+              local_388 = (char *)0x0;
+                    /* try { // try from 01c00473 to 01c0047c has its CatchHandler @ 01c004a7 */
+              std::__fs::filesystem::__remove((path *)local_2f8,(error_code *)0x0);
+              if (((byte)local_2f8[0] & 1) != 0) {
+                operator_delete(local_2e8);
+              }
+              if ((local_398 & 1) != 0) {
+                operator_delete(local_388);
+              }
+              psVar17 = psVar17 + 0x18;
+            } while (psVar19 != psVar17);
+          }
+        }
+        if (param_1 + 0xd0 != (path *)&local_378) {
+                    /* try { // try from 01c005b0 to 01c005b4 has its CatchHandler @ 01c0089a */
+          FUN_01c05960(param_1 + 0xd0,local_378,psStack_370);
+        }
+        LOCK();
+        *(undefined4 *)(param_1 + 0xc4) = 1;
+        UNLOCK();
+        local_2f8[0] = (iostream)0x0;
+        local_2f8[1] = (iostream)0x0;
+        local_348 = CONCAT71(local_348._1_7_,1);
+        local_398 = 0;
+        uStack_394 = 0x3ff00000;
+        plVar3 = *(long **)(param_1 + 0xb0);
+        if (plVar3 == (long *)0x0) {
+                    /* WARNING: Subroutine does not return */
+          FUN_01b292f0();
+        }
+                    /* try { // try from 01c005f5 to 01c00682 has its CatchHandler @ 01c008e9 */
+        (**(code **)(*plVar3 + 0x30))(plVar3,&local_348,local_2f8,&local_398);
+        if (((byte)local_2f8[0] & 1) != 0) {
+          operator_delete(local_2e8);
+        }
+      }
+      else {
+        if (*(int *)(param_1 + 0x38) != 0) {
+          local_37c = 0;
+          lVar20 = *(long *)(param_1 + 0x40);
+          if (*(long *)(param_1 + 0x48) != lVar20) {
+            uVar16 = 0;
+            local_350 = PTR_PTR_02fe9768 + 8;
+            do {
+                    /* try { // try from 01bff89b to 01bff8a2 has its CatchHandler @ 01c00aff */
+              std::to_string((int)local_328);
+                    /* try { // try from 01bff8a3 to 01bff8b3 has its CatchHandler @ 01c00aa9 */
+              puVar14 = (ulong *)std::string::insert(local_328,0,"digital_");
+              local_338 = (void *)puVar14[2];
+              local_348 = *puVar14;
+              uStack_340 = puVar14[1];
+              *puVar14 = 0;
+              puVar14[1] = 0;
+              puVar14[2] = 0;
+                    /* try { // try from 01bff8d9 to 01bff8ec has its CatchHandler @ 01c00ac0 */
+              puVar15 = (undefined8 *)std::string::append((string *)&local_348,".bin");
+              local_388 = (char *)puVar15[2];
+              uVar4 = puVar15[1];
+              local_398 = (uint)*puVar15;
+              uStack_394 = (undefined4)((ulong)*puVar15 >> 0x20);
+              uStack_390 = (undefined1)uVar4;
+              uStack_38f = (undefined2)((ulong)uVar4 >> 8);
+              uStack_38d = (undefined1)((ulong)uVar4 >> 0x18);
+              uStack_38c = (uint)((ulong)uVar4 >> 0x20);
+              *puVar15 = 0;
+              puVar15[1] = 0;
+              puVar15[2] = 0;
+                    /* try { // try from 01bff90c to 01bff92a has its CatchHandler @ 01c00a6b */
+              FUN_01c03b50(local_2f8,&local_310,&local_398,0x14);
+              if ((local_398 & 1) != 0) {
+                operator_delete(local_388);
+              }
+              if ((local_348 & 1) != 0) {
+                operator_delete(local_338);
+              }
+              if (((byte)local_328[0] & 1) != 0) {
+                operator_delete(local_318);
+              }
+              if (local_1a0 == '\0') goto LAB_01c00624;
+              local_c8 = &PTR_FUN_02f3b140;
+              local_c0 = &local_37c;
+                    /* try { // try from 01bff9dd to 01bffa06 has its CatchHandler @ 01c00a34 */
+              local_b8 = param_1;
+              local_a8 = &local_c8;
+              FUN_01c01280(local_2f8,lVar20 + uVar16 * 0x88,param_1 + 0xc0,&local_c8);
+              if (&local_c8 == local_a8) {
+                (*(code *)(*local_a8)[4])();
+                if (local_268 != (FILE *)0x0) goto LAB_01bffa53;
+LAB_01bffa8f:
+                lVar20 = *(long *)(CONCAT62(uStack_2f6,CONCAT11(local_2f8[1],local_2f8[0])) + -0x18)
+                ;
+                std::ios_base::clear
+                          ((ios_base *)(local_2f8 + lVar20),
+                           *(uint *)((long)auStack_2d8 + lVar20) | 4);
+              }
+              else {
+                if (local_a8 != (undefined ***)0x0) {
+                  (*(code *)(*local_a8)[5])();
+                }
+                if (local_268 == (FILE *)0x0) goto LAB_01bffa8f;
+LAB_01bffa53:
+                pFVar7 = local_268;
+                    /* try { // try from 01bffa5b to 01bffa60 has its CatchHandler @ 01c00885 */
+                iVar11 = (**(code **)(local_2e0 + 0x30))((filebuf *)&local_2e0);
+                iVar12 = fclose(pFVar7);
+                local_268 = (FILE *)0x0;
+                    /* try { // try from 01bffa81 to 01bffab4 has its CatchHandler @ 01c00d02 */
+                (**(code **)(local_2e0 + 0x18))((filebuf *)&local_2e0,0,0);
+                if (iVar12 != 0 || iVar11 != 0) goto LAB_01bffa8f;
+              }
+              if (local_1a0 != '\0') {
+                puVar1 = puVar2 + 0x18;
+                local_2f8[0] = SUB81(puVar1,0);
+                local_2f8[1] = SUB81((ulong)puVar1 >> 8,0);
+                uStack_2f6 = (undefined6)((ulong)puVar1 >> 0x10);
+                local_238[0] = puVar2 + 0x68;
+                local_2e8 = puVar2 + 0x40;
+                std::filebuf::~filebuf((filebuf *)&local_2e0);
+                std::iostream::~iostream(local_2f8);
+                std::ios::~ios((ios *)local_238);
+              }
+              uVar16 = (long)local_37c + 1;
+              local_37c = (int)uVar16;
+              lVar20 = *(long *)(param_1 + 0x40);
+              uVar13 = (*(long *)(param_1 + 0x48) - lVar20 >> 3) * -0xf0f0f0f0f0f0f0f;
+            } while (uVar16 <= uVar13 && uVar13 - uVar16 != 0);
+          }
+          goto LAB_01bffc20;
+        }
+        local_398 = 0x67696416;
+        uStack_394 = 0x6c617469;
+        uStack_390 = 0x2e;
+        uStack_38f = 0x7363;
+        uStack_38d = 0x76;
+        uStack_38c = uStack_38c & 0xffffff00;
+                    /* try { // try from 01bfff91 to 01bfffaf has its CatchHandler @ 01c0084e */
+        FUN_01c03b50(local_2f8,&local_310,&local_398,0x10);
+        if ((local_398 & 1) != 0) {
+          operator_delete(local_388);
+        }
+        if (local_1a0 != '\0') {
+          local_68 = &PTR_FUN_02f3b0c0;
+                    /* try { // try from 01bfffff to 01c0003c has its CatchHandler @ 01c0070f */
+          local_60 = param_1;
+          local_48 = &local_68;
+          FUN_01c01730(local_2f8,param_1 + 0x40,param_1 + 0xc0,param_1[0x74],&local_68);
+          if (&local_68 == local_48) {
+            (*(code *)(*local_48)[4])();
+          }
+          else if (local_48 != (undefined ***)0x0) {
+            (*(code *)(*local_48)[5])();
+          }
+          if (local_268 == (FILE *)0x0) {
+LAB_01c001b6:
+            lVar20 = *(long *)(CONCAT62(uStack_2f6,CONCAT11(local_2f8[1],local_2f8[0])) + -0x18);
+            std::ios_base::clear
+                      ((ios_base *)(local_2f8 + lVar20),*(uint *)((long)auStack_2d8 + lVar20) | 4);
+          }
+          else {
+                    /* try { // try from 01c00180 to 01c00185 has its CatchHandler @ 01c006d0 */
+            iVar11 = (**(code **)(local_2e0 + 0x30))((filebuf *)&local_2e0);
+            iVar12 = fclose(local_268);
+            local_268 = (FILE *)0x0;
+                    /* try { // try from 01c001a7 to 01c001db has its CatchHandler @ 01c007b6 */
+            (**(code **)(local_2e0 + 0x18))((filebuf *)&local_2e0,0,0);
+            if (iVar12 != 0 || iVar11 != 0) goto LAB_01c001b6;
+          }
+          if (local_1a0 != '\0') {
+            puVar2 = PTR_vtable_02fe9770 + 0x18;
+            local_2f8[0] = SUB81(puVar2,0);
+            local_2f8[1] = SUB81((ulong)puVar2 >> 8,0);
+            uStack_2f6 = (undefined6)((ulong)puVar2 >> 0x10);
+            local_238[0] = PTR_vtable_02fe9770 + 0x68;
+            local_2e8 = PTR_vtable_02fe9770 + 0x40;
+            std::filebuf::~filebuf((filebuf *)&local_2e0);
+            std::iostream::~iostream(local_2f8);
+            std::ios::~ios((ios *)local_238);
+          }
+          if (*(long *)(param_1 + 0x60) != *(long *)(param_1 + 0x58)) goto LAB_01bffc2e;
+          goto LAB_01c0033e;
+        }
+      }
+LAB_01c00624:
+      psVar17 = local_378;
+      psVar19 = local_378;
+      psVar8 = psStack_370;
+      if (local_378 == (string *)0x0) {
+        return;
+      }
+      while (psVar5 = psVar8, local_378 = psVar19, psVar5 != psVar17) {
+        psVar8 = psVar5 + -0x18;
+        if (((byte)psVar5[-0x18] & 1) != 0) {
+          operator_delete(*(void **)(psVar5 + -8));
+          psVar19 = local_378;
+        }
+      }
+      psStack_370 = psVar17;
+      goto LAB_01c00667;
+    }
+    local_108 = (string *)operator_new(0x30);
+    ppVar6 = local_358;
+    uVar4 = s_Export_path_exists_but_is_not_a_d_004ee6a7._33_8_;
+    local_118 = ram0x0044c290;
+    uStack_110 = _UNK_0044c298;
+    *(ulong *)(local_108 + 0x19) =
+         CONCAT17(s_Export_path_exists_but_is_not_a_d_004ee6a7[0x20],
+                  s_Export_path_exists_but_is_not_a_d_004ee6a7._25_7_);
+    *(undefined8 *)(local_108 + 0x21) = uVar4;
+    uVar4 = CONCAT71(s_Export_path_exists_but_is_not_a_d_004ee6a7._25_7_,
+                     s_Export_path_exists_but_is_not_a_d_004ee6a7[0x18]);
+    *(undefined8 *)(local_108 + 0x10) = s_Export_path_exists_but_is_not_a_d_004ee6a7._16_8_;
+    *(undefined8 *)(local_108 + 0x18) = uVar4;
+    uVar4 = s_Export_path_exists_but_is_not_a_d_004ee6a7._8_8_;
+    *(undefined8 *)local_108 = s_Export_path_exists_but_is_not_a_d_004ee6a7._0_8_;
+    *(undefined8 *)(local_108 + 8) = uVar4;
+    local_108[0x29] = (string)0x0;
+    local_398 = 0x4b7410;
+    uStack_394 = 0;
+    uStack_390 = 0x88;
+    uStack_38f = 1;
+    uStack_38d = 0;
+    local_388 = "operator()";
+                    /* try { // try from 01bff6f0 to 01bff76d has its CatchHandler @ 01c008c1 */
+    FUN_01c04800(DAT_030b0118,4,"Exporter error: {}",0x12,&local_118);
+    LOCK();
+    *(undefined4 *)(ppVar6 + 0xc4) = 1;
+    UNLOCK();
+    local_310 = (path *)CONCAT71(local_310._1_7_,1);
+    local_398 = 0;
+    uStack_394 = 0x3ff00000;
+    plVar3 = *(long **)(ppVar6 + 0xb0);
+    if (plVar3 == (long *)0x0) {
+                    /* WARNING: Subroutine does not return */
+                    /* try { // try from 01c00683 to 01c00687 has its CatchHandler @ 01c008c1 */
+      FUN_01b292f0();
+    }
+    (**(code **)(*plVar3 + 0x30))(plVar3,&local_310,&local_118,&local_398);
+    psVar19 = local_108;
+    uVar16 = local_118;
+  }
+  if ((uVar16 & 1) == 0) {
+    s_Export_path_exists_but_is_not_a_d_004ee6a7[0] =
+         (char)s_Export_path_exists_but_is_not_a_d_004ee6a7._0_8_;
+    s_Export_path_exists_but_is_not_a_d_004ee6a7[1] =
+         SUB81(s_Export_path_exists_but_is_not_a_d_004ee6a7._0_8_,1);
+    s_Export_path_exists_but_is_not_a_d_004ee6a7[2] =
+         SUB81(s_Export_path_exists_but_is_not_a_d_004ee6a7._0_8_,2);
+    s_Export_path_exists_but_is_not_a_d_004ee6a7[3] =
+         SUB81(s_Export_path_exists_but_is_not_a_d_004ee6a7._0_8_,3);
+    s_Export_path_exists_but_is_not_a_d_004ee6a7[4] =
+         SUB81(s_Export_path_exists_but_is_not_a_d_004ee6a7._0_8_,4);
+    s_Export_path_exists_but_is_not_a_d_004ee6a7[5] =
+         SUB81(s_Export_path_exists_but_is_not_a_d_004ee6a7._0_8_,5);
+    s_Export_path_exists_but_is_not_a_d_004ee6a7[6] =
+         SUB81(s_Export_path_exists_but_is_not_a_d_004ee6a7._0_8_,6);
+    s_Export_path_exists_but_is_not_a_d_004ee6a7[7] =
+         SUB81(s_Export_path_exists_but_is_not_a_d_004ee6a7._0_8_,7);
+    s_Export_path_exists_but_is_not_a_d_004ee6a7[8] =
+         (char)s_Export_path_exists_but_is_not_a_d_004ee6a7._8_8_;
+    s_Export_path_exists_but_is_not_a_d_004ee6a7[9] =
+         SUB81(s_Export_path_exists_but_is_not_a_d_004ee6a7._8_8_,1);
+    s_Export_path_exists_but_is_not_a_d_004ee6a7[10] =
+         SUB81(s_Export_path_exists_but_is_not_a_d_004ee6a7._8_8_,2);
+    s_Export_path_exists_but_is_not_a_d_004ee6a7[0xb] =
+         SUB81(s_Export_path_exists_but_is_not_a_d_004ee6a7._8_8_,3);
+    s_Export_path_exists_but_is_not_a_d_004ee6a7[0xc] =
+         SUB81(s_Export_path_exists_but_is_not_a_d_004ee6a7._8_8_,4);
+    s_Export_path_exists_but_is_not_a_d_004ee6a7[0xd] =
+         SUB81(s_Export_path_exists_but_is_not_a_d_004ee6a7._8_8_,5);
+    s_Export_path_exists_but_is_not_a_d_004ee6a7[0xe] =
+         SUB81(s_Export_path_exists_but_is_not_a_d_004ee6a7._8_8_,6);
+    s_Export_path_exists_but_is_not_a_d_004ee6a7[0xf] =
+         SUB81(s_Export_path_exists_but_is_not_a_d_004ee6a7._8_8_,7);
+    s_Export_path_exists_but_is_not_a_d_004ee6a7[0x10] =
+         (char)s_Export_path_exists_but_is_not_a_d_004ee6a7._16_8_;
+    s_Export_path_exists_but_is_not_a_d_004ee6a7[0x11] =
+         SUB81(s_Export_path_exists_but_is_not_a_d_004ee6a7._16_8_,1);
+    s_Export_path_exists_but_is_not_a_d_004ee6a7[0x12] =
+         SUB81(s_Export_path_exists_but_is_not_a_d_004ee6a7._16_8_,2);
+    s_Export_path_exists_but_is_not_a_d_004ee6a7[0x13] =
+         SUB81(s_Export_path_exists_but_is_not_a_d_004ee6a7._16_8_,3);
+    s_Export_path_exists_but_is_not_a_d_004ee6a7[0x14] =
+         SUB81(s_Export_path_exists_but_is_not_a_d_004ee6a7._16_8_,4);
+    s_Export_path_exists_but_is_not_a_d_004ee6a7[0x15] =
+         SUB81(s_Export_path_exists_but_is_not_a_d_004ee6a7._16_8_,5);
+    s_Export_path_exists_but_is_not_a_d_004ee6a7[0x16] =
+         SUB81(s_Export_path_exists_but_is_not_a_d_004ee6a7._16_8_,6);
+    s_Export_path_exists_but_is_not_a_d_004ee6a7[0x17] =
+         SUB81(s_Export_path_exists_but_is_not_a_d_004ee6a7._16_8_,7);
+    s_Export_path_exists_but_is_not_a_d_004ee6a7[0x19] =
+         (char)s_Export_path_exists_but_is_not_a_d_004ee6a7._25_7_;
+    s_Export_path_exists_but_is_not_a_d_004ee6a7[0x1a] =
+         SUB71(s_Export_path_exists_but_is_not_a_d_004ee6a7._25_7_,1);
+    s_Export_path_exists_but_is_not_a_d_004ee6a7[0x1b] =
+         SUB71(s_Export_path_exists_but_is_not_a_d_004ee6a7._25_7_,2);
+    s_Export_path_exists_but_is_not_a_d_004ee6a7[0x1c] =
+         SUB71(s_Export_path_exists_but_is_not_a_d_004ee6a7._25_7_,3);
+    s_Export_path_exists_but_is_not_a_d_004ee6a7[0x1d] =
+         SUB71(s_Export_path_exists_but_is_not_a_d_004ee6a7._25_7_,4);
+    s_Export_path_exists_but_is_not_a_d_004ee6a7[0x1e] =
+         SUB71(s_Export_path_exists_but_is_not_a_d_004ee6a7._25_7_,5);
+    s_Export_path_exists_but_is_not_a_d_004ee6a7[0x1f] =
+         SUB71(s_Export_path_exists_but_is_not_a_d_004ee6a7._25_7_,6);
+    s_Export_path_exists_but_is_not_a_d_004ee6a7[0x21] =
+         (char)s_Export_path_exists_but_is_not_a_d_004ee6a7._33_8_;
+    s_Export_path_exists_but_is_not_a_d_004ee6a7[0x22] =
+         SUB81(s_Export_path_exists_but_is_not_a_d_004ee6a7._33_8_,1);
+    s_Export_path_exists_but_is_not_a_d_004ee6a7[0x23] =
+         SUB81(s_Export_path_exists_but_is_not_a_d_004ee6a7._33_8_,2);
+    s_Export_path_exists_but_is_not_a_d_004ee6a7[0x24] =
+         SUB81(s_Export_path_exists_but_is_not_a_d_004ee6a7._33_8_,3);
+    s_Export_path_exists_but_is_not_a_d_004ee6a7[0x25] =
+         SUB81(s_Export_path_exists_but_is_not_a_d_004ee6a7._33_8_,4);
+    s_Export_path_exists_but_is_not_a_d_004ee6a7[0x26] =
+         SUB81(s_Export_path_exists_but_is_not_a_d_004ee6a7._33_8_,5);
+    s_Export_path_exists_but_is_not_a_d_004ee6a7[0x27] =
+         SUB81(s_Export_path_exists_but_is_not_a_d_004ee6a7._33_8_,6);
+    s_Export_path_exists_but_is_not_a_d_004ee6a7[0x28] =
+         SUB81(s_Export_path_exists_but_is_not_a_d_004ee6a7._33_8_,7);
+    s_Failed_to_create_directory_0052040e[0] = (char)s_Failed_to_create_directory_0052040e._0_8_;
+    s_Failed_to_create_directory_0052040e[1] = SUB81(s_Failed_to_create_directory_0052040e._0_8_,1);
+    s_Failed_to_create_directory_0052040e[2] = SUB81(s_Failed_to_create_directory_0052040e._0_8_,2);
+    s_Failed_to_create_directory_0052040e[3] = SUB81(s_Failed_to_create_directory_0052040e._0_8_,3);
+    s_Failed_to_create_directory_0052040e[4] = SUB81(s_Failed_to_create_directory_0052040e._0_8_,4);
+    s_Failed_to_create_directory_0052040e[5] = SUB81(s_Failed_to_create_directory_0052040e._0_8_,5);
+    s_Failed_to_create_directory_0052040e[6] = SUB81(s_Failed_to_create_directory_0052040e._0_8_,6);
+    s_Failed_to_create_directory_0052040e[7] = SUB81(s_Failed_to_create_directory_0052040e._0_8_,7);
+    s_Failed_to_create_directory_0052040e[8] = (char)s_Failed_to_create_directory_0052040e._8_2_;
+    s_Failed_to_create_directory_0052040e[9] = SUB21(s_Failed_to_create_directory_0052040e._8_2_,1);
+    s_Failed_to_create_directory_0052040e[10] = (char)s_Failed_to_create_directory_0052040e._10_6_;
+    s_Failed_to_create_directory_0052040e[0xb] =
+         SUB61(s_Failed_to_create_directory_0052040e._10_6_,1);
+    s_Failed_to_create_directory_0052040e[0xc] =
+         SUB61(s_Failed_to_create_directory_0052040e._10_6_,2);
+    s_Failed_to_create_directory_0052040e[0xd] =
+         SUB61(s_Failed_to_create_directory_0052040e._10_6_,3);
+    s_Failed_to_create_directory_0052040e[0xe] =
+         SUB61(s_Failed_to_create_directory_0052040e._10_6_,4);
+    s_Failed_to_create_directory_0052040e[0xf] =
+         SUB61(s_Failed_to_create_directory_0052040e._10_6_,5);
+    s_Failed_to_create_directory_0052040e[0x10] = (char)s_Failed_to_create_directory_0052040e._16_2_
+    ;
+    s_Failed_to_create_directory_0052040e[0x11] =
+         SUB21(s_Failed_to_create_directory_0052040e._16_2_,1);
+    s_Failed_to_create_directory_0052040e[0x12] = (char)s_Failed_to_create_directory_0052040e._18_8_
+    ;
+    s_Failed_to_create_directory_0052040e[0x13] =
+         SUB81(s_Failed_to_create_directory_0052040e._18_8_,1);
+    s_Failed_to_create_directory_0052040e[0x14] =
+         SUB81(s_Failed_to_create_directory_0052040e._18_8_,2);
+    s_Failed_to_create_directory_0052040e[0x15] =
+         SUB81(s_Failed_to_create_directory_0052040e._18_8_,3);
+    s_Failed_to_create_directory_0052040e[0x16] =
+         SUB81(s_Failed_to_create_directory_0052040e._18_8_,4);
+    s_Failed_to_create_directory_0052040e[0x17] =
+         SUB81(s_Failed_to_create_directory_0052040e._18_8_,5);
+    s_Failed_to_create_directory_0052040e[0x18] =
+         SUB81(s_Failed_to_create_directory_0052040e._18_8_,6);
+    s_Failed_to_create_directory_0052040e[0x19] =
+         SUB81(s_Failed_to_create_directory_0052040e._18_8_,7);
+    return;
+  }
+LAB_01c00667:
+  operator_delete(psVar19);
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileExporter.java>  (GhidraScript)  
+INFO  DecompileExporter.java>   xref from 01bff6d7 in FUN_01bff5e0 @ 01bff5e0 (already decompiled) (GhidraScript)  
+INFO  DecompileExporter.java>   xref from 01c00357 in FUN_01bff5e0 @ 01bff5e0 (already decompiled) (GhidraScript)  
+INFO  DecompileExporter.java>   xref from 01c0035e in FUN_01bff5e0 @ 01bff5e0 (already decompiled) (GhidraScript)  
+INFO  DecompileExporter.java>   xref from 01bffb62 in FUN_01bff5e0 @ 01bff5e0 (already decompiled) (GhidraScript)  
+INFO  DecompileExporter.java>   xref from 01bffb69 in FUN_01bff5e0 @ 01bff5e0 (already decompiled) (GhidraScript)  
+INFO  DecompileExporter.java> === FUN_01c03b50 @ Ghidra:01c03b50 ELF:0x1b03b50 (xref from 01c03c28) === (GhidraScript)  
+INFO  DecompileExporter.java>   Referenced string: /workspace/monorepo/graph-io/nodes/export_node/src/exporter.cpp (GhidraScript)  
+INFO  DecompileExporter.java> 
+/* WARNING: Globals starting with '_' overlap smaller symbols at the same address */
+
+void FUN_01c03b50(long *param_1,undefined8 *param_2,undefined8 param_3,undefined4 param_4,
+                 undefined8 param_5,undefined8 param_6)
+
+{
+  long lVar1;
+  string *this;
+  long *plVar2;
+  undefined8 uVar3;
+  undefined *puVar4;
+  undefined1 uVar5;
+  undefined1 *puVar6;
+  undefined1 local_1d1;
+  string local_1d0;
+  undefined1 local_1cf [15];
+  undefined1 *local_1c0;
+  ulong local_1b8;
+  undefined8 uStack_1b0;
+  char *local_1a8;
+  char *local_198;
+  undefined4 uStack_190;
+  char *local_188;
+  undefined *local_180;
+  long local_178;
+  undefined *local_170;
+  filebuf local_168 [112];
+  long lStack_f8;
+  long local_f0 [6];
+  undefined *local_c0 [19];
+  
+  std::string::string(&local_1d0,(string *)*param_2);
+                    /* try { // try from 01c03b7b to 01c03b85 has its CatchHandler @ 01c03e58 */
+  FUN_01c04af0(&local_1d0,param_3);
+  puVar6 = local_1c0;
+  if (((byte)local_1d0 & 1) == 0) {
+    puVar6 = local_1cf;
+  }
+                    /* try { // try from 01c03b99 to 01c03ba8 has its CatchHandler @ 01c03e53 */
+  FUN_01c04c00(&local_180,puVar6,param_4);
+  if (local_f0[0] == 0) {
+    plVar2 = (long *)param_2[2];
+                    /* try { // try from 01c03be7 to 01c03bf0 has its CatchHandler @ 01c03e29 */
+    local_1a8 = (char *)operator_new(0x30);
+    uVar3 = s_Failed_while_trying_to_open_file_004d1972._24_8_;
+    local_1b8 = _DAT_0044b790;
+    uStack_1b0 = _UNK_0044b798;
+    *(undefined8 *)(local_1a8 + 0x10) = s_Failed_while_trying_to_open_file_004d1972._16_8_;
+    *(undefined8 *)(local_1a8 + 0x18) = uVar3;
+    uVar3 = s_Failed_while_trying_to_open_file_004d1972._8_8_;
+    *(undefined8 *)local_1a8 = s_Failed_while_trying_to_open_file_004d1972._0_8_;
+    *(undefined8 *)(local_1a8 + 8) = uVar3;
+    local_1a8[0x20] = '\0';
+    lVar1 = *plVar2;
+    local_198 = "/workspace/monorepo/graph-io/nodes/export_node/src/exporter.cpp";
+    uStack_190 = 0x188;
+    local_188 = "operator()";
+                    /* try { // try from 01c03c48 to 01c03cb9 has its CatchHandler @ 01c03e5d */
+    FUN_01c04800(DAT_030b0118,4,"Exporter error: {}",0x12,&local_1b8,param_6,0x4b7410,0x188,
+                 "operator()");
+    LOCK();
+    *(undefined4 *)(lVar1 + 0xc4) = 1;
+    UNLOCK();
+    local_1d1 = 1;
+    local_198 = (char *)0x3ff0000000000000;
+    plVar2 = *(long **)(lVar1 + 0xb0);
+    if (plVar2 == (long *)0x0) {
+                    /* WARNING: Subroutine does not return */
+                    /* try { // try from 01c03e1a to 01c03e1e has its CatchHandler @ 01c03e5d */
+      FUN_01b292f0();
+    }
+    (**(code **)(*plVar2 + 0x30))(plVar2,&local_1d1,&local_1b8,&local_198);
+    if ((local_1b8 & 1) != 0) {
+      operator_delete(local_1a8);
+    }
+    *(undefined1 *)param_1 = 0;
+    uVar5 = 0;
+  }
+  else {
+    lVar1 = param_2[1];
+    this = *(string **)(lVar1 + 8);
+    if (this == *(string **)(lVar1 + 0x10)) {
+                    /* try { // try from 01c03cd6 to 01c03ce2 has its CatchHandler @ 01c03e29 */
+      FUN_01c05230(lVar1,&local_1d0);
+    }
+    else {
+                    /* try { // try from 01c03bc8 to 01c03bd4 has its CatchHandler @ 01c03e1f */
+      std::string::string(this,&local_1d0);
+      *(string **)(lVar1 + 8) = this + 0x18;
+    }
+    puVar4 = PTR_construction_vtable_02fe9778;
+    *param_1 = (long)(PTR_construction_vtable_02fe9778 + 0x18);
+    param_1[0x18] = (long)(puVar4 + 0x40);
+    param_1[1] = local_178;
+    local_178 = 0;
+    lVar1 = *(long *)(local_180 + -0x18);
+                    /* try { // try from 01c03d24 to 01c03d2e has its CatchHandler @ 01c03e46 */
+    std::ios_base::move((ios_base *)(param_1 + 0x18),(ios_base *)((long)&local_180 + lVar1));
+    param_1[0x29] = *(long *)((long)&lStack_f8 + lVar1);
+    *(undefined8 *)((long)&lStack_f8 + lVar1) = 0;
+    *(undefined4 *)(param_1 + 0x2a) = *(undefined4 *)((long)local_f0 + lVar1);
+    puVar4 = PTR_vtable_02fe9770;
+    *param_1 = (long)(PTR_vtable_02fe9770 + 0x18);
+    param_1[0x18] = (long)(puVar4 + 0x68);
+    param_1[2] = (long)(puVar4 + 0x40);
+                    /* try { // try from 01c03d82 to 01c03d89 has its CatchHandler @ 01c03e2e */
+    std::filebuf::filebuf((filebuf *)(param_1 + 3),local_168);
+    *(filebuf **)((long)param_1 + *(long *)(*param_1 + -0x18) + 0x28) = (filebuf *)(param_1 + 3);
+    uVar5 = 1;
+  }
+  *(undefined1 *)(param_1 + 0x2b) = uVar5;
+  local_180 = PTR_vtable_02fe9770 + 0x18;
+  local_c0[0] = PTR_vtable_02fe9770 + 0x68;
+  local_170 = PTR_vtable_02fe9770 + 0x40;
+  std::filebuf::~filebuf(local_168);
+  std::iostream::~iostream((iostream *)&local_180);
+  std::ios::~ios((ios *)local_c0);
+  if (((byte)local_1d0 & 1) != 0) {
+    operator_delete(local_1c0);
+  }
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileExporter.java>  (GhidraScript)  
+INFO  DecompileExporter.java>   xref from 01c03c2f in FUN_01c03b50 @ 01c03b50 (already decompiled) (GhidraScript)  
+INFO  DecompileExporter.java>   xref from 01c00522 -- NOT IN A FUNCTION (GhidraScript)  
+INFO  DecompileExporter.java>   xref from 01c00529 -- NOT IN A FUNCTION (GhidraScript)  
+INFO  DecompileExporter.java>   xref from 01c00bfc -- NOT IN A FUNCTION (GhidraScript)  
+INFO  DecompileExporter.java>   xref from 01c00c03 -- NOT IN A FUNCTION (GhidraScript)  
+INFO  DecompileExporter.java>   xref from 01c00dcd -- NOT IN A FUNCTION (GhidraScript)  
+INFO  DecompileExporter.java>   xref from 01c00dd4 -- NOT IN A FUNCTION (GhidraScript)  
+INFO  DecompileExporter.java>   xref from 01c00f3a -- NOT IN A FUNCTION (GhidraScript)  
+INFO  DecompileExporter.java>   xref from 01c00f41 -- NOT IN A FUNCTION (GhidraScript)  
+INFO  DecompileExporter.java>  (GhidraScript)  
+INFO  DecompileExporter.java> --- NO XREFS to string at 0x462e10 (digital.csv) --- (GhidraScript)  
+INFO  DecompileExporter.java> --- NO XREFS to string at 0x4f5106 (analog.csv) --- (GhidraScript)  
+INFO  DecompileExporter.java> ### String at 0x4b06f5: cannot export data if some analog channels have no data (GhidraScript)  
+INFO  DecompileExporter.java> ### 1 cross-reference(s) (GhidraScript)  
+INFO  DecompileExporter.java> === FUN_01bfa1d0 @ Ghidra:01bfa1d0 ELF:0x1afa1d0 (xref from 01bfae2e) === (GhidraScript)  
+INFO  DecompileExporter.java>   Referenced string: cannot export data if some analog channels have no data (GhidraScript)  
+INFO  DecompileExporter.java> 
+void FUN_01bfa1d0(long param_1,long param_2)
+
+{
+  __shared_weak_count *p_Var1;
+  undefined1 uVar2;
+  undefined4 uVar3;
+  undefined4 uVar4;
+  __shared_weak_count *this;
+  void *pvVar5;
+  double dVar6;
+  ulong *puVar7;
+  ulong *puVar8;
+  undefined4 uVar9;
+  undefined **ppuVar10;
+  undefined4 uVar11;
+  ulong uVar12;
+  undefined4 uVar13;
+  undefined4 uVar14;
+  ulong uVar15;
+  ulong *puVar16;
+  char cVar17;
+  ostream *poVar18;
+  long *plVar19;
+  long *plVar20;
+  undefined8 uVar21;
+  void *pvVar22;
+  runtime_error *prVar23;
+  long lVar24;
+  undefined8 *puVar25;
+  long *plVar26;
+  undefined **local_218;
+  ulong uStack_210;
+  void *local_208;
+  undefined8 uStack_200;
+  ulong *local_1f8;
+  ulong *puStack_1f0;
+  ulong *local_1e8;
+  ulong *local_1d8;
+  ulong *puStack_1d0;
+  ulong *local_1c8;
+  long *local_1c0;
+  undefined **local_1b8;
+  ulong uStack_1b0;
+  void *local_1a8;
+  byte bStack_1a0;
+  undefined1 uStack_19f;
+  undefined2 uStack_19e;
+  undefined4 uStack_19c;
+  undefined4 local_198;
+  undefined4 uStack_194;
+  undefined4 uStack_190;
+  undefined4 uStack_18c;
+  char cStack_188;
+  undefined7 uStack_187;
+  undefined **local_180;
+  ulong uStack_178;
+  ulong local_170;
+  __shared_weak_count *p_Stack_168;
+  ulong uStack_160;
+  undefined5 uStack_158;
+  undefined3 uStack_153;
+  undefined5 uStack_150;
+  undefined3 uStack_14b;
+  undefined5 uStack_148;
+  undefined3 uStack_143;
+  undefined4 local_140;
+  undefined4 uStack_13c;
+  undefined4 uStack_138;
+  undefined4 uStack_134;
+  ulong local_130;
+  ulong local_128;
+  ulong uStack_120;
+  undefined4 local_118;
+  undefined4 uStack_114;
+  undefined4 uStack_110;
+  undefined4 uStack_10c;
+  long local_108;
+  long local_100;
+  string local_f8 [16];
+  void *local_e8 [2];
+  undefined **local_d8;
+  ulong uStack_d0;
+  void *local_c8;
+  undefined8 uStack_c0;
+  undefined **local_b8;
+  ulong uStack_b0;
+  ulong local_a8;
+  __shared_weak_count *local_a0;
+  undefined ***pppuStack_98;
+  ulong local_90;
+  ulong local_88;
+  ulong uStack_80;
+  undefined4 local_78;
+  undefined4 uStack_74;
+  undefined4 uStack_70;
+  undefined4 uStack_6c;
+  undefined8 local_48;
+  undefined8 uStack_40;
+  undefined8 local_38;
+  
+  if ((*(long *)(param_1 + 0x328) == 0) || (cVar17 = FUN_01c01270(), cVar17 == '\0')) {
+    if ((*(long *)(param_2 + 0x48) != 0) || (*(long *)(param_2 + 0x60) != 0)) {
+      local_1d8 = (ulong *)0x0;
+      puStack_1d0 = (ulong *)0x0;
+      local_1c8 = (ulong *)0x0;
+      local_1f8 = (ulong *)0x0;
+      puStack_1f0 = (ulong *)0x0;
+      local_1e8 = (ulong *)0x0;
+      local_218 = *(undefined ***)(param_2 + 0x68);
+      uStack_210 = *(ulong *)(param_2 + 0x70);
+      local_208 = *(void **)(param_2 + 0x78);
+      uStack_200 = *(undefined8 *)(param_2 + 0x80);
+      local_1c0 = (long *)(param_2 + 0x58);
+      local_108 = param_2;
+      local_100 = param_1;
+      if (*(long **)(param_2 + 0x50) != local_1c0) {
+        plVar26 = *(long **)(param_2 + 0x50);
+        do {
+          lVar24 = (long)(int)plVar26[4] * 0x10;
+          if (*(long *)(param_1 + 0x228 + lVar24) == 0) {
+            prVar23 = (runtime_error *)__cxa_allocate_exception(0x10);
+                    /* try { // try from 01bfad89 to 01bfad97 has its CatchHandler @ 01bfb021 */
+            std::runtime_error::runtime_error
+                      (prVar23,"trying to export channel for digital api that has not been set");
+                    /* try { // try from 01bfad98 to 01bfadad has its CatchHandler @ 01bfb087 */
+                    /* WARNING: Subroutine does not return */
+            __cxa_throw(prVar23,PTR_typeinfo_02fe8e78,PTR__runtime_error_02fe8e80);
+          }
+                    /* try { // try from 01bfa2ba to 01bfa2be has its CatchHandler @ 01bfb069 */
+          cVar17 = FUN_01d89160();
+          if (cVar17 == '\0') {
+            prVar23 = (runtime_error *)__cxa_allocate_exception(0x10);
+                    /* try { // try from 01bfadc0 to 01bfadce has its CatchHandler @ 01bfb012 */
+            std::runtime_error::runtime_error
+                      (prVar23,"cannot export data, a digital store is not ready");
+                    /* try { // try from 01bfadcf to 01bfade4 has its CatchHandler @ 01bfb087 */
+                    /* WARNING: Subroutine does not return */
+            __cxa_throw(prVar23,PTR_typeinfo_02fe8e78,PTR__runtime_error_02fe8e80);
+          }
+          puVar25 = (undefined8 *)(param_1 + lVar24 + 0x228);
+                    /* try { // try from 01bfa2d5 to 01bfa2e4 has its CatchHandler @ 01bfb06e */
+          FUN_01d89120(&local_b8,*puVar25);
+          FUN_02e00100(&local_d8,&local_b8);
+          cVar17 = FUN_02eb1db0(&local_d8,&local_218);
+          if (cVar17 != '\0') {
+                    /* try { // try from 01bfa30d to 01bfa356 has its CatchHandler @ 01bfb0c8 */
+            poVar18 = (ostream *)
+                      FUN_01b45a20(PTR_cout_02fe91e8,
+                                   "Requested graph interval smaller than available range (mBegin): "
+                                   ,0x40);
+            dVar6 = (double)FUN_02eb1d40(&local_d8,&local_218);
+            poVar18 = (ostream *)std::ostream::operator<<(poVar18,dVar6);
+            std::ios_base::getloc();
+                    /* try { // try from 01bfa357 to 01bfa373 has its CatchHandler @ 01bfb073 */
+            plVar19 = (long *)std::locale::use_facet((locale *)&local_1b8,(id *)PTR_id_02fe9140);
+            cVar17 = (**(code **)(*plVar19 + 0x38))(plVar19,10);
+            std::locale::~locale((locale *)&local_1b8);
+                    /* try { // try from 01bfa37e to 01bfa3f4 has its CatchHandler @ 01bfb0c8 */
+            std::ostream::put(poVar18,cVar17);
+            std::ostream::flush(poVar18);
+          }
+          cVar17 = FUN_02eb1e10(&local_c8,&local_208);
+          if (cVar17 != '\0') {
+            poVar18 = (ostream *)
+                      FUN_01b45a20(PTR_cout_02fe91e8,
+                                   "Requested graph interval smaller than available range (mEnd): ",
+                                   0x3e);
+            dVar6 = (double)FUN_02eb1d40(&local_c8,&local_208);
+            poVar18 = (ostream *)std::ostream::operator<<(poVar18,dVar6);
+            std::ios_base::getloc();
+                    /* try { // try from 01bfa3f5 to 01bfa414 has its CatchHandler @ 01bfb075 */
+            plVar19 = (long *)std::locale::use_facet((locale *)&local_1b8,(id *)PTR_id_02fe9140);
+            cVar17 = (**(code **)(*plVar19 + 0x38))(plVar19,10);
+            std::locale::~locale((locale *)&local_1b8);
+                    /* try { // try from 01bfa41f to 01bfa431 has its CatchHandler @ 01bfb0c8 */
+            std::ostream::put(poVar18,cVar17);
+            std::ostream::flush(poVar18);
+          }
+                    /* try { // try from 01bfa432 to 01bfa446 has its CatchHandler @ 01bfb08c */
+          FUN_02eb2a50((locale *)&local_1b8,&local_d8,&local_218);
+          uStack_200 = CONCAT44(uStack_19c,CONCAT22(uStack_19e,CONCAT11(uStack_19f,bStack_1a0)));
+          local_208 = local_1a8;
+          local_218 = local_1b8;
+          uStack_210 = uStack_1b0;
+                    /* try { // try from 01bfa469 to 01bfa478 has its CatchHandler @ 01bfb08e */
+          std::string::string((string *)&local_1b8,(string *)(plVar26 + 5));
+          uVar3 = (undefined4)plVar26[4];
+          bStack_1a0 = (byte)uVar3;
+          uStack_19f = (undefined1)((uint)uVar3 >> 8);
+          uStack_19e = (undefined2)((uint)uVar3 >> 0x10);
+                    /* try { // try from 01bfa488 to 01bfa494 has its CatchHandler @ 01bfb090 */
+          FUN_01d89140(&local_198,*puVar25);
+          uVar15 = uStack_80;
+          uVar12 = local_88;
+          param_1 = local_100;
+          local_170 = local_a8;
+          local_180 = local_b8;
+          uStack_178 = uStack_b0;
+          uStack_158 = (undefined5)local_90;
+          uStack_153 = (undefined3)(local_90 >> 0x28);
+          p_Stack_168 = local_a0;
+          uStack_160 = (ulong)pppuStack_98;
+          uStack_150 = (undefined5)local_88;
+          uStack_14b = (undefined3)(local_88 >> 0x28);
+          uStack_148 = (undefined5)uStack_80;
+          uStack_143 = (undefined3)(uStack_80 >> 0x28);
+          local_88 = 0;
+          uStack_80 = 0;
+          local_140 = local_78;
+          uStack_13c = uStack_74;
+          uStack_138 = uStack_70;
+          uStack_134 = uStack_6c;
+          if (puStack_1d0 < local_1c8) {
+            puStack_1d0[2] = (ulong)local_1a8;
+            *puStack_1d0 = (ulong)local_1b8;
+            puStack_1d0[1] = uStack_1b0;
+            local_1b8 = (undefined **)0x0;
+            uStack_1b0 = 0;
+            local_1a8 = (void *)0x0;
+            puStack_1d0[5] = CONCAT44(uStack_18c,uStack_190);
+            puStack_1d0[6] = CONCAT71(uStack_187,cStack_188);
+            puStack_1d0[3] =
+                 CONCAT44(uStack_19c,CONCAT22(uStack_19e,CONCAT11(uStack_19f,bStack_1a0)));
+            puStack_1d0[4] = CONCAT44(uStack_194,local_198);
+            puStack_1d0[9] = local_a8;
+            puStack_1d0[7] = (ulong)local_b8;
+            puStack_1d0[8] = uStack_b0;
+            puStack_1d0[10] = (ulong)local_a0;
+            puStack_1d0[0xb] = (ulong)pppuStack_98;
+            puStack_1d0[0xc] = local_90;
+            puStack_1d0[0xd] = uVar12;
+            puStack_1d0[0xe] = uVar15;
+            uStack_150 = 0;
+            uStack_14b = 0;
+            uStack_148 = 0;
+            uStack_143 = 0;
+            *(undefined4 *)(puStack_1d0 + 0xf) = local_78;
+            *(undefined4 *)((long)puStack_1d0 + 0x7c) = uStack_74;
+            *(undefined4 *)(puStack_1d0 + 0x10) = uStack_70;
+            *(undefined4 *)((long)puStack_1d0 + 0x84) = uStack_6c;
+            puStack_1d0 = puStack_1d0 + 0x11;
+          }
+          else {
+                    /* try { // try from 01bfa5a0 to 01bfa5af has its CatchHandler @ 01bfb014 */
+            FUN_01bfea40(&local_1d8,(locale *)&local_1b8);
+          }
+          FUN_01bde140(&p_Stack_168);
+          if (((ulong)local_1b8 & 1) != 0) {
+            operator_delete(local_1a8);
+          }
+          FUN_01bde140(&local_a0);
+          plVar19 = (long *)plVar26[1];
+          if ((long *)plVar26[1] == (long *)0x0) {
+            plVar20 = (long *)plVar26[2];
+            if ((long *)*plVar20 != plVar26) {
+              do {
+                plVar26 = (long *)plVar26[2];
+                plVar20 = (long *)plVar26[2];
+              } while ((long *)*plVar20 != plVar26);
+            }
+          }
+          else {
+            do {
+              plVar20 = plVar19;
+              plVar19 = (long *)*plVar20;
+            } while ((long *)*plVar20 != (long *)0x0);
+          }
+          plVar26 = plVar20;
+        } while (plVar20 != local_1c0);
+      }
+      local_1c0 = (long *)(local_108 + 0x40);
+      if (*(long **)(local_108 + 0x38) != local_1c0) {
+        plVar26 = *(long **)(local_108 + 0x38);
+        do {
+          lVar24 = (long)(int)plVar26[4] * 0x10;
+          if (*(long *)(param_1 + 0x128 + lVar24) == 0) {
+            prVar23 = (runtime_error *)__cxa_allocate_exception(0x10);
+                    /* try { // try from 01bfadf7 to 01bfae05 has its CatchHandler @ 01bfb010 */
+            std::runtime_error::runtime_error
+                      (prVar23,"trying to export channel for analog api that has not been set");
+                    /* try { // try from 01bfae06 to 01bfae1b has its CatchHandler @ 01bfb05d */
+                    /* WARNING: Subroutine does not return */
+            __cxa_throw(prVar23,PTR_typeinfo_02fe8e78,PTR__runtime_error_02fe8e80);
+          }
+                    /* try { // try from 01bfa67a to 01bfa67e has its CatchHandler @ 01bfb031 */
+          cVar17 = FUN_01d11b40();
+          if (cVar17 == '\0') {
+            prVar23 = (runtime_error *)__cxa_allocate_exception(0x10);
+                    /* try { // try from 01bfae62 to 01bfae70 has its CatchHandler @ 01bfafe9 */
+            std::runtime_error::runtime_error
+                      (prVar23,"cannot export data, an analog store is not ready");
+                    /* try { // try from 01bfae71 to 01bfae86 has its CatchHandler @ 01bfb05d */
+                    /* WARNING: Subroutine does not return */
+            __cxa_throw(prVar23,PTR_typeinfo_02fe8e78,PTR__runtime_error_02fe8e80);
+          }
+          puVar25 = (undefined8 *)(lVar24 + param_1 + 0x128);
+                    /* try { // try from 01bfa696 to 01bfa6a5 has its CatchHandler @ 01bfb039 */
+          FUN_01d11b00(&local_b8,*puVar25);
+                    /* try { // try from 01bfa6a6 to 01bfa6b8 has its CatchHandler @ 01bfb041 */
+          FUN_02dfba10(&local_d8,&local_b8);
+          dVar6 = (double)FUN_02eb1d40(&local_c8,&local_d8);
+          if (dVar6 <= 0.0) {
+            prVar23 = (runtime_error *)__cxa_allocate_exception(0x10);
+                    /* try { // try from 01bfae2e to 01bfae3c has its CatchHandler @ 01bfaff0 */
+            std::runtime_error::runtime_error
+                      (prVar23,"cannot export data if some analog channels have no data");
+                    /* try { // try from 01bfae3d to 01bfae52 has its CatchHandler @ 01bfafeb */
+                    /* WARNING: Subroutine does not return */
+            __cxa_throw(prVar23,PTR_typeinfo_02fe8e78,PTR__runtime_error_02fe8e80);
+          }
+                    /* try { // try from 01bfa6d7 to 01bfa74f has its CatchHandler @ 01bfb0da */
+          FUN_02dfba10(local_f8,&local_b8);
+          cVar17 = FUN_02eb1db0(local_f8,&local_218);
+          if (cVar17 != '\0') {
+            poVar18 = (ostream *)
+                      FUN_01b45a20(PTR_cout_02fe91e8,
+                                   "Requested graph interval smaller than available range (mBegin): "
+                                   ,0x40);
+            dVar6 = (double)FUN_02eb1d40(local_f8,&local_218);
+            poVar18 = (ostream *)std::ostream::operator<<(poVar18,dVar6);
+            std::ios_base::getloc();
+                    /* try { // try from 01bfa750 to 01bfa76c has its CatchHandler @ 01bfb046 */
+            plVar19 = (long *)std::locale::use_facet((locale *)&local_1b8,(id *)PTR_id_02fe9140);
+            cVar17 = (**(code **)(*plVar19 + 0x38))(plVar19,10);
+            std::locale::~locale((locale *)&local_1b8);
+                    /* try { // try from 01bfa778 to 01bfa7f7 has its CatchHandler @ 01bfb0da */
+            std::ostream::put(poVar18,cVar17);
+            param_1 = local_100;
+            std::ostream::flush(poVar18);
+          }
+          cVar17 = FUN_02eb1e10(local_e8,&local_208);
+          if (cVar17 != '\0') {
+            poVar18 = (ostream *)
+                      FUN_01b45a20(PTR_cout_02fe91e8,
+                                   "Requested graph interval smaller than available range (mEnd): ",
+                                   0x3e);
+            dVar6 = (double)FUN_02eb1d40(local_e8,&local_208);
+            poVar18 = (ostream *)std::ostream::operator<<(poVar18,dVar6);
+            std::ios_base::getloc();
+                    /* try { // try from 01bfa7f8 to 01bfa814 has its CatchHandler @ 01bfb048 */
+            plVar19 = (long *)std::locale::use_facet((locale *)&local_1b8,(id *)PTR_id_02fe9140);
+            cVar17 = (**(code **)(*plVar19 + 0x38))(plVar19,10);
+            std::locale::~locale((locale *)&local_1b8);
+                    /* try { // try from 01bfa81f to 01bfa831 has its CatchHandler @ 01bfb0da */
+            std::ostream::put(poVar18,cVar17);
+            std::ostream::flush(poVar18);
+          }
+                    /* try { // try from 01bfa832 to 01bfa849 has its CatchHandler @ 01bfb065 */
+          FUN_02eb2a50((locale *)&local_1b8,local_f8,&local_218);
+          uStack_200 = CONCAT44(uStack_19c,CONCAT22(uStack_19e,CONCAT11(uStack_19f,bStack_1a0)));
+          local_208 = local_1a8;
+          local_218 = local_1b8;
+          uStack_210 = uStack_1b0;
+                    /* try { // try from 01bfa86c to 01bfa873 has its CatchHandler @ 01bfb067 */
+          std::string::string((string *)&local_1b8,(string *)(plVar26 + 5));
+          uVar3 = (undefined4)plVar26[4];
+          bStack_1a0 = (byte)uVar3;
+          uStack_19f = (undefined1)((uint)uVar3 >> 8);
+          uStack_19e = (undefined2)((uint)uVar3 >> 0x10);
+          local_198 = (undefined4)plVar26[8];
+          uStack_194 = *(undefined4 *)((long)plVar26 + 0x44);
+          uStack_190 = (undefined4)plVar26[9];
+          uStack_18c = *(undefined4 *)((long)plVar26 + 0x4c);
+                    /* try { // try from 01bfa892 to 01bfa8af has its CatchHandler @ 01bfb0ac */
+          FUN_01d11b20(&cStack_188,*puVar25);
+          FUN_01d11b00(&local_170,*puVar25);
+          if (puStack_1f0 < local_1e8) {
+            puStack_1f0[2] = (ulong)local_1a8;
+            *puStack_1f0 = (ulong)local_1b8;
+            puStack_1f0[1] = uStack_1b0;
+            local_1b8 = (undefined **)0x0;
+            uStack_1b0 = 0;
+            local_1a8 = (void *)0x0;
+            puStack_1f0[7] = (ulong)local_180;
+            puStack_1f0[8] = uStack_178;
+            puStack_1f0[5] = CONCAT44(uStack_18c,uStack_190);
+            puStack_1f0[6] = CONCAT71(uStack_187,cStack_188);
+            puStack_1f0[3] =
+                 CONCAT44(uStack_19c,CONCAT22(uStack_19e,CONCAT11(uStack_19f,bStack_1a0)));
+            puStack_1f0[4] = CONCAT44(uStack_194,local_198);
+            *(ulong *)((long)puStack_1f0 + 0x65) = CONCAT53(uStack_150,uStack_153);
+            *(ulong *)((long)puStack_1f0 + 0x6d) = CONCAT53(uStack_148,uStack_14b);
+            puStack_1f0[0xb] = uStack_160;
+            puStack_1f0[0xc] = CONCAT35(uStack_153,uStack_158);
+            puStack_1f0[9] = local_170;
+            puStack_1f0[10] = (ulong)p_Stack_168;
+            puStack_1f0[0xf] = CONCAT44(uStack_13c,local_140);
+            puStack_1f0[0x10] = CONCAT44(uStack_134,uStack_138);
+            puStack_1f0[0x11] = local_130;
+            puStack_1f0[0x12] = local_128;
+            puStack_1f0[0x13] = uStack_120;
+            local_128 = 0;
+            uStack_120 = 0;
+            *(undefined4 *)(puStack_1f0 + 0x14) = local_118;
+            *(undefined4 *)((long)puStack_1f0 + 0xa4) = uStack_114;
+            *(undefined4 *)(puStack_1f0 + 0x15) = uStack_110;
+            *(undefined4 *)((long)puStack_1f0 + 0xac) = uStack_10c;
+            puStack_1f0 = puStack_1f0 + 0x16;
+          }
+          else {
+                    /* try { // try from 01bfa990 to 01bfa9a4 has its CatchHandler @ 01bfb000 */
+            FUN_01bfecb0(&local_1f8,(locale *)&local_1b8);
+          }
+          FUN_01bcab50(&local_140);
+          if (((ulong)local_1b8 & 1) != 0) {
+            operator_delete(local_1a8);
+          }
+          FUN_01bcab50(&local_88);
+          plVar19 = (long *)plVar26[1];
+          if ((long *)plVar26[1] == (long *)0x0) {
+            plVar20 = (long *)plVar26[2];
+            if ((long *)*plVar20 != plVar26) {
+              do {
+                plVar26 = (long *)plVar26[2];
+                plVar20 = (long *)plVar26[2];
+              } while ((long *)*plVar20 != plVar26);
+            }
+          }
+          else {
+            do {
+              plVar20 = plVar19;
+              plVar19 = (long *)*plVar20;
+            } while ((long *)*plVar20 != (long *)0x0);
+          }
+          plVar26 = plVar20;
+        } while (plVar20 != local_1c0);
+      }
+      cVar17 = FUN_02eb1de0(&local_218,&local_208);
+      if (cVar17 != '\0') {
+        prVar23 = (runtime_error *)__cxa_allocate_exception(0x10);
+                    /* try { // try from 01bfae96 to 01bfaea4 has its CatchHandler @ 01bfaf28 */
+        std::runtime_error::runtime_error
+                  (prVar23,"failed to export: there is no available data to export");
+                    /* try { // try from 01bfaea5 to 01bfaeba has its CatchHandler @ 01bfaf20 */
+                    /* WARNING: Subroutine does not return */
+        __cxa_throw(prVar23,PTR_typeinfo_02fe8e78,PTR__runtime_error_02fe8e80);
+      }
+      uVar21 = FUN_01bfef80();
+                    /* try { // try from 01bfaa41 to 01bfaa50 has its CatchHandler @ 01bfafe1 */
+      FUN_02eaec90(&local_1b8,uVar21);
+      local_1b8 = &PTR_FUN_02f3ae88;
+      local_170 = CONCAT35(local_170._5_3_,0x100000001);
+      bStack_1a0 = 0;
+      uStack_19f = 0;
+      cStack_188 = '\x01';
+      local_180 = (undefined **)0x0;
+      uStack_178 = CONCAT71(uStack_178._1_7_,1);
+                    /* try { // try from 01bfaaa7 to 01bfaab0 has its CatchHandler @ 01bfafa3 */
+      (**(code **)**(undefined8 **)(param_1 + 0x330))(*(undefined8 **)(param_1 + 0x330),&local_1b8);
+      lVar24 = local_108;
+      local_a8 = *(undefined8 *)(param_1 + 0x330);
+      this = *(__shared_weak_count **)(param_1 + 0x338);
+      if (this != (__shared_weak_count *)0x0) {
+        LOCK();
+        *(long *)(this + 8) = *(long *)(this + 8) + 1;
+        UNLOCK();
+      }
+                    /* try { // try from 01bfaad2 to 01bfaadb has its CatchHandler @ 01bfaf76 */
+      pvVar22 = operator_new(0xf0);
+                    /* try { // try from 01bfaae3 to 01bfaaef has its CatchHandler @ 01bfaf69 */
+      std::string::string(local_f8,(string *)(lVar24 + 0x20));
+      local_c8 = local_208;
+      pvVar5 = local_c8;
+      uStack_c0 = uStack_200;
+      uVar21 = uStack_c0;
+      local_d8 = local_218;
+      ppuVar10 = local_d8;
+      uStack_d0 = uStack_210;
+      uVar12 = uStack_d0;
+      uVar3 = *(undefined4 *)(lVar24 + 0x18);
+      uVar4 = *(undefined4 *)(lVar24 + 0x88);
+      uVar2 = *(undefined1 *)(lVar24 + 0x8c);
+      local_48 = *(undefined8 *)(lVar24 + 0x90);
+      uStack_40 = *(undefined8 *)(lVar24 + 0x98);
+      local_38 = *(undefined8 *)(lVar24 + 0xa0);
+      if (this != (__shared_weak_count *)0x0) {
+        LOCK();
+        *(long *)(this + 8) = *(long *)(this + 8) + 1;
+        UNLOCK();
+      }
+      local_b8 = &PTR_FUN_02f3ac28;
+                    /* try { // try from 01bfab7a to 01bfabd9 has its CatchHandler @ 01bfaf2d */
+      local_d8._0_4_ = SUB84(local_218,0);
+      uVar9 = local_d8._0_4_;
+      uStack_d0._0_4_ = (undefined4)uStack_210;
+      uVar11 = (undefined4)uStack_d0;
+      local_c8._0_4_ = SUB84(local_208,0);
+      uVar13 = local_c8._0_4_;
+      uStack_c0._0_4_ = (undefined4)uStack_200;
+      uVar14 = (undefined4)uStack_c0;
+      local_d8 = ppuVar10;
+      uStack_d0 = uVar12;
+      local_c8 = pvVar5;
+      uStack_c0 = uVar21;
+      uStack_b0 = param_1;
+      local_a0 = this;
+      pppuStack_98 = &local_b8;
+      FUN_01bff2b0(pvVar22,local_f8,uVar3,&local_1d8,&local_1f8,uVar4,uVar9,uVar11,uVar13,uVar14,
+                   uVar2,local_48,uStack_40,local_38,&local_b8);
+      if (&local_b8 == pppuStack_98) {
+        (*(code *)(*pppuStack_98)[4])();
+      }
+      else if (pppuStack_98 != (undefined ***)0x0) {
+        (*(code *)(*pppuStack_98)[5])();
+      }
+      if (((byte)local_f8[0] & 1) != 0) {
+        operator_delete(local_e8[0]);
+      }
+      pvVar5 = *(void **)(param_1 + 0x328);
+      *(void **)(param_1 + 0x328) = pvVar22;
+      if (pvVar5 != (void *)0x0) {
+        FUN_01c01040(pvVar5);
+        operator_delete(pvVar5);
+      }
+      if (this != (__shared_weak_count *)0x0) {
+        LOCK();
+        p_Var1 = this + 8;
+        lVar24 = *(long *)p_Var1;
+        *(long *)p_Var1 = *(long *)p_Var1 + -1;
+        UNLOCK();
+        if (lVar24 == 0) {
+          (**(code **)(*(long *)this + 0x10))(this);
+          std::__shared_weak_count::__release_weak(this);
+        }
+      }
+      local_1b8 = &PTR_FUN_02f3ae88;
+      if ((cStack_188 != '\0') && ((bStack_1a0 & 1) != 0)) {
+        operator_delete((void *)CONCAT44(uStack_18c,uStack_190));
+      }
+      thunk_FUN_02eaee00(&local_1b8);
+      puVar8 = local_1f8;
+      puVar16 = puStack_1f0;
+      if (local_1f8 != (ulong *)0x0) {
+        while (puVar7 = puVar16, puVar7 != puVar8) {
+          FUN_01bcab50(puVar7 + -7);
+          puVar16 = puVar7 + -0x16;
+          if ((puVar7[-0x16] & 1) != 0) {
+            operator_delete((void *)puVar7[-0x14]);
+          }
+        }
+        puStack_1f0 = puVar8;
+        operator_delete(local_1f8);
+      }
+      puVar8 = local_1d8;
+      puVar16 = puStack_1d0;
+      if (local_1d8 != (ulong *)0x0) {
+        while (puVar7 = puVar16, puVar7 != puVar8) {
+          FUN_01bde140(puVar7 + -7);
+          puVar16 = puVar7 + -0x11;
+          if ((puVar7[-0x11] & 1) != 0) {
+            operator_delete((void *)puVar7[-0xf]);
+          }
+        }
+        puStack_1d0 = puVar8;
+        operator_delete(local_1d8);
+      }
+      return;
+    }
+    prVar23 = (runtime_error *)__cxa_allocate_exception(0x10);
+                    /* try { // try from 01bfaee6 to 01bfaef4 has its CatchHandler @ 01bfaf0b */
+    std::runtime_error::runtime_error(prVar23,"at least 1 channel must be specified for export");
+  }
+  else {
+    prVar23 = (runtime_error *)__cxa_allocate_exception(0x10);
+                    /* try { // try from 01bfaec8 to 01bfaed6 has its CatchHandler @ 01bfaf0d */
+    std::runtime_error::runtime_error(prVar23,"cannot start export while export in progress");
+  }
+                    /* WARNING: Subroutine does not return */
+  __cxa_throw(prVar23,PTR_typeinfo_02fe8e78,PTR__runtime_error_02fe8e80);
+}
+
+ (GhidraScript)  
+INFO  DecompileExporter.java>  (GhidraScript)  
+INFO  DecompileExporter.java>  (GhidraScript)  
+INFO  DecompileExporter.java> ### String at 0x4bdced: at least 1 channel must be specified for export (GhidraScript)  
+INFO  DecompileExporter.java> ### 1 cross-reference(s) (GhidraScript)  
+INFO  DecompileExporter.java>   xref from 01bfaee6 in FUN_01bfa1d0 @ 01bfa1d0 (already decompiled) (GhidraScript)  
+INFO  DecompileExporter.java>  (GhidraScript)  
+INFO  DecompileExporter.java> ### String at 0x4bdd1d: failed to export: there is no available data to export (GhidraScript)  
+INFO  DecompileExporter.java> ### 1 cross-reference(s) (GhidraScript)  
+INFO  DecompileExporter.java>   xref from 01bfae96 in FUN_01bfa1d0 @ 01bfa1d0 (already decompiled) (GhidraScript)  
+INFO  DecompileExporter.java>  (GhidraScript)  
+INFO  DecompileExporter.java> ### String at 0x4e0308: cannot start export while export in progress (GhidraScript)  
+INFO  DecompileExporter.java> ### 1 cross-reference(s) (GhidraScript)  
+INFO  DecompileExporter.java>   xref from 01bfaec8 in FUN_01bfa1d0 @ 01bfa1d0 (already decompiled) (GhidraScript)  
+INFO  DecompileExporter.java>  (GhidraScript)  
+INFO  DecompileExporter.java> ### String at 0x4e0335: cannot export data, an analog store is not ready (GhidraScript)  
+INFO  DecompileExporter.java> ### 1 cross-reference(s) (GhidraScript)  
+INFO  DecompileExporter.java>   xref from 01bfae62 in FUN_01bfa1d0 @ 01bfa1d0 (already decompiled) (GhidraScript)  
+INFO  DecompileExporter.java>  (GhidraScript)  
+INFO  DecompileExporter.java> ### String at 0x50a7c5: cannot export data, a digital store is not ready (GhidraScript)  
+INFO  DecompileExporter.java> ### 1 cross-reference(s) (GhidraScript)  
+INFO  DecompileExporter.java>   xref from 01bfadc0 in FUN_01bfa1d0 @ 01bfa1d0 (already decompiled) (GhidraScript)  
+INFO  DecompileExporter.java>  (GhidraScript)  
+INFO  DecompileExporter.java> ### String at 0x45574f: Exporter error: {} (GhidraScript)  
+INFO  DecompileExporter.java> ### 6 cross-reference(s) (GhidraScript)  
+INFO  DecompileExporter.java>   xref from 01bff703 in FUN_01bff5e0 @ 01bff5e0 (already decompiled) (GhidraScript)  
+INFO  DecompileExporter.java>   xref from 01bffb95 in FUN_01bff5e0 @ 01bff5e0 (already decompiled) (GhidraScript)  
+INFO  DecompileExporter.java>   xref from 01c03c5b in FUN_01c03b50 @ 01c03b50 (already decompiled) (GhidraScript)  
+INFO  DecompileExporter.java>   xref from 01c00c3e -- NOT IN A FUNCTION (GhidraScript)  
+INFO  DecompileExporter.java>   xref from 01c00e0f -- NOT IN A FUNCTION (GhidraScript)  
+INFO  DecompileExporter.java>   xref from 01c00f7c -- NOT IN A FUNCTION (GhidraScript)  
+INFO  DecompileExporter.java>  (GhidraScript)  
+INFO  DecompileExporter.java> ### String at 0x4fc66d: start of export thread (GhidraScript)  
+INFO  DecompileExporter.java> ### 1 cross-reference(s) (GhidraScript)  
+INFO  DecompileExporter.java> === FUN_01d62cb0 @ Ghidra:01d62cb0 ELF:0x1c62cb0 (xref from 01d62d4c) === (GhidraScript)  
+INFO  DecompileExporter.java>   Referenced string: start of export thread (GhidraScript)  
+INFO  DecompileExporter.java> 
+void FUN_01d62cb0(long param_1,undefined8 param_2,undefined4 param_3,undefined4 param_4)
+
+{
+  int iVar1;
+  char cVar2;
+  byte bVar3;
+  long lVar4;
+  undefined8 uVar5;
+  long *plVar6;
+  ulong uVar7;
+  undefined1 *puVar8;
+  long lVar9;
+  string *this;
+  char *local_138;
+  undefined4 uStack_130;
+  char *local_128;
+  char local_120;
+  long *local_118;
+  long local_110;
+  undefined4 local_108;
+  undefined4 local_104;
+  char *local_100;
+  undefined4 uStack_f8;
+  char *local_f0;
+  byte local_e8;
+  undefined1 local_e7 [15];
+  undefined1 *local_d8;
+  future<void> local_d0 [8];
+  undefined1 local_c8 [96];
+  long local_68 [4];
+  long *local_48;
+  
+  local_110 = param_1;
+  local_108 = param_3;
+  local_104 = param_4;
+  lVar4 = FUN_02eddf70();
+  local_138 = "/workspace/monorepo/graph-io/nodes/analyzer_node/src/analyzer_node.cpp";
+  uStack_130 = 0x594;
+  local_128 = "ExportThread";
+  iVar1 = *(int *)(lVar4 + 0x38);
+  cVar2 = FUN_02edfa80(lVar4 + 0x70);
+  if ((iVar1 < 3) || (cVar2 != '\0')) {
+    if ((*(byte *)(lVar4 + 8) & 1) == 0) {
+      lVar9 = lVar4 + 9;
+      uVar7 = (ulong)(*(byte *)(lVar4 + 8) >> 1);
+    }
+    else {
+      lVar9 = *(long *)(lVar4 + 0x18);
+      uVar7 = *(ulong *)(lVar4 + 0x10);
+    }
+    FUN_02ee25b0(local_c8,lVar9,uVar7,2,"start of export thread",0x16,local_138._0_4_,uStack_130,
+                 local_128);
+    FUN_02ee4120(lVar4,local_c8,iVar1 < 3,cVar2);
+  }
+  Detail::SetExportFlag();
+  lVar4 = local_110;
+  uVar5 = AnalyzerResults::GetAnalyzerResultsData();
+  FUN_01d0d6d0(&local_e8,param_2);
+  local_138 = (char *)((ulong)local_138 & 0xffffffffffffff00);
+  local_120 = '\0';
+  puVar8 = local_d8;
+  if ((local_e8 & 1) == 0) {
+    puVar8 = local_e7;
+  }
+                    /* try { // try from 01d62dd3 to 01d62ddd has its CatchHandler @ 01d6306b */
+  (**(code **)(**(long **)(lVar4 + 0x990) + 0x18))
+            (*(long **)(lVar4 + 0x990),puVar8,local_108,local_104);
+  local_48 = (long *)0x0;
+                    /* try { // try from 01d62dea to 01d62dfc has its CatchHandler @ 01d6303c */
+  AnalyzerResultsData::SetExportProgressCallback(uVar5,local_68);
+  if (local_68 == local_48) {
+    (**(code **)(*local_48 + 0x20))();
+  }
+  else if (local_48 != (long *)0x0) {
+    (**(code **)(*local_48 + 0x28))();
+  }
+                    /* try { // try from 01d62e1d to 01d62e26 has its CatchHandler @ 01d63037 */
+  plVar6 = (long *)operator_new(0x50);
+                    /* try { // try from 01d62e2a to 01d62e31 has its CatchHandler @ 01d63027 */
+  FUN_01d62ba0(plVar6);
+  this = (string *)(plVar6 + 6);
+  cVar2 = (char)plVar6[9];
+  if (cVar2 == local_120) {
+    if (cVar2 != '\0') {
+                    /* try { // try from 01d62e4a to 01d62e53 has its CatchHandler @ 01d62ff7 */
+      std::string::operator=(this,(string *)&local_138);
+    }
+    cVar2 = (char)plVar6[5];
+  }
+  else if (cVar2 == '\0') {
+                    /* try { // try from 01d62fda to 01d62fe3 has its CatchHandler @ 01d62ff7 */
+    std::string::string(this,(string *)&local_138);
+    *(undefined1 *)(plVar6 + 9) = 1;
+    cVar2 = (char)plVar6[5];
+  }
+  else {
+    if (((byte)*this & 1) != 0) {
+      operator_delete((void *)plVar6[8]);
+    }
+    *(undefined1 *)(plVar6 + 9) = 0;
+    cVar2 = (char)plVar6[5];
+  }
+  if (cVar2 != '\0') {
+    *(undefined1 *)(plVar6 + 5) = 0;
+  }
+  *(undefined4 *)(plVar6 + 3) = 1;
+                    /* try { // try from 01d62e79 to 01d62e88 has its CatchHandler @ 01d63002 */
+  local_118 = plVar6;
+  (**(code **)(**(long **)(local_110 + 0x148) + 8))
+            (local_d0,*(long **)(local_110 + 0x148),&local_118);
+  std::future<void>::~future(local_d0);
+  plVar6 = local_118;
+  local_118 = (long *)0x0;
+  if (plVar6 != (long *)0x0) {
+    (**(code **)(*plVar6 + 8))();
+  }
+                    /* try { // try from 01d62eaf to 01d62f8e has its CatchHandler @ 01d631b0 */
+  lVar4 = FUN_02eddf70();
+  local_100 = "/workspace/monorepo/graph-io/nodes/analyzer_node/src/analyzer_node.cpp";
+  uStack_f8 = 0x5b1;
+  local_f0 = "ExportThread";
+  iVar1 = *(int *)(lVar4 + 0x38);
+  bVar3 = FUN_02edfa80(lVar4 + 0x70);
+  if ((2 < iVar1 & (bVar3 ^ 1)) == 0) {
+    if ((*(byte *)(lVar4 + 8) & 1) == 0) {
+      lVar9 = lVar4 + 9;
+      uVar7 = (ulong)(*(byte *)(lVar4 + 8) >> 1);
+    }
+    else {
+      lVar9 = *(long *)(lVar4 + 0x18);
+      uVar7 = *(ulong *)(lVar4 + 0x10);
+    }
+    FUN_02ee25b0(local_c8,lVar9,uVar7,2,"end of export thread",0x14,local_100._0_4_,uStack_f8,
+                 local_f0);
+    FUN_02ee4120(lVar4,local_c8,iVar1 < 3,bVar3);
+  }
+  LOCK();
+  *(undefined1 *)(local_110 + 0xa40) = 0;
+  UNLOCK();
+  if ((local_120 != '\0') && (((ulong)local_138 & 1) != 0)) {
+    operator_delete(local_128);
+  }
+  if ((local_e8 & 1) != 0) {
+    operator_delete(local_d8);
+  }
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileExporter.java>  (GhidraScript)  
+INFO  DecompileExporter.java>  (GhidraScript)  
+INFO  DecompileExporter.java> ### String at 0x49e3e7: end of export thread (GhidraScript)  
+INFO  DecompileExporter.java> ### 1 cross-reference(s) (GhidraScript)  
+INFO  DecompileExporter.java>   xref from 01d62f53 in FUN_01d62cb0 @ 01d62cb0 (already decompiled) (GhidraScript)  
+INFO  DecompileExporter.java>  (GhidraScript)  
+INFO  DecompileExporter.java> ### String at 0x518735: Exporter was canceled, deleting files (GhidraScript)  
+INFO  DecompileExporter.java> ### 1 cross-reference(s) (GhidraScript)  
+INFO  DecompileExporter.java>   xref from 01c003c3 in FUN_01bff5e0 @ 01bff5e0 (already decompiled) (GhidraScript)  
+INFO  DecompileExporter.java>  (GhidraScript)  
+INFO  DecompileExporter.java> ### String at 0x4032f0: DW_EH_PE_omit | DW_EH_PE_omit (GhidraScript)  
+INFO  DecompileExporter.java> ### 1 cross-reference(s) (GhidraScript)  
+INFO  DecompileExporter.java>   xref from 01a9aed9 -- NOT IN A FUNCTION (GhidraScript)  
+INFO  DecompileExporter.java>  (GhidraScript)  
+INFO  DecompileExporter.java> ### String at 0x4706fc: export paths not available while export is still running (GhidraScript)  
+INFO  DecompileExporter.java> ### 1 cross-reference(s) (GhidraScript)  
+INFO  DecompileExporter.java> === FUN_01c03ae0 @ Ghidra:01c03ae0 ELF:0x1b03ae0 (xref from 01c03b15) === (GhidraScript)  
+INFO  DecompileExporter.java>   Referenced string: export paths not available while export is still running (GhidraScript)  
+INFO  DecompileExporter.java> 
+undefined8 FUN_01c03ae0(undefined8 param_1,long param_2)
+
+{
+  runtime_error *this;
+  
+  if (*(int *)(param_2 + 0xc4) != 0) {
+    FUN_01c046f0(param_1,param_2 + 0xd0);
+    return param_1;
+  }
+  this = (runtime_error *)__cxa_allocate_exception(0x10);
+                    /* try { // try from 01c03b15 to 01c03b23 has its CatchHandler @ 01c03b3a */
+  std::runtime_error::runtime_error(this,"export paths not available while export is still running")
+  ;
+                    /* WARNING: Subroutine does not return */
+  __cxa_throw(this,PTR_typeinfo_02fe8e78,PTR__runtime_error_02fe8e80);
+}
+
+ (GhidraScript)  
+INFO  DecompileExporter.java>  (GhidraScript)  
+INFO  DecompileExporter.java>  (GhidraScript)  
+INFO  DecompileExporter.java> ### String at 0x48947c: RunExportOnThread (GhidraScript)  
+INFO  DecompileExporter.java> ### 9 cross-reference(s) (GhidraScript)  
+INFO  DecompileExporter.java>   xref from 01c0036b in FUN_01bff5e0 @ 01bff5e0 (already decompiled) (GhidraScript)  
+INFO  DecompileExporter.java>   xref from 01c00372 in FUN_01bff5e0 @ 01bff5e0 (already decompiled) (GhidraScript)  
+INFO  DecompileExporter.java>   xref from 01c003b5 in FUN_01bff5e0 @ 01bff5e0 (already decompiled) (GhidraScript)  
+INFO  DecompileExporter.java>   xref from 01c0044d in FUN_01bff5e0 @ 01bff5e0 (already decompiled) (GhidraScript)  
+INFO  DecompileExporter.java>   xref from 01c00487 in FUN_01bff5e0 @ 01bff5e0 (already decompiled) (GhidraScript)  
+INFO  DecompileExporter.java>   xref from 01c00617 in FUN_01bff5e0 @ 01bff5e0 (already decompiled) (GhidraScript)  
+INFO  DecompileExporter.java>   xref from 01c0053c -- NOT IN A FUNCTION (GhidraScript)  
+INFO  DecompileExporter.java>   xref from 01c00543 -- NOT IN A FUNCTION (GhidraScript)  
+INFO  DecompileExporter.java>   xref from 01c00553 -- NOT IN A FUNCTION (GhidraScript)  
+INFO  DecompileExporter.java>  (GhidraScript)  
+INFO  DecompileExporter.java> ### String at 0x45572b: Failed while exporting digital data (GhidraScript)  
+INFO  DecompileExporter.java> ### 1 cross-reference(s) (GhidraScript)  
+INFO  DecompileExporter.java>   xref from 01c00da6 -- NOT IN A FUNCTION (GhidraScript)  
+INFO  DecompileExporter.java>  (GhidraScript)  
+INFO  DecompileExporter.java> ### String at 0x5032b9: Failed while writing to analog.csv (GhidraScript)  
+INFO  DecompileExporter.java> ### 1 cross-reference(s) (GhidraScript)  
+INFO  DecompileExporter.java>   xref from 01c00bd6 -- NOT IN A FUNCTION (GhidraScript)  
+INFO  DecompileExporter.java>  (GhidraScript)  
+INFO  DecompileExporter.java> ### String at 0x44eba3: Saleae::Graph::ExportNode (GhidraScript)  
+INFO  DecompileExporter.java> ### 2 cross-reference(s) (GhidraScript)  
+INFO  DecompileExporter.java> === FUN_01bf9bb0 @ Ghidra:01bf9bb0 ELF:0x1af9bb0 (xref from 01bf9bb4) === (GhidraScript)  
+INFO  DecompileExporter.java>   Referenced string: Saleae::Graph::ExportNode (GhidraScript)  
+INFO  DecompileExporter.java> 
+void FUN_01bf9bb0(undefined8 *param_1)
+
+{
+  FUN_01bfc310("Saleae::Graph::ExportNode");
+  FUN_02d91ff0(param_1);
+  *param_1 = &PTR_FUN_02f3a9f8;
+  memset(param_1 + 0x24,0,0x220);
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileExporter.java>  (GhidraScript)  
+INFO  DecompileExporter.java> === FUN_01bf9bf0 @ Ghidra:01bf9bf0 ELF:0x1af9bf0 (xref from 01bf9bf0) === (GhidraScript)  
+INFO  DecompileExporter.java>   Referenced string: Saleae::Graph::ExportNode (GhidraScript)  
+INFO  DecompileExporter.java> 
+void FUN_01bf9bf0(void)
+
+{
+  FUN_01bfc310("Saleae::Graph::ExportNode");
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileExporter.java>  (GhidraScript)  
+INFO  DecompileExporter.java>  (GhidraScript)  
+INFO  DecompileExporter.java> ### String at 0x45c543: Saleae::Graph::ExportActions::ExportData (GhidraScript)  
+INFO  DecompileExporter.java> ### 1 cross-reference(s) (GhidraScript)  
+INFO  DecompileExporter.java> === FUN_01bfef70 @ Ghidra:01bfef70 ELF:0x1afef70 (xref from 01bfef70) === (GhidraScript)  
+INFO  DecompileExporter.java>   Referenced string: Saleae::Graph::ExportActions::ExportData (GhidraScript)  
+INFO  DecompileExporter.java> 
+void FUN_01bfef70(void)
+
+{
+  FUN_01bff010("Saleae::Graph::ExportActions::ExportData");
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileExporter.java>  (GhidraScript)  
+INFO  DecompileExporter.java>  (GhidraScript)  
+INFO  DecompileExporter.java> ### String at 0x462df1: Saleae::Graph::ExportNodeState (GhidraScript)  
+INFO  DecompileExporter.java> ### 4 cross-reference(s) (GhidraScript)  
+INFO  DecompileExporter.java> === FUN_01bfb1d0 @ Ghidra:01bfb1d0 ELF:0x1afb1d0 (xref from 01bfb1f7) === (GhidraScript)  
+INFO  DecompileExporter.java>   Referenced string: Saleae::Graph::ExportNodeState (GhidraScript)  
+INFO  DecompileExporter.java> 
+undefined8 * FUN_01bfb1d0(undefined8 *param_1)
+
+{
+  undefined8 *puVar1;
+  long *plVar2;
+  long *local_28;
+  undefined8 local_20;
+  
+  *param_1 = 0;
+  param_1[1] = 0;
+  param_1[2] = 0;
+                    /* try { // try from 01bfb1ea to 01bfb1f3 has its CatchHandler @ 01bfb313 */
+  plVar2 = (long *)operator_new(0x10);
+  local_20 = FUN_01bfbb10("Saleae::Graph::ExportNodeState");
+                    /* try { // try from 01bfb208 to 01bfb214 has its CatchHandler @ 01bfb306 */
+  FUN_02eaf230(plVar2,&local_20);
+  *plVar2 = (long)&DAT_02f3add0;
+  puVar1 = (undefined8 *)param_1[1];
+  if (puVar1 < (undefined8 *)param_1[2]) {
+    local_28 = (long *)0x0;
+    *puVar1 = plVar2;
+    param_1[1] = puVar1 + 1;
+  }
+  else {
+    local_28 = plVar2;
+                    /* try { // try from 01bfb242 to 01bfb24c has its CatchHandler @ 01bfb2e6 */
+    FUN_01bfe1c0(param_1,&local_28);
+  }
+  plVar2 = local_28;
+  local_28 = (long *)0x0;
+  if (plVar2 != (long *)0x0) {
+    (**(code **)(*plVar2 + 8))();
+  }
+                    /* try { // try from 01bfb264 to 01bfb26d has its CatchHandler @ 01bfb304 */
+  plVar2 = (long *)operator_new(0x10);
+  local_20 = FUN_01bfef70();
+                    /* try { // try from 01bfb27b to 01bfb287 has its CatchHandler @ 01bfb302 */
+  FUN_02eaf230(plVar2,&local_20);
+  *plVar2 = (long)&DAT_02f3ae10;
+  puVar1 = (undefined8 *)param_1[1];
+  if (puVar1 < (undefined8 *)param_1[2]) {
+    local_28 = (long *)0x0;
+    *puVar1 = plVar2;
+    param_1[1] = puVar1 + 1;
+  }
+  else {
+    local_28 = plVar2;
+                    /* try { // try from 01bfb2b5 to 01bfb2bf has its CatchHandler @ 01bfb2e4 */
+    FUN_01bfe760(param_1,&local_28);
+  }
+  plVar2 = local_28;
+  local_28 = (long *)0x0;
+  if (plVar2 != (long *)0x0) {
+    (**(code **)(*plVar2 + 8))();
+  }
+  return param_1;
+}
+
+ (GhidraScript)  
+INFO  DecompileExporter.java>  (GhidraScript)  
+INFO  DecompileExporter.java> === FUN_01bf9ba0 @ Ghidra:01bf9ba0 ELF:0x1af9ba0 (xref from 01bf9ba0) === (GhidraScript)  
+INFO  DecompileExporter.java>   Referenced string: Saleae::Graph::ExportNodeState (GhidraScript)  
+INFO  DecompileExporter.java> 
+void FUN_01bf9ba0(void)
+
+{
+  FUN_01bfbb10("Saleae::Graph::ExportNodeState");
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileExporter.java>  (GhidraScript)  
+INFO  DecompileExporter.java> === FUN_01bfe020 @ Ghidra:01bfe020 ELF:0x1afe020 (xref from 01bfe067) === (GhidraScript)  
+INFO  DecompileExporter.java>   Referenced string: Saleae::Graph::ExportNodeState (GhidraScript)  
+INFO  DecompileExporter.java> 
+void FUN_01bfe020(undefined8 param_1,undefined8 *param_2,undefined8 param_3)
+
+{
+  char cVar1;
+  undefined8 *puVar2;
+  undefined8 uVar3;
+  long *plVar4;
+  undefined8 *puVar5;
+  
+  cVar1 = FUN_02ed7ea0(param_3);
+  if (cVar1 == '\0') {
+    puVar2 = (undefined8 *)operator_new(0x168);
+    puVar5 = puVar2 + 0x29;
+    uVar3 = FUN_01bfbb10("Saleae::Graph::ExportNodeState");
+                    /* try { // try from 01bfe073 to 01bfe07d has its CatchHandler @ 01bfe1a1 */
+    FUN_02daf830(puVar5,uVar3);
+    puVar2[5] = &PTR_FUN_02f3ab88;
+    puVar2[0x29] = &PTR_FUN_02f3abc0;
+    *(undefined1 *)(puVar2 + 6) = 0xe;
+    *(undefined4 *)((long)puVar2 + 0x31) = 0x616e6e75;
+    *(undefined4 *)((long)puVar2 + 0x34) = 0x64656d61;
+    *(undefined1 *)(puVar2 + 7) = 0;
+    puVar2[9] = 1;
+    puVar2[10] = 0;
+    puVar2[0xb] = 0;
+    puVar2[0xc] = 0;
+    *(undefined1 *)(puVar2 + 0xd) = 0;
+    *(undefined1 *)(puVar2 + 0x10) = 0;
+    *(undefined1 *)(puVar2 + 0x11) = 0;
+    *(undefined1 *)(puVar2 + 0x18) = 0;
+    puVar2[0x19] = 0;
+    puVar2[0x1a] = 0;
+    puVar2[0x1b] = 0;
+    puVar2[0x1c] = 0;
+    *(undefined4 *)(puVar2 + 0x1d) = 0x3f800000;
+    puVar2[0x20] = 0;
+    puVar2[0x21] = 0;
+    puVar2[0x1e] = 0;
+    puVar2[0x1f] = 0;
+    *(undefined4 *)(puVar2 + 0x22) = 0x3f800000;
+    *(undefined1 *)(puVar2 + 0x23) = 0;
+    *(undefined1 *)(puVar2 + 0x28) = 0;
+    *puVar2 = &PTR_FUN_02f3aaa8;
+    puVar2[5] = &PTR_FUN_02f3aae8;
+    puVar2[0x29] = &PTR_FUN_02f3ab20;
+    puVar2[1] = 0;
+    *(undefined2 *)(puVar2 + 2) = 0;
+    *param_2 = puVar5;
+  }
+  else {
+    puVar5 = (undefined8 *)*param_2;
+  }
+  plVar4 = (long *)__dynamic_cast(puVar5,&PTR_vtable_02f2f210,&PTR_vtable_02f3abd8,
+                                  0xffffffffffffffff);
+  if (plVar4 != (long *)0x0) {
+    FUN_02eaee60(*(long *)(*plVar4 + -0x20) + (long)plVar4,param_3);
+    FUN_01c14940(plVar4,param_3);
+    return;
+  }
+                    /* WARNING: Subroutine does not return */
+  __cxa_bad_cast();
+}
+
+ (GhidraScript)  
+INFO  DecompileExporter.java>  (GhidraScript)  
+INFO  DecompileExporter.java> === FUN_01bfdda0 @ Ghidra:01bfdda0 ELF:0x1afdda0 (xref from 01bfddcd) === (GhidraScript)  
+INFO  DecompileExporter.java>   Referenced string: Saleae::Graph::ExportNodeState (GhidraScript)  
+INFO  DecompileExporter.java> 
+undefined8 * FUN_01bfdda0(undefined8 *param_1)
+
+{
+  undefined8 *puVar1;
+  undefined8 uVar2;
+  
+  puVar1 = (undefined8 *)operator_new(0x180);
+  puVar1[1] = 0;
+  puVar1[2] = 0;
+  *puVar1 = &PTR_FUN_02f3aca8;
+  uVar2 = FUN_01bfbb10("Saleae::Graph::ExportNodeState");
+                    /* try { // try from 01bfddd9 to 01bfdde3 has its CatchHandler @ 01bfdecd */
+  FUN_02daf830(puVar1 + 0x2c,uVar2);
+  puVar1[8] = &PTR_FUN_02f3ab88;
+  puVar1[0x2c] = &PTR_FUN_02f3abc0;
+  *(undefined1 *)(puVar1 + 9) = 0xe;
+  *(undefined4 *)((long)puVar1 + 0x49) = 0x616e6e75;
+  *(undefined4 *)((long)puVar1 + 0x4c) = 0x64656d61;
+  *(undefined1 *)(puVar1 + 10) = 0;
+  puVar1[0xc] = 1;
+  puVar1[0xd] = 0;
+  puVar1[0xe] = 0;
+  puVar1[0xf] = 0;
+  *(undefined1 *)(puVar1 + 0x10) = 0;
+  *(undefined1 *)(puVar1 + 0x13) = 0;
+  *(undefined1 *)(puVar1 + 0x14) = 0;
+  *(undefined1 *)(puVar1 + 0x1b) = 0;
+  puVar1[0x1c] = 0;
+  puVar1[0x1d] = 0;
+  puVar1[0x1e] = 0;
+  puVar1[0x1f] = 0;
+  *(undefined4 *)(puVar1 + 0x20) = 0x3f800000;
+  puVar1[0x23] = 0;
+  puVar1[0x24] = 0;
+  puVar1[0x21] = 0;
+  puVar1[0x22] = 0;
+  *(undefined4 *)(puVar1 + 0x25) = 0x3f800000;
+  *(undefined1 *)(puVar1 + 0x26) = 0;
+  *(undefined1 *)(puVar1 + 0x2b) = 0;
+  puVar1[3] = &PTR_FUN_02f3aaa8;
+  puVar1[8] = &PTR_FUN_02f3aae8;
+  puVar1[0x2c] = &PTR_FUN_02f3ab20;
+  puVar1[4] = 0;
+  *(undefined2 *)(puVar1 + 5) = 0;
+  *param_1 = puVar1 + 3;
+  param_1[1] = puVar1;
+  return param_1;
+}
+
+ (GhidraScript)  
+INFO  DecompileExporter.java>  (GhidraScript)  
+INFO  DecompileExporter.java>  (GhidraScript)  
+INFO  DecompileExporter.java> ### String at 0x454ccb: ExportWaveformCSV not implemented (GhidraScript)  
+INFO  DecompileExporter.java> ### 1 cross-reference(s) (GhidraScript)  
+INFO  DecompileExporter.java> === FUN_02d8a570 @ Ghidra:02d8a570 ELF:0x2c8a570 (xref from 02d8a581) === (GhidraScript)  
+INFO  DecompileExporter.java>   Referenced string: ExportWaveformCSV not implemented (GhidraScript)  
+INFO  DecompileExporter.java> 
+void FUN_02d8a570(void)
+
+{
+  runtime_error *this;
+  
+  this = (runtime_error *)__cxa_allocate_exception(0x10);
+                    /* try { // try from 02d8a581 to 02d8a58f has its CatchHandler @ 02d8a5a6 */
+  std::runtime_error::runtime_error(this,"ExportWaveformCSV not implemented");
+                    /* WARNING: Subroutine does not return */
+  __cxa_throw(this,PTR_typeinfo_02fe8e78,PTR__runtime_error_02fe8e80);
+}
+
+ (GhidraScript)  
+INFO  DecompileExporter.java>  (GhidraScript)  
+INFO  DecompileExporter.java>  (GhidraScript)  
+INFO  DecompileExporter.java> --- NO XREFS to string at 0x488b02 (ExportReady) --- (GhidraScript)  
+INFO  DecompileExporter.java> ### String at 0x48fbfd: ExportNotReady (GhidraScript)  
+INFO  DecompileExporter.java> ### 2 cross-reference(s) (GhidraScript)  
+INFO  DecompileExporter.java> === FUN_02da2900 @ Ghidra:02da2900 ELF:0x2ca2900 (xref from 02da29e5) === (GhidraScript)  
+INFO  DecompileExporter.java>   Referenced string: ExportNotReady (GhidraScript)  
+INFO  DecompileExporter.java> 
+undefined8 FUN_02da2900(char *param_1)
+
+{
+  runtime_error *this;
+  
+  if (((((*param_1 == 'E') && (param_1[1] == 'x')) && (param_1[2] == 'p')) &&
+      ((param_1[3] == 'o' && (param_1[4] == 'r')))) &&
+     ((((param_1[5] == 't' && ((param_1[6] == 'N' && (param_1[7] == 'o')))) &&
+       ((param_1[8] == 't' &&
+        (((param_1[9] == 'R' && (param_1[10] == 'e')) && (param_1[0xb] == 'a')))))) &&
+      (((param_1[0xc] == 'd' && (param_1[0xd] == 'y')) && (param_1[0xe] == '\0')))))) {
+    return 0;
+  }
+  if ((((*param_1 == 'E') && (param_1[1] == 'x')) &&
+      (((param_1[2] == 'p' && (((param_1[3] == 'o' && (param_1[4] == 'r')) && (param_1[5] == 't'))))
+       && ((param_1[6] == 'R' && (param_1[7] == 'e')))))) &&
+     ((param_1[8] == 'a' &&
+      (((param_1[9] == 'd' && (param_1[10] == 'y')) && (param_1[0xb] == '\0')))))) {
+    return 1;
+  }
+  if (((((((*param_1 == 'E') && (param_1[1] == 'x')) && (param_1[2] == 'p')) &&
+        ((param_1[3] == 'o' && (param_1[4] == 'r')))) &&
+       ((param_1[5] == 't' && ((param_1[6] == 'i' && (param_1[7] == 'n')))))) && (param_1[8] == 'g')
+      ) && (param_1[9] == '\0')) {
+    return 2;
+  }
+  if (param_1 == "ExportNotReady") {
+    return 0;
+  }
+  this = (runtime_error *)__cxa_allocate_exception(0x10);
+                    /* try { // try from 02da2a2a to 02da2a38 has its CatchHandler @ 02da2a4f */
+  std::runtime_error::runtime_error(this,"No such value");
+                    /* WARNING: Subroutine does not return */
+  __cxa_throw(this,PTR_typeinfo_02fe8e78,PTR__runtime_error_02fe8e80);
+}
+
+ (GhidraScript)  
+INFO  DecompileExporter.java>  (GhidraScript)  
+INFO  DecompileExporter.java>   xref from 02fdea80 -- NOT IN A FUNCTION (GhidraScript)  
+INFO  DecompileExporter.java>  (GhidraScript)  
+INFO  DecompileExporter.java> ### String at 0x4b6e8d: /csvPath (GhidraScript)  
+INFO  DecompileExporter.java> ### 1 cross-reference(s) (GhidraScript)  
+INFO  DecompileExporter.java> === FUN_02e88090 @ Ghidra:02e88090 ELF:0x2d88090 (xref from 02e88093) === (GhidraScript)  
+INFO  DecompileExporter.java>   Referenced string: /csvPath (GhidraScript)  
+INFO  DecompileExporter.java> 
+void FUN_02e88090(undefined8 param_1,undefined8 param_2)
+
+{
+  FUN_02e880a0(param_1,"/csvPath",param_2);
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileExporter.java>  (GhidraScript)  
+INFO  DecompileExporter.java>  (GhidraScript)  
+INFO  DecompileExporter.java> ### String at 0x46fc5c: /outputPath (GhidraScript)  
+INFO  DecompileExporter.java> ### 2 cross-reference(s) (GhidraScript)  
+INFO  DecompileExporter.java> === FUN_02da63f0 @ Ghidra:02da63f0 ELF:0x2ca63f0 (xref from 02da63fe) === (GhidraScript)  
+INFO  DecompileExporter.java>   Referenced string: /outputPath (GhidraScript)  
+INFO  DecompileExporter.java> 
+void FUN_02da63f0(long param_1,undefined8 param_2)
+
+{
+  FUN_02da6760(param_1 + 0x18,"/outputPath",param_2);
+  FUN_01c70f00(param_1 + 0x30,"/waveformId",param_2);
+  FUN_02da68f0(param_1 + 0x38,"/timeRange",param_2);
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileExporter.java>  (GhidraScript)  
+INFO  DecompileExporter.java> === FUN_02dc65e0 @ Ghidra:02dc65e0 ELF:0x2cc65e0 (xref from 02dc6601) === (GhidraScript)  
+INFO  DecompileExporter.java>   Referenced string: /outputPath (GhidraScript)  
+INFO  DecompileExporter.java> 
+void FUN_02dc65e0(long param_1,undefined8 param_2)
+
+{
+  FUN_01b38a60(param_1 + 0x18,&DAT_004ee548,param_2);
+  FUN_02da6760(param_1 + 0x20,"/outputPath",param_2);
+  FUN_02dc7140(param_1 + 0x38,"/analyzerQueries",param_2);
+  FUN_02dc72d0(param_1 + 0x50,"/analyzerRadixes",param_2);
+  FUN_02dc7460(param_1 + 0x68,"/ranges",param_2);
+  FUN_02dc75f0(param_1 + 0x80,"/columns",param_2);
+  FUN_01c15ff0(param_1 + 0x98,"/useWallClockTime",param_2);
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileExporter.java>  (GhidraScript)  
+INFO  DecompileExporter.java>  (GhidraScript)  
+INFO  DecompileExporter.java> ### String at 0x4bdbe1: /filepath (GhidraScript)  
+INFO  DecompileExporter.java> ### 7 cross-reference(s) (GhidraScript)  
+INFO  DecompileExporter.java> === FUN_01b3b9d0 @ Ghidra:01b3b9d0 ELF:0x1a3b9d0 (xref from 01b3b9f1) === (GhidraScript)  
+INFO  DecompileExporter.java>   Referenced string: /filepath (GhidraScript)  
+INFO  DecompileExporter.java> 
+void FUN_01b3b9d0(long param_1,undefined8 param_2)
+
+{
+  FUN_01b38a60(param_1 + 0x18,&DAT_004ee548,param_2);
+  FUN_01b3bdb0(param_1 + 0x20,"/filepath",param_2);
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileExporter.java>  (GhidraScript)  
+INFO  DecompileExporter.java> === FUN_02da3ac0 @ Ghidra:02da3ac0 ELF:0x2ca3ac0 (xref from 02da3b0a) === (GhidraScript)  
+INFO  DecompileExporter.java>   Referenced string: /filepath (GhidraScript)  
+INFO  DecompileExporter.java> 
+void FUN_02da3ac0(undefined8 *param_1,undefined8 param_2)
+
+{
+  long lVar1;
+  char cVar2;
+  
+  cVar2 = FUN_02ed7ea0(param_2);
+  if (cVar2 == '\0') {
+    lVar1 = FUN_02ed7e60(param_2);
+    if (lVar1 != 0) {
+      lVar1 = FUN_02ed7e60(param_2);
+      if (*(short *)(lVar1 + 0xe) != 0) {
+        if ((*(char *)(param_1 + 5) != '\0') && ((*(byte *)(param_1 + 2) & 1) != 0)) {
+          operator_delete((void *)param_1[4]);
+        }
+        param_1[2] = 0;
+        param_1[3] = 0;
+        *param_1 = 0;
+        param_1[1] = 0;
+        param_1[4] = 0;
+        *(undefined1 *)(param_1 + 5) = 1;
+        FUN_02da37a0(param_1,"/mode",param_2);
+        FUN_02da3930(param_1 + 1,"/percentComplete",param_2);
+        goto LAB_02da3b93;
+      }
+    }
+    if (*(char *)(param_1 + 5) != '\0') {
+      if ((*(byte *)(param_1 + 2) & 1) != 0) {
+        operator_delete((void *)param_1[4]);
+      }
+      *(undefined1 *)(param_1 + 5) = 0;
+    }
+  }
+  else if (*(char *)(param_1 + 5) != '\0') {
+    FUN_02da37a0(param_1,"/mode",param_2);
+    FUN_02da3930(param_1 + 1,"/percentComplete",param_2);
+LAB_02da3b93:
+    FUN_01c3d410(param_1 + 2,"/filepath",param_2);
+    return;
+  }
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileExporter.java>  (GhidraScript)  
+INFO  DecompileExporter.java>   xref from 02da3b89 in FUN_02da3ac0 @ 02da3ac0 (already decompiled) (GhidraScript)  
+INFO  DecompileExporter.java> === FUN_02da3110 @ Ghidra:02da3110 ELF:0x2ca3110 (xref from 02da3140) === (GhidraScript)  
+INFO  DecompileExporter.java>   Referenced string: /filepath (GhidraScript)  
+INFO  DecompileExporter.java> 
+void FUN_02da3110(long param_1,undefined8 param_2)
+
+{
+  FUN_02da37a0(param_1,"/mode",param_2);
+  FUN_02da3930(param_1 + 8,"/percentComplete",param_2);
+  FUN_01c3d410(param_1 + 0x10,"/filepath",param_2);
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileExporter.java>  (GhidraScript)  
+INFO  DecompileExporter.java> === FUN_02d9a450 @ Ghidra:02d9a450 ELF:0x2c9a450 (xref from 02d9a45a) === (GhidraScript)  
+INFO  DecompileExporter.java>   Referenced string: /filepath (GhidraScript)  
+INFO  DecompileExporter.java> 
+void FUN_02d9a450(long param_1,undefined8 param_2)
+
+{
+  FUN_01b3bdb0(param_1,"/filepath",param_2);
+  FUN_01c14cc0(param_1 + 0x18,"/errorMessage",param_2);
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileExporter.java>  (GhidraScript)  
+INFO  DecompileExporter.java> === FUN_02d9d300 @ Ghidra:02d9d300 ELF:0x2c9d300 (xref from 02d9d3bb) === (GhidraScript)  
+INFO  DecompileExporter.java>   Referenced string: /filepath (GhidraScript)  
+INFO  DecompileExporter.java> 
+void FUN_02d9d300(long *param_1,undefined8 param_2)
+
+{
+  undefined4 *puVar1;
+  byte bVar2;
+  uint uVar3;
+  string *this;
+  undefined4 uVar4;
+  undefined4 uVar5;
+  undefined4 uVar6;
+  char cVar7;
+  undefined8 *puVar8;
+  undefined8 uVar9;
+  long lVar10;
+  uint *puVar11;
+  undefined4 *puVar12;
+  ulong uVar13;
+  runtime_error *this_00;
+  uint uVar14;
+  long lVar15;
+  uint uVar16;
+  ulong local_88;
+  undefined8 uStack_80;
+  void *local_78;
+  ulong uStack_70;
+  undefined8 local_68;
+  void *pvStack_60;
+  long local_50;
+  undefined6 local_48;
+  undefined2 local_42;
+  undefined6 uStack_40;
+  
+  cVar7 = FUN_02ed7ea0(param_2);
+  if (cVar7 == '\0') {
+    lVar15 = FUN_02ed7e60(param_2);
+    if ((lVar15 == 0) || (lVar15 = FUN_02ed7e60(param_2), *(short *)(lVar15 + 0xe) != 4)) {
+      this_00 = (runtime_error *)__cxa_allocate_exception(0x10);
+                    /* try { // try from 02d9d6ef to 02d9d6fd has its CatchHandler @ 02d9d714 */
+      std::runtime_error::runtime_error(this_00,"json value is not an array");
+                    /* WARNING: Subroutine does not return */
+      __cxa_throw(this_00,PTR_typeinfo_02fe8e78,PTR__runtime_error_02fe8e80);
+    }
+    lVar15 = *param_1;
+    for (lVar10 = param_1[1]; lVar10 != lVar15; lVar10 = lVar10 + -0x30) {
+      if ((*(byte *)(lVar10 + -0x18) & 1) == 0) {
+        bVar2 = *(byte *)(lVar10 + -0x30);
+      }
+      else {
+        operator_delete(*(void **)(lVar10 + -8));
+        bVar2 = *(byte *)(lVar10 + -0x30);
+      }
+      if ((bVar2 & 1) != 0) {
+        operator_delete(*(void **)(lVar10 + -0x20));
+      }
+    }
+    param_1[1] = lVar15;
+    puVar11 = (uint *)FUN_02ed7e60(param_2);
+    if ((ulong)*puVar11 != 0) {
+      uVar13 = *(ulong *)(puVar11 + 2) & 0xffffffffffff;
+      lVar15 = (ulong)*puVar11 << 4;
+      do {
+        local_68 = 0;
+        pvStack_60 = (void *)0x0;
+        local_78 = (void *)0x0;
+        uStack_70 = 0;
+        local_88 = 0;
+        uStack_80 = 0;
+                    /* try { // try from 02d9d61f to 02d9d629 has its CatchHandler @ 02d9d745 */
+        FUN_02ed7dc0(&local_48,uVar13);
+                    /* try { // try from 02d9d62a to 02d9d64f has its CatchHandler @ 02d9d74a */
+        FUN_01b3bdb0(&local_88,"/filepath",&local_48);
+        FUN_01c14cc0(&uStack_70,"/errorMessage",&local_48);
+        this = (string *)param_1[1];
+        if (this == (string *)param_1[2]) {
+                    /* try { // try from 02d9d680 to 02d9d68a has its CatchHandler @ 02d9d74a */
+          FUN_01d73580(param_1,&local_88);
+        }
+        else {
+                    /* try { // try from 02d9d65a to 02d9d664 has its CatchHandler @ 02d9d73c */
+          std::string::string(this,(string *)&local_88);
+                    /* try { // try from 02d9d669 to 02d9d672 has its CatchHandler @ 02d9d723 */
+          std::string::string(this + 0x18,(string *)&uStack_70);
+          param_1[1] = (long)(this + 0x30);
+        }
+        FUN_02ed7e40(&local_48);
+        if ((uStack_70 & 1) != 0) {
+          operator_delete(pvStack_60);
+        }
+        if ((local_88 & 1) != 0) {
+          operator_delete(local_78);
+        }
+        uVar13 = uVar13 + 0x10;
+        lVar15 = lVar15 + -0x10;
+      } while (lVar15 != 0);
+    }
+  }
+  else {
+    FUN_02ed7e80();
+    puVar8 = (undefined8 *)FUN_02ed7e60(param_2);
+    *puVar8 = 0;
+    puVar8[1] = 0;
+    *(undefined2 *)((long)puVar8 + 0xe) = 4;
+    lVar15 = *param_1;
+    local_50 = param_1[1];
+    if (lVar15 != local_50) {
+      do {
+        uVar9 = FUN_02ed7e70(param_2);
+        FUN_02ed7db0(&local_88,uVar9);
+                    /* try { // try from 02d9d3b8 to 02d9d497 has its CatchHandler @ 02d9d788 */
+        FUN_01b3bdb0(lVar15,"/filepath",&local_88);
+        FUN_01c14cc0(lVar15 + 0x18,"/errorMessage",&local_88);
+        lVar10 = FUN_02ed7e60(&local_88);
+        if (lVar10 == 0) {
+          puVar11 = (uint *)FUN_02ed7e60(param_2);
+          uStack_40 = 0;
+          local_48 = 0;
+          local_42 = 0;
+                    /* try { // try from 02d9d4ad to 02d9d4fc has its CatchHandler @ 02d9d721 */
+          uVar9 = FUN_02ed7e70(param_2);
+          uVar14 = *puVar11;
+          uVar3 = puVar11[1];
+          if (uVar3 <= uVar14) {
+            uVar16 = (uVar3 + 1 >> 1) + uVar3;
+            if (uVar3 == 0) {
+              uVar16 = 0x10;
+            }
+            if (uVar3 < uVar16) {
+              uVar13 = FUN_01b22180(uVar9,*(ulong *)(puVar11 + 2) & 0xffffffffffff,(ulong)uVar3 << 4
+                                    ,(ulong)uVar16 << 4);
+              *(ulong *)(puVar11 + 2) = *(ulong *)(puVar11 + 2) & 0xffff000000000000 | uVar13;
+              puVar11[1] = uVar16;
+              uVar14 = *puVar11;
+            }
+          }
+          uVar13 = *(ulong *)(puVar11 + 2) & 0xffffffffffff;
+          *puVar11 = uVar14 + 1;
+          lVar10 = (ulong)uVar14 * 0x10;
+          *(ulong *)(uVar13 + 6 + lVar10) = CONCAT62(uStack_40,local_42);
+          *(ulong *)(uVar13 + lVar10) = CONCAT26(local_42,local_48);
+          *(undefined2 *)(uVar13 + 0xe + lVar10) = 0;
+        }
+        else {
+          puVar11 = (uint *)FUN_02ed7e60(param_2);
+          puVar12 = (undefined4 *)FUN_02ed7e60(&local_88);
+          uVar9 = FUN_02ed7e70(param_2);
+          uVar14 = *puVar11;
+          uVar3 = puVar11[1];
+          if (uVar3 <= uVar14) {
+            uVar16 = (uVar3 + 1 >> 1) + uVar3;
+            if (uVar3 == 0) {
+              uVar16 = 0x10;
+            }
+            if (uVar3 < uVar16) {
+              uVar13 = FUN_01b22180(uVar9,*(ulong *)(puVar11 + 2) & 0xffffffffffff,(ulong)uVar3 << 4
+                                    ,(ulong)uVar16 << 4);
+              *(ulong *)(puVar11 + 2) = *(ulong *)(puVar11 + 2) & 0xffff000000000000 | uVar13;
+              puVar11[1] = uVar16;
+              uVar14 = *puVar11;
+            }
+          }
+          *puVar11 = uVar14 + 1;
+          uVar4 = puVar12[1];
+          uVar5 = puVar12[2];
+          uVar6 = puVar12[3];
+          puVar1 = (undefined4 *)((*(ulong *)(puVar11 + 2) & 0xffffffffffff) + (ulong)uVar14 * 0x10)
+          ;
+          *puVar1 = *puVar12;
+          puVar1[1] = uVar4;
+          puVar1[2] = uVar5;
+          puVar1[3] = uVar6;
+          *(undefined2 *)((long)puVar12 + 0xe) = 0;
+        }
+        FUN_02ed7e40(&local_88);
+        lVar15 = lVar15 + 0x30;
+      } while (lVar15 != local_50);
+    }
+  }
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileExporter.java>  (GhidraScript)  
+INFO  DecompileExporter.java>   xref from 02d9d62d in FUN_02d9d300 @ 02d9d300 (already decompiled) (GhidraScript)  
+INFO  DecompileExporter.java>  (GhidraScript)  
+INFO  REPORT: Save succeeded for processed file: /libgraph_server_shared.so (HeadlessAnalyzer)  
