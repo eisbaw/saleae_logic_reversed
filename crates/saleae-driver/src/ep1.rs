@@ -85,13 +85,16 @@ impl Ep1CommandChannel {
     /// Performs the ReseedDevice + Ping handshake:
     ///
     /// 1. Generate 4 random bytes as the encryption seed.
-    /// 2. Send the raw seed on EP1 OUT (unencrypted, no opcode).
-    /// 3. Initialize the encryption state with the seed.
-    /// 4. Send an encrypted Ping command `[0x7D, 0x55]`.
-    /// 5. Read and decrypt the 1-byte response, verify it equals `0xAA`.
+    /// 2. Encrypt the reseed command with the current LFSR state (using
+    ///    `prepare_buffer` with the `| 0x20` control byte flag).
+    /// 3. Send the encrypted reseed (5 bytes) on EP1 OUT.
+    /// 4. Set the LFSR state to the new seed.
+    /// 5. Send an encrypted Ping command `[0x7D, 0x55]`.
+    /// 6. Read and decrypt the 1-byte response, verify it equals `0xAA`.
     ///
     /// This matches the `TestFirmwareResponsivnessAndReseed` sequence in
-    /// `libgraph_server_shared.so`.
+    /// `libgraph_server_shared.so`. The reseed is encrypted with the
+    /// current LFSR state (validated against pcap frame 15).
     pub fn initialize(&mut self) -> DriverResult<()> {
         // Step 1: Generate random seed.
         let mut seed_bytes = [0u8; 4];
@@ -110,22 +113,28 @@ impl Ep1CommandChannel {
             "ReseedDevice: sending seed"
         );
 
-        // Step 2: Send raw seed bytes on EP1 OUT (unencrypted, no opcode).
+        // Step 2: Encrypt the reseed command with current LFSR state.
+        // For XorAll mode, this produces a 5-byte packet (control byte +
+        // 4 XOR'd seed bytes). For None mode, this returns raw 4 bytes.
+        let encrypted = self.encryption.encrypt_reseed(&seed_bytes);
+
+        // Step 3: Send encrypted reseed on EP1 OUT.
         self.transport
-            .bulk_transfer_out(endpoint::BULK_OUT, &seed_bytes)
+            .bulk_transfer_out(endpoint::BULK_OUT, &encrypted)
             .map_err(|e| DriverError::CommandFailed {
                 command: "ReseedDevice",
                 detail: format!("bulk OUT failed: {e}"),
             })?;
 
-        // Step 3: Initialize encryption state with the seed.
+        // Step 4: Set LFSR state to the new seed (discards the advance_seed
+        // result from encrypt_reseed).
         self.encryption.reseed(seed);
 
-        // Step 4: Send encrypted Ping.
+        // Step 5: Send encrypted Ping.
         debug!("ReseedDevice: sending Ping");
         self.send_command(PING_OPCODE, &[PING_TEST_BYTE])?;
 
-        // Step 5: Read and decrypt response.
+        // Step 6: Read and decrypt response.
         let mut resp_buf = [0u8; 64];
         let n = self.recv_response(&mut resp_buf)?;
 
@@ -709,20 +718,14 @@ mod tests {
         let mock = std::sync::Arc::new(MockTransport::new());
 
         // The initialize sequence:
-        // 1. Bulk OUT: 4-byte seed (raw)
+        // 1. Bulk OUT: encrypted reseed (5 bytes for XorAll, 4 raw for None)
         // 2. Bulk OUT: encrypted ping command
         // 3. Bulk IN: encrypted ping response
 
-        // We need to queue a ping response. Since we don't know the seed
-        // in advance (it's random), we simulate with EncryptionMode::None
-        // to avoid encryption mismatch. This test verifies the protocol
-        // flow, not the encryption correctness.
-        //
-        // For a proper test of encryption correctness, we'd need to
-        // intercept the seed and compute the expected encrypted response.
-        // That's what the real hardware test does.
-
-        // Instead, test with None mode to verify the protocol flow.
+        // Test with None mode to verify the protocol flow. In None mode,
+        // encrypt_reseed returns raw 4-byte seed (no control byte, no XOR).
+        // For encryption correctness, see pcap_validation tests in
+        // obfuscation.rs.
         let transport = Box::new(MockTransportWrapper(mock.clone()));
         let mut channel = Ep1CommandChannel::new(transport, EncryptionMode::None);
 
@@ -733,7 +736,7 @@ mod tests {
         assert!(channel.is_initialized());
 
         let ops = mock.operations();
-        // Op 0: Bulk OUT (4-byte seed)
+        // Op 0: Bulk OUT (4-byte seed, raw in None mode)
         // Op 1: Bulk OUT (ping command: [0x7D, 0x55])
         // Op 2: Bulk IN (ping response)
         assert_eq!(ops.len(), 3, "expected 3 operations, got {}", ops.len());

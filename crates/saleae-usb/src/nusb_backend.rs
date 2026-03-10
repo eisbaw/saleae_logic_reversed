@@ -17,10 +17,25 @@ pub struct NusbTransport {
 }
 
 impl NusbTransport {
-    /// Open a USB device and claim interface 0.
+    /// Open a USB device, set configuration 1, and claim interface 0.
+    ///
+    /// The explicit SET_CONFIGURATION is required because the FX3 firmware's
+    /// SETCONF event handler creates the EP1 DMA channels. Without it, the
+    /// command processing thread blocks in `GetCommandRxBuffer()` and EP1
+    /// bulk transfers hang.
     ///
     /// The `device` should already be identified as a Saleae device.
     pub fn open(device: nusb::Device) -> UsbResult<Self> {
+        // SET_CONFIGURATION(1) triggers the FX3 firmware's CY_U3P_USB_EVENT_SETCONF
+        // handler, which calls CyU3PSetEpConfig() and CyU3PDmaChannelCreate() for
+        // the EP1 OUT/IN endpoints. Without this, EP1 DMA is never started.
+        device
+            .set_configuration(1)
+            .map_err(|e| UsbError::ClaimFailed {
+                interface: 0,
+                context: format!("set_configuration(1) failed: {e}"),
+            })?;
+
         let interface = device
             .claim_interface(0)
             .map_err(|e| UsbError::ClaimFailed {

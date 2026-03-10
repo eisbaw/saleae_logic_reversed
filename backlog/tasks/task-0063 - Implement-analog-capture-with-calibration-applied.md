@@ -1,9 +1,10 @@
 ---
 id: TASK-0063
 title: Implement analog capture with calibration applied
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-03-09 11:22'
+updated_date: '2026-03-09 14:09'
 labels:
   - rust
   - hardware-testing
@@ -35,3 +36,18 @@ Test: Apply a known DC voltage (e.g., from a battery or voltage reference) and v
 
 References: doc/protocol/analog-capture.md, re/notes/adc-encoding.md, re/notes/afe-voltage-ranges.md
 <!-- SECTION:DESCRIPTION:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Implemented analog capture with calibration applied in commit f4a9c9f.
+
+## Changes
+- New file: saleae-proto/src/analog.rs - AnalogProcessor chaining VoltageTransform + BiquadFilter
+- Added disaggregate_analog() to capture_data.rs for interleaved analog channel splitting
+- Added AnalogCaptureConfig, AfeChannelConfig to capture.rs (AFE register packing is PLACEHOLDER)
+- Updated CLI capture-analog command for dry-run validation
+- 13 files changed, 1245 insertions
+
+All 211 workspace tests pass, zero clippy warnings.
+<!-- SECTION:FINAL_SUMMARY:END -->

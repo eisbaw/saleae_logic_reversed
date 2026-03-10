@@ -6,9 +6,9 @@
 //! devices use a separate substitution cipher (not implemented here).
 //!
 //! The scheme is called "SimpleEncryption" in the original source
-//! (`SimpleEncryption.cpp`). It uses a 32-bit LFSR with taps at bits 1, 21,
-//! and 22 to advance the seed after each write and read operation. Both host
-//! and firmware must stay in lockstep.
+//! (`SimpleEncryption.cpp`). It uses a 32-bit LFSR with taps at bits 0, 1,
+//! 21, and 31 to advance the seed after each write and read operation. Both
+//! host and firmware must stay in lockstep.
 //!
 //! # Wire format
 //!
@@ -19,11 +19,11 @@
 //!
 //! ```text
 //! output[0] = control byte (see below)
-//! output[1] = opcode ^ seed_byte(0)
-//! output[2] = payload[0] ^ seed_byte(1)
-//! output[3] = payload[1] ^ seed_byte(2)
-//! output[4] = payload[2] ^ seed_byte(3)
-//! output[5] = payload[3] ^ seed_byte(0)   // wraps
+//! output[1] = opcode ^ seed_byte(1)
+//! output[2] = payload[0] ^ seed_byte(2)
+//! output[3] = payload[1] ^ seed_byte(3)
+//! output[4] = payload[2] ^ seed_byte(0)   // wraps
+//! output[5] = payload[3] ^ seed_byte(1)
 //! ...
 //! ```
 //!
@@ -32,8 +32,11 @@
 //! mask applied to seed byte 0:
 //!
 //! ```text
-//! control = (opcode & 0xD7) | (0x08 if firmware_download) ^ ((seed & 0xFF) & 0xD7)
+//! control = (opcode & 0xD7) [| 0x08 if firmware_download] ^ (seed_byte(0) & 0xD7)
 //! ```
+//!
+//! Note the data XOR starts at seed_byte(1), not seed_byte(0). The control
+//! byte uses seed_byte(0) with the D7 mask independently.
 //!
 //! ## Response read (decrypted)
 //!
@@ -65,6 +68,13 @@ const CONTROL_MASK: u8 = 0xD7;
 /// Firmware download flag in the control byte (bit 3).
 const FIRMWARE_FLAG: u8 = 0x08;
 
+/// Reseed flag in the control byte (bit 5).
+///
+/// Used by `prepare_buffer` (VA 0x2d99c10) when encrypting ReseedDevice
+/// commands. The `| 0x20` flag distinguishes reseed packets from normal
+/// commands and firmware download packets.
+const RESEED_FLAG: u8 = 0x20;
+
 /// Encryption mode, determined by device type.
 ///
 /// This corresponds to the mode selection at VA 0x2d97ec0 in
@@ -92,36 +102,32 @@ pub enum EncryptionMode {
 
 /// Perform one step of the 32-bit LFSR.
 ///
-/// Taps at bits 1, 21, and 22. Reconstructed from disassembly at VA 0x2d99290.
+/// Taps at bits 0, 1, 21, and 31. Feedback is XOR of these four bits,
+/// shifted into the MSB while the rest shifts right by 1.
+///
+/// Reconstructed from the odd-fixup path at VA 0x2d99290+0x5b in
+/// `libgraph_server_shared.so`. The main loop body at +0x20 computes two
+/// of these steps per iteration (optimized unrolling).
 ///
 /// This function is `#[inline]` because `advance_seed` calls it in a tight
 /// loop (35-66 iterations).
 #[inline]
 fn lfsr_step(state: &mut u32) {
     let s = *state;
-    let shifted = s >> 1;
-    let feedback = shifted ^ s; // taps at bit 0 and 1
-    let tap21 = ((s >> 21) ^ feedback) << 31; // tap at bit 21, move to MSB
-    let msb = (s & 0x8000_0000) ^ tap21; // new MSB from feedback
-    let combined = (msb.wrapping_add(shifted)) >> 1;
-    let newval = ((shifted ^ (s >> 22)) ^ combined) << 31; // tap at bit 22
-    *state = (newval ^ msb) | combined;
+    let feedback = (s ^ (s >> 1) ^ (s >> 21) ^ (s >> 31)) & 1;
+    *state = (s >> 1) | (feedback << 31);
 }
 
 /// Advance the LFSR seed by a data-dependent number of steps.
 ///
 /// The iteration count is `(seed & 0x1F) + 0x23`, giving a range of 35 to 66
-/// steps. The loop processes two LFSR steps per iteration (matching the
-/// original C code structure).
+/// single LFSR steps. The original binary at VA 0x2d99290 processes two steps
+/// per loop iteration (optimized unrolling), but the total count is N single
+/// steps.
 fn advance_seed(seed: &mut u32) {
     let n = (*seed & 0x1F) + 0x23;
-    let mut i = 0u32;
-    while i < n {
+    for _ in 0..n {
         lfsr_step(seed);
-        if i + 1 < n {
-            lfsr_step(seed);
-        }
-        i += 2;
     }
 }
 
@@ -241,12 +247,14 @@ impl SimpleEncryption {
         control ^= seed_byte(seed, 0) & CONTROL_MASK;
         out.push(control);
 
-        // Byte 1: opcode XOR'd with seed byte 0
-        out.push(opcode ^ seed_byte(seed, 0));
+        // Byte 1: opcode XOR'd with seed byte 1
+        // (the data XOR starts at sb1, not sb0 -- sb0 is used only for the
+        // control byte with the D7 mask)
+        out.push(opcode ^ seed_byte(seed, 1));
 
-        // Bytes 2+: payload XOR'd with cycling seed bytes (starting at byte 1)
+        // Bytes 2+: payload XOR'd with cycling seed bytes (sb2, sb3, sb0, sb1, ...)
         for (i, &b) in payload.iter().enumerate() {
-            out.push(b ^ seed_byte(seed, i + 1));
+            out.push(b ^ seed_byte(seed, i + 2));
         }
 
         // Advance seed after write
@@ -283,10 +291,59 @@ impl SimpleEncryption {
         advance_seed(&mut self.seed);
     }
 
+    /// Encrypt a ReseedDevice command for EP1 OUT.
+    ///
+    /// The reseed sends 4 seed bytes to the device, encrypted with the
+    /// current LFSR state using `prepare_buffer` (VA 0x2d99c10). The wire
+    /// format is 5 bytes:
+    ///
+    /// ```text
+    /// output[0] = ((seed_bytes[0] & 0xD7) | 0x20) ^ (current_sb0 & 0xD7)
+    /// output[1] = seed_bytes[0] ^ current_sb1
+    /// output[2] = seed_bytes[1] ^ current_sb2
+    /// output[3] = seed_bytes[2] ^ current_sb3
+    /// output[4] = seed_bytes[3] ^ current_sb0
+    /// ```
+    ///
+    /// After sending, the caller MUST call [`reseed`](Self::reseed) to set
+    /// the new LFSR state to the raw seed value.
+    ///
+    /// For `EncryptionMode::None`, returns the raw 4-byte seed without
+    /// encryption or control byte. For `XorFirmwareOnly`, the reseed is
+    /// still encrypted -- `prepare_buffer` always applies the XOR
+    /// regardless of the normal command encryption mode, because the
+    /// firmware needs to know the seed to establish shared state.
+    pub fn encrypt_reseed(&mut self, seed_bytes: &[u8; 4]) -> Vec<u8> {
+        if self.mode == EncryptionMode::None {
+            return seed_bytes.to_vec();
+        }
+
+        let current = self.seed;
+        let mut out = Vec::with_capacity(5);
+
+        // Control byte: seed_bytes[0] is the "opcode", with RESEED_FLAG set
+        let control =
+            ((seed_bytes[0] & CONTROL_MASK) | RESEED_FLAG) ^ (seed_byte(current, 0) & CONTROL_MASK);
+        out.push(control);
+
+        // Data bytes: XOR with cycling seed bytes starting at sb1
+        // (same pattern as encrypt_command)
+        for (i, &b) in seed_bytes.iter().enumerate() {
+            out.push(b ^ seed_byte(current, i + 1));
+        }
+
+        // Advance seed (matches prepare_buffer behavior; the result will be
+        // discarded when the caller calls reseed() with the new seed value)
+        advance_seed(&mut self.seed);
+
+        out
+    }
+
     /// Reset the seed (as done by ReseedDevice).
     ///
-    /// This should be called when a new seed is sent to the device. The old
-    /// seed is discarded and the LFSR state starts fresh.
+    /// This should be called after [`encrypt_reseed`](Self::encrypt_reseed)
+    /// to set the LFSR state to the new seed. The old seed (and any
+    /// advance_seed result) is discarded.
     pub fn reseed(&mut self, new_seed: u32) {
         self.seed = new_seed;
     }
@@ -459,10 +516,10 @@ mod tests {
     fn encrypt_adds_control_byte() {
         let mut enc = SimpleEncryption::new(0, EncryptionMode::XorAll);
         let result = enc.encrypt_command(0x7D, &[0x55], false);
-        // With seed=0, XOR is identity. Output should be:
-        // control = (0x7D & 0xD7) | 0 ^ (0 & 0xD7) = 0x55
-        // opcode  = 0x7D ^ 0 = 0x7D
-        // payload = 0x55 ^ 0 = 0x55
+        // With seed=0, XOR with all-zero bytes is identity:
+        // control = (0x7D & 0xD7) ^ (0 & 0xD7) = 0x55
+        // opcode  = 0x7D ^ sb1 = 0x7D ^ 0 = 0x7D
+        // payload = 0x55 ^ sb2 = 0x55 ^ 0 = 0x55
         assert_eq!(result.len(), 3, "output should be 1 byte longer than input");
         assert_eq!(result[0], 0x7D & CONTROL_MASK); // 0x55
         assert_eq!(result[1], 0x7D);
@@ -521,31 +578,26 @@ mod tests {
         let encrypted = host.encrypt_command(opcode, &payload, false);
         assert_eq!(encrypted.len(), 3);
 
-        // Firmware receives: skip control byte, decrypt opcode+payload
-        // The firmware side would parse the control byte, then decrypt the
-        // remaining bytes using its own seed copy.
-        //
-        // For the command bytes (not the control byte), the firmware XOR's
-        // with the same seed bytes:
+        // Firmware receives: skip control byte, decrypt opcode+payload.
+        // Data bytes (output[1..]) were XOR'd with cycling seed bytes
+        // starting at sb1. The firmware reverses this.
         let mut cmd_bytes = encrypted[1..].to_vec();
-        // The firmware decrypts the command body the same way the host encrypted it:
-        // each byte XOR'd with cycling seed bytes starting at byte 0.
         let fw_seed = firmware.seed();
         for (i, byte) in cmd_bytes.iter_mut().enumerate() {
-            *byte ^= seed_byte(fw_seed, i);
+            *byte ^= seed_byte(fw_seed, i + 1); // starts at sb1
         }
-        firmware.advance_seed(); // firmware advances after decoding the write
+        firmware.advance_seed();
 
         assert_eq!(cmd_bytes[0], opcode);
         assert_eq!(cmd_bytes[1], payload[0]);
 
-        // Now firmware sends response. The firmware encrypts with its current seed.
+        // Firmware sends response (plain XOR with sb0..sb3 cycling)
         let mut response = vec![0xAA]; // ping response
         let fw_resp_seed = firmware.seed();
         for (i, byte) in response.iter_mut().enumerate() {
             *byte ^= seed_byte(fw_resp_seed, i);
         }
-        firmware.advance_seed(); // firmware advances after encoding the read
+        firmware.advance_seed();
 
         // Host decrypts response
         host.decrypt_response(&mut response, false);
@@ -649,6 +701,8 @@ mod tests {
         //         = 0x03
         let expected_control = (opcode & CONTROL_MASK) ^ (0xAB & CONTROL_MASK);
         assert_eq!(result[0], expected_control);
+        // output[1] = opcode ^ sb1 = 0x80 ^ 0x00 = 0x80
+        assert_eq!(result[1], 0x80);
     }
 
     // -- Longer payload cycling --
@@ -662,22 +716,23 @@ mod tests {
 
         // result[0] = control byte = (0x00 & 0xD7) ^ (0x01 & 0xD7) = 0x01
         assert_eq!(result[0], 0x01);
-        // result[1] = 0x00 ^ seed_byte(0) = 0x01
-        assert_eq!(result[1], 0x01);
-        // result[2] = 0x00 ^ seed_byte(1) = 0x02
-        assert_eq!(result[2], 0x02);
-        // result[3] = 0x00 ^ seed_byte(2) = 0x03
-        assert_eq!(result[3], 0x03);
-        // result[4] = 0x00 ^ seed_byte(3) = 0x04
-        assert_eq!(result[4], 0x04);
-        // result[5] = 0x00 ^ seed_byte(0) = 0x01 (wraps)
-        assert_eq!(result[5], 0x01);
-        // result[6] = 0x00 ^ seed_byte(1) = 0x02
-        assert_eq!(result[6], 0x02);
-        // result[7] = 0x00 ^ seed_byte(2) = 0x03
-        assert_eq!(result[7], 0x03);
-        // result[8] = 0x00 ^ seed_byte(3) = 0x04
-        assert_eq!(result[8], 0x04);
+        // Data XOR starts at sb1 (not sb0):
+        // result[1] = 0x00 ^ sb1 = 0x02
+        assert_eq!(result[1], 0x02);
+        // result[2] = 0x00 ^ sb2 = 0x03
+        assert_eq!(result[2], 0x03);
+        // result[3] = 0x00 ^ sb3 = 0x04
+        assert_eq!(result[3], 0x04);
+        // result[4] = 0x00 ^ sb0 = 0x01 (wraps)
+        assert_eq!(result[4], 0x01);
+        // result[5] = 0x00 ^ sb1 = 0x02
+        assert_eq!(result[5], 0x02);
+        // result[6] = 0x00 ^ sb2 = 0x03
+        assert_eq!(result[6], 0x03);
+        // result[7] = 0x00 ^ sb3 = 0x04
+        assert_eq!(result[7], 0x04);
+        // result[8] = 0x00 ^ sb0 = 0x01
+        assert_eq!(result[8], 0x01);
     }
 
     #[test]
@@ -709,6 +764,114 @@ mod tests {
         ));
     }
 
+    // -- Reseed encryption tests --
+
+    #[test]
+    fn encrypt_reseed_wire_format_with_zero_seed() {
+        let mut enc = SimpleEncryption::new(0, EncryptionMode::XorAll);
+        let seed_bytes = [0xAA, 0xBB, 0xCC, 0xDD];
+        let wire = enc.encrypt_reseed(&seed_bytes);
+        // control = ((0xAA & 0xD7) | 0x20) ^ (0x00 & 0xD7) = (0x82 | 0x20) = 0xA2
+        // data[0] = 0xAA ^ sb1(0) = 0xAA
+        // data[1] = 0xBB ^ sb2(0) = 0xBB
+        // data[2] = 0xCC ^ sb3(0) = 0xCC
+        // data[3] = 0xDD ^ sb0(0) = 0xDD
+        assert_eq!(wire, vec![0xA2, 0xAA, 0xBB, 0xCC, 0xDD]);
+    }
+
+    #[test]
+    fn encrypt_reseed_none_mode_returns_raw() {
+        let mut enc = SimpleEncryption::new(0xDEADBEEF, EncryptionMode::None);
+        let seed_bytes = [0x11, 0x22, 0x33, 0x44];
+        let wire = enc.encrypt_reseed(&seed_bytes);
+        assert_eq!(wire, vec![0x11, 0x22, 0x33, 0x44]);
+        // Seed should NOT advance in None mode
+        assert_eq!(enc.seed(), 0xDEADBEEF);
+    }
+
+    #[test]
+    fn encrypt_reseed_pcap_frame15() {
+        // Validate against pcap frame 15: reseed from state 0x354b248e
+        // Seed bytes (LE of 0x6fe77bc8): [0xc8, 0x7b, 0xe7, 0x6f]
+        // Wire bytes from pcap: [0x66, 0xec, 0x30, 0xd2, 0xe1]
+        let old_state = 0x354b248e_u32;
+        let mut enc = SimpleEncryption::new(old_state, EncryptionMode::XorAll);
+        let seed_bytes: [u8; 4] = [0xc8, 0x7b, 0xe7, 0x6f];
+        let wire = enc.encrypt_reseed(&seed_bytes);
+        assert_eq!(
+            wire,
+            vec![0x66, 0xec, 0x30, 0xd2, 0xe1],
+            "reseed wire bytes must match pcap frame 15"
+        );
+
+        // After encrypt_reseed, seed was advanced (but we're about to discard it)
+        // Simulate the caller's reseed() call
+        enc.reseed(0x6fe77bc8);
+        assert_eq!(enc.seed(), 0x6fe77bc8);
+    }
+
+    // -- Pcap validation (ground truth) --
+
+    /// Validate the full encryption against captured pcap data from a real
+    /// Saleae Logic Pro 8 session (usb.logic8pro.pcap).
+    ///
+    /// This is the definitive test: every wire byte must match the pcap
+    /// exactly. The sequence starts with the reseed (frame 15) and continues
+    /// through multiple command/response pairs.
+    #[test]
+    fn pcap_validation_full_sequence() {
+        // Pre-reseed LFSR state (derived from pcap frame 15)
+        let pre_reseed_state = 0x354b248e_u32;
+        let mut enc = SimpleEncryption::new(pre_reseed_state, EncryptionMode::XorAll);
+
+        // Frame 15: EP1 OUT 5 bytes - ReseedDevice
+        let seed_bytes: [u8; 4] = [0xc8, 0x7b, 0xe7, 0x6f]; // 0x6fe77bc8 LE
+        let reseed_wire = enc.encrypt_reseed(&seed_bytes);
+        assert_eq!(
+            reseed_wire,
+            vec![0x66, 0xec, 0x30, 0xd2, 0xe1],
+            "reseed wire mismatch (frame 15)"
+        );
+        enc.reseed(0x6fe77bc8);
+
+        // Frame 17: EP1 OUT 3 bytes - encrypted ping [0x7D, 0x55]
+        let ping_wire = enc.encrypt_command(PING_OPCODE, &[PING_TEST_BYTE], false);
+        assert_eq!(ping_wire, vec![0x95, 0x06, 0xB2], "ping wire mismatch");
+
+        // Frame 20: EP1 IN 1 byte - encrypted response [0xCD]
+        let mut resp1 = vec![0xCDu8];
+        enc.decrypt_response(&mut resp1, false);
+        assert_eq!(
+            resp1[0], PING_EXPECTED_RESPONSE,
+            "ping response should be 0xAA"
+        );
+
+        // Frame 21: EP1 OUT 2 bytes - encrypted cmd2 [0x96, 0x42]
+        // Opcode 0x8B (derived from 0x42 ^ sb1 where sb1=0xC9)
+        let cmd2_wire = enc.encrypt_command(0x8B, &[], false);
+        assert_eq!(cmd2_wire, vec![0x96, 0x42], "cmd2 wire mismatch");
+
+        // Frame 24: EP1 IN 128 bytes - first 4 bytes decrypt to "Logi"
+        let mut resp2_first4 = vec![0x6Au8, 0xB2, 0xE5, 0x0C];
+        let resp2_seed = enc.seed(); // save for partial decrypt check
+                                     // Just check first 4 bytes (we don't have the full 128-byte response)
+        for (i, byte) in resp2_first4.iter_mut().enumerate() {
+            *byte ^= seed_byte(resp2_seed, i);
+        }
+        assert_eq!(&resp2_first4, b"Logi", "resp2 should start with 'Logi'");
+        // Still need to advance seed for the full response
+        enc.advance_seed();
+
+        // Frame 25: EP1 OUT 8 bytes - encrypted cmd3
+        // source[0] = 0x07, remaining = [0x33, 0x81, 0x08, 0x00, 0x08, 0x00]
+        let cmd3_wire = enc.encrypt_command(0x07, &[0x33, 0x81, 0x08, 0x00, 0x08, 0x00], false);
+        assert_eq!(
+            cmd3_wire,
+            vec![0xD3, 0x38, 0xBF, 0x43, 0xF4, 0x3F, 0x84, 0xC2],
+            "cmd3 wire mismatch"
+        );
+    }
+
     // -- Empty payload --
 
     #[test]
@@ -734,11 +897,12 @@ mod tests {
             // Host encrypts
             let encrypted = host.encrypt_command(opcode, &payload, false);
 
-            // Firmware decrypts command (skipping control byte)
+            // Firmware decrypts command (skipping control byte).
+            // Data bytes start at sb1, so firmware XORs with seed_byte(i+1).
             let fw_cmd_seed = fw.seed();
             let mut cmd = encrypted[1..].to_vec();
             for (i, b) in cmd.iter_mut().enumerate() {
-                *b ^= seed_byte(fw_cmd_seed, i);
+                *b ^= seed_byte(fw_cmd_seed, i + 1);
             }
             fw.advance_seed();
 
@@ -753,7 +917,8 @@ mod tests {
                 "cycle {cycle}: firmware decoded wrong payload"
             );
 
-            // Firmware sends response (just echo back payload length as 1 byte)
+            // Firmware sends response (just echo back payload length as 1 byte).
+            // Responses use simple cycling XOR from sb0.
             let response_plain = vec![payload.len() as u8];
             let fw_resp_seed = fw.seed();
             let mut response_enc = response_plain.clone();
@@ -783,62 +948,55 @@ mod tests {
 
     #[test]
     fn lfsr_step_from_one_produces_expected_sequence() {
-        // Record the first 4 values from seed=1 so we have a regression test.
+        // Pinned first 8 LFSR outputs from seed=1 (taps at bits 0,1,21,31).
+        // These values are validated indirectly by the pcap test which
+        // depends on the LFSR being exactly right.
         let mut state = 1u32;
-        let mut vals = Vec::new();
-        for _ in 0..4 {
+        let expected = [
+            0x8000_0000,
+            0xC000_0000,
+            0xE000_0000,
+            0xF000_0000,
+            0xF800_0000,
+            0xFC00_0000,
+            0xFE00_0000,
+            0xFF00_0000,
+        ];
+        for &exp in &expected {
             lfsr_step(&mut state);
-            vals.push(state);
-        }
-
-        // These are the expected outputs based on the LFSR algorithm.
-        // If the LFSR implementation changes, these will catch it.
-        assert_eq!(
-            vals,
-            vec![vals[0], vals[1], vals[2], vals[3]],
-            "regression: LFSR outputs changed"
-        );
-
-        // Verify they are all distinct and non-zero
-        for (i, &v) in vals.iter().enumerate() {
-            assert_ne!(v, 0, "LFSR step {i} from seed=1 should not be zero");
-            assert_ne!(v, 1, "LFSR step {i} from seed=1 should not be 1");
-            for (j, &w) in vals.iter().enumerate() {
-                if i != j {
-                    assert_ne!(v, w, "LFSR steps {i} and {j} should differ");
-                }
-            }
+            assert_eq!(state, exp);
         }
     }
 
     #[test]
     fn lfsr_step_from_one_pinned() {
-        // Pinned LFSR output from seed=1. These values serve as a regression
-        // test: if the LFSR transcription is wrong, these will fail.
+        // Pinned LFSR output from seed=1. Taps at bits 0,1,21,31.
+        // Step 1: feedback = (1 ^ 0 ^ 0 ^ 0) & 1 = 1
+        //         new = (1 >> 1) | (1 << 31) = 0x80000000
         let mut s = 1u32;
+        lfsr_step(&mut s);
+        assert_eq!(s, 0x8000_0000);
+        // Step 2: feedback = (0 ^ 0 ^ 0 ^ 1) & 1 = 1
+        //         new = 0x40000000 | 0x80000000 = 0xC0000000
         lfsr_step(&mut s);
         assert_eq!(s, 0xC000_0000);
         lfsr_step(&mut s);
+        assert_eq!(s, 0xE000_0000);
+        lfsr_step(&mut s);
         assert_eq!(s, 0xF000_0000);
-        lfsr_step(&mut s);
-        assert_eq!(s, 0xFC00_0000);
-        lfsr_step(&mut s);
-        assert_eq!(s, 0xFF00_0000);
     }
 
     #[test]
     fn advance_seed_pinned() {
-        // Pinned advance_seed outputs for several starting seeds.
+        // Pinned advance_seed output. seed=1: n = (1 & 0x1F) + 0x23 = 36 steps.
         let mut s = 1u32;
         advance_seed(&mut s);
-        assert_eq!(s, 0xA390_54B4);
+        assert_eq!(s, 0x4199_557f, "advance_seed(1) pinned value");
 
-        let mut s = 0xDEAD_BEEF;
-        advance_seed(&mut s);
-        assert_eq!(s, 0x8157_3BA4);
-
-        let mut s = 0xCAFE_BABE_u32;
-        advance_seed(&mut s);
-        assert_eq!(s, 0xF20B_628D);
+        // Pinned against the pcap-validated seed (0x6fe77bc8):
+        // n = (0xc8 & 0x1F) + 0x23 = 8 + 35 = 43 steps.
+        let mut s2 = 0x6fe7_7bc8u32;
+        advance_seed(&mut s2);
+        assert_eq!(s2, 0x4c80_1767, "advance_seed(0x6fe77bc8) pinned value");
     }
 }

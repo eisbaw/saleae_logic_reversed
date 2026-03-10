@@ -51,18 +51,18 @@ pub fn raw_ep1_test() -> Result<()> {
         Err(e) => println!("Active configuration: unknown ({e})"),
     }
 
+    // SET_CONFIGURATION(1) triggers the FX3 firmware's SETCONF event handler,
+    // which creates the EP1 DMA channels. Without this, EP1 commands hang.
+    match usb_device.set_configuration(1) {
+        Ok(()) => println!("set_configuration(1): OK"),
+        Err(e) => println!("set_configuration(1): {e}"),
+    }
+
     let interface = usb_device
         .claim_interface(0)
         .map_err(|e| anyhow::anyhow!("failed to claim interface: {e}"))?;
 
     println!("Interface 0 claimed.");
-
-    // set_alt_setting(0) is required to make EP1 OUT functional.
-    // Without it, bulk OUT transfers hang or STALL.
-    match interface.set_alt_setting(0) {
-        Ok(()) => println!("set_alt_setting(0): OK"),
-        Err(e) => println!("set_alt_setting(0): {e}"),
-    }
 
     // Clear any stale endpoint halts.
     let _ = interface.clear_halt(0x01);

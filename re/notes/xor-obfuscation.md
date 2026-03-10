@@ -1,10 +1,11 @@
 # SimpleEncryption XOR Obfuscation Scheme
 
-Investigation date: 2026-03-09
+Investigation date: 2026-03-09 (updated 2026-03-10)
 Binary: libgraph_server_shared.so v2.4.40
-Task: TASK-0049
+Task: TASK-0049, TASK-0066
 Depends on: TASK-0028 (ReseedDevice)
 Source file: SimpleEncryption.cpp (from assertion metadata)
+Status: **VALIDATED AGAINST PCAP** (all wire bytes match)
 
 
 ## Summary
@@ -65,13 +66,19 @@ output[0] = (opcode & 0xD7)                        ; control byte (bits 3,5 clea
            | (0x08 if firmware_download_mode)        ; bit 3 = firmware flag
            ^ ((seed & 0xFF) & 0xD7)                  ; XOR with masked seed byte 0
 
-output[1] = opcode ^ ((seed >> 0) & 0xFF)            ; original opcode XOR'd
-output[2] = payload_0 ^ ((seed >> 8) & 0xFF)         ; payload bytes XOR'd
-output[3] = payload_1 ^ ((seed >> 16) & 0xFF)        ; cycling through seed bytes
-output[4] = payload_2 ^ ((seed >> 24) & 0xFF)
-output[5] = payload_3 ^ ((seed >> 0) & 0xFF)         ; wraps around
+output[1] = opcode     ^ ((seed >> 8)  & 0xFF)      ; data XOR starts at sb1
+output[2] = payload_0  ^ ((seed >> 16) & 0xFF)      ; sb2
+output[3] = payload_1  ^ ((seed >> 24) & 0xFF)      ; sb3
+output[4] = payload_2  ^ ((seed >> 0)  & 0xFF)      ; sb0 (wraps)
+output[5] = payload_3  ^ ((seed >> 8)  & 0xFF)      ; sb1
 ...
 ```
+
+IMPORTANT: The data XOR starts at seed byte 1 (sb1), NOT seed byte 0.
+The control byte independently uses sb0 with the 0xD7 mask. This was
+confirmed by disassembly of the scalar XOR loop at VA 0x2d98710:
+`esi` starts at `rdx*8 = 8`, giving bit offset 8 = sb1 for the first
+data byte.
 
 The output is 1 byte longer than the input (control byte prepended).
 
@@ -84,7 +91,8 @@ for i in 0..response_len:
     response[i] ^= (seed >> ((i % 4) * 8)) & 0xFF
 ```
 
-No 0xD7 mask, no control byte. Simple cyclic XOR with the full seed.
+No 0xD7 mask, no control byte. Simple cyclic XOR with the full seed,
+starting at sb0.
 
 ### Seed Byte Extraction
 
@@ -120,32 +128,29 @@ N = (seed & 0x1F) + 0x23    // range: 35 to 66 iterations
 
 ### LFSR Step (one iteration)
 
+Taps at bits 0, 1, 21, and 31. This is a maximal-length LFSR
+(period 2^32 - 1, excluding state 0).
+
 ```c
 void lfsr_step(uint32_t *state) {
     uint32_t s = *state;
-    uint32_t shifted = s >> 1;
-    uint32_t feedback = shifted ^ s;           // taps at bit 0 and 1
-    uint32_t tap21 = (s >> 21) ^ feedback;     // tap at bit 21
-    tap21 <<= 31;                              // move to MSB position
-    uint32_t msb = s & 0x80000000;             // save original MSB
-    msb ^= tap21;                              // new MSB from feedback
-    uint32_t combined = msb + shifted;
-    combined >>= 1;
-    uint32_t newval = (shifted ^ (s >> 22)) ^ combined;  // tap at bit 22
-    newval <<= 31;
-    newval ^= msb;
-    newval |= combined;
-    *state = newval;
+    uint32_t feedback = (s ^ (s >> 1) ^ (s >> 21) ^ (s >> 31)) & 1;
+    *state = (s >> 1) | (feedback << 31);
 }
 
 void advance_seed(uint32_t *seed) {
     uint32_t n = (*seed & 0x1F) + 0x23;
-    for (uint32_t i = 0; i < n; i += 2) {
+    for (uint32_t i = 0; i < n; i++) {
         lfsr_step(seed);
-        if (i + 1 < n) lfsr_step(seed);  // two steps per loop iteration
     }
 }
 ```
+
+NOTE: The assembly at VA 0x2d99290 uses an optimized loop that computes
+two LFSR steps per iteration (loop stride 2), with a single-step fixup
+for odd N. The net effect is N total single-step LFSR applications. A
+previous transcription error had our lfsr_step() computing two steps
+per call, which was wrong.
 
 ### Zero Seed Behavior
 
@@ -171,6 +176,40 @@ order is:
 Each write-read pair consumes TWO seed advancements (one for write,
 one for read). If either side misses a step, all subsequent communication
 is garbled.
+
+
+## Pcap Validation
+
+Validated against `~/topics/saleae_logic_8_pro/data-002/usb.logic8pro.pcap`
+on a Logic Pro 8 (21a9:1005).
+
+### Reseed (Frame 15)
+
+The reseed packet is encrypted with the CURRENT LFSR state (the state
+before the reseed). After sending, the host stores the 4 raw seed bytes
+as the new LFSR state. The reseed uses `prepare_buffer` (VA 0x2d99c10),
+which applies `| 0x20` to the control byte (not `| 0x08`).
+
+From the pcap, the initial state before reseed is 0x354b248e, and the
+new seed (= LFSR state for subsequent commands) is 0x6fe77bc8.
+
+### Validated Sequence
+
+All wire bytes match the pcap:
+
+| Frame | Direction | Wire Bytes | Decrypted |
+|-------|-----------|------------|-----------|
+| 15    | OUT       | 66 ec 30 d2 e1 | Reseed (encrypted with old state 0x354b248e) |
+| 17    | OUT       | 95 06 b2 | Ping [0x7D, 0x55] |
+| 20    | IN        | cd | Response 0xAA (complement of 0x55) |
+| 21    | OUT       | 96 42 | Command 0x8B (GetDeviceId?) |
+| 24    | IN        | 6a b2 e5 0c ... | "Logi..." (device ID string, 128 bytes) |
+| 25    | OUT       | d3 38 bf 43 f4 3f 84 c2 | Command 0x07 [params] |
+| 28    | IN        | 09 a1 9f 5c 4d 29 0b 31 | Response |
+| 29    | OUT       | 45 2d 4a 6b 62 2a 7f ea | Command 0x07 [params] |
+| 32    | IN        | ad 08 25 37 d1 4f | "REV" + version bytes |
+| 33    | OUT       | 01 6c | Command 0x7E |
+| 36    | IN        | a6 | Response 0x00 (success) |
 
 
 ## Substitution Cipher (Legacy Mode, DeviceType 0-1)
@@ -233,11 +272,11 @@ for each byte in buffer:
 1. `ReseedDevice`: Generate 4 random bytes, send to EP1 OUT, store as seed
 2. `SetControlByte`: For each write, prepend a control byte:
    - `control = (opcode & 0xD7) | (0x08 if firmware_download)`
-3. `XOR encrypt`: XOR the entire output buffer with cyclic seed bytes
-   - Byte 0: XOR with `(seed & 0xFF) & 0xD7`
-   - Bytes 1+: XOR with `(seed >> ((i % 4) * 8)) & 0xFF`
+3. `XOR encrypt`: XOR the output buffer with cyclic seed bytes
+   - Byte 0: XOR with `(seed & 0xFF) & 0xD7` (D7 mask on control byte)
+   - Bytes 1+: XOR starting at sb1, cycling sb1,sb2,sb3,sb0,sb1,...
 4. `XOR decrypt`: XOR received response bytes with cyclic seed bytes
-   - All bytes: XOR with `(seed >> ((i % 4) * 8)) & 0xFF` (no mask)
+   - All bytes: XOR with `(seed >> ((i % 4) * 8)) & 0xFF` (no mask, starts at sb0)
 5. `LFSR advance`: After each write AND each read, advance the seed
 6. Both sides must stay in lockstep
 
@@ -274,13 +313,14 @@ risks subtle failures and is not worth the saved effort.
 
 | Finding | Confidence | Evidence |
 |---------|-----------|----------|
-| XOR with cyclic seed bytes | High | SIMD + scalar loops both confirm |
-| Control byte prepended on write | High | SetControlByte at VA 0x2d987b0, wrapper at 0x2d97ec0 |
-| 0xD7 mask on byte 0 of write | High | Both scalar loops confirm |
-| No mask on read XOR | High | Read scalar loop at 0x2d99730 has no 0xD7 |
-| LFSR advancement after each op | High | Inlined at both write (0x2d9872a) and read (0x2d9975c) |
-| LFSR taps at bits 1, 21, 22 | High | Disassembly is unambiguous |
-| Iteration count = (seed & 0x1F) + 0x23 | High | Clear from `and $0x1f` + `add $0x23` |
+| XOR with cyclic seed bytes | Confirmed | Pcap validation (all bytes match) |
+| Control byte prepended on write | Confirmed | Pcap validation |
+| 0xD7 mask on byte 0 of write | Confirmed | Pcap validation |
+| Data XOR starts at sb1, not sb0 | Confirmed | Assembly at 0x2d98710 + pcap validation |
+| No mask on read XOR | Confirmed | Pcap validation (resp decrypts to "Logi", "REV") |
+| LFSR taps at bits 0, 1, 21, 31 | Confirmed | Assembly + pcap validation |
+| Iteration count = (seed & 0x1F) + 0x23 | Confirmed | Assembly + pcap validation |
+| LFSR advance after each op | Confirmed | Pcap validation (6 cmd/resp pairs all correct) |
 | Pro devices (6,7) XOR all commands | High | `(mode & 0xFE) == 6` condition at 0x2d98290 |
 | Non-Pro FX3 (4,5) XOR only fw download | High | `test %al, %al; jne` at 0x2d98295 |
 | Legacy (0,1) use substitution cipher | High | `cmp $0x1; ja` at 0x2d97edc and 0x2d99314 |
@@ -300,6 +340,7 @@ risks subtle failures and is not worth the saved effort.
 | 0x2d91e80 | LinuxUsbDevice::Write |
 | 0x2d92310 | LinuxUsbDevice::Read |
 | 0x2d91950 | LinuxUsbDevice::ReseedDevice |
+| 0x2d99c10 | prepare_buffer (SetControlByte + XOR, used by ReseedDevice) |
 | 0x1c4e860 | TestFirmwareResponsivnessAndReseed |
 | 0x1c13df0 | GetVidPidForDevice |
 
@@ -309,3 +350,4 @@ risks subtle failures and is not worth the saved effort.
 - `re/notes/reseed-mechanism.md` -- ReseedDevice analysis (TASK-0028)
 - `doc/protocol/ep1-commands.md` -- EP1 command protocol
 - `re/notes/ep1-command-protocol.md` -- detailed analysis notes
+- `re/scripts/validate-lfsr9.rs` -- full pcap validation script
