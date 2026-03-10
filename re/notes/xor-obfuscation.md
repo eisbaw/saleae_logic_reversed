@@ -330,8 +330,11 @@ risks subtle failures and is not worth the saved effort.
 
 ## Key Virtual Addresses
 
+**NOTE**: The VAs below are from objdump (ELF virtual addresses). Ghidra loads
+the binary with a +0x100000 rebase. Add 0x100000 to get Ghidra addresses.
+Example: objdump 0x2d97ec0 = Ghidra 0x2e97ec0.
+
 | VA | Function |
-|----|----------|
 | 0x2d97ec0 | SimpleEncryption wrapper (write path) |
 | 0x2d987b0 | SetControlByte |
 | 0x2d989e0 | XOR encrypt function (standalone, SIMD) |
@@ -351,3 +354,4 @@ risks subtle failures and is not worth the saved effort.
 - `doc/protocol/ep1-commands.md` -- EP1 command protocol
 - `re/notes/ep1-command-protocol.md` -- detailed analysis notes
 - `re/scripts/validate-lfsr9.rs` -- full pcap validation script
+- `re/ghidra/decompiled-encryption.txt` -- Ghidra decompilation of all 9 encryption functions
