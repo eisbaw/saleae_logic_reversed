@@ -4,7 +4,7 @@ title: 'RE boost::multiprecision usage -- identify big integer math'
 status: Done
 assignee: []
 created_date: '2026-03-10 12:32'
-updated_date: '2026-03-10 20:15'
+updated_date: '2026-03-10 20:16'
 labels:
   - re
   - ghidra
@@ -36,30 +36,5 @@ Could reveal a subtle precision requirement we'd otherwise miss.
 ## Final Summary
 
 <!-- SECTION:FINAL_SUMMARY:BEGIN -->
-## Findings
-
-Boost.Multiprecision is used exclusively for **128-bit integer timestamp arithmetic** -- not for cryptography, sample counting, or arbitrary precision math.
-
-### Key discoveries:
-1. **Only one boost header string** survives: `divide.hpp` with `eval_modulus` at ELF 0x2db34e0
-2. **35 functions** use 128-bit intrinsics (`__udivti3`, `__fixunsdfti`, etc.)
-3. All fall into 4 categories:
-   - Integer-to-string formatting (libc++ `to_string` for `__int128`)
-   - `std::filesystem::__last_write_time` (libc++ internal)
-   - **GraphTime/SaleaeTime timestamp conversion** (the actual Saleae code)
-   - RocksDB sample storage with nanosecond timestamp keys
-
-### GraphTime internal representation:
-```
-struct GraphTime { uint64_t seconds; double fractional_ns; };
-```
-Converted to 128-bit nanoseconds when precision matters: `total_ns = (i128)seconds * 1e9 + (i128)fractional_ns`
-
-### The boost eval_modulus is used for exactly one thing:
-Computing `timestamp % signal_period` in `SimulatorSignalCsvRepeating::FindTrigger` (MSO simulator) to find where in a repeating waveform a trigger event occurs.
-
-### Rust implication: **No bignum crate needed**
-Rust's native `i128`/`u128` compiles to the same `__udivti3`/`__umodti3` intrinsics. Direct replacement.
-
-### Full analysis: `re/notes/boost-multiprecision.md`
+Boost.Multiprecision is used exclusively for 128-bit integer timestamp arithmetic. None of the initial hypotheses (crypto, u64 overflow, arbitrary-precision) were correct.\n\nUsage breakdown:\n- 20 GraphTime/SaleaeTime functions (ELF 0x1c89c40-0x1c994b0): Convert {uint64_t seconds, double fractional_ns} to 128-bit nanosecond counts for RocksDB keys, sample-index-to-time, measurement formatting. Pattern: total_ns = (i128)seconds * 1e9 + (i128)fractional_ns.\n- 1 signal period modulus (ELF 0x2db2bc0): SimulatorSignalCsvRepeating::FindTrigger -- MSO simulator code, out of scope.\n- 4 integer-to-string formatting: libc++ {fmt} routines for __int128 -> decimal.\n- 1 filesystem timestamp: std::filesystem::__last_write_time splitting 128-bit ns into timespec.\n\nRust implication: No bignum crate needed. Native i128/u128 compiles to same __udivti3/__umodti3 intrinsics. GraphTime wrapping i128 nanoseconds is the natural Rust equivalent.\n\nAnalysis: re/notes/boost-multiprecision.md"
 <!-- SECTION:FINAL_SUMMARY:END -->

@@ -4,7 +4,7 @@ title: RE software trigger engine (host-side trigger detection)
 status: Done
 assignee: []
 created_date: '2026-03-10 12:23'
-updated_date: '2026-03-10 15:24'
+updated_date: '2026-03-10 15:25'
 labels:
   - re
   - ghidra
@@ -61,20 +61,5 @@ Investigation steps:
 ## Final Summary
 
 <!-- SECTION:FINAL_SUMMARY:BEGIN -->
-Completed reverse engineering of the software trigger engine. Findings documented in `re/notes/trigger-engine.md`.
-
-Key discoveries:
-- Three trigger nodes: DigitalTriggerNode, AnalogTriggerNode, AnalyzerTriggerNode
-- Trigger type enum: 0=EdgeTrigger, 1=PulseTrigger (dispatched in CheckTrigger at 0x01be1720)
-- Edge detection: scans DigitalData for transitions matching configured direction (rising=0, falling=1) across multiple channels with pattern matching
-- Pulse detection: state machine measuring pulse duration, triggers when within [min_samples, max_samples] range
-- AnalogTriggerConfiguration struct fully reconstructed (12 fields, offsets 0x00-0x30)
-- FPGA trigger register map for MSO: 16 registers (0x40-0x9c) covering channel config, buffer management, holdoff/timeout, hysteresis, glitch filter, software trigger injection
-- Buffer constraints documented: Altera vs Xilinx limits, alignment requirements
-- Holdoff/timeout mechanism: 5 types (initial, normal holdoff/timeout, auto holdoff/timeout), all must be multiples of 8 samples
-- Software trigger injection path via FPGA regs 0x98/0x9c with 60-bit timestamp
-- Glitch filter: pulse width must be 5 or multiple of 10, range 5-250001
-
-Created Ghidra scripts: DecompileTrigger.java, DecompileTrigger2.java, DecompileTrigger3.java
-Decompiled output saved: re/ghidra/decompiled-trigger.txt (5171 lines)
+Decompiled trigger engine: EdgeTrigger_Detect (0x01be1960) and PulseTrigger_Detect (0x01be23c0) dispatched by type field at offset 0x58. Edge detection iterates DigitalData for transitions with multi-channel pattern support. Pulse detection is a state machine measuring edge-to-edge duration against [min,max] range. AnalogTriggerConfiguration has 12 fields (channel, threshold, hysteresis, mode/type, holdoff/timeout). MSO FPGA trigger registers at 0x40-0x9c (16 regs). Software trigger injects 60-bit timestamp via registers 0x98/0x9c. For Logic Pro, triggers are purely software. Created re/notes/trigger-engine.md (452 lines) and 3 Ghidra scripts.
 <!-- SECTION:FINAL_SUMMARY:END -->

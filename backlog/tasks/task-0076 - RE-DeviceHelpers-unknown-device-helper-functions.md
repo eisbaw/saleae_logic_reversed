@@ -4,7 +4,7 @@ title: RE DeviceHelpers -- unknown device helper functions
 status: Done
 assignee: []
 created_date: '2026-03-10 12:31'
-updated_date: '2026-03-10 17:49'
+updated_date: '2026-03-10 17:50'
 labels:
   - re
   - ghidra
@@ -35,11 +35,5 @@ Investigation steps:
 ## Final Summary
 
 <!-- SECTION:FINAL_SUMMARY:BEGIN -->
-Reverse engineered DeviceHelpers.cpp. The module contains exactly 2 named functions:
-
-1. **DeviceCalculateMixRate** (ELF 0x1c19fa0, 317 bytes) - Computes digital/analog interleave ratios for mixed-mode captures using GCD. Handles three modes: digital-only, analog-only, and mixed. Validates GPIF width (16/32) and ADC bits (10/12) combinations. Called by 5 sites across Logic2FpgaDevice.cpp, DeviceSettings.cpp, logic_device_node.cpp, and internally by DeviceCalculateSamplesCollected.
-
-2. **DeviceCalculateSamplesCollected** (ELF 0x1c1a130, 329 bytes) - Converts raw byte count to sample count using MixRate outputs and LCM-based consistency check. Has zero external callers (likely dead code).
-
-Total module size: ~726 bytes. Documentation written to re/notes/device-helpers.md with full parameter analysis, algorithm reconstruction, Rust implementation sketches, and caller cross-references.
+DeviceHelpers.cpp contains only 2 functions (not the device identification/revision helpers hypothesized):\n\n1. DeviceCalculateMixRate (ELF 0x1c19fa0, 317 bytes) -- computes digital/analog interleave ratios using GCD. Three modes: digital-only, analog-only, mixed. Validates GPIF width (16/32) against ADC bits (10/12) -- only 3 valid combos. 5 callers across Logic2FpgaDevice.cpp, DeviceSettings.cpp, logic_device_node.cpp.\n\n2. DeviceCalculateSamplesCollected (ELF 0x1c1a130, 329 bytes) -- converts byte counts to sample counts using LCM. Zero external callers (likely dead code or indirect).\n\nThe device identification, revision handling, and USB speed functions are elsewhere (Logic2FpgaDevice.cpp, DeviceSettings.cpp).\n\nAnalysis: re/notes/device-helpers.md"
 <!-- SECTION:FINAL_SUMMARY:END -->

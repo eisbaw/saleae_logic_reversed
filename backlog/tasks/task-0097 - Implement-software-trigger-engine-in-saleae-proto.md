@@ -4,7 +4,7 @@ title: Implement software trigger engine in saleae-proto
 status: Done
 assignee: []
 created_date: '2026-03-10 23:13'
-updated_date: '2026-03-11 00:36'
+updated_date: '2026-03-11 00:37'
 labels:
   - rust
   - saleae-proto
@@ -37,5 +37,5 @@ Reference: re/notes/trigger-engine.md
 ## Final Summary
 
 <!-- SECTION:FINAL_SUMMARY:BEGIN -->
-Implemented software trigger engine in `crates/saleae-proto/src/trigger.rs` with 21 unit tests.\n\nTypes: EdgeType (Rising/Falling/AnyEdge), PulsePolarity (ActiveHigh/ActiveLow), TriggerCondition (Edge/Pulse), TriggerConfig.\n\nComponents:\n- EdgeDetector: tracks previous digital values per channel, detects transitions matching configured edge type. Multi-channel AND logic requires all conditions to fire on the same sample.\n- PulseDetector: state machine (WaitingForStart -> Measuring -> Triggered) that measures pulse width and triggers when duration falls within [min_samples, max_samples]. Fires at trailing edge.\n- TriggerEngine: combines edge and pulse detectors with AND logic. One-shot trigger with reset/re-arm. Pre-trigger sample offset applied via saturating subtraction.\n\nAll algorithms match the binary's behavior documented in TASK-0067 RE analysis (EdgeTrigger_Detect at 0x01be1960, PulseTrigger_Detect at 0x01be23c0).
+Software trigger engine in saleae-proto/src/trigger.rs.\n\nEdgeType (Rising/Falling/AnyEdge), PulsePolarity (ActiveHigh/ActiveLow), TriggerCondition enum, TriggerConfig with AND logic.\n\nEdgeDetector: tracks previous value per channel, check_all() returns true only when ALL edge conditions match on same sample (multi-channel AND from FUN_01be3a10).\n\nPulseDetector: state machine WaitingForStart -> Measuring -> Triggered. Measures edge-to-edge duration, accepts [min_samples, max_samples]. Early rejection on exceeded max.\n\nTriggerEngine: combines edge+pulse detectors, one-shot trigger, pre-trigger offset via saturating subtraction, reset/re-arm.\n\n21 tests covering all edge types, multi-channel AND, pulse filtering, mixed conditions, pre-trigger, reset."
 <!-- SECTION:FINAL_SUMMARY:END -->

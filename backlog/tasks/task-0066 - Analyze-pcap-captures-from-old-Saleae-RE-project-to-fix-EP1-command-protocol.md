@@ -4,7 +4,7 @@ title: Analyze pcap captures from old Saleae RE project to fix EP1 command proto
 status: In Progress
 assignee: []
 created_date: '2026-03-09 21:19'
-updated_date: '2026-03-10 00:33'
+updated_date: '2026-03-11 02:05'
 labels:
   - hardware-testing
   - reverse-engineering
@@ -75,7 +75,7 @@ The old project's analysis (other than pcap) should be treated as tentative - it
 - [ ] #1 EP1 ping command succeeds against real Logic Pro 8 hardware
 - [x] #2 LFSR implementation validated against pcap ground truth
 - [x] #3 Reseed packet format matches pcap (5 bytes if confirmed)
-- [ ] #4 Complete initialization sequence documented from pcap analysis
+- [x] #4 Complete initialization sequence documented from pcap analysis
 <!-- AC:END -->
 
 ## Implementation Notes
@@ -126,4 +126,32 @@ Fixed ep1.rs `initialize()` to properly encrypt the reseed packet:
 - AC#1: Hardware test not possible from current environment (nvdk-msdlab-09 unreachable)
 - AC#4: Init sequence documentation still needed
 - The initial LFSR state (0x354b248e in pcap) may be device-specific or firmware-dependent. Our impl starts with seed=0, which should work if firmware also starts at 0 after boot.
+
+## 2026-03-11: AC#4 Complete - Full init sequence decoded from pcap
+
+Decoded all 928 EP1 frames from usb.logic8pro.pcap with 0 unknown opcodes.
+
+### Key discovery: Reseed uses fixed key
+
+Reseed packets are ALWAYS encrypted with the initial/default LFSR seed (0x354b248e), NOT the current rolling seed. This corrects the previous finding that stated "encrypted with the CURRENT LFSR state". The first reseed happened to work because current == initial at that point. All 4 reseeds in the pcap (frames 15, 1627, 1639, 1651) validate with the initial seed.
+
+Created TASK-0108 to fix `encrypt_reseed` in obfuscation.rs.
+
+### Files created
+- `re/notes/init-sequence-pcap.md` - Complete initialization sequence documentation
+- `re/scripts/decode-pcap-init.py` - Pcap decoder script
+
+### Init sequence summary (8 phases)
+1. Handshake: Reseed + Ping + GetDeviceInfo + ReadVersion + ResetFpga
+2. FPGA upload: 334 chunks, 340,604 bytes, ~1.7s
+3. Post-FPGA: ADC init, JESD204B link, calibration coefficients
+4. Reseed #2 + digital channel config
+5. Reseed #3 + updated channel config (21s user interaction gap)
+6. Reseed #4 + EEPROM calibration via I2C (addr 0xC0)
+7. Capture config + StartSampling
+8. Teardown: StopStream + power down
+
+## 2026-03-11: Init sequence documented from pcap
+
+Complete 8-phase init sequence documented in re/notes/init-sequence-pcap.md. 261 operations across 928 EP1 frames decoded. Critical discovery: reseed packets ALWAYS use the initial LFSR seed (0x354b248e), not the rolling state. Created TASK-0108 to fix this bug. AC#1 (hardware test) still blocked on hardware access.
 <!-- SECTION:NOTES:END -->

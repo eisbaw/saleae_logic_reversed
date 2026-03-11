@@ -4,7 +4,7 @@ title: 'RE measurement engine (analog_measurer, digital_measurer, range_measurer
 status: Done
 assignee: []
 created_date: '2026-03-10 12:32'
-updated_date: '2026-03-10 19:50'
+updated_date: '2026-03-10 19:52'
 labels:
   - re
   - ghidra
@@ -40,5 +40,5 @@ Nice-to-have for a feature-complete driver but not blocking basic capture functi
 ## Final Summary
 
 <!-- SECTION:FINAL_SUMMARY:BEGIN -->
-Fully reverse engineered the Saleae Logic 2 measurement engine architecture.\n\nKey findings:\n- Dual-layer architecture: C++ orchestration (graph kernel nodes) + Python extension layer\n- Two API generations: V1 (streaming batches, apiVersion 1.0.0) and V2 (span-based with declarative measures/annotations, apiVersion 1.1.0)\n- Measurements are POST-CAPTURE, not on-the-fly -- they operate on stored waveform data via store APIs\n- All measurement algorithms run in embedded Python 3.8; C++ handles data access and graph integration\n- Point measurements (measure_point) are commented out/not implemented\n\nBundled extensions documented:\n- V2: VoltageMeasurer (9 metrics), PulseMeasurer (4 metrics), TimeMeasurer (7 metrics)\n- V1: ClockStatsMeasurer (6 digital metrics), VoltageStatisticsMeasurer (1 analog metric)\n\nArtifacts:\n- re/notes/measurement-engine.md -- full architecture documentation\n- re/ghidra/scripts/DecompileMeasurers.java -- Ghidra script (phase 1)\n- re/ghidra/scripts/DecompileMeasurers2.java -- Ghidra script (phase 2)\n- re/ghidra/decompiled-measurers.txt -- cleaned decompiled output (46 functions)\n\n30+ C++ function addresses mapped with ELF VAs and descriptions.
+Measurement engine is post-capture, not real-time. Dual-layer: C++ graph kernels (MeasurementNode, AnalogMeasurer, DigitalMeasurer, RangeMeasurer) orchestrate, Python 3.8 runs actual algorithms.\n\nTwo API generations:\n- V1 (apiVersion 1.0): Streaming batches via process_data() then measure()\n- V2 (apiVersion 1.1): Full-span measure_range() with Measure/Annotation system\n\n27 metrics across 5 bundled extensions:\n- VoltageMeasurer: Min, Max, PeakToPeak, Mean, Mid, Amplitude, Top (histogram), Base, RMS\n- PulseMeasurer: Rise Time (10-90%), Fall Time, Positive/Negative Overshoot\n- TimeMeasurer: Period, Frequency, Pulse Widths, Duty Cycle, Cycle RMS\n- ClockStatsMeasurer: Edge counts, Freq stats, Period StdDev (Welford's)\n- VoltageStatisticsMeasurer: Voltage RMS (numpy)\n\nKey functions: MeasurementNode::MeasureRange (ELF 0x1bfd130, 5864 bytes), Measurer::RunMeasurements analog (0x210a4c0) and digital (0x21097e0).\n\nPoint measurements not implemented (commented out in V2 API).\n\nAnalysis: re/notes/measurement-engine.md (447 lines)"
 <!-- SECTION:FINAL_SUMMARY:END -->

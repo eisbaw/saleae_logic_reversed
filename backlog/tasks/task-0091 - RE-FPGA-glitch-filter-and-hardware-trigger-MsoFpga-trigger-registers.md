@@ -46,24 +46,5 @@ Investigation:
 ## Final Summary
 
 <!-- SECTION:FINAL_SUMMARY:BEGIN -->
-Decompiled SetAnalogTriggerConfiguration, DisableAnalogTrigger, InternalSetDigitalConfiguration, and 18 other MsoFpga functions. Key findings:
-
-**TRIGGER_CONTROL register (0x0070) corrected bit layout:**
-- bits [31:16] = TriggerThreshold (int16, ADC code)
-- bits [15:8] = ChannelSource (uint8) -- previously undocumented
-- bits [7:4] = TriggerType (4 bits: 0=Edge, 1=Pulse)
-- bits [3:2] = TriggerMode (2 bits: 0=Normal, 1=Auto, 2=Single, 3=Disabled)
-- bits [1:0] = GlitchFilterEnabled (2 bits) -- previously identified as simple enable
-
-**TriggerMode = 3 is Disabled** (confirmed: DisableAnalogTrigger writes 0x0C to reg 0x70).
-
-**Hysteresis register (0x7C):** rising[15:0] | falling[31:16] (corrected from prior docs).
-
-**Glitch filter:** per-channel digital, pulse width 5 or multiples of 10, range [5, 250005]. Register format: enabled<<20 | pulseWidth[19:0].
-
-**Hardware triggers are MSO-only.** Logic Pro 8/16, Logic 8, and Logic 4 have no FPGA trigger registers.
-
-**New register 0x0194** discovered (scope channel configuration, purpose TBD).
-
-Documented in re/notes/fpga-glitch-filter.md. Updated doc/protocol/fpga-registers.md with corrected bit layouts and new register.
+FPGA glitch filter and hardware trigger are MSO-only. Logic Pro 8/16, Logic 8, Logic 4 have no FPGA trigger registers -- all trigger detection is software-only.\n\nTRIGGER_CONTROL register (0x0070) corrected bit layout:\n- [31:16] TriggerThreshold (int16, ADC code)\n- [15:8] ChannelSource (uint8) -- previously undocumented\n- [7:4] TriggerType (4 bits: 0=Edge, 1=Pulse)\n- [3:2] TriggerMode (2 bits: 0=Normal, 1=Auto, 2=Single, 3=Disabled)\n- [1:0] GlitchFilterEnabled (2 bits)\n\nGlitch filter: per-channel digital, pulse width range [5, 250005], valid values: exactly 5 or any multiple of 10. Register format: enabled<<20 | pulseWidth[19:0].\n\nNew register 0x0194 discovered (scope channel config, purpose TBD).\n\nAnalysis: re/notes/fpga-glitch-filter.md, doc/protocol/fpga-registers.md updated."
 <!-- SECTION:FINAL_SUMMARY:END -->

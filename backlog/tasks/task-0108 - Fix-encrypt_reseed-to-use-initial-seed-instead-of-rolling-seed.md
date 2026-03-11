@@ -1,9 +1,10 @@
 ---
 id: TASK-0108
 title: Fix encrypt_reseed to use initial seed instead of rolling seed
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-03-11 02:03'
+updated_date: '2026-03-11 02:09'
 labels:
   - bug
   - encryption
@@ -26,3 +27,9 @@ Evidence: Decoding all 928 EP1 frames from usb.logic8pro.pcap with initial-seed-
 
 See: re/notes/init-sequence-pcap.md for full analysis.
 <!-- SECTION:DESCRIPTION:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Added `initial_seed: u32` field to SimpleEncryption struct. `encrypt_reseed()` now uses initial_seed (fixed at construction time) instead of the rolling `self.seed`. This matches pcap evidence: all 4 reseeds in the capture use the same initial key 0x354b248e. Added 2 tests validating multi-reseed correctness. All 353 workspace tests pass.
+<!-- SECTION:FINAL_SUMMARY:END -->

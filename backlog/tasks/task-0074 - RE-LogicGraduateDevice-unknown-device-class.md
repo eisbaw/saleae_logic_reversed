@@ -4,7 +4,7 @@ title: RE LogicGraduateDevice -- unknown device class
 status: Done
 assignee: []
 created_date: '2026-03-10 12:31'
-updated_date: '2026-03-10 17:19'
+updated_date: '2026-03-10 17:22'
 labels:
   - re
   - ghidra
@@ -37,19 +37,5 @@ This may reveal a device we need to support or can safely ignore.
 ## Final Summary
 
 <!-- SECTION:FINAL_SUMMARY:BEGIN -->
-Fully reverse engineered LogicGraduateDevice (Logic 8, VID:PID 21a9:1004).
-
-Key findings:
-- 17 vtable entries decompiled -- destructors, Initialize, GetUsbSpeed, SetCaptureParametersWrapper, GetDeviceSettings, StartSampling, StopDevice, GetPublicKey, ReadEepromBlock, WriteRegisterArray, CreateCryptoInterface, plus 4 shared methods
-- Constructor at ELF VA 0x1c3d1a0: creates FpgaDeviceFeatures (NOT ProFpgaDeviceFeatures), 3 EP endpoints (0x01, 0x81, 0x82), triple-reads device ID for consistency
-- 8 identical channels, all toggleable between digital and analog, max 5.0V
-- Max digital 200 MHz, max analog 20 MHz, 12 bits/sample
-- Sample rates validated as integer divisors of 200 MHz (digital) and 20 MHz (analog)
-- Stream start = EP1 0x01, stream stop = EP1 0x02
-- GetPublicKey returns 65-byte uncompressed ECDSA P-256 public key (XOR-deobfuscated)
-- CryptoInterfaceFpga for Xilinx revisions, CryptoInterfaceI2c for Lattice revisions
-- Forced speed defaults to USB 2.0 (unlike Pro which defaults to USB 3.0)
-- Register 0x17 used as serialized FPGA config port (up to 16 bytes per write)
-
-Output: `re/notes/logic-graduate-device.md`, `re/ghidra/scripts/DecompileGraduate.java`, `re/ghidra/scripts/DecompileGraduate2.java`, `re/ghidra/decompiled-graduate.txt`, `re/ghidra/decompiled-graduate2.txt`
+LogicGraduateDevice = Logic 8 (DeviceType 5). 42-entry vtable at ELF 0x303e950. Key findings:\n- Uses FpgaDeviceFeatures (non-Pro FPGA interface, 8-bit registers via EP1 0x80/0x81)\n- 8 digital + 8 analog channels\n- Constructor at ELF 0x1ac6160 sets up channel arrays and FPGA config\n- Shares firmware/bitstream infrastructure with Logic 4 (Student) but different channel counts\n- Simpler AFE configuration than Pro models (no per-channel gain stages)\n- Sample rates constrained by non-Pro FPGA limits\n- 42 virtual methods decompiled, vtable extraction script created\n- Full analysis in re/notes/logic-graduate-device.md (541 lines)\nCommit: 7337619"
 <!-- SECTION:FINAL_SUMMARY:END -->

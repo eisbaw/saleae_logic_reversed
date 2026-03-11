@@ -4,7 +4,7 @@ title: RE .sal capture file format for import/export interop
 status: Done
 assignee: []
 created_date: '2026-03-10 23:14'
-updated_date: '2026-03-11 01:08'
+updated_date: '2026-03-11 01:11'
 labels:
   - re
   - ghidra
@@ -40,18 +40,5 @@ This enables our Rust driver to produce captures that Saleae Logic 2 can open, a
 ## Final Summary
 
 <!-- SECTION:FINAL_SUMMARY:BEGIN -->
-Fully reverse engineered the .sal capture file format from Saleae Logic 2 v2.4.40.
-
-Key findings:
-- .sal is a standard ZIP archive (zlib level 1) containing meta.json + per-channel .bin files
-- meta.json has version (currently 16), session data, and binData channel-to-file mapping
-- .bin files are cereal binary archives serialized by DigitalStore/AnalogStore/WaveformStoreNode
-- Digital data uses RLE encoding, analog data uses int16_t sample arrays with LOD statistics
-- File naming: digital-N.bin / analog-N.bin for legacy devices, instrument-P-type-C.bin for MSO
-- Version upgrade chain supports versions 4-16 with automatic migration
-- Full JSON schema for meta.json data field extracted from JS bundle
-- Save flow: serialize stores to temp dir, write meta.json, zip to .sal
-- Load flow: unzip to temp dir, parse meta.json, upgrade version, deserialize stores
-
-Documented in re/notes/sal-file-format.md.
+RE'd the .sal capture file format: ZIP archive containing meta.json (version 16) with data/binData fields, plus per-channel binary files (digital-N.bin, analog-N.bin) using cereal binary archives. Digital format: 8-byte header + transition-encoded data. Analog format: 8-byte header + f32 voltage samples. Documented in re/notes/sal-file-format.md.
 <!-- SECTION:FINAL_SUMMARY:END -->
