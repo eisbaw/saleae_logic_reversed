@@ -20,6 +20,7 @@ pub mod graph_time;
 pub mod obfuscation;
 pub mod sample_rate;
 pub mod trigger;
+pub mod trigger_buffer;
 
 // Re-export key types at crate root for convenience.
 pub use analog::AnalogProcessor;
@@ -46,4 +47,7 @@ pub use sample_rate::{PerformanceTier, SampleRateOption};
 pub use trigger::{
     EdgeDetector, EdgeType, PulseDetector, PulsePolarity, TriggerCondition, TriggerConfig,
     TriggerEngine,
+};
+pub use trigger_buffer::{
+    RingBuffer, TriggerCapture, TriggerCaptureResult, TriggerCaptureState,
 };
