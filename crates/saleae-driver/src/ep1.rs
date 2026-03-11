@@ -355,19 +355,15 @@ impl Ep1CommandChannel {
     /// - `data`: The configuration/bitstream data to send.
     /// - `chunk_size`: Maximum data bytes per chunk (62, 508, or 1020).
     /// - `read_ack`: Whether to read a response ACK after each chunk.
-    ///   Pro devices verify writes; non-Pro devices are fire-and-forget
-    ///   (though non-Pro uses a different header format -- see below).
+    ///   Pro devices verify writes; non-Pro devices are fire-and-forget.
     ///
     /// # Wire format
     ///
-    /// - **Pro devices** (read_ack=true): `[0x7F][len_lo][len_hi][data...]`,
-    ///   expects 1-byte ACK (0x00) response.
-    /// - **Non-Pro devices** (read_ack=false): `[0x7F][len_8bit][data...]`,
-    ///   no response. Note: non-Pro uses an 8-bit length field since max
-    ///   chunk is 62 bytes. However, this method always uses the 16-bit
-    ///   length format; for non-Pro compatibility, the actual chunk sizes
-    ///   are small enough that len_hi will be 0, which may or may not be
-    ///   accepted by non-Pro firmware. This needs hardware validation.
+    /// This method uses the **Pro** wire format:
+    /// `[0x7F][len_lo][len_hi][data...]`, with optional 1-byte ACK read.
+    ///
+    /// For non-Pro devices, use [`write_config_data_non_pro`](Self::write_config_data_non_pro)
+    /// which uses the 2-byte header format: `[0x7F][len_8bit][data...]`.
     pub fn write_config_data_chunked(
         &mut self,
         data: &[u8],
@@ -416,6 +412,101 @@ impl Ep1CommandChannel {
 
         info!(total_bytes = total, "WriteConfigurationData complete");
         Ok(())
+    }
+
+    /// Write configuration data using the non-Pro wire format.
+    ///
+    /// Non-Pro devices (Logic 4, Logic 8) use a simpler 2-byte header with
+    /// an 8-bit length field and no response ACK:
+    ///
+    /// ```text
+    /// EP1 OUT: [0x7F] [len_8bit] [data...]   (max data: 62 bytes)
+    /// ```
+    ///
+    /// No response is read -- non-Pro configuration writes are fire-and-forget.
+    ///
+    /// From `re/notes/usb2-fallback.md`:
+    /// - Max data per chunk: 62 bytes
+    /// - Assertion: `data_size <= 0x3E`
+    /// - Source: `FpgaDeviceFeatures::WriteConfigurationData` at ELF VA 0x1c544b0
+    ///
+    /// # Arguments
+    ///
+    /// - `data`: The configuration/bitstream data to send.
+    /// - `chunk_size`: Maximum data bytes per chunk (should be 62 for non-Pro).
+    pub fn write_config_data_non_pro(
+        &mut self,
+        data: &[u8],
+        chunk_size: usize,
+    ) -> DriverResult<()> {
+        assert!(
+            chunk_size <= 62,
+            "non-Pro chunk size must be <= 62, got {chunk_size}"
+        );
+
+        let total = data.len();
+        let mut offset = 0;
+
+        while offset < total {
+            let remaining = total - offset;
+            let chunk_len = remaining.min(chunk_size);
+            let chunk = &data[offset..offset + chunk_len];
+
+            // Non-Pro format: [len_8bit] [data...]
+            let mut payload = Vec::with_capacity(1 + chunk_len);
+            payload.push(chunk_len as u8); // 8-bit length
+            payload.extend_from_slice(chunk);
+
+            self.send_command(0x7F, &payload)?;
+
+            // No ACK read -- non-Pro is fire-and-forget.
+
+            offset += chunk_len;
+            debug!(
+                offset,
+                total, chunk_len, "WriteConfigurationData (non-Pro) chunk sent"
+            );
+        }
+
+        info!(
+            total_bytes = total,
+            "WriteConfigurationData (non-Pro) complete"
+        );
+        Ok(())
+    }
+
+    /// Write configuration data using the correct protocol for the device.
+    ///
+    /// Dispatches to either the Pro or non-Pro wire format based on the
+    /// FPGA type. This is the preferred entry point for device-agnostic
+    /// code.
+    ///
+    /// # Arguments
+    ///
+    /// - `data`: The configuration/bitstream data to send.
+    /// - `profile`: Device hardware profile.
+    /// - `usb_speed`: Current USB connection speed.
+    pub fn write_config_data_for_device(
+        &mut self,
+        data: &[u8],
+        profile: &saleae_proto::device::DeviceProfile,
+        usb_speed: saleae_proto::device::UsbSpeed,
+    ) -> DriverResult<()> {
+        let chunk_size = profile.fpga_chunk_size(usb_speed);
+        let read_ack = profile.register_write_verifies();
+
+        match profile.fpga_type {
+            saleae_proto::device::FpgaType::Pro => {
+                self.write_config_data_chunked(data, chunk_size, read_ack)
+            }
+            saleae_proto::device::FpgaType::NonPro => {
+                self.write_config_data_non_pro(data, chunk_size)
+            }
+            saleae_proto::device::FpgaType::Mso => {
+                // MSO is out of scope. Fall back to Pro format as placeholder.
+                self.write_config_data_chunked(data, chunk_size, read_ack)
+            }
+        }
     }
 
     /// Start sampling (opcode 0x01).
@@ -1141,5 +1232,183 @@ mod tests {
         let mut channel = mock_channel_with_seed(&mock, seed);
         let result = channel.read_eeprom_device_id().unwrap();
         assert_eq!(result, 1, "should parse little-endian");
+    }
+
+    // -- Non-Pro WriteConfigurationData tests --
+
+    #[test]
+    fn write_config_data_non_pro_uses_8bit_length() {
+        let mock = std::sync::Arc::new(MockTransport::new());
+        let seed = 0u32;
+
+        // 10 bytes of data, chunk_size=62 -> 1 chunk.
+        let data = vec![0xABu8; 10];
+
+        let mut channel = mock_channel_with_seed(&mock, seed);
+        channel.write_config_data_non_pro(&data, 62).unwrap();
+
+        let ops = mock.operations();
+        // Should be exactly 1 BulkOut, no BulkIn (no ACK).
+        assert_eq!(ops.len(), 1, "non-Pro should have 1 operation (no ACK)");
+
+        match &ops[0] {
+            UsbOperation::BulkOut { data: sent, .. } => {
+                // With seed=0 XorAll: control_byte + opcode + payload
+                // opcode = 0x7F
+                // payload = [len_8bit=10] + [data...]
+                // control_byte = (0x7F & 0xD7) ^ (0x00 & 0xD7) = 0x57
+                assert_eq!(sent[1], 0x7F, "opcode should be 0x7F");
+                assert_eq!(sent[2], 10, "8-bit length field should be 10");
+                // Data bytes follow.
+                assert_eq!(&sent[3..13], &[0xABu8; 10], "data should match");
+            }
+            other => panic!("expected BulkOut, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn write_config_data_non_pro_no_ack_read() {
+        let mock = std::sync::Arc::new(MockTransport::new());
+        let seed = 0u32;
+
+        // Send 120 bytes with chunk_size=62 -> 2 chunks.
+        let data = vec![0xCDu8; 120];
+
+        let mut channel = mock_channel_with_seed(&mock, seed);
+        channel.write_config_data_non_pro(&data, 62).unwrap();
+
+        let ops = mock.operations();
+        // 2 chunks, each is a BulkOut with no BulkIn response read.
+        let out_count = ops
+            .iter()
+            .filter(|op| matches!(op, UsbOperation::BulkOut { .. }))
+            .count();
+        let in_count = ops
+            .iter()
+            .filter(|op| matches!(op, UsbOperation::BulkIn { .. }))
+            .count();
+        assert_eq!(out_count, 2, "should have 2 OUT transfers");
+        assert_eq!(in_count, 0, "non-Pro should have no IN transfers (no ACK)");
+    }
+
+    #[test]
+    fn write_config_data_non_pro_chunks_at_62_bytes() {
+        let mock = std::sync::Arc::new(MockTransport::new());
+        let seed = 0u32;
+
+        // 200 bytes -> ceil(200/62) = 4 chunks: 62, 62, 62, 14
+        let data = vec![0xFFu8; 200];
+
+        let mut channel = mock_channel_with_seed(&mock, seed);
+        channel.write_config_data_non_pro(&data, 62).unwrap();
+
+        let ops = mock.operations();
+        assert_eq!(ops.len(), 4, "200 bytes at 62/chunk = 4 chunks");
+    }
+
+    #[test]
+    #[should_panic(expected = "non-Pro chunk size must be <= 62")]
+    fn write_config_data_non_pro_panics_on_large_chunk() {
+        let mock = std::sync::Arc::new(MockTransport::new());
+        let mut channel = mock_channel_with_seed(&mock, 0);
+        channel
+            .write_config_data_non_pro(&[0u8; 10], 100)
+            .unwrap();
+    }
+
+    // -- write_config_data_for_device dispatch tests --
+
+    #[test]
+    fn write_config_data_for_device_pro_uses_chunked() {
+        use saleae_proto::device::{LOGIC_PRO_8_PROFILE, UsbSpeed};
+
+        let mock = std::sync::Arc::new(MockTransport::new());
+        let seed = 0u32;
+
+        let data = vec![0xABu8; 100];
+
+        // Pro devices read ACK responses. Queue one ACK.
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
+
+        let mut channel = mock_channel_with_seed(&mock, seed);
+        channel
+            .write_config_data_for_device(&data, &LOGIC_PRO_8_PROFILE, UsbSpeed::Super)
+            .unwrap();
+
+        let ops = mock.operations();
+        // Pro path: 1 BulkOut + 1 BulkIn (ACK) = 2 operations.
+        assert_eq!(ops.len(), 2, "Pro should have OUT + IN (ACK)");
+
+        match &ops[0] {
+            UsbOperation::BulkOut { data: sent, .. } => {
+                // Pro format: opcode=0x7F, then [len_lo, len_hi, data...]
+                assert_eq!(sent[1], 0x7F);
+                // 16-bit length: 100 = 0x64, 0x00
+                assert_eq!(sent[2], 100); // len_lo
+                assert_eq!(sent[3], 0); // len_hi
+            }
+            other => panic!("expected BulkOut, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn write_config_data_for_device_non_pro_uses_non_pro_path() {
+        use saleae_proto::device::{LOGIC_8_PROFILE, UsbSpeed};
+
+        let mock = std::sync::Arc::new(MockTransport::new());
+        let seed = 0u32;
+
+        let data = vec![0xABu8; 50];
+
+        // Non-Pro should not read any ACK.
+        let mut channel = mock_channel_with_seed(&mock, seed);
+        channel
+            .write_config_data_for_device(&data, &LOGIC_8_PROFILE, UsbSpeed::High)
+            .unwrap();
+
+        let ops = mock.operations();
+        // Non-Pro: 1 BulkOut, no BulkIn.
+        assert_eq!(ops.len(), 1, "non-Pro should have only OUT (no ACK)");
+
+        match &ops[0] {
+            UsbOperation::BulkOut { data: sent, .. } => {
+                assert_eq!(sent[1], 0x7F);
+                // Non-Pro format: 8-bit length.
+                assert_eq!(sent[2], 50); // 8-bit length
+            }
+            other => panic!("expected BulkOut, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn write_config_data_for_device_pro_usb2_chunk_size() {
+        use saleae_proto::device::{LOGIC_PRO_8_PROFILE, UsbSpeed};
+
+        let mock = std::sync::Arc::new(MockTransport::new());
+        let seed = 0u32;
+
+        // 1020 bytes at USB 2.0 -> chunk_size=508 -> ceil(1020/508) = 3 chunks
+        // (508 + 508 + 4).
+        let data = vec![0xABu8; 1020];
+
+        // Queue 3 ACK responses.
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
+
+        let mut channel = mock_channel_with_seed(&mock, seed);
+        channel
+            .write_config_data_for_device(&data, &LOGIC_PRO_8_PROFILE, UsbSpeed::High)
+            .unwrap();
+
+        let ops = mock.operations();
+        let out_count = ops
+            .iter()
+            .filter(|op| matches!(op, UsbOperation::BulkOut { .. }))
+            .count();
+        assert_eq!(
+            out_count, 3,
+            "1020 bytes at USB 2.0 Pro (508/chunk) = 3 chunks (508+508+4)"
+        );
     }
 }

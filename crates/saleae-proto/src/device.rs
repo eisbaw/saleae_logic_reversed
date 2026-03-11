@@ -277,9 +277,12 @@ pub struct DeviceProfile {
     /// Maximum digital sample rate at USB 2.0 (Hz).
     pub max_digital_rate_usb2: u64,
 
-    /// Maximum analog sample rate (Hz).
-    /// For Pro devices at USB 3.0, 100 MHz is available; at USB 2.0, 50 MHz max.
-    pub max_analog_rate: u64,
+    /// Maximum analog sample rate at USB 3.0 (Hz).
+    /// For Pro devices: 100 MHz at USB 3.0, 50 MHz at USB 2.0.
+    pub max_analog_rate_usb3: u64,
+
+    /// Maximum analog sample rate at USB 2.0 (Hz).
+    pub max_analog_rate_usb2: u64,
 }
 
 impl DeviceProfile {
@@ -325,6 +328,42 @@ impl DeviceProfile {
         match usb_speed {
             UsbSpeed::Super | UsbSpeed::SuperPlus => self.max_digital_rate_usb3,
             _ => self.max_digital_rate_usb2,
+        }
+    }
+
+    /// Maximum analog sample rate for the given USB speed.
+    ///
+    /// From `re/notes/usb2-fallback.md`:
+    /// - Pro USB 3.0: 100 MHz
+    /// - Pro USB 2.0: 50 MHz (100 MHz exceeds USB 2.0 bandwidth)
+    /// - Non-Pro: same rate regardless of speed
+    pub const fn max_analog_rate(&self, usb_speed: UsbSpeed) -> u64 {
+        match usb_speed {
+            UsbSpeed::Super | UsbSpeed::SuperPlus => self.max_analog_rate_usb3,
+            _ => self.max_analog_rate_usb2,
+        }
+    }
+
+    /// Number of analog channels available at the given USB speed.
+    ///
+    /// From `re/notes/usb2-fallback.md`:
+    /// - Logic Pro 16 at USB 2.0: channels 8-15 become digital-only, so
+    ///   only 8 analog channels are available.
+    /// - All other devices: full analog channel count regardless of speed.
+    pub const fn available_analog_channels(&self, usb_speed: UsbSpeed) -> u8 {
+        match self.device_type {
+            DeviceType::LogicPro16 => match usb_speed {
+                UsbSpeed::Super | UsbSpeed::SuperPlus => self.analog_channels,
+                _ => {
+                    // USB 2.0: upper 8 channels are digital-only
+                    if self.analog_channels > 8 {
+                        8
+                    } else {
+                        self.analog_channels
+                    }
+                }
+            },
+            _ => self.analog_channels,
         }
     }
 
@@ -403,11 +442,12 @@ impl DeviceProfile {
             ));
         }
 
-        // Check analog sample rate.
-        if analog_sample_rate > self.max_analog_rate {
+        // Check analog sample rate (speed-dependent for Pro devices).
+        let max_analog = self.max_analog_rate(usb_speed);
+        if analog_sample_rate > max_analog {
             return Err(format!(
-                "analog sample rate {} Hz exceeds maximum {} Hz for {}",
-                analog_sample_rate, self.max_analog_rate, self.device_type,
+                "analog sample rate {} Hz exceeds maximum {} Hz for {} at {usb_speed}",
+                analog_sample_rate, max_analog, self.device_type,
             ));
         }
 
@@ -473,7 +513,8 @@ pub static LOGIC_4_PROFILE: DeviceProfile = DeviceProfile {
     supports_encryption: false,
     max_digital_rate_usb3: 12_000_000, // Logic 4 is USB 2.0 only
     max_digital_rate_usb2: 12_000_000,
-    max_analog_rate: 6_000_000,
+    max_analog_rate_usb3: 6_000_000,
+    max_analog_rate_usb2: 6_000_000,
 };
 
 /// Device profile for Logic 8 (21a9:1004).
@@ -487,7 +528,8 @@ pub static LOGIC_8_PROFILE: DeviceProfile = DeviceProfile {
     supports_encryption: false,
     max_digital_rate_usb3: 200_000_000,
     max_digital_rate_usb2: 100_000_000,
-    max_analog_rate: 20_000_000,
+    max_analog_rate_usb3: 20_000_000,
+    max_analog_rate_usb2: 20_000_000,
 };
 
 /// Device profile for Logic Pro 8 (21a9:1005).
@@ -501,7 +543,8 @@ pub static LOGIC_PRO_8_PROFILE: DeviceProfile = DeviceProfile {
     supports_encryption: true,
     max_digital_rate_usb3: 500_000_000,
     max_digital_rate_usb2: 100_000_000,
-    max_analog_rate: 50_000_000, // 100 MHz at USB 3.0, but 50 MHz default
+    max_analog_rate_usb3: 100_000_000,  // 100 MHz available at USB 3.0
+    max_analog_rate_usb2: 50_000_000,   // 50 MHz max at USB 2.0
 };
 
 /// Device profile for Logic Pro 16 (21a9:1006).
@@ -515,7 +558,8 @@ pub static LOGIC_PRO_16_PROFILE: DeviceProfile = DeviceProfile {
     supports_encryption: true,
     max_digital_rate_usb3: 500_000_000,
     max_digital_rate_usb2: 100_000_000,
-    max_analog_rate: 50_000_000,
+    max_analog_rate_usb3: 100_000_000,  // 100 MHz available at USB 3.0
+    max_analog_rate_usb2: 50_000_000,   // 50 MHz max at USB 2.0
 };
 
 impl DeviceType {
@@ -912,10 +956,17 @@ mod tests {
         assert_eq!(LOGIC_PRO_8_PROFILE.max_digital_rate_usb3, 500_000_000);
         assert_eq!(LOGIC_PRO_16_PROFILE.max_digital_rate_usb3, 500_000_000);
 
-        assert_eq!(LOGIC_4_PROFILE.max_analog_rate, 6_000_000);
-        assert_eq!(LOGIC_8_PROFILE.max_analog_rate, 20_000_000);
-        assert_eq!(LOGIC_PRO_8_PROFILE.max_analog_rate, 50_000_000);
-        assert_eq!(LOGIC_PRO_16_PROFILE.max_analog_rate, 50_000_000);
+        // Non-Pro: same analog rate regardless of USB speed.
+        assert_eq!(LOGIC_4_PROFILE.max_analog_rate_usb3, 6_000_000);
+        assert_eq!(LOGIC_4_PROFILE.max_analog_rate_usb2, 6_000_000);
+        assert_eq!(LOGIC_8_PROFILE.max_analog_rate_usb3, 20_000_000);
+        assert_eq!(LOGIC_8_PROFILE.max_analog_rate_usb2, 20_000_000);
+
+        // Pro: 100 MHz at USB 3.0, 50 MHz at USB 2.0.
+        assert_eq!(LOGIC_PRO_8_PROFILE.max_analog_rate_usb3, 100_000_000);
+        assert_eq!(LOGIC_PRO_8_PROFILE.max_analog_rate_usb2, 50_000_000);
+        assert_eq!(LOGIC_PRO_16_PROFILE.max_analog_rate_usb3, 100_000_000);
+        assert_eq!(LOGIC_PRO_16_PROFILE.max_analog_rate_usb2, 50_000_000);
     }
 
     #[test]
@@ -1007,6 +1058,50 @@ mod tests {
         assert_eq!(p.transfer_block_alignment(UsbSpeed::Super), 16384);
     }
 
+    #[test]
+    fn max_analog_rate_by_speed() {
+        // Pro devices: 100 MHz at USB 3.0, 50 MHz at USB 2.0.
+        let p = &LOGIC_PRO_8_PROFILE;
+        assert_eq!(p.max_analog_rate(UsbSpeed::Super), 100_000_000);
+        assert_eq!(p.max_analog_rate(UsbSpeed::SuperPlus), 100_000_000);
+        assert_eq!(p.max_analog_rate(UsbSpeed::High), 50_000_000);
+        assert_eq!(p.max_analog_rate(UsbSpeed::Full), 50_000_000);
+
+        // Non-Pro: same rate at any speed.
+        let p = &LOGIC_8_PROFILE;
+        assert_eq!(p.max_analog_rate(UsbSpeed::Super), 20_000_000);
+        assert_eq!(p.max_analog_rate(UsbSpeed::High), 20_000_000);
+    }
+
+    #[test]
+    fn available_analog_channels_pro16_usb2() {
+        let p = &LOGIC_PRO_16_PROFILE;
+        // USB 3.0: all 16 analog channels.
+        assert_eq!(p.available_analog_channels(UsbSpeed::Super), 16);
+        assert_eq!(p.available_analog_channels(UsbSpeed::SuperPlus), 16);
+        // USB 2.0: only 8 analog channels (upper 8 are digital-only).
+        assert_eq!(p.available_analog_channels(UsbSpeed::High), 8);
+        assert_eq!(p.available_analog_channels(UsbSpeed::Full), 8);
+    }
+
+    #[test]
+    fn available_analog_channels_pro8_unaffected() {
+        // Pro 8 has only 8 channels, not affected by USB speed.
+        let p = &LOGIC_PRO_8_PROFILE;
+        assert_eq!(p.available_analog_channels(UsbSpeed::Super), 8);
+        assert_eq!(p.available_analog_channels(UsbSpeed::High), 8);
+    }
+
+    #[test]
+    fn available_analog_channels_non_pro_unaffected() {
+        let p = &LOGIC_8_PROFILE;
+        assert_eq!(p.available_analog_channels(UsbSpeed::Super), 8);
+        assert_eq!(p.available_analog_channels(UsbSpeed::High), 8);
+
+        let p = &LOGIC_4_PROFILE;
+        assert_eq!(p.available_analog_channels(UsbSpeed::High), 4);
+    }
+
     // -----------------------------------------------------------------------
     // validate_config tests
     // -----------------------------------------------------------------------
@@ -1029,12 +1124,33 @@ mod tests {
     }
 
     #[test]
-    fn validate_config_analog_rate_too_high() {
+    fn validate_config_analog_rate_too_high_usb3() {
         let p = &LOGIC_PRO_8_PROFILE;
+        // At USB 3.0, max analog is 100 MHz; 200 MHz should fail.
         let err = p
-            .validate_config(100_000_000, 100_000_000, 0xFF, 0xFF, UsbSpeed::Super)
+            .validate_config(100_000_000, 200_000_000, 0xFF, 0xFF, UsbSpeed::Super)
             .unwrap_err();
         assert!(err.contains("analog sample rate"));
+        assert!(err.contains("100000000"));
+    }
+
+    #[test]
+    fn validate_config_analog_rate_too_high_usb2() {
+        let p = &LOGIC_PRO_8_PROFILE;
+        // At USB 2.0, max analog is 50 MHz; 100 MHz should fail.
+        let err = p
+            .validate_config(50_000_000, 100_000_000, 0xFF, 0xFF, UsbSpeed::High)
+            .unwrap_err();
+        assert!(err.contains("analog sample rate"));
+        assert!(err.contains("50000000"));
+    }
+
+    #[test]
+    fn validate_config_analog_rate_at_usb3_limit_ok() {
+        let p = &LOGIC_PRO_8_PROFILE;
+        // 100 MHz analog at USB 3.0 should pass.
+        p.validate_config(100_000_000, 100_000_000, 0xFF, 0xFF, UsbSpeed::Super)
+            .unwrap();
     }
 
     #[test]

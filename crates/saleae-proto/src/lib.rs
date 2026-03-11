@@ -13,6 +13,7 @@ pub mod disaggregator;
 pub mod error;
 pub mod firmware;
 pub mod fpga_regs;
+pub mod gpif;
 pub mod graph_time;
 pub mod obfuscation;
 pub mod sample_rate;
@@ -28,6 +29,7 @@ pub use device::{
     LOGIC_8_PROFILE, LOGIC_PRO_16_PROFILE, LOGIC_PRO_8_PROFILE,
 };
 pub use disaggregator::{DisaggregatedData, Disaggregator, MixRateResult};
+pub use gpif::{GpifBusWidth, GpifConfig};
 pub use error::{ProtoError, ProtoResult};
 pub use firmware::fx3::{Fx3Image, Fx3Section};
 pub use graph_time::GraphTime;
