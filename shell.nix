@@ -1,8 +1,8 @@
 let
-  # Pin nixpkgs for reproducibility (NixOS 24.11, 2026-03-08)
+  # Pin nixpkgs for reproducibility (NixOS 25.05, 2026-03-10)
   nixpkgs = fetchTarball {
-    url = "https://github.com/NixOS/nixpkgs/archive/59e618d90c065f55ae48446f307e8c09565d5ab0.tar.gz";
-    sha256 = "0ykyxbwl81m16yi94x6d3fvdbnwc8l3j9d8m2h2npyijzvbdizh7";
+    url = "https://github.com/NixOS/nixpkgs/archive/ac62194c3917d5f474c1a844b6fd6da2db95077d.tar.gz";
+    sha256 = "0v6bd1xk8a2aal83karlvc853x44dg1n4nk08jg3dajqyy0s98np";
   };
 
   pkgs = import nixpkgs {};
@@ -40,6 +40,9 @@ pkgs.mkShell {
 
     # -- Deployment --
     patchelf          # fix Nix rpath/interp for remote deploy
+
+    # -- Ghidra MCP bridge (LaurieWired/GhidraMCP) --
+    uv               # uv run for PEP 723 inline deps (requests, mcp)
 
     # -- Project tooling --
     just
