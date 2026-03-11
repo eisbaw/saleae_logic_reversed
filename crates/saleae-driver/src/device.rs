@@ -48,8 +48,7 @@ impl SaleaeDriver {
             transport,
             device_type,
             state: DeviceState::Bootloader,
-            device_instance_id: NEXT_INSTANCE_ID
-                .fetch_add(1, std::sync::atomic::Ordering::Relaxed),
+            device_instance_id: NEXT_INSTANCE_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed),
         }
     }
 
@@ -62,8 +61,7 @@ impl SaleaeDriver {
             transport,
             device_type,
             state: DeviceState::Initializing,
-            device_instance_id: NEXT_INSTANCE_ID
-                .fetch_add(1, std::sync::atomic::Ordering::Relaxed),
+            device_instance_id: NEXT_INSTANCE_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed),
         }
     }
 
@@ -502,10 +500,7 @@ mod tests {
         assert_eq!(DeviceState::Initializing.to_string(), "Initializing");
         assert_eq!(DeviceState::Ready.to_string(), "Ready");
         assert_eq!(DeviceState::Capturing.to_string(), "Capturing");
-        assert_eq!(
-            DeviceState::Error("test".into()).to_string(),
-            "Error: test"
-        );
+        assert_eq!(DeviceState::Error("test".into()).to_string(), "Error: test");
     }
 
     #[test]

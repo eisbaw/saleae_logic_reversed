@@ -543,8 +543,8 @@ pub static LOGIC_PRO_8_PROFILE: DeviceProfile = DeviceProfile {
     supports_encryption: true,
     max_digital_rate_usb3: 500_000_000,
     max_digital_rate_usb2: 100_000_000,
-    max_analog_rate_usb3: 100_000_000,  // 100 MHz available at USB 3.0
-    max_analog_rate_usb2: 50_000_000,   // 50 MHz max at USB 2.0
+    max_analog_rate_usb3: 100_000_000, // 100 MHz available at USB 3.0
+    max_analog_rate_usb2: 50_000_000,  // 50 MHz max at USB 2.0
 };
 
 /// Device profile for Logic Pro 16 (21a9:1006).
@@ -558,8 +558,8 @@ pub static LOGIC_PRO_16_PROFILE: DeviceProfile = DeviceProfile {
     supports_encryption: true,
     max_digital_rate_usb3: 500_000_000,
     max_digital_rate_usb2: 100_000_000,
-    max_analog_rate_usb3: 100_000_000,  // 100 MHz available at USB 3.0
-    max_analog_rate_usb2: 50_000_000,   // 50 MHz max at USB 2.0
+    max_analog_rate_usb3: 100_000_000, // 100 MHz available at USB 3.0
+    max_analog_rate_usb2: 50_000_000,  // 50 MHz max at USB 2.0
 };
 
 impl DeviceType {

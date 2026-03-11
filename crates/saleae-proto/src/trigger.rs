@@ -397,11 +397,7 @@ impl TriggerEngine {
     /// at 0).
     ///
     /// Once triggered, subsequent calls return `None` until `reset()`.
-    pub fn process_sample(
-        &mut self,
-        sample_index: u64,
-        channel_values: &[bool],
-    ) -> Option<u64> {
+    pub fn process_sample(&mut self, sample_index: u64, channel_values: &[bool]) -> Option<u64> {
         if self.triggered {
             return None;
         }
@@ -524,10 +520,7 @@ mod tests {
     #[test]
     fn edge_detector_multi_channel_and() {
         // ch0 rising AND ch1 falling must fire on the same sample.
-        let mut det = EdgeDetector::new(
-            vec![(0, EdgeType::Rising), (1, EdgeType::Falling)],
-            2,
-        );
+        let mut det = EdgeDetector::new(vec![(0, EdgeType::Rising), (1, EdgeType::Falling)], 2);
 
         // Initial state.
         det.update(&[false, true]);
@@ -544,10 +537,7 @@ mod tests {
     #[test]
     fn edge_detector_multi_channel_partial_mismatch() {
         // ch0 rising AND ch1 falling
-        let mut det = EdgeDetector::new(
-            vec![(0, EdgeType::Rising), (1, EdgeType::Falling)],
-            2,
-        );
+        let mut det = EdgeDetector::new(vec![(0, EdgeType::Rising), (1, EdgeType::Falling)], 2);
 
         det.update(&[false, true]);
 

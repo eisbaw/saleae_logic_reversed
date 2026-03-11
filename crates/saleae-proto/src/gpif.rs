@@ -251,10 +251,7 @@ mod tests {
     fn pro_medium_not_supported() {
         for &dt in &[DeviceType::LogicPro8, DeviceType::LogicPro16] {
             let config = select_gpif_config(dt, GpifBusWidth::Medium, UsbSpeed::Super);
-            assert!(
-                config.is_none(),
-                "Pro {dt} medium should not be in table"
-            );
+            assert!(config.is_none(), "Pro {dt} medium should not be in table");
         }
     }
 
@@ -317,8 +314,7 @@ mod tests {
 
     #[test]
     fn logic16_narrow_usb3_state_1() {
-        let config =
-            select_gpif_config(DeviceType::Logic16, GpifBusWidth::Narrow, UsbSpeed::Super);
+        let config = select_gpif_config(DeviceType::Logic16, GpifBusWidth::Narrow, UsbSpeed::Super);
         assert_eq!(
             config.map(|c| c.gpif_index),
             Some(1),
@@ -328,8 +324,7 @@ mod tests {
 
     #[test]
     fn logic16_medium_usb3_state_2() {
-        let config =
-            select_gpif_config(DeviceType::Logic16, GpifBusWidth::Medium, UsbSpeed::Super);
+        let config = select_gpif_config(DeviceType::Logic16, GpifBusWidth::Medium, UsbSpeed::Super);
         assert_eq!(config.map(|c| c.gpif_index), Some(2));
     }
 
@@ -372,7 +367,11 @@ mod tests {
     fn gpif_state_indices_in_range() {
         // All returned states should be 0-3.
         for &dt in DeviceType::ALL {
-            for &bw in &[GpifBusWidth::Narrow, GpifBusWidth::Medium, GpifBusWidth::Wide] {
+            for &bw in &[
+                GpifBusWidth::Narrow,
+                GpifBusWidth::Medium,
+                GpifBusWidth::Wide,
+            ] {
                 for &speed in &[UsbSpeed::High, UsbSpeed::Super] {
                     if let Some(config) = select_gpif_config(dt, bw, speed) {
                         assert!(

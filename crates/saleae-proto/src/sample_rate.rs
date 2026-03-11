@@ -141,21 +141,21 @@ impl std::fmt::Display for SampleRateOption {
 ///
 /// Source: `LogicProfessionalDevice.cpp`
 pub static PRO_DIGITAL_RATES: &[u64] = &[
-    500_000_000,  // 500 MHz
-    250_000_000,  // 250 MHz
-    125_000_000,  // 125 MHz
-    100_000_000,  // 100 MHz
-    50_000_000,   // 50 MHz
-    25_000_000,   // 25 MHz
-    20_000_000,   // 20 MHz
-    12_500_000,   // 12.5 MHz
-    10_000_000,   // 10 MHz
-    6_250_000,    // 6.25 MHz
-    5_000_000,    // 5 MHz
-    4_000_000,    // 4 MHz
-    2_500_000,    // 2.5 MHz
-    2_000_000,    // 2 MHz
-    1_000_000,    // 1 MHz
+    500_000_000, // 500 MHz
+    250_000_000, // 250 MHz
+    125_000_000, // 125 MHz
+    100_000_000, // 100 MHz
+    50_000_000,  // 50 MHz
+    25_000_000,  // 25 MHz
+    20_000_000,  // 20 MHz
+    12_500_000,  // 12.5 MHz
+    10_000_000,  // 10 MHz
+    6_250_000,   // 6.25 MHz
+    5_000_000,   // 5 MHz
+    4_000_000,   // 4 MHz
+    2_500_000,   // 2.5 MHz
+    2_000_000,   // 2 MHz
+    1_000_000,   // 1 MHz
 ];
 
 /// Analog physical sample rates for Logic Pro 8 / Logic Pro 16 (USB 3.0).
@@ -167,33 +167,33 @@ pub static PRO_DIGITAL_RATES: &[u64] = &[
 ///
 /// Source: `LogicProfessionalDevice.cpp`
 pub static PRO_ANALOG_RATES: &[u64] = &[
-    100_000_000,  // 100 MHz (USB 3.0 only)
-    50_000_000,   // 50 MHz
-    40_000_000,   // 40 MHz
-    25_000_000,   // 25 MHz
-    20_000_000,   // 20 MHz
-    10_000_000,   // 10 MHz
-    8_000_000,    // 8 MHz
-    5_000_000,    // 5 MHz
-    4_000_000,    // 4 MHz
-    2_000_000,    // 2 MHz
-    1_000_000,    // 1 MHz
+    100_000_000, // 100 MHz (USB 3.0 only)
+    50_000_000,  // 50 MHz
+    40_000_000,  // 40 MHz
+    25_000_000,  // 25 MHz
+    20_000_000,  // 20 MHz
+    10_000_000,  // 10 MHz
+    8_000_000,   // 8 MHz
+    5_000_000,   // 5 MHz
+    4_000_000,   // 4 MHz
+    2_000_000,   // 2 MHz
+    1_000_000,   // 1 MHz
 ];
 
 /// Analog rates for Logic Pro at USB 2.0 (omits 100 MHz).
 ///
 /// 10 entries from `.rodata` at ELF VA 0x472260.
 pub static PRO_ANALOG_RATES_USB2: &[u64] = &[
-    50_000_000,   // 50 MHz
-    40_000_000,   // 40 MHz
-    25_000_000,   // 25 MHz
-    20_000_000,   // 20 MHz
-    10_000_000,   // 10 MHz
-    8_000_000,    // 8 MHz
-    5_000_000,    // 5 MHz
-    4_000_000,    // 4 MHz
-    2_000_000,    // 2 MHz
-    1_000_000,    // 1 MHz
+    50_000_000, // 50 MHz
+    40_000_000, // 40 MHz
+    25_000_000, // 25 MHz
+    20_000_000, // 20 MHz
+    10_000_000, // 10 MHz
+    8_000_000,  // 8 MHz
+    5_000_000,  // 5 MHz
+    4_000_000,  // 4 MHz
+    2_000_000,  // 2 MHz
+    1_000_000,  // 1 MHz
 ];
 
 /// Digital sample rates for Logic 8.
@@ -203,15 +203,15 @@ pub static PRO_ANALOG_RATES_USB2: &[u64] = &[
 ///
 /// Source: `LogicGraduateDevice.cpp`, cross-referenced with JS bundle defaults.
 pub static LOGIC8_DIGITAL_RATES: &[u64] = &[
-    200_000_000,  // 200 MHz (USB 3.0 only, exceeds USB 2.0 max of 100 MHz)
-    100_000_000,  // 100 MHz
-    50_000_000,   // 50 MHz
-    25_000_000,   // 25 MHz
-    20_000_000,   // 20 MHz
-    10_000_000,   // 10 MHz
-    5_000_000,    // 5 MHz
-    2_500_000,    // 2.5 MHz
-    1_250_000,    // 1.25 MHz
+    200_000_000, // 200 MHz (USB 3.0 only, exceeds USB 2.0 max of 100 MHz)
+    100_000_000, // 100 MHz
+    50_000_000,  // 50 MHz
+    25_000_000,  // 25 MHz
+    20_000_000,  // 20 MHz
+    10_000_000,  // 10 MHz
+    5_000_000,   // 5 MHz
+    2_500_000,   // 2.5 MHz
+    1_250_000,   // 1.25 MHz
 ];
 
 /// Analog sample rates for Logic 8.
@@ -221,9 +221,9 @@ pub static LOGIC8_DIGITAL_RATES: &[u64] = &[
 ///
 /// Source: `LogicGraduateDevice.cpp`, 12-bit ADC (AD9637/ADS528x).
 pub static LOGIC8_ANALOG_RATES: &[u64] = &[
-    20_000_000,   // 20 MHz
-    10_000_000,   // 10 MHz
-    5_000_000,    // 5 MHz
+    20_000_000, // 20 MHz
+    10_000_000, // 10 MHz
+    5_000_000,  // 5 MHz
 ];
 
 /// Logic 4 sample rate options.
@@ -244,10 +244,26 @@ pub static LOGIC4_OPTIONS: &[SampleRateOption] = &[
     SampleRateOption::combined(12_000_000, 100, PerformanceTier::AnalogBasic),
     SampleRateOption::combined(12_000_000, 10, PerformanceTier::AnalogBasic),
     // Digital-only options (4 entries)
-    SampleRateOption { digital_rate: 12_000_000, analog_rate: 0, tier: PerformanceTier::AnalogBasic },
-    SampleRateOption { digital_rate: 6_000_000, analog_rate: 0, tier: PerformanceTier::AnalogBasic },
-    SampleRateOption { digital_rate: 3_000_000, analog_rate: 0, tier: PerformanceTier::AnalogBasic },
-    SampleRateOption { digital_rate: 1_000_000, analog_rate: 0, tier: PerformanceTier::AnalogBasic },
+    SampleRateOption {
+        digital_rate: 12_000_000,
+        analog_rate: 0,
+        tier: PerformanceTier::AnalogBasic,
+    },
+    SampleRateOption {
+        digital_rate: 6_000_000,
+        analog_rate: 0,
+        tier: PerformanceTier::AnalogBasic,
+    },
+    SampleRateOption {
+        digital_rate: 3_000_000,
+        analog_rate: 0,
+        tier: PerformanceTier::AnalogBasic,
+    },
+    SampleRateOption {
+        digital_rate: 1_000_000,
+        analog_rate: 0,
+        tier: PerformanceTier::AnalogBasic,
+    },
 ];
 
 // ---------------------------------------------------------------------------
@@ -555,11 +571,7 @@ mod tests {
     #[test]
     fn logic8_analog_rates_are_factors_of_20mhz() {
         for &rate in LOGIC8_ANALOG_RATES {
-            assert_eq!(
-                20_000_000 % rate,
-                0,
-                "{rate} Hz is not a factor of 20 MHz"
-            );
+            assert_eq!(20_000_000 % rate, 0, "{rate} Hz is not a factor of 20 MHz");
         }
     }
 
@@ -634,8 +646,14 @@ mod tests {
         // 15 digital + 11 analog = 26
         assert_eq!(rates.len(), 26);
 
-        let digital_count = rates.iter().filter(|r| r.has_digital() && !r.has_analog()).count();
-        let analog_count = rates.iter().filter(|r| r.has_analog() && !r.has_digital()).count();
+        let digital_count = rates
+            .iter()
+            .filter(|r| r.has_digital() && !r.has_analog())
+            .count();
+        let analog_count = rates
+            .iter()
+            .filter(|r| r.has_analog() && !r.has_digital())
+            .count();
         assert_eq!(digital_count, 15);
         assert_eq!(analog_count, 11);
     }
@@ -677,10 +695,7 @@ mod tests {
     #[test]
     fn select_closest_below_minimum() {
         // 500 kHz is below the minimum 1 MHz
-        assert_eq!(
-            select_closest_rate(PRO_DIGITAL_RATES, 500_000),
-            1_000_000
-        );
+        assert_eq!(select_closest_rate(PRO_DIGITAL_RATES, 500_000), 1_000_000);
     }
 
     #[test]
@@ -832,7 +847,8 @@ mod tests {
 
     #[test]
     fn sample_rate_option_combined_ctor() {
-        let opt = SampleRateOption::combined(100_000_000, 50_000_000, PerformanceTier::AnalogAdvanced);
+        let opt =
+            SampleRateOption::combined(100_000_000, 50_000_000, PerformanceTier::AnalogAdvanced);
         assert!(opt.has_digital());
         assert!(opt.has_analog());
     }
@@ -846,7 +862,8 @@ mod tests {
         let a = SampleRateOption::analog_only(50_000_000, PerformanceTier::AnalogAdvanced);
         assert!(a.to_string().contains("analog"));
 
-        let c = SampleRateOption::combined(100_000_000, 50_000_000, PerformanceTier::AnalogAdvanced);
+        let c =
+            SampleRateOption::combined(100_000_000, 50_000_000, PerformanceTier::AnalogAdvanced);
         assert!(c.to_string().contains("digital"));
         assert!(c.to_string().contains("analog"));
     }
@@ -859,6 +876,9 @@ mod tests {
     fn performance_tier_display() {
         assert_eq!(PerformanceTier::DigitalOnly.to_string(), "DigitalOnly");
         assert_eq!(PerformanceTier::AnalogBasic.to_string(), "AnalogBasic");
-        assert_eq!(PerformanceTier::AnalogAdvanced.to_string(), "AnalogAdvanced");
+        assert_eq!(
+            PerformanceTier::AnalogAdvanced.to_string(),
+            "AnalogAdvanced"
+        );
     }
 }

@@ -16,10 +16,7 @@ pub enum DriverError {
 
     /// Device is in the wrong state for the requested operation.
     #[error("invalid state: device is {current}, but operation requires {required}")]
-    InvalidState {
-        current: String,
-        required: String,
-    },
+    InvalidState { current: String, required: String },
 
     /// A state transition was rejected by the state machine.
     #[error("invalid state transition: {from} -> {to}")]

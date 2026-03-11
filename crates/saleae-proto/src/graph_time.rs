@@ -503,7 +503,11 @@ mod tests {
         let rate = 1_000_000_000u64; // 1 GHz -- each sample is exactly 1 ns
         for idx in [0u64, 1, 100, 1_000_000, u64::MAX / 2] {
             let t = GraphTime::from_sample_index(idx, rate);
-            assert_eq!(t.to_sample_index(rate), idx, "roundtrip failed for idx={idx}");
+            assert_eq!(
+                t.to_sample_index(rate),
+                idx,
+                "roundtrip failed for idx={idx}"
+            );
         }
     }
 
@@ -572,18 +576,16 @@ mod tests {
     fn seconds_and_frac_reconstruction() {
         // Verify we can reconstruct from seconds() + subsec_nanos()
         let t = GraphTime::from_nanos(3_750_000_001);
-        let reconstructed = GraphTime::from_nanos(
-            t.seconds() as i128 * NANOS_PER_SEC + t.subsec_nanos() as i128,
-        );
+        let reconstructed =
+            GraphTime::from_nanos(t.seconds() as i128 * NANOS_PER_SEC + t.subsec_nanos() as i128);
         assert_eq!(t, reconstructed);
     }
 
     #[test]
     fn seconds_and_frac_negative_reconstruction() {
         let t = GraphTime::from_nanos(-3_750_000_001);
-        let reconstructed = GraphTime::from_nanos(
-            t.seconds() as i128 * NANOS_PER_SEC + t.subsec_nanos() as i128,
-        );
+        let reconstructed =
+            GraphTime::from_nanos(t.seconds() as i128 * NANOS_PER_SEC + t.subsec_nanos() as i128);
         assert_eq!(t, reconstructed);
     }
 }

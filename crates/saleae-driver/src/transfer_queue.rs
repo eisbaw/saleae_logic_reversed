@@ -190,7 +190,12 @@ impl TransferConfig {
         bytes_per_sample: u8,
         usb_speed: UsbSpeed,
     ) -> Self {
-        let bandwidth = compute_bandwidth(sample_rate, digital_channels, analog_channels, bytes_per_sample);
+        let bandwidth = compute_bandwidth(
+            sample_rate,
+            digital_channels,
+            analog_channels,
+            bytes_per_sample,
+        );
         let block = block_size_for_speed(usb_speed);
         let mut transfer_size = compute_transfer_size(bandwidth, usb_speed);
 
@@ -198,7 +203,11 @@ impl TransferConfig {
         if let Some(env_limit) = Self::from_env_override() {
             // Align the env limit down to block boundary.
             let aligned_limit = (env_limit / block) * block;
-            let aligned_limit = if aligned_limit == 0 { block } else { aligned_limit };
+            let aligned_limit = if aligned_limit == 0 {
+                block
+            } else {
+                aligned_limit
+            };
             if aligned_limit < transfer_size {
                 transfer_size = aligned_limit;
             }
@@ -335,16 +344,26 @@ mod tests {
     #[test]
     fn transfer_size_always_block_aligned() {
         // Test a range of bandwidths to verify block alignment.
-        for bw in [100, 1_000, 50_000, 500_000, 5_000_000, 50_000_000, 500_000_000] {
+        for bw in [
+            100,
+            1_000,
+            50_000,
+            500_000,
+            5_000_000,
+            50_000_000,
+            500_000_000,
+        ] {
             let size_usb2 = compute_transfer_size(bw, UsbSpeed::High);
             assert_eq!(
-                size_usb2 % USB2_BLOCK_SIZE, 0,
+                size_usb2 % USB2_BLOCK_SIZE,
+                0,
                 "USB2 not aligned for bw={bw}: size={size_usb2}"
             );
 
             let size_usb3 = compute_transfer_size(bw, UsbSpeed::Super);
             assert_eq!(
-                size_usb3 % USB3_BLOCK_SIZE, 0,
+                size_usb3 % USB3_BLOCK_SIZE,
+                0,
                 "USB3 not aligned for bw={bw}: size={size_usb3}"
             );
         }
