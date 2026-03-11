@@ -522,6 +522,109 @@ pub const FEAT_PLL_STATUS_2: u8 = 0x4A;
 pub const PLL_MAIN_DCM_LOCKED: u8 = 1 << 5;
 pub const PLL_SLOW_DCM_LOCKED: u8 = 1 << 6;
 
+// ===========================================================================
+// JESD204B power sequence values (pcap-validated, register 0x00)
+// ===========================================================================
+// From pcap Phase 3c (init-sequence-pcap.md): the JESD link is brought up
+// by a staged power sequence writing to register 0x00:
+//   0x1e -> 0x1c -> 0x18 -> 0x08 -> 0x00
+// Each step releases one more subsystem from reset. The same sequence is
+// used for power-up (Phases 3c, 3f, 7) and power-down (Phase 8).
+
+/// JESD power step 0: all subsystems held in reset.
+pub const JESD_POWER_ALL_RESET: u8 = 0x1E;
+
+/// JESD power step 1: first subsystem released (bit 1 cleared).
+pub const JESD_POWER_STEP1: u8 = 0x1C;
+
+/// JESD power step 2: second subsystem released (bit 2 cleared).
+pub const JESD_POWER_STEP2: u8 = 0x18;
+
+/// JESD power step 3: third subsystem released (bit 4 cleared).
+pub const JESD_POWER_STEP3: u8 = 0x08;
+
+/// JESD power step 4: all subsystems released, JESD link active.
+pub const JESD_POWER_ALL_ACTIVE: u8 = 0x00;
+
+/// The complete JESD power sequence in order.
+pub const JESD_POWER_SEQUENCE: [u8; 5] = [
+    JESD_POWER_ALL_RESET,
+    JESD_POWER_STEP1,
+    JESD_POWER_STEP2,
+    JESD_POWER_STEP3,
+    JESD_POWER_ALL_ACTIVE,
+];
+
+// ===========================================================================
+// ADC indirect register access (pcap-validated, registers 0x03-0x05, 0x16)
+// ===========================================================================
+// The FPGA provides indirect access to ADC registers through a 4-register
+// protocol observed in pcap Phase 3b:
+//   r0x03 = bank/register address
+//   r0x16 = address high byte (always 0x00 in pcap)
+//   r0x04 = register data value
+//   r0x05 = data high byte (always 0x00 in pcap)
+//
+// These overlap with the existing FEAT_ADC_SPI_* constants because the same
+// physical registers serve dual purpose: SPI bridge on Xilinx paths, indirect
+// ADC bank access on Lattice/FpgaDeviceFeatures paths.
+
+/// ADC bank select register (indirect access via FPGA proxy).
+pub const ADC_BANK_SELECT: u8 = 0x03;
+
+/// ADC register address (indirect access -- data low byte).
+pub const ADC_REG_ADDR: u8 = 0x04;
+
+/// ADC register data (indirect access -- data high byte).
+pub const ADC_REG_DATA: u8 = 0x05;
+
+/// ADC register trigger / address high (indirect access).
+///
+/// Always written as 0x00 in pcap. Must be written before ADC_REG_ADDR
+/// and ADC_REG_DATA to complete the indirect access transaction.
+pub const ADC_REG_TRIGGER: u8 = 0x16;
+
+// ===========================================================================
+// Calibration coefficient register (pcap-validated)
+// ===========================================================================
+
+/// Calibration coefficient storage register.
+///
+/// From pcap Phase 3e: 16 sequential writes to register 0x17 load
+/// calibration coefficients into the FPGA. Values are device-specific
+/// and come from the server-hosted calibration file.
+pub const CAL_COEFF_REG: u8 = 0x17;
+
+/// Maximum number of calibration coefficients.
+pub const CAL_COEFF_MAX_COUNT: usize = 16;
+
+// ===========================================================================
+// JESD link status registers (pcap-validated, read-only)
+// ===========================================================================
+
+/// JESD link status register (read-only, FpgaDeviceFeatures path).
+///
+/// From pcap: 0xE0 = link established, 0x00 = link down.
+/// Read after JESD power sequence to verify link establishment.
+pub const FEAT_JESD_LINK_STATUS: u8 = 0x40;
+
+/// JESD link established value (all link indicator bits set).
+pub const FEAT_JESD_LINK_ESTABLISHED: u8 = 0xE0;
+
+/// JESD status detail register (read-only, FpgaDeviceFeatures path).
+pub const FEAT_JESD_STATUS_DETAIL: u8 = 0x4A;
+
+/// General status register (read-only, FpgaDeviceFeatures path).
+pub const FEAT_STATUS_GENERAL: u8 = 0x19;
+
+/// Bank power control register.
+///
+/// From pcap: 0x00 = power off, 0x03 = power on.
+pub const FEAT_BANK_POWER: u8 = 0x15;
+
+/// Capture config register (observed in Phase 3f as r0x12).
+pub const FEAT_CAPTURE_CONFIG_2: u8 = 0x12;
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -712,5 +815,65 @@ mod tests {
     fn pll_status_bits() {
         assert_eq!(PLL_MAIN_DCM_LOCKED, 0x20);
         assert_eq!(PLL_SLOW_DCM_LOCKED, 0x40);
+    }
+
+    #[test]
+    fn jesd_power_sequence_values() {
+        // Verify the exact pcap-observed values.
+        assert_eq!(JESD_POWER_ALL_RESET, 0x1E);
+        assert_eq!(JESD_POWER_STEP1, 0x1C);
+        assert_eq!(JESD_POWER_STEP2, 0x18);
+        assert_eq!(JESD_POWER_STEP3, 0x08);
+        assert_eq!(JESD_POWER_ALL_ACTIVE, 0x00);
+
+        // The array must match the exact ordering.
+        assert_eq!(
+            JESD_POWER_SEQUENCE,
+            [0x1E, 0x1C, 0x18, 0x08, 0x00]
+        );
+    }
+
+    #[test]
+    fn jesd_power_sequence_bit_clearing_pattern() {
+        // Each step clears one more bit from the starting value 0x1E.
+        // 0x1E = 0b0001_1110 (bits 1,2,3,4 set)
+        // Step 0: 0x1E = 0b0001_1110 (all reset bits set)
+        // Step 1: 0x1C = 0b0001_1100 (bit 1 cleared)
+        // Step 2: 0x18 = 0b0001_1000 (bit 2 cleared)
+        // Step 3: 0x08 = 0b0000_1000 (bit 4 cleared)
+        // Step 4: 0x00 = 0b0000_0000 (bit 3 cleared)
+        assert_eq!(JESD_POWER_ALL_RESET & !0x02, JESD_POWER_STEP1);
+        assert_eq!(JESD_POWER_STEP1 & !0x04, JESD_POWER_STEP2);
+        assert_eq!(JESD_POWER_STEP2 & !0x10, JESD_POWER_STEP3);
+        assert_eq!(JESD_POWER_STEP3 & !0x08, JESD_POWER_ALL_ACTIVE);
+    }
+
+    #[test]
+    fn adc_indirect_register_addresses() {
+        // These must match existing FEAT_ADC_SPI_* constants (same registers).
+        assert_eq!(ADC_BANK_SELECT, FEAT_ADC_SPI_ADDR);
+        assert_eq!(ADC_REG_ADDR, FEAT_ADC_SPI_DATA_LO);
+        assert_eq!(ADC_REG_DATA, FEAT_ADC_SPI_DATA_HI);
+        assert_eq!(ADC_REG_TRIGGER, FEAT_ADC_SPI_ADDR_EXT);
+    }
+
+    #[test]
+    fn cal_coeff_register() {
+        assert_eq!(CAL_COEFF_REG, 0x17);
+        assert_eq!(CAL_COEFF_MAX_COUNT, 16);
+    }
+
+    #[test]
+    fn jesd_link_status_constants() {
+        assert_eq!(FEAT_JESD_LINK_STATUS, 0x40);
+        assert_eq!(FEAT_JESD_LINK_ESTABLISHED, 0xE0);
+        assert_eq!(FEAT_JESD_STATUS_DETAIL, 0x4A);
+        assert_eq!(FEAT_STATUS_GENERAL, 0x19);
+        assert_eq!(FEAT_BANK_POWER, 0x15);
+        assert_eq!(FEAT_CAPTURE_CONFIG_2, 0x12);
+
+        // FEAT_JESD_LINK_STATUS is the same register as FEAT_PLL_STATUS
+        // (both are 0x40, read-only, different interpretations per device path).
+        assert_eq!(FEAT_JESD_LINK_STATUS, FEAT_PLL_STATUS);
     }
 }

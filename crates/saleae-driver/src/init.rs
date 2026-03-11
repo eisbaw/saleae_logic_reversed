@@ -31,10 +31,12 @@
 //! by `SimpleEncryption::encrypt_reseed`.
 
 use saleae_proto::device::{DeviceProfile, UsbSpeed};
+use saleae_proto::fpga_regs;
 use tracing::{debug, info};
 
 use crate::ep1::Ep1CommandChannel;
 use crate::error::{DriverError, DriverResult};
+use crate::jesd;
 
 // ---------------------------------------------------------------------------
 // Phase tracking
@@ -350,27 +352,27 @@ impl<'a> DeviceSession<'a> {
         self.adc_init()?;
 
         // 3c: JESD link establishment (first attempt may fail)
-        self.jesd_power_sequence()?;
-        let mut jesd_status = self.ep1.read_register_8(0x40)?;
+        jesd::jesd_power_sequence(self.ep1)?;
+        let mut jesd_status = self.ep1.read_register_8(fpga_regs::FEAT_JESD_LINK_STATUS)?;
         debug!(status = format_args!("{jesd_status:#04x}"), "JESD status (first attempt)");
 
-        if jesd_status != 0xE0 {
+        if jesd_status != fpga_regs::FEAT_JESD_LINK_ESTABLISHED {
             // Pcap shows first attempt returns 0x00, second succeeds.
             debug!("JESD not ready, retrying power sequence");
-            self.jesd_power_sequence()?;
-            jesd_status = self.ep1.read_register_8(0x40)?;
+            jesd::jesd_power_sequence(self.ep1)?;
+            jesd_status = self.ep1.read_register_8(fpga_regs::FEAT_JESD_LINK_STATUS)?;
             debug!(status = format_args!("{jesd_status:#04x}"), "JESD status (second attempt)");
         }
 
-        // Read r0x4a, r0x19, r0x40 status registers
-        let _r4a = self.ep1.read_register_8(0x4A)?;
-        let _r19 = self.ep1.read_register_8(0x19)?;
-        let _r40 = self.ep1.read_register_8(0x40)?;
-        let _r4a2 = self.ep1.read_register_8(0x4A)?;
+        // Read status registers
+        let _r4a = self.ep1.read_register_8(fpga_regs::FEAT_JESD_STATUS_DETAIL)?;
+        let _r19 = self.ep1.read_register_8(fpga_regs::FEAT_STATUS_GENERAL)?;
+        let _r40 = self.ep1.read_register_8(fpga_regs::FEAT_JESD_LINK_STATUS)?;
+        let _r4a2 = self.ep1.read_register_8(fpga_regs::FEAT_JESD_STATUS_DETAIL)?;
 
         // 3d: Post-JESD config
-        self.ep1.write_register_8(0x00, 0x00)?;
-        self.ep1.write_register_8(0x00, 0x40)?;
+        self.ep1.write_register_8(fpga_regs::FEAT_CAPTURE_INIT, fpga_regs::JESD_POWER_ALL_ACTIVE)?;
+        self.ep1.write_register_8(fpga_regs::FEAT_CAPTURE_INIT, 0x40)?;
 
         // ReadVersion for calibration data (16 bytes)
         let calibration_data =
@@ -389,17 +391,15 @@ impl<'a> DeviceSession<'a> {
             0x46, 0xFF, 0xC6, 0xA6, 0x60, 0xB7, 0xDE, 0x07, 0x67, 0x8B, 0x03, 0x66, 0x11, 0x35,
             0x7C, 0x7F,
         ];
-        for &coeff in &cal_coefficients {
-            self.ep1.write_register_8(0x17, coeff)?;
-        }
+        jesd::write_calibration_coefficients(self.ep1, &cal_coefficients)?;
 
         // 3f: Third power cycle
-        self.write_adc_bank_register(0x08, 0x01)?;
-        self.jesd_power_sequence()?;
-        let _r40 = self.ep1.read_register_8(0x40)?;
-        let _r4a = self.ep1.read_register_8(0x4A)?;
-        let _r19 = self.ep1.read_register_8(0x19)?;
-        self.ep1.write_register_8(0x12, 0x04)?;
+        jesd::write_adc_register(self.ep1, 0x08, 0x01)?;
+        jesd::jesd_power_sequence(self.ep1)?;
+        let _r40 = self.ep1.read_register_8(fpga_regs::FEAT_JESD_LINK_STATUS)?;
+        let _r4a = self.ep1.read_register_8(fpga_regs::FEAT_JESD_STATUS_DETAIL)?;
+        let _r19 = self.ep1.read_register_8(fpga_regs::FEAT_STATUS_GENERAL)?;
+        self.ep1.write_register_8(fpga_regs::FEAT_CAPTURE_CONFIG_2, 0x04)?;
 
         self.phase = InitPhase::PostFpgaInit;
         info!("Phase 3 complete: post-FPGA init done");
@@ -554,18 +554,18 @@ impl<'a> DeviceSession<'a> {
         info!("Phase 7: Capture start");
 
         // Step 1: ADC re-initialization
-        self.ep1.write_register_8(0x15, 0x03)?;
-        self.write_adc_bank_register(0x08, 0x00)?;
-        self.write_adc_bank_register(0x08, 0x03)?;
-        self.write_adc_bank_register(0x08, 0x00)?;
+        self.ep1.write_register_8(fpga_regs::FEAT_BANK_POWER, 0x03)?;
+        jesd::write_adc_register(self.ep1, 0x08, 0x00)?;
+        jesd::write_adc_register(self.ep1, 0x08, 0x03)?;
+        jesd::write_adc_register(self.ep1, 0x08, 0x00)?;
 
         // Step 2: JESD re-establishment
-        self.jesd_power_sequence()?;
-        let _r40 = self.ep1.read_register_8(0x40)?;
-        let _r4a = self.ep1.read_register_8(0x4A)?;
-        let _r19 = self.ep1.read_register_8(0x19)?;
-        let _r40 = self.ep1.read_register_8(0x40)?;
-        let _r4a = self.ep1.read_register_8(0x4A)?;
+        jesd::jesd_power_sequence(self.ep1)?;
+        let _r40 = self.ep1.read_register_8(fpga_regs::FEAT_JESD_LINK_STATUS)?;
+        let _r4a = self.ep1.read_register_8(fpga_regs::FEAT_JESD_STATUS_DETAIL)?;
+        let _r19 = self.ep1.read_register_8(fpga_regs::FEAT_STATUS_GENERAL)?;
+        let _r40 = self.ep1.read_register_8(fpga_regs::FEAT_JESD_LINK_STATUS)?;
+        let _r4a = self.ep1.read_register_8(fpga_regs::FEAT_JESD_STATUS_DETAIL)?;
 
         // Step 3: Write capture parameters
         // The pcap shows a 12-register batch write, but the register count
@@ -584,7 +584,7 @@ impl<'a> DeviceSession<'a> {
         self.ep1.start_sampling()?;
 
         // Step 6: Trigger capture
-        self.ep1.write_register_8(0x00, 0x01)?;
+        self.ep1.write_register_8(fpga_regs::FEAT_CAPTURE_INIT, 0x01)?;
 
         self.phase = InitPhase::CaptureStart;
         info!("Phase 7 complete: capture started");
@@ -610,25 +610,25 @@ impl<'a> DeviceSession<'a> {
         info!("Phase 8: Capture teardown");
 
         // Step 1: Stop capture
-        self.ep1.write_register_8(0x00, 0x00)?;
+        self.ep1.write_register_8(fpga_regs::FEAT_CAPTURE_INIT, fpga_regs::JESD_POWER_ALL_ACTIVE)?;
 
         // Step 2: StopStream
         self.ep1.stop_stream()?;
 
         // Step 3: Read status
-        let _r40 = self.ep1.read_register_8(0x40)?;
-        let _r4a = self.ep1.read_register_8(0x4A)?;
+        let _r40 = self.ep1.read_register_8(fpga_regs::FEAT_JESD_LINK_STATUS)?;
+        let _r4a = self.ep1.read_register_8(fpga_regs::FEAT_JESD_STATUS_DETAIL)?;
 
         // Step 4: Power down
-        self.ep1.write_register_8(0x15, 0x00)?;
-        self.write_adc_bank_register(0x08, 0x01)?;
+        self.ep1.write_register_8(fpga_regs::FEAT_BANK_POWER, 0x00)?;
+        jesd::write_adc_register(self.ep1, 0x08, 0x01)?;
 
         // Step 5: JESD power-down sequence
-        self.jesd_power_sequence()?;
+        jesd::jesd_power_sequence(self.ep1)?;
 
         // Step 6: Final status
-        let _r40 = self.ep1.read_register_8(0x40)?;
-        let _r4a = self.ep1.read_register_8(0x4A)?;
+        let _r40 = self.ep1.read_register_8(fpga_regs::FEAT_JESD_LINK_STATUS)?;
+        let _r4a = self.ep1.read_register_8(fpga_regs::FEAT_JESD_STATUS_DETAIL)?;
 
         self.phase = InitPhase::Teardown;
         info!("Phase 8 complete: capture torn down");
@@ -704,46 +704,19 @@ impl<'a> DeviceSession<'a> {
         ];
 
         for &(bank, value) in bank_writes {
-            self.write_adc_bank_register(bank, value)?;
+            jesd::write_adc_register(self.ep1, bank, value)?;
         }
 
         // Single register writes
-        self.ep1.write_register_8(0x15, 0x00)?;
-        self.write_adc_bank_register(0x08, 0x01)?;
+        self.ep1.write_register_8(fpga_regs::FEAT_BANK_POWER, 0x00)?;
+        jesd::write_adc_register(self.ep1, 0x08, 0x01)?;
 
         Ok(())
     }
 
-    /// Write a value to an ADC register via the FPGA's indirect access.
-    ///
-    /// The FPGA provides indirect ADC register access through a 4-register
-    /// protocol:
-    /// - r0x03 = bank/register address
-    /// - r0x16 = address high (always 0x00)
-    /// - r0x04 = register value
-    /// - r0x05 = value high (always 0x00)
-    fn write_adc_bank_register(&mut self, bank: u8, value: u8) -> DriverResult<()> {
-        self.ep1.write_registers(&[
-            (0x03, bank),
-            (0x16, 0x00),
-            (0x04, value),
-            (0x05, 0x00),
-        ])
-    }
-
-    /// JESD204B link power sequence.
-    ///
-    /// The power-up sequence clears bits in register 0x00:
-    /// `0x1e -> 0x1c -> 0x18 -> 0x08 -> 0x00`
-    ///
-    /// This is used in Phase 3c, 3f, Phase 7, and Phase 8.
-    fn jesd_power_sequence(&mut self) -> DriverResult<()> {
-        debug!("JESD power sequence: 0x1e -> 0x1c -> 0x18 -> 0x08 -> 0x00");
-        for &value in &[0x1E, 0x1C, 0x18, 0x08, 0x00] {
-            self.ep1.write_register_8(0x00, value)?;
-        }
-        Ok(())
-    }
+    // write_adc_bank_register and jesd_power_sequence have been moved to
+    // the `jesd` module as `jesd::write_adc_register` and
+    // `jesd::jesd_power_sequence` respectively.
 }
 
 // ---------------------------------------------------------------------------
