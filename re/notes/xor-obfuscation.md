@@ -183,15 +183,24 @@ is garbled.
 Validated against `~/topics/saleae_logic_8_pro/data-002/usb.logic8pro.pcap`
 on a Logic Pro 8 (21a9:1005).
 
-### Reseed (Frame 15)
+### Reseed Encryption Key (CORRECTED 2026-03-11)
 
-The reseed packet is encrypted with the CURRENT LFSR state (the state
-before the reseed). After sending, the host stores the 4 raw seed bytes
-as the new LFSR state. The reseed uses `prepare_buffer` (VA 0x2d99c10),
-which applies `| 0x20` to the control byte (not `| 0x08`).
+**IMPORTANT**: Reseed packets are ALWAYS encrypted with the INITIAL/DEFAULT
+LFSR seed (0x354b248e), NOT the current rolling seed. This was discovered
+by analyzing all 4 reseeds in the pcap (frames 15, 1627, 1639, 1651).
+Using the initial seed to decode all 4 reseeds produces correct results
+(0 unknown opcodes across all 928 frames). Using the rolling seed produces
+garbage after reseed #2.
 
-From the pcap, the initial state before reseed is 0x354b248e, and the
-new seed (= LFSR state for subsequent commands) is 0x6fe77bc8.
+The previous documentation stated "encrypted with the CURRENT LFSR state"
+which was only correct for the first reseed (where current == initial).
+
+After sending, the host stores the 4 raw seed bytes as the new rolling
+LFSR state. The reseed uses `prepare_buffer` (VA 0x2d99c10), which
+applies `| 0x20` to the control byte (not `| 0x08`).
+
+From the pcap, the initial state is 0x354b248e. The first reseed
+establishes new seed 0x6fe77bc8 for subsequent commands.
 
 ### Validated Sequence
 
