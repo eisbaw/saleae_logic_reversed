@@ -36,6 +36,10 @@ pub enum ProtoError {
     #[error("unknown device: VID={vid:#06x} PID={pid:#06x}")]
     UnknownDevice { vid: u16, pid: u16 },
 
+    /// Invalid sample rate combination for a device.
+    #[error("invalid sample rate: {reason}")]
+    InvalidSampleRate { reason: String },
+
     /// Generic parse error with context.
     #[error("parse error: {context}")]
     Parse { context: String },
