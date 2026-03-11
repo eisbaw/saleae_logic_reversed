@@ -94,6 +94,16 @@ enum Command {
         skip_fpga: bool,
     },
 
+    /// Monitor USB bus for Saleae device connect/disconnect events.
+    ///
+    /// Polls the USB bus every second and prints events as they happen.
+    /// Runs until Ctrl+C.
+    Monitor {
+        /// Poll interval in milliseconds.
+        #[arg(long, default_value = "1000")]
+        interval_ms: u64,
+    },
+
     /// Raw EP1 diagnostic test (bypasses encryption).
     ///
     /// Sends raw bytes on EP1 OUT/IN to test if the endpoints are
@@ -153,6 +163,7 @@ fn main() -> anyhow::Result<()> {
             bitstream,
             skip_fpga,
         } => commands::device_init(bitstream.as_deref(), skip_fpga)?,
+        Command::Monitor { interval_ms } => commands::monitor(interval_ms)?,
         Command::Ep1Test => diag::raw_ep1_test()?,
         Command::CaptureDigital {
             sample_rate,

@@ -792,6 +792,51 @@ fn parse_export_format(s: &str) -> Result<saleae_proto::ExportFormat> {
     }
 }
 
+/// Monitor USB bus for Saleae device connect/disconnect events.
+///
+/// Polls every `interval_ms` milliseconds and prints events as they
+/// happen. Runs until Ctrl+C terminates the process.
+pub fn monitor(interval_ms: u64) -> Result<()> {
+    use saleae_driver::device_manager::{DeviceManager, UsbDeviceEnumerator};
+
+    let poll_interval = Duration::from_millis(interval_ms);
+    let mut manager = DeviceManager::new(UsbDeviceEnumerator);
+
+    println!("Monitoring USB bus for Saleae devices (poll interval: {interval_ms}ms)");
+    println!("Press Ctrl+C to stop.");
+    println!();
+
+    // Initial scan to show what's already connected.
+    let events = manager.poll().context("initial USB scan failed")?;
+    if events.is_empty() {
+        println!("No Saleae devices currently connected.");
+    } else {
+        for event in &events {
+            println!("[initial] {event}");
+        }
+    }
+    println!();
+
+    // Poll loop. Ctrl+C terminates the process via the default signal
+    // handler, which is the expected UX for a monitoring tool.
+    let start = std::time::Instant::now();
+    loop {
+        std::thread::sleep(poll_interval);
+
+        match manager.poll() {
+            Ok(events) => {
+                for event in &events {
+                    let elapsed = start.elapsed().as_secs_f64();
+                    println!("[{elapsed:8.1}s] {event}");
+                }
+            }
+            Err(e) => {
+                eprintln!("USB scan error: {e}");
+            }
+        }
+    }
+}
+
 /// Parse a comma-separated channel list like "0,1,2,3" into a Vec<u8>.
 fn parse_channel_list(s: &str) -> Result<Vec<u8>> {
     s.split(',')
