@@ -6,12 +6,14 @@ description = "USB transport layer for Saleae Logic analyzers"
 
 [features]
 default = ["nusb-backend"]
-nusb-backend = ["dep:nusb", "dep:futures-lite"]
+nusb-backend = ["dep:nusb", "dep:futures-lite", "dep:async-io", "dep:tracing"]
 
 [dependencies]
 saleae-proto = { workspace = true }
 thiserror = { workspace = true }
+tracing = { workspace = true, optional = true }
 nusb = { workspace = true, optional = true }
 futures-lite = { workspace = true, optional = true }
+async-io = { workspace = true, optional = true }
 
 [dev-dependencies]

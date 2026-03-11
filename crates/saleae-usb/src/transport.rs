@@ -65,6 +65,17 @@ pub trait UsbTransport: Send {
     /// `buf` is the receive buffer. Returns the number of bytes read.
     fn bulk_transfer_in(&self, endpoint: u8, buf: &mut [u8]) -> UsbResult<usize>;
 
+    /// Clear a halt / stall condition on a bulk or interrupt endpoint.
+    ///
+    /// Sends CLEAR_FEATURE(ENDPOINT_HALT) to the device. Required before
+    /// EP1 communication on some firmware configurations.
+    ///
+    /// Default implementation is a no-op (returns Ok). Override in backends
+    /// that support real USB devices.
+    fn clear_halt(&self, _endpoint: u8) -> UsbResult<()> {
+        Ok(())
+    }
+
     /// Reset the USB device.
     fn reset(&self) -> UsbResult<()>;
 }

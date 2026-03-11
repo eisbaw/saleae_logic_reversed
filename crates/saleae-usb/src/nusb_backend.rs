@@ -10,6 +10,10 @@ use crate::transport::{ControlTransferParams, UsbTransport};
 /// Default timeout for USB control transfers.
 const DEFAULT_TIMEOUT: Duration = Duration::from_secs(5);
 
+/// Timeout for bulk transfers (EP1 commands/responses).
+/// Set long enough for FPGA bitstream chunks but short enough to detect hangs.
+const BULK_TIMEOUT: Duration = Duration::from_secs(10);
+
 /// Real USB transport using the `nusb` crate.
 pub struct NusbTransport {
     /// The open USB interface handle.
@@ -43,8 +47,60 @@ impl NusbTransport {
                 context: e.to_string(),
             })?;
 
+        // Clear any stall condition on EP1 OUT and EP1 IN.
+        // The pcap shows a CLEAR_FEATURE(ENDPOINT_HALT) before the first EP1
+        // command. This is best-effort: failures are logged but not fatal,
+        // since freshly-configured endpoints are typically not stalled.
+        if let Err(e) = interface.clear_halt(0x01) {
+            tracing::debug!("clear_halt(EP1 OUT) during open: {e} (non-fatal)");
+        }
+        if let Err(e) = interface.clear_halt(0x81) {
+            tracing::debug!("clear_halt(EP1 IN) during open: {e} (non-fatal)");
+        }
+
         Ok(Self { interface })
     }
+}
+
+/// Run an async future with a timeout, returning a timeout error if the
+/// deadline expires first.
+///
+/// When the timeout fires, the `TransferFuture` is dropped. nusb cancels
+/// the underlying kernel URB on drop (via `usbdevfs_discardurb`), so the
+/// transfer does not remain in-flight after a timeout.
+fn bulk_with_timeout<T, F>(
+    transfer: F,
+    endpoint: u8,
+    direction: &str,
+) -> UsbResult<nusb::transfer::Completion<T>>
+where
+    F: std::future::Future<Output = nusb::transfer::Completion<T>>,
+{
+    futures_lite::future::block_on(async {
+        futures_lite::future::or(
+            async {
+                let c = transfer.await;
+                Ok(c)
+            },
+            async {
+                async_io::Timer::after(BULK_TIMEOUT).await;
+                tracing::warn!(
+                    endpoint,
+                    direction,
+                    timeout_secs = BULK_TIMEOUT.as_secs(),
+                    "bulk transfer timed out"
+                );
+                Err(UsbError::BulkTransfer {
+                    endpoint,
+                    context: format!(
+                        "bulk {direction} timed out after {:?}",
+                        BULK_TIMEOUT
+                    ),
+                })
+            },
+        )
+        .await
+    })
 }
 
 impl UsbTransport for NusbTransport {
@@ -89,8 +145,8 @@ impl UsbTransport for NusbTransport {
     }
 
     fn bulk_transfer_out(&self, endpoint: u8, data: &[u8]) -> UsbResult<usize> {
-        let completion =
-            futures_lite::future::block_on(self.interface.bulk_out(endpoint, data.to_vec()));
+        let transfer = self.interface.bulk_out(endpoint, data.to_vec());
+        let completion = bulk_with_timeout(transfer, endpoint, "OUT")?;
 
         completion.status.map_err(|e| UsbError::BulkTransfer {
             endpoint,
@@ -101,10 +157,10 @@ impl UsbTransport for NusbTransport {
     }
 
     fn bulk_transfer_in(&self, endpoint: u8, buf: &mut [u8]) -> UsbResult<usize> {
-        let completion = futures_lite::future::block_on(
-            self.interface
-                .bulk_in(endpoint, nusb::transfer::RequestBuffer::new(buf.len())),
-        );
+        let transfer = self
+            .interface
+            .bulk_in(endpoint, nusb::transfer::RequestBuffer::new(buf.len()));
+        let completion = bulk_with_timeout(transfer, endpoint, "IN")?;
 
         completion.status.map_err(|e| UsbError::BulkTransfer {
             endpoint,
@@ -114,6 +170,14 @@ impl UsbTransport for NusbTransport {
         let len = completion.data.len().min(buf.len());
         buf[..len].copy_from_slice(&completion.data[..len]);
         Ok(len)
+    }
+
+    fn clear_halt(&self, endpoint: u8) -> UsbResult<()> {
+        self.interface
+            .clear_halt(endpoint)
+            .map_err(|e| UsbError::ControlTransfer {
+                context: format!("clear_halt(ep={endpoint:#04x}) failed: {e}"),
+            })
     }
 
     fn reset(&self) -> UsbResult<()> {
