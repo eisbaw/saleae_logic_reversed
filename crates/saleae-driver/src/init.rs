@@ -199,7 +199,7 @@ pub struct InitResult {
 /// session.update_config(new_channel_config)?;
 ///
 /// // Phase 6: Read EEPROM calibration
-/// let cal_data = session.read_eeprom_calibration()?;
+/// let cal_data = session.read_eeprom_calibration(&cal_params)?;
 ///
 /// // Phase 7: Start capture
 /// session.start_capture(capture_params)?;
@@ -494,13 +494,24 @@ impl<'a> DeviceSession<'a> {
     /// 1. Reseed #4
     /// 2. Ping
     /// 3. Device2_1 (configure EEPROM access)
-    /// 4. Multiple EEPROM reads via I2C at address 0xC0
+    /// 4. Full EEPROM calibration read via I2C at address 0xC0:
+    ///    - Read device ID (5 bytes from register 0x04)
+    ///    - Read 35-byte calibration block (with polling)
+    ///    - Write 26-byte calibration parameters (register 0x1C)
+    ///    - Read 67-byte calibration block (with polling)
     ///
-    /// The EEPROM read protocol involves polling: reads return status 0x01
-    /// (not ready) until the data is available (status 0x02 + data).
+    /// # Arguments
     ///
-    /// Returns the raw EEPROM data blocks.
-    pub fn read_eeprom_calibration(&mut self) -> DriverResult<Vec<Vec<u8>>> {
+    /// - `cal_params`: Calibration parameters to write back to the device
+    ///   via EEPROM register 0x1C. Typically 26 bytes derived from the
+    ///   server-hosted calibration data. If empty, the write step is
+    ///   still performed (with empty data) to match the pcap sequence.
+    ///
+    /// Returns the parsed [`EepromCalibration`] containing all read data.
+    pub fn read_eeprom_calibration(
+        &mut self,
+        cal_params: &[u8],
+    ) -> DriverResult<crate::eeprom::EepromCalibration> {
         self.require_phase_at_least(InitPhase::ChannelConfig, "read_eeprom_calibration")?;
 
         info!("Phase 6: EEPROM calibration data read");
@@ -511,20 +522,17 @@ impl<'a> DeviceSession<'a> {
         // Step 3: Device2_1 (configure EEPROM access)
         let _resp = self.ep1.device2_1()?;
 
-        // Step 4: EEPROM reads
-        // Read device ID from EEPROM
-        let device_id_data = self.ep1.read_i2c(0xC0, 0x04, 0)?;
-        debug!(len = device_id_data.len(), "EEPROM device ID");
-
-        let cal_blocks = vec![device_id_data];
-
-        // Note: The full EEPROM read sequence involves multiple read/write/poll
-        // cycles. The detailed implementation will come in a follow-up task
-        // (TASK-0111). For now we capture the phase structure and reseed timing.
+        // Step 4: Full EEPROM calibration read sequence.
+        let calibration = crate::eeprom::eeprom_read_full_calibration(self.ep1, cal_params)?;
 
         self.phase = InitPhase::EepromCalibration;
-        info!("Phase 6 complete: EEPROM calibration read");
-        Ok(cal_blocks)
+        info!(
+            device_id = format_args!("{:02x?}", &calibration.device_id),
+            block_35_len = calibration.block_35.len(),
+            block_67_len = calibration.block_67.len(),
+            "Phase 6 complete: EEPROM calibration read"
+        );
+        Ok(calibration)
     }
 
     // -------------------------------------------------------------------
