@@ -11,6 +11,7 @@ pub mod capture_data;
 pub mod device;
 pub mod disaggregator;
 pub mod error;
+pub mod export;
 pub mod firmware;
 pub mod fpga_regs;
 pub mod gpif;
@@ -30,9 +31,13 @@ pub use device::{
     LOGIC_8_PROFILE, LOGIC_PRO_16_PROFILE, LOGIC_PRO_8_PROFILE,
 };
 pub use disaggregator::{DisaggregatedData, Disaggregator, MixRateResult};
-pub use gpif::{GpifBusWidth, GpifConfig};
 pub use error::{ProtoError, ProtoResult};
+pub use export::{
+    AnalogBinaryWriter, AnalogCsvWriter, AnalogExporter, DigitalBinaryWriter, DigitalCsvWriter,
+    DigitalExporter, ExportConfig, ExportFormat,
+};
 pub use firmware::fx3::{Fx3Image, Fx3Section};
+pub use gpif::{GpifBusWidth, GpifConfig};
 pub use graph_time::GraphTime;
 pub use obfuscation::{EncryptionMode, SimpleEncryption};
 pub use sample_rate::{PerformanceTier, SampleRateOption};

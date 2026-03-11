@@ -477,7 +477,13 @@ pub fn device_init(bitstream_path: Option<&str>, skip_fpga: bool) -> Result<()> 
 /// Currently performs a dry-run: validates configuration, prints what would
 /// happen, and exits. Actual hardware streaming is blocked until the device
 /// is recovered (red LED / stuck state).
-pub fn capture_digital(sample_rate: u64, duration: f64, channels: &str) -> Result<()> {
+pub fn capture_digital(
+    sample_rate: u64,
+    duration: f64,
+    channels: &str,
+    output: Option<&str>,
+    format: &str,
+) -> Result<()> {
     let channel_list = parse_channel_list(channels)?;
 
     // Build capture configuration.
@@ -489,7 +495,7 @@ pub fn capture_digital(sample_rate: u64, duration: f64, channels: &str) -> Resul
 
     let config = saleae_driver::capture::CaptureConfig {
         sample_rate,
-        digital_channels: channel_list,
+        digital_channels: channel_list.clone(),
         duration_samples,
         voltage_threshold: 1.65,
         stats_enabled: true,
@@ -514,6 +520,33 @@ pub fn capture_digital(sample_rate: u64, duration: f64, channels: &str) -> Resul
     );
     println!();
 
+    // Export configuration.
+    let export_format = parse_export_format(format)?;
+    if let Some(output_dir) = output {
+        let export_config = saleae_proto::ExportConfig {
+            output_dir: std::path::PathBuf::from(output_dir),
+            format: export_format,
+            sample_rate,
+            channels: channel_list.clone(),
+        };
+        println!("Export configuration:");
+        println!("  Output dir: {}", export_config.output_dir.display());
+        println!("  Format:     {:?}", export_config.format);
+        println!();
+
+        // Validate that the exporter can be created (creates output dir + files).
+        let exporter = saleae_proto::DigitalExporter::new(&export_config)
+            .context("failed to create digital exporter")?;
+        exporter
+            .finish()
+            .context("failed to finalize digital exporter")?;
+        println!(
+            "Export directory created: {}",
+            export_config.output_dir.display()
+        );
+        println!();
+    }
+
     bail!(
         "Hardware capture not yet available.\n\
          \n\
@@ -526,7 +559,8 @@ pub fn capture_digital(sample_rate: u64, duration: f64, channels: &str) -> Resul
          3. Send StartSampling (0x01) to begin data flow on EP2 IN\n\
          4. Read and parse data chunks (header + samples + stats)\n\
          5. Disaggregate interleaved channels into per-channel streams\n\
-         6. Send StopDataPath (0x86) + StopStream (0x02) to end capture"
+         6. Export data to --output directory (if specified)\n\
+         7. Send StopDataPath (0x86) + StopStream (0x02) to end capture"
     );
 }
 
@@ -538,7 +572,13 @@ pub fn capture_digital(sample_rate: u64, duration: f64, channels: &str) -> Resul
 ///
 /// Hardware streaming is blocked (device stuck with red LED), so this
 /// performs a dry-run: validates everything, prints diagnostics, and exits.
-pub fn capture_analog(sample_rate: u64, duration: f64, channels: &str) -> Result<()> {
+pub fn capture_analog(
+    sample_rate: u64,
+    duration: f64,
+    channels: &str,
+    output: Option<&str>,
+    format: &str,
+) -> Result<()> {
     let channel_list = parse_channel_list(channels)?;
 
     // Build analog capture configuration.
@@ -644,6 +684,33 @@ pub fn capture_analog(sample_rate: u64, duration: f64, channels: &str) -> Result
     }
     println!();
 
+    // Export configuration.
+    let export_format = parse_export_format(format)?;
+    if let Some(output_dir) = output {
+        let export_config = saleae_proto::ExportConfig {
+            output_dir: std::path::PathBuf::from(output_dir),
+            format: export_format,
+            sample_rate,
+            channels: channel_list.clone(),
+        };
+        println!("Export configuration:");
+        println!("  Output dir: {}", export_config.output_dir.display());
+        println!("  Format:     {:?}", export_config.format);
+        println!();
+
+        // Validate that the exporter can be created (creates output dir + files).
+        let exporter = saleae_proto::AnalogExporter::new(&export_config)
+            .context("failed to create analog exporter")?;
+        exporter
+            .finish()
+            .context("failed to finalize analog exporter")?;
+        println!(
+            "Export directory created: {}",
+            export_config.output_dir.display()
+        );
+        println!();
+    }
+
     bail!(
         "Hardware capture not yet available.\n\
          \n\
@@ -652,6 +719,7 @@ pub fn capture_analog(sample_rate: u64, duration: f64, channels: &str) -> Result
          - Analog disaggregation (interleaved int16 -> per-channel)\n\
          - AnalogProcessor (VoltageTransform + IIR biquad calibration filter)\n\
          - AFE channel config (placeholder register packing)\n\
+         - CSV and binary export writers\n\
          \n\
          But hardware is currently blocked. Once the device is recovered,\n\
          this command will:\n\
@@ -663,7 +731,7 @@ pub fn capture_analog(sample_rate: u64, duration: f64, channels: &str) -> Result
          5. Read and parse data chunks (header + int16 samples + stats)\n\
          6. Disaggregate interleaved channels into per-channel int16 streams\n\
          7. Apply VoltageTransform + IIR biquad filter per channel\n\
-         8. Output calibrated voltage samples (CSV to stdout)\n\
+         8. Export data to --output directory (if specified)\n\
          9. Send StopDataPath (0x86) + StopStream (0x02) to end capture"
     );
 }
@@ -712,6 +780,15 @@ fn create_channel_processor(
     let filter = saleae_proto::BiquadFilter::new(&set.sections);
 
     Ok(saleae_proto::AnalogProcessor::new(transform, filter))
+}
+
+/// Parse an export format string ("csv" or "binary") into an ExportFormat.
+fn parse_export_format(s: &str) -> Result<saleae_proto::ExportFormat> {
+    match s.to_lowercase().as_str() {
+        "csv" => Ok(saleae_proto::ExportFormat::Csv),
+        "binary" | "bin" => Ok(saleae_proto::ExportFormat::Binary),
+        _ => bail!("unknown export format: {s:?}. Expected \"csv\" or \"binary\"."),
+    }
 }
 
 /// Parse a comma-separated channel list like "0,1,2,3" into a Vec<u8>.

@@ -48,6 +48,14 @@ enum Command {
         /// Digital channels to enable (comma-separated, e.g. "0,1,2,3").
         #[arg(long, default_value = "0,1,2,3,4,5,6,7")]
         channels: String,
+
+        /// Output directory for exported data (CSV or binary files).
+        #[arg(long)]
+        output: Option<String>,
+
+        /// Export format: "csv" (default) or "binary".
+        #[arg(long, default_value = "csv")]
+        format: String,
     },
 
     /// Ping the device (ReseedDevice + Ping handshake).
@@ -105,6 +113,14 @@ enum Command {
         /// Analog channels to enable (comma-separated, e.g. "0,1").
         #[arg(long, default_value = "0,1")]
         channels: String,
+
+        /// Output directory for exported data (CSV or binary files).
+        #[arg(long)]
+        output: Option<String>,
+
+        /// Export format: "csv" (default) or "binary".
+        #[arg(long, default_value = "csv")]
+        format: String,
     },
 }
 
@@ -142,12 +158,20 @@ fn main() -> anyhow::Result<()> {
             sample_rate,
             duration,
             channels,
-        } => commands::capture_digital(sample_rate, duration, &channels)?,
+            output,
+            format,
+        } => {
+            commands::capture_digital(sample_rate, duration, &channels, output.as_deref(), &format)?
+        }
         Command::CaptureAnalog {
             sample_rate,
             duration,
             channels,
-        } => commands::capture_analog(sample_rate, duration, &channels)?,
+            output,
+            format,
+        } => {
+            commands::capture_analog(sample_rate, duration, &channels, output.as_deref(), &format)?
+        }
     }
 
     Ok(())
