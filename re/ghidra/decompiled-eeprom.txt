@@ -1,0 +1,4219 @@
+openjdk version "21.0.9" 2025-10-21
+OpenJDK Runtime Environment (build 21.0.9+-nixos)
+OpenJDK 64-Bit Server VM (build 21.0.9+-nixos, mixed mode)
+Module manifest file error on line 2 of file: /home/mpedersen/.config/ghidra/ghidra_11.3.2_NIX/Extensions/GhidraMCP/Module.manifest
+	-> Invalid line encountered: GHIDRA_MODULE_NAME=GhidraMCP
+Module manifest file error on line 3 of file: /home/mpedersen/.config/ghidra/ghidra_11.3.2_NIX/Extensions/GhidraMCP/Module.manifest
+	-> Invalid line encountered: GHIDRA_MODULE_DESC=An HTTP server plugin for Ghidra
+Module manifest file error on line 2 of file: /home/mpedersen/.config/ghidra/ghidra_11.3.2_NIX/Extensions/GhidraMCP/Module.manifest
+	-> Invalid line encountered: GHIDRA_MODULE_NAME=GhidraMCP
+Module manifest file error on line 3 of file: /home/mpedersen/.config/ghidra/ghidra_11.3.2_NIX/Extensions/GhidraMCP/Module.manifest
+	-> Invalid line encountered: GHIDRA_MODULE_DESC=An HTTP server plugin for Ghidra
+INFO  Using log config file: jar:file:/nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Framework/Generic/lib/Generic.jar!/generic.log4j.xml (LoggingInitialization)  
+INFO  Using log file: /home/mpedersen/.config/ghidra/ghidra_11.3.2_NIX/application.log (LoggingInitialization)  
+INFO  Loading user preferences: /home/mpedersen/.config/ghidra/ghidra_11.3.2_NIX/preferences (Preferences)  
+INFO  Searching for classes... (ClassSearcher)  
+INFO  Class search complete (997 ms) (ClassSearcher)  
+INFO  Initializing SSL Context (SSLContextInitializer)  
+INFO  Initializing Random Number Generator... (SecureRandomFactory)  
+INFO  Random Number Generator initialization complete: NativePRNGNonBlocking (SecureRandomFactory)  
+INFO  Trust manager disabled, cacerts have not been set (ApplicationTrustManagerFactory)  
+INFO  Headless startup complete (2024 ms) (AnalyzeHeadless)  
+INFO  Class searcher loaded 57 extension points (18 false positives) (ClassSearcher)  
+INFO  HEADLESS Script Paths:
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Processors/DATA/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/Jython/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/MicrosoftCodeAnalyzer/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Processors/PIC/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Debug/Debugger/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/SwiftDemangler/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/Base/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/PyGhidra/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/FunctionID/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Debug/Debugger-rmi-trace/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/DecompilerDependent/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/BSim/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/BytePatterns/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/Decompiler/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/WildcardAssembler/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/GnuDemangler/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/PDB/ghidra_scripts
+    /home/mpedersen/nvidia/saleae_reverse/re/ghidra/scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Processors/Atmel/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/FileFormats/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/SystemEmulation/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Processors/JVM/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Processors/8051/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/VersionTracking/ghidra_scripts (HeadlessAnalyzer)  
+INFO  HEADLESS: execution starts (HeadlessAnalyzer)  
+INFO  Opening existing project: /home/mpedersen/nvidia/saleae_reverse/ghidra_proj2/sal_rev2 (HeadlessAnalyzer)  
+INFO  Opening project: /home/mpedersen/nvidia/saleae_reverse/ghidra_proj2/sal_rev2 (HeadlessProject)  
+INFO  REPORT: Processing project file: /libgraph_server_shared.so (HeadlessAnalyzer)  
+INFO  SCRIPT: /home/mpedersen/nvidia/saleae_reverse/re/ghidra/scripts/DecompileEeprom.java (HeadlessAnalyzer)  
+INFO  DecompileEeprom.java> === CommonDeviceInit region === (GhidraScript)  
+INFO  DecompileEeprom.java>   Function: FUN_01d21fb0 (GhidraScript)  
+INFO  DecompileEeprom.java>   Ghidra VA: 01d21fb0 (GhidraScript)  
+INFO  DecompileEeprom.java>   ELF VA: 0x1c21fb0 (GhidraScript)  
+INFO  DecompileEeprom.java>   Size: 2260 bytes (GhidraScript)  
+INFO  DecompileEeprom.java>  (GhidraScript)  
+INFO  DecompileEeprom.java> 
+/* WARNING: Globals starting with '_' overlap smaller symbols at the same address */
+
+void FUN_01d21fb0(__shared_weak_count *param_1)
+
+{
+  long lVar1;
+  int iVar2;
+  long *plVar3;
+  undefined4 uVar4;
+  undefined4 uVar5;
+  undefined8 uVar6;
+  char cVar7;
+  void *pvVar8;
+  undefined8 uVar9;
+  __shared_weak_count *p_Var10;
+  __shared_weak_count *p_Var11;
+  __shared_weak_count *p_Var12;
+  undefined4 uVar13;
+  __shared_weak_count *local_148;
+  __shared_weak_count *p_Stack_140;
+  char *local_138;
+  undefined1 local_130 [16];
+  undefined4 local_120;
+  undefined4 uStack_11c;
+  undefined8 uStack_118;
+  undefined4 local_110;
+  undefined4 uStack_10c;
+  undefined4 uStack_108;
+  undefined8 local_100;
+  undefined **local_f8;
+  undefined4 local_f0;
+  undefined4 uStack_ec;
+  undefined4 uStack_e8;
+  undefined4 uStack_e4;
+  long local_e0;
+  undefined ***local_d8;
+  undefined **local_c8;
+  undefined8 local_c0;
+  undefined8 uStack_b8;
+  long local_b0;
+  undefined ***local_a8;
+  undefined **local_98;
+  undefined8 local_90;
+  undefined8 uStack_88;
+  long local_80;
+  undefined ***local_78;
+  undefined **local_68;
+  __shared_weak_count *local_60;
+  undefined ***local_48;
+  
+  FUN_02ed1390(&local_148,param_1 + 0x208,FUN_01d2a770);
+  p_Var12 = p_Stack_140;
+  p_Var11 = local_148;
+  if (p_Stack_140 == (__shared_weak_count *)0x0) {
+LAB_01d22000:
+    if (local_148 != (__shared_weak_count *)0x0) goto LAB_01d22005;
+LAB_01d22043:
+    p_Var12 = (__shared_weak_count *)0x0;
+    p_Var11 = (__shared_weak_count *)0x0;
+    p_Var10 = (__shared_weak_count *)0x0;
+    if (*(int *)(param_1 + 0x220) == 0) goto LAB_01d22056;
+LAB_01d2218d:
+    if (*(int *)(param_1 + 0xb0) != 5) goto LAB_01d22197;
+LAB_01d221dc:
+    uVar13 = (undefined4)DAT_0044e460;
+    if (p_Var11 != (__shared_weak_count *)0x0) goto LAB_01d221e9;
+LAB_01d22214:
+    local_68 = &PTR_FUN_02f47d80;
+                    /* try { // try from 01d22253 to 01d22258 has its CatchHandler @ 01d229a5 */
+    local_60 = param_1;
+    local_48 = &local_68;
+    (**(code **)(**(long **)(param_1 + 0x180) + 0x30))
+              (uVar13,*(long **)(param_1 + 0x180),*(long *)(param_1 + 0x228),
+               *(long *)(param_1 + 0x230),&local_68);
+    if (&local_68 == local_48) {
+      (*(code *)(*local_48)[4])();
+    }
+    else if (local_48 != (undefined ***)0x0) {
+      (*(code *)(*local_48)[5])();
+    }
+    if (p_Var11 != (__shared_weak_count *)0x0) goto LAB_01d22283;
+  }
+  else {
+    LOCK();
+    p_Var10 = p_Stack_140 + 8;
+    lVar1 = *(long *)p_Var10;
+    *(long *)p_Var10 = *(long *)p_Var10 + -1;
+    UNLOCK();
+    if (lVar1 != 0) goto LAB_01d22000;
+    (**(code **)(*(long *)p_Stack_140 + 0x10))(p_Stack_140);
+    std::__shared_weak_count::__release_weak(p_Var12);
+    if (p_Var11 == (__shared_weak_count *)0x0) goto LAB_01d22043;
+LAB_01d22005:
+    FUN_01d296c0(&local_148,param_1 + 0x208);
+    p_Var11 = local_148;
+    p_Var12 = p_Stack_140;
+    p_Var10 = p_Stack_140;
+    if (*(int *)(param_1 + 0x220) != 0) goto LAB_01d2218d;
+LAB_01d22056:
+                    /* try { // try from 01d22056 to 01d22064 has its CatchHandler @ 01d229a3 */
+    p_Var12 = p_Var10;
+    pvVar8 = operator_new(0xd0);
+    local_e0 = *(long *)(param_1 + 0x80);
+    local_98 = &PTR_FUN_02f47ed8;
+    local_90 = _DAT_0044ad40;
+    uStack_88 = _UNK_0044ad48;
+    local_c8 = &PTR_FUN_02f47ed8;
+    local_c0 = _DAT_0044bc00;
+    uStack_b8 = _UNK_0044bc08;
+    local_f8 = &PTR_FUN_02f47f80;
+    local_f0 = _DAT_0044c050;
+    uStack_ec = _UNK_0044c054;
+    uStack_e8 = _UNK_0044c058;
+    uStack_e4 = _UNK_0044c05c;
+    local_d8 = &local_f8;
+    local_b0 = local_e0;
+    local_a8 = &local_c8;
+    local_80 = local_e0;
+    local_78 = &local_98;
+                    /* try { // try from 01d22118 to 01d22128 has its CatchHandler @ 01d22936 */
+    FUN_01d2c730(pvVar8,&local_98,&local_c8,&local_f8,*(long *)(param_1 + 0x278),
+                 *(long *)(param_1 + 0x280));
+    lVar1 = *(long *)(param_1 + 0x188);
+    *(void **)(param_1 + 0x188) = pvVar8;
+    if (lVar1 != 0) {
+      FUN_01d2a8b0();
+    }
+    if (&local_f8 == local_d8) {
+      (*(code *)(*local_d8)[4])();
+      if (&local_c8 == local_a8) goto LAB_01d221b4;
+LAB_01d22165:
+      if (local_a8 != (undefined ***)0x0) {
+        (*(code *)(*local_a8)[5])();
+      }
+    }
+    else {
+      if (local_d8 != (undefined ***)0x0) {
+        (*(code *)(*local_d8)[5])();
+      }
+      if (&local_c8 != local_a8) goto LAB_01d22165;
+LAB_01d221b4:
+      (*(code *)(*local_a8)[4])();
+    }
+    if (&local_98 != local_78) {
+      if (local_78 != (undefined ***)0x0) {
+        (*(code *)(*local_78)[5])();
+      }
+      goto LAB_01d2218d;
+    }
+    (*(code *)(*local_78)[4])();
+    if (*(int *)(param_1 + 0xb0) == 5) goto LAB_01d221dc;
+LAB_01d22197:
+    uVar13 = 0;
+    if (p_Var11 == (__shared_weak_count *)0x0) goto LAB_01d22214;
+LAB_01d221e9:
+    plVar3 = *(long **)(p_Var11 + 0x30);
+    if (plVar3 != (long *)0x0) {
+                    /* try { // try from 01d22200 to 01d22207 has its CatchHandler @ 01d229cf */
+      local_148 = param_1;
+      (**(code **)(*plVar3 + 0x30))(plVar3,&local_148);
+    }
+    if (p_Var11[8] == (__shared_weak_count)0x0) goto LAB_01d22214;
+LAB_01d22283:
+    if (p_Var11[9] != (__shared_weak_count)0x0) {
+                    /* try { // try from 01d2228c to 01d222b9 has its CatchHandler @ 01d229cf */
+      (**(code **)(*(long *)param_1 + 0x40))(param_1,0xff,0xff,0xff);
+    }
+    plVar3 = *(long **)(p_Var11 + 0x60);
+    if (plVar3 != (long *)0x0) {
+      local_148 = param_1;
+      (**(code **)(*plVar3 + 0x30))(plVar3,&local_148);
+    }
+    if (p_Var11[0x70] != (__shared_weak_count)0x0) goto LAB_01d226b1;
+  }
+                    /* try { // try from 01d222ce to 01d22369 has its CatchHandler @ 01d229d1 */
+  (**(code **)(**(long **)(param_1 + 0x180) + 0x10))(*(long **)(param_1 + 0x180),0x7f,0xaa,0);
+  (**(code **)(**(long **)(param_1 + 0x180) + 0x10))(*(long **)(param_1 + 0x180),0x7f,0xaa,0);
+  cVar7 = (**(code **)(**(long **)(param_1 + 0x180) + 0x20))(*(long **)(param_1 + 0x180),0x7f,0);
+  local_130[0] = cVar7;
+  if (cVar7 != -0x56) {
+    local_148 = (__shared_weak_count *)0x49e1eb;
+    p_Stack_140 = (__shared_weak_count *)CONCAT44(p_Stack_140._4_4_,0x410);
+    local_138 = "IsFpgaResponsive";
+    FUN_01d2b120(DAT_030b0128,4,"FPGA readback got {:#x} instead of 0xAA",0x27,local_130);
+    uVar6 = DAT_030b0128;
+    if (local_130[0] != -0x56) {
+                    /* try { // try from 01d2271b to 01d2277b has its CatchHandler @ 01d2292c */
+      uVar9 = FUN_01d11fa0(*(undefined4 *)(param_1 + 0xb0));
+      local_130 = FUN_02edb140(uVar9);
+      local_148 = (__shared_weak_count *)0x49e1eb;
+      p_Stack_140 = (__shared_weak_count *)CONCAT44(p_Stack_140._4_4_,0x283);
+      local_138 = "CommonDeviceInit";
+      FUN_01d2ab70(uVar6,4,"FPGA readback failed for {}",0x1b,local_130);
+      uVar9 = __cxa_allocate_exception(0x20);
+                    /* try { // try from 01d22789 to 01d22792 has its CatchHandler @ 01d228a1 */
+      local_138 = (char *)operator_new(0x20);
+      uVar6 = s_Fpga_initialization_failed_0053b881._18_8_;
+      local_148 = _DAT_0044b820;
+      p_Stack_140 = (__shared_weak_count *)_UNK_0044b828;
+      *(ulong *)(local_138 + 10) =
+           CONCAT26(s_Fpga_initialization_failed_0053b881._16_2_,
+                    CONCAT42(s_Fpga_initialization_failed_0053b881._12_4_,
+                             s_Fpga_initialization_failed_0053b881._10_2_));
+      *(undefined8 *)(local_138 + 0x12) = uVar6;
+      uVar5 = s_Fpga_initialization_failed_0053b881._12_4_;
+      uVar4 = s_Fpga_initialization_failed_0053b881._4_4_;
+      uVar13 = CONCAT22(s_Fpga_initialization_failed_0053b881._10_2_,
+                        s_Fpga_initialization_failed_0053b881._8_2_);
+      *(undefined4 *)local_138 = s_Fpga_initialization_failed_0053b881._0_4_;
+      *(undefined4 *)(local_138 + 4) = uVar4;
+      *(undefined4 *)(local_138 + 8) = uVar13;
+      *(undefined4 *)(local_138 + 0xc) = uVar5;
+      local_138[0x1a] = '\0';
+                    /* try { // try from 01d227bf to 01d227e3 has its CatchHandler @ 01d22884 */
+      FUN_02e9a860(uVar9,&local_148);
+                    /* WARNING: Subroutine does not return */
+      __cxa_throw(uVar9,&PTR_vtable_02f479d0,FUN_01b0dd70);
+    }
+  }
+  iVar2 = *(int *)(param_1 + 0x218);
+  if (iVar2 == 2) {
+                    /* try { // try from 01d223cb to 01d22473 has its CatchHandler @ 01d229d1 */
+    FUN_01d207c0(param_1,0,1);
+    local_148 = (__shared_weak_count *)&DAT_000f4240;
+    std::this_thread::sleep_for((duration *)&local_148);
+    FUN_01d207c0(param_1,0xf,0);
+    FUN_01d20f60((int)DAT_0044dbe0,param_1,0x7d);
+    FUN_01d207c0(param_1,0x2a,0x1111);
+    FUN_01d207c0(param_1,0x2b,0x1111);
+    FUN_01d207c0(param_1,0x42,0x8040);
+    FUN_01d207c0(param_1,0x46,0x8204);
+    local_148 = (__shared_weak_count *)&DAT_00989680;
+    std::this_thread::sleep_for((duration *)&local_148);
+    FUN_01d22af0(param_1);
+  }
+  else if (iVar2 == 1) {
+                    /* try { // try from 01d223b2 to 01d223c5 has its CatchHandler @ 01d228d6 */
+    FUN_01d20d90(param_1,0x200000001,0);
+  }
+  else if (iVar2 == 0) {
+    if (*(uint *)(param_1 + 0xb0) == 5) {
+      uStack_108 = 2;
+      uStack_11c = 6;
+      local_120 = 5;
+    }
+    else {
+      if ((*(uint *)(param_1 + 0xb0) & 0xfffffffe) != 6) {
+        local_148 = (__shared_weak_count *)0x4d1d3d;
+        p_Stack_140 = (__shared_weak_count *)0xe;
+                    /* try { // try from 01d22849 to 01d22883 has its CatchHandler @ 01d22931 */
+                    /* WARNING: Subroutine does not return */
+        FUN_02eca300("false",5,"void Hmcad1100Settings::SetDefault(::DeviceType)",0x30,
+                     "/workspace/monorepo/graph-io/devices/logic_interface/src/Logic2FpgaDevice.cpp"
+                     ,0x4d,0x54,0x4d1d3d,0xe);
+      }
+      uStack_108 = 0;
+      uStack_11c = 7;
+      local_120 = 4;
+    }
+    uStack_118 = 0x100000000;
+    local_110 = CONCAT22(local_110._2_2_,1);
+    uStack_10c = 0;
+    local_100 = 0;
+                    /* try { // try from 01d224c1 to 01d224ed has its CatchHandler @ 01d22931 */
+    FUN_01d20ab0(param_1);
+    FUN_01d22af0(param_1);
+  }
+  if ((*(uint *)(param_1 + 0xb0) & 0xfffffffe) == 6) {
+                    /* try { // try from 01d22507 to 01d225a3 has its CatchHandler @ 01d229d1 */
+    (**(code **)(**(long **)(param_1 + 0x180) + 0x10))(*(long **)(param_1 + 0x180),0x15,0,0);
+    iVar2 = *(int *)(param_1 + 0x218);
+    if (iVar2 == 2) {
+      FUN_01d207c0(param_1,0xf,0x100);
+      goto LAB_01d2255a;
+    }
+    if (iVar2 == 1) {
+      FUN_01d23330(param_1,0);
+      goto LAB_01d2255a;
+    }
+    if (iVar2 == 0) {
+      FUN_01d207c0(param_1,0xf,0x100);
+      goto LAB_01d2255a;
+    }
+  }
+  else {
+LAB_01d2255a:
+    if (*(int *)(param_1 + 0x218) == 1) {
+      FUN_01d23330(param_1,1);
+    }
+  }
+  (**(code **)(**(long **)(param_1 + 0x180) + 0x10))(*(long **)(param_1 + 0x180),0,0,0);
+  if (*(int *)(param_1 + 0x21c) == 0) {
+    (**(code **)(**(long **)(param_1 + 0x180) + 0x10))(*(long **)(param_1 + 0x180),0,0x40,0);
+    local_148 = (__shared_weak_count *)&DAT_000f4240;
+                    /* try { // try from 01d225ad to 01d225b6 has its CatchHandler @ 01d228e0 */
+    std::this_thread::sleep_for((duration *)&local_148);
+                    /* try { // try from 01d225ba to 01d225c4 has its CatchHandler @ 01d228db */
+    (**(code **)(*(long *)param_1 + 0x70))(&local_148,param_1);
+    for (p_Var10 = local_148; p_Var10 != p_Stack_140; p_Var10 = p_Var10 + 1) {
+      if (*p_Var10 != (__shared_weak_count)0xff) {
+                    /* try { // try from 01d226ee to 01d226f8 has its CatchHandler @ 01d228b1 */
+        (**(code **)(*(long *)param_1 + 0x78))(param_1,&local_148);
+        break;
+      }
+    }
+    if (local_148 != (__shared_weak_count *)0x0) {
+      p_Stack_140 = local_148;
+      operator_delete(local_148);
+    }
+  }
+  if (((*(uint *)(param_1 + 0xb0) & 0xfffffffe) == 6) && (*(int *)(param_1 + 0x218) == 1)) {
+                    /* try { // try from 01d2261a to 01d22637 has its CatchHandler @ 01d229d1 */
+    FUN_01d23330(param_1,0);
+  }
+  (**(code **)(**(long **)(param_1 + 0x180) + 0x20))(*(long **)(param_1 + 0x180),0x19,0);
+  if (*(int *)(param_1 + 0x220) - 1U < 2) {
+    if ((p_Var11 == (__shared_weak_count *)0x0) || (p_Var11[0xd0] == (__shared_weak_count)0x0)) {
+                    /* try { // try from 01d22658 to 01d22665 has its CatchHandler @ 01d22927 */
+      (**(code **)(*(long *)param_1 + 0x80))(&local_148,param_1);
+                    /* try { // try from 01d22672 to 01d22679 has its CatchHandler @ 01d228e5 */
+      FUN_02ea2ad0(param_1 + 600,local_148);
+      p_Var11 = p_Stack_140;
+      if (p_Stack_140 != (__shared_weak_count *)0x0) {
+        LOCK();
+        p_Var10 = p_Stack_140 + 8;
+        lVar1 = *(long *)p_Var10;
+        *(long *)p_Var10 = *(long *)p_Var10 + -1;
+        UNLOCK();
+        if (lVar1 == 0) {
+          (**(code **)(*(long *)p_Stack_140 + 0x10))(p_Stack_140);
+          std::__shared_weak_count::__release_weak(p_Var11);
+        }
+      }
+    }
+  }
+  else if (*(int *)(param_1 + 0x220) != 0) {
+    local_148 = (__shared_weak_count *)0x0;
+    p_Stack_140 = (__shared_weak_count *)strlen((char *)0x0);
+                    /* try { // try from 01d227f9 to 01d22833 has its CatchHandler @ 01d229d1 */
+                    /* WARNING: Subroutine does not return */
+    FUN_02eca300("false",5,"bool RevisionDetail::UsesNewCryptoInterface()",0x2d,
+                 "/workspace/monorepo/graph-io/devices/logic_interface/src/Logic2FpgaDevice.cpp",
+                 0x4d,0x9e,local_148._0_4_,p_Stack_140);
+  }
+LAB_01d226b1:
+  if (p_Var12 != (__shared_weak_count *)0x0) {
+    LOCK();
+    p_Var11 = p_Var12 + 8;
+    lVar1 = *(long *)p_Var11;
+    *(long *)p_Var11 = *(long *)p_Var11 + -1;
+    UNLOCK();
+    if (lVar1 == 0) {
+      (**(code **)(*(long *)p_Var12 + 0x10))(p_Var12);
+      std::__shared_weak_count::__release_weak(p_Var12);
+    }
+  }
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileEeprom.java> ---END---
+ (GhidraScript)  
+INFO  DecompileEeprom.java> === ParseBoardRevision region === (GhidraScript)  
+INFO  DecompileEeprom.java>   Function: FUN_01d23840 (GhidraScript)  
+INFO  DecompileEeprom.java>   Ghidra VA: 01d23840 (GhidraScript)  
+INFO  DecompileEeprom.java>   ELF VA: 0x1c23840 (GhidraScript)  
+INFO  DecompileEeprom.java>   Size: 1997 bytes (GhidraScript)  
+INFO  DecompileEeprom.java>  (GhidraScript)  
+INFO  DecompileEeprom.java> 
+/* WARNING: Globals starting with '_' overlap smaller symbols at the same address */
+
+undefined8 * FUN_01d23840(undefined8 *param_1,long param_2)
+
+{
+  uint *puVar1;
+  int iVar2;
+  string *psVar3;
+  undefined4 uVar4;
+  undefined4 uVar5;
+  undefined4 uVar6;
+  string *psVar7;
+  string *psVar8;
+  byte bVar9;
+  byte bVar10;
+  runtime_error *prVar11;
+  undefined8 uVar12;
+  undefined8 *puVar13;
+  ulong uVar14;
+  char *pcVar15;
+  byte local_c1;
+  byte local_c0;
+  char local_bf;
+  char local_be;
+  char local_bd;
+  char local_bc;
+  byte local_bb;
+  char local_ba;
+  byte local_b9;
+  string *local_b8;
+  string *psStack_b0;
+  char *local_a8;
+  char local_a0;
+  undefined8 local_98;
+  undefined8 local_88;
+  ulong uStack_80;
+  char *local_78;
+  char local_70;
+  uint local_68;
+  undefined4 uStack_64;
+  undefined4 uStack_60;
+  undefined4 uStack_5c;
+  void *local_58;
+  long local_50;
+  char *local_48;
+  ulong local_40;
+  
+  local_c1 = 0;
+  local_c0 = 0;
+  local_78 = (char *)operator_new(0x20);
+  local_88 = ram0x0044be10;
+  uStack_80 = _UNK_0044be18;
+  local_78[0xf] = 'R';
+  uVar6 = s_SALEAE_ENABLE_PROTOTYPE_004be1f9._12_4_;
+  uVar5 = s_SALEAE_ENABLE_PROTOTYPE_004be1f9._8_4_;
+  uVar4 = s_SALEAE_ENABLE_PROTOTYPE_004be1f9._4_4_;
+  local_78[0x10] = 'O';
+  local_78[0x11] = 'T';
+  local_78[0x12] = 'O';
+  local_78[0x13] = 'T';
+  local_78[0x14] = 'Y';
+  local_78[0x15] = 'P';
+  local_78[0x16] = 'E';
+  *(undefined4 *)local_78 = s_SALEAE_ENABLE_PROTOTYPE_004be1f9._0_4_;
+  *(undefined4 *)(local_78 + 4) = uVar4;
+  *(undefined4 *)(local_78 + 8) = uVar5;
+  *(undefined4 *)(local_78 + 0xc) = uVar6;
+  local_78[0x17] = '\0';
+                    /* try { // try from 01d23898 to 01d238a6 has its CatchHandler @ 01d24146 */
+  FUN_02ec8240(&local_b8,&local_88);
+  if ((local_a0 != '\0') && (((ulong)local_b8 & 1) != 0)) {
+    operator_delete(local_a8);
+  }
+  if ((local_88 & 1) != 0) {
+    operator_delete(local_78);
+  }
+  (**(code **)(**(long **)(param_2 + 0x80) + 0x18))(*(long **)(param_2 + 0x80),0x20,&local_be,6);
+  if ((((local_be == 'R') && (local_bd == 'E')) && (local_bc == 'V')) &&
+     (local_c1 = local_bb, local_ba == '.')) {
+    local_c0 = local_b9;
+  }
+  local_a8 = (char *)operator_new(0x20);
+  local_b8 = _DAT_0044ad10;
+  psStack_b0 = _UNK_0044ad18;
+  local_a8[0x10] = 'O';
+  uVar6 = s_SALEAE_REVISION_OVERRIDE_00512344._12_4_;
+  uVar5 = s_SALEAE_REVISION_OVERRIDE_00512344._8_4_;
+  uVar4 = s_SALEAE_REVISION_OVERRIDE_00512344._4_4_;
+  local_a8[0x11] = 'V';
+  local_a8[0x12] = 'E';
+  local_a8[0x13] = 'R';
+  local_a8[0x14] = 'R';
+  local_a8[0x15] = 'I';
+  local_a8[0x16] = 'D';
+  local_a8[0x17] = 'E';
+  *(undefined4 *)local_a8 = s_SALEAE_REVISION_OVERRIDE_00512344._0_4_;
+  *(undefined4 *)(local_a8 + 4) = uVar4;
+  *(undefined4 *)(local_a8 + 8) = uVar5;
+  *(undefined4 *)(local_a8 + 0xc) = uVar6;
+  local_a8[0x18] = '\0';
+                    /* try { // try from 01d23952 to 01d23960 has its CatchHandler @ 01d24135 */
+  FUN_02ec8240(&local_88,&local_b8);
+  local_bf = local_a0;
+  if (((ulong)local_b8 & 1) != 0) {
+    operator_delete(local_a8);
+  }
+  if (local_70 != '\0') {
+    uVar14 = uStack_80;
+    pcVar15 = local_78;
+    if ((local_88 & 1) == 0) {
+      uVar14 = local_88 >> 1 & 0x7f;
+      pcVar15 = (char *)((long)&local_88 + 1);
+    }
+    local_68 = CONCAT13(local_68._3_1_,0x2e02);
+                    /* try { // try from 01d239b4 to 01d239c5 has its CatchHandler @ 01d24109 */
+    FUN_02ec7360(&local_b8,pcVar15,uVar14,&local_68);
+    if ((local_68 & 1) != 0) {
+      operator_delete(local_58);
+    }
+    if ((long)psStack_b0 - (long)local_b8 != 0x48) {
+      prVar11 = (runtime_error *)__cxa_allocate_exception(0x10);
+      local_40 = uStack_80;
+      local_48 = local_78;
+      if ((local_88 & 1) == 0) {
+        local_40 = local_88 >> 1 & 0x7f;
+        local_48 = (char *)((long)&local_88 + 1);
+      }
+                    /* try { // try from 01d23ec2 to 01d23ee7 has its CatchHandler @ 01d24098 */
+      FUN_02f06340(&local_68,"invalid version string. expected format X.Y.Z. got {}",0x35,0xd,
+                   &local_48);
+                    /* try { // try from 01d23eea to 01d23f11 has its CatchHandler @ 01d24065 */
+      std::runtime_error::runtime_error(prVar11,(string *)&local_68);
+                    /* WARNING: Subroutine does not return */
+      __cxa_throw(prVar11,PTR_typeinfo_02fe8e78,PTR__runtime_error_02fe8e80);
+    }
+                    /* try { // try from 01d239f4 to 01d239ff has its CatchHandler @ 01d240b8 */
+    bVar9 = std::stoi(local_b8,(ulong *)0x0,10);
+                    /* try { // try from 01d23a0c to 01d23a17 has its CatchHandler @ 01d240b6 */
+    bVar10 = std::stoi(local_b8 + 0x18,(ulong *)0x0,10);
+                    /* try { // try from 01d23a24 to 01d23a2f has its CatchHandler @ 01d240b4 */
+    std::stoi(local_b8 + 0x30,(ulong *)0x0,10);
+    psVar7 = local_b8;
+    local_50 = param_2;
+    psVar8 = psStack_b0;
+    if (local_b8 != (string *)0x0) {
+      while (psVar3 = psVar8, psVar3 != psVar7) {
+        psVar8 = psVar3 + -0x18;
+        if (((byte)psVar3[-0x18] & 1) != 0) {
+          operator_delete(*(void **)(psVar3 + -8));
+        }
+      }
+      psStack_b0 = psVar7;
+      operator_delete(local_b8);
+    }
+    local_b8 = (string *)0x49e1eb;
+    psStack_b0._0_4_ = 0x308;
+    local_a8 = "ParseBoardRevision";
+                    /* try { // try from 01d23ab9 to 01d23b3d has its CatchHandler @ 01d2414b */
+    FUN_01d2ae40(DAT_030b0128,2,"Revision override! Original revision (ignored) {}.{}.0",0x36,
+                 &local_c1,&local_c0,0x49e1eb,0x308,"ParseBoardRevision");
+    local_b8 = (string *)0x49e1eb;
+    psStack_b0 = (string *)CONCAT44(psStack_b0._4_4_,0x30b);
+    local_a8 = "ParseBoardRevision";
+    local_c1 = bVar9;
+    local_c0 = bVar10;
+    FUN_01d2ae40(DAT_030b0128,2,"Revision override! Using {}.{}.0",0x20,&local_c1,&local_c0,0x49e1eb
+                 ,0x30b,"ParseBoardRevision");
+    param_2 = local_50;
+  }
+  param_1[4] = 0;
+  param_1[5] = 0;
+  param_1[2] = 0;
+  param_1[3] = 0;
+  param_1[6] = 0;
+  local_b8 = (string *)(ulong)local_c1;
+  local_a8 = (char *)(ulong)local_c0;
+  local_98 = 0;
+                    /* try { // try from 01d23b78 to 01d23b9a has its CatchHandler @ 01d24120 */
+  FUN_02f06340(&local_68,"{}.{}.{}",8,0x122,&local_b8);
+  puVar1 = (uint *)(param_1 + 4);
+  if ((*(byte *)(param_1 + 4) & 1) != 0) {
+    operator_delete((void *)param_1[6]);
+  }
+  param_1[6] = local_58;
+  *puVar1 = local_68;
+  *(undefined4 *)((long)param_1 + 0x24) = uStack_64;
+  *(undefined4 *)(param_1 + 5) = uStack_60;
+  *(undefined4 *)((long)param_1 + 0x2c) = uStack_5c;
+  *(undefined8 *)((long)param_1 + 4) = 0;
+  switch(local_c1) {
+  case 0:
+    *(undefined4 *)param_1 = 0;
+    iVar2 = *(int *)(param_2 + 0xb0);
+    uVar4 = _UNK_02fe5c84;
+    uVar5 = _UNK_02fe5c88;
+    uVar6 = _UNK_02fe5c8c;
+    break;
+  case 1:
+    *(undefined4 *)param_1 = 1;
+    iVar2 = *(int *)(param_2 + 0xb0);
+    uVar4 = _UNK_02fe5c84;
+    uVar5 = _UNK_02fe5c88;
+    uVar6 = _UNK_02fe5c8c;
+    break;
+  default:
+    uVar12 = __cxa_allocate_exception(0x20);
+                    /* try { // try from 01d23f1f to 01d23f29 has its CatchHandler @ 01d24045 */
+    FUN_02e9a8b0(uVar12,puVar1);
+                    /* try { // try from 01d23f2a to 01d23f3f has its CatchHandler @ 01d240b2 */
+                    /* WARNING: Subroutine does not return */
+    __cxa_throw(uVar12,&PTR_vtable_02f47358,FUN_01b0dd70);
+  case 3:
+    *(undefined4 *)param_1 = 2;
+    iVar2 = *(int *)(param_2 + 0xb0);
+    uVar4 = _UNK_02fe5c84;
+    uVar5 = _UNK_02fe5c88;
+    uVar6 = _UNK_02fe5c8c;
+    break;
+  case 4:
+  case 5:
+    *param_1 = 0x100000002;
+    iVar2 = *(int *)(param_2 + 0xb0);
+    uVar4 = _UNK_02fe5c84;
+    uVar5 = _UNK_02fe5c88;
+    uVar6 = _UNK_02fe5c8c;
+    break;
+  case 6:
+  case 9:
+  case 10:
+  case 0xb:
+    *param_1 = 0x100000002;
+    *(undefined4 *)(param_1 + 1) = 1;
+    iVar2 = *(int *)(param_2 + 0xb0);
+    uVar4 = _UNK_02fe5c84;
+    uVar5 = _UNK_02fe5c88;
+    uVar6 = _UNK_02fe5c8c;
+    break;
+  case 7:
+    *param_1 = 1;
+    goto LAB_01d23ced;
+  case 8:
+    *param_1 = 2;
+LAB_01d23ced:
+    *(undefined4 *)(param_1 + 1) = 2;
+    iVar2 = *(int *)(param_2 + 0xb0);
+    uVar4 = _UNK_02fe5c84;
+    uVar5 = _UNK_02fe5c88;
+    uVar6 = _UNK_02fe5c8c;
+  }
+  _UNK_02fe5c84 = uVar4;
+  _UNK_02fe5c88 = uVar5;
+  _UNK_02fe5c8c = uVar6;
+  if (iVar2 == 7) {
+    switch(local_c1) {
+    case 0:
+      puVar13 = (undefined8 *)&DAT_02fe5c00;
+      break;
+    case 1:
+      puVar13 = (undefined8 *)&DAT_02fe5c10;
+      break;
+    default:
+      uVar12 = __cxa_allocate_exception(0x20);
+                    /* try { // try from 01d23f52 to 01d23f5c has its CatchHandler @ 01d24041 */
+      FUN_02e9a8b0(uVar12,puVar1);
+                    /* try { // try from 01d23f5d to 01d23f72 has its CatchHandler @ 01d240b2 */
+                    /* WARNING: Subroutine does not return */
+      __cxa_throw(uVar12,&PTR_vtable_02f47358,FUN_01b0dd70);
+    case 3:
+      puVar13 = (undefined8 *)&DAT_02fe5c40;
+      break;
+    case 4:
+      puVar13 = (undefined8 *)&DAT_02fe5c70;
+      break;
+    case 5:
+    case 6:
+      puVar13 = (undefined8 *)&DAT_02fe5ca0;
+      break;
+    case 10:
+      puVar13 = (undefined8 *)&DAT_02fe5cc0;
+    }
+  }
+  else if (iVar2 == 6) {
+    switch(local_c1) {
+    case 0:
+      puVar13 = (undefined8 *)&DAT_02fe5be0;
+      break;
+    case 1:
+    case 7:
+      puVar13 = (undefined8 *)&DAT_02fe5bf0;
+      break;
+    default:
+      uVar12 = __cxa_allocate_exception(0x20);
+                    /* try { // try from 01d23fb8 to 01d23fc2 has its CatchHandler @ 01d2403d */
+      FUN_02e9a8b0(uVar12,puVar1);
+                    /* try { // try from 01d23fc3 to 01d23fd8 has its CatchHandler @ 01d240b2 */
+                    /* WARNING: Subroutine does not return */
+      __cxa_throw(uVar12,&PTR_vtable_02f47358,FUN_01b0dd70);
+    case 3:
+      puVar13 = (undefined8 *)&DAT_02fe5c30;
+      break;
+    case 4:
+      puVar13 = (undefined8 *)&DAT_02fe5c60;
+      break;
+    case 5:
+    case 6:
+      puVar13 = (undefined8 *)&DAT_02fe5c90;
+      break;
+    case 8:
+      uVar12 = __cxa_allocate_exception(0x20);
+                    /* try { // try from 01d23f85 to 01d23f8f has its CatchHandler @ 01d2403f */
+      FUN_02e9a8b0(uVar12,puVar1);
+                    /* try { // try from 01d23f90 to 01d23fa5 has its CatchHandler @ 01d240b2 */
+                    /* WARNING: Subroutine does not return */
+      __cxa_throw(uVar12,&PTR_vtable_02f47358,FUN_01b0dd70);
+    case 0xb:
+      puVar13 = (undefined8 *)&DAT_02fe5ce0;
+    }
+  }
+  else {
+    if (iVar2 != 5) {
+      prVar11 = (runtime_error *)__cxa_allocate_exception(0x10);
+                    /* try { // try from 01d23e85 to 01d23e93 has its CatchHandler @ 01d24055 */
+      std::runtime_error::runtime_error(prVar11,"unrecognized device type");
+                    /* try { // try from 01d23e94 to 01d23ea9 has its CatchHandler @ 01d240b2 */
+                    /* WARNING: Subroutine does not return */
+      __cxa_throw(prVar11,PTR_typeinfo_02fe8e78,PTR__runtime_error_02fe8e80);
+    }
+    switch(local_c1) {
+    case 0:
+      puVar13 = (undefined8 *)&DAT_02fe5bc0;
+      break;
+    case 1:
+    case 7:
+      puVar13 = (undefined8 *)&DAT_02fe5bd0;
+      break;
+    default:
+      uVar12 = __cxa_allocate_exception(0x20);
+                    /* try { // try from 01d23fe8 to 01d23ff2 has its CatchHandler @ 01d2403b */
+      FUN_02e9a8b0(uVar12,puVar1);
+                    /* try { // try from 01d23ff3 to 01d24008 has its CatchHandler @ 01d240b2 */
+                    /* WARNING: Subroutine does not return */
+      __cxa_throw(uVar12,&PTR_vtable_02f47358,FUN_01b0dd70);
+    case 3:
+    case 8:
+      puVar13 = (undefined8 *)&DAT_02fe5c20;
+      break;
+    case 4:
+      puVar13 = (undefined8 *)&DAT_02fe5c50;
+      break;
+    case 5:
+    case 6:
+      *(undefined4 *)(param_1 + 2) = _DAT_02fe5c80;
+      *(undefined4 *)((long)param_1 + 0x14) = uVar4;
+      *(undefined4 *)(param_1 + 3) = uVar5;
+      *(undefined4 *)((long)param_1 + 0x1c) = uVar6;
+      if ((local_bf == '\0') && (local_c1 == 6)) {
+        uVar12 = __cxa_allocate_exception(0x20);
+                    /* try { // try from 01d23c6d to 01d23c77 has its CatchHandler @ 01d24043 */
+        FUN_02e9a8b0(uVar12,puVar1);
+                    /* try { // try from 01d23c78 to 01d23c8d has its CatchHandler @ 01d240b2 */
+                    /* WARNING: Subroutine does not return */
+        __cxa_throw(uVar12,&PTR_vtable_02f47358,FUN_01b0dd70);
+      }
+      goto LAB_01d23e29;
+    case 9:
+      puVar13 = (undefined8 *)&DAT_02fe5cb0;
+      break;
+    case 0xb:
+      if (local_bf == '\0') {
+        uVar12 = __cxa_allocate_exception(0x20);
+                    /* try { // try from 01d24018 to 01d24022 has its CatchHandler @ 01d24039 */
+        FUN_02e9a8b0(uVar12,puVar1);
+                    /* try { // try from 01d24023 to 01d24038 has its CatchHandler @ 01d240b2 */
+                    /* WARNING: Subroutine does not return */
+        __cxa_throw(uVar12,&PTR_vtable_02f47358,FUN_01b0dd70);
+      }
+      puVar13 = (undefined8 *)&DAT_02fe5cd0;
+    }
+  }
+  uVar12 = puVar13[1];
+  param_1[2] = *puVar13;
+  param_1[3] = uVar12;
+LAB_01d23e29:
+  if ((local_70 != '\0') && ((local_88 & 1) != 0)) {
+    operator_delete(local_78);
+  }
+  return param_1;
+}
+
+ (GhidraScript)  
+INFO  DecompileEeprom.java> ---END---
+ (GhidraScript)  
+INFO  DecompileEeprom.java> === Unsupported board revision for Ad9637 === (GhidraScript)  
+INFO  DecompileEeprom.java>   Function: FUN_01d23330 (GhidraScript)  
+INFO  DecompileEeprom.java>   Ghidra VA: 01d23330 (GhidraScript)  
+INFO  DecompileEeprom.java>   ELF VA: 0x1c23330 (GhidraScript)  
+INFO  DecompileEeprom.java>   Size: 1216 bytes (GhidraScript)  
+INFO  DecompileEeprom.java>  (GhidraScript)  
+INFO  DecompileEeprom.java> 
+void FUN_01d23330(long param_1,char param_2)
+
+{
+  int iVar1;
+  int iVar2;
+  char cVar3;
+  uint uVar4;
+  ulong uVar5;
+  undefined8 uVar6;
+  long lVar7;
+  long lVar8;
+  duration local_a0;
+  char acStack_9f [4];
+  undefined4 uStack_9b;
+  char acStack_97 [4];
+  undefined2 uStack_93;
+  undefined2 uStack_91;
+  undefined4 uStack_8f;
+  undefined1 uStack_8b;
+  undefined1 uStack_8a;
+  undefined1 local_89;
+  char *local_40;
+  undefined8 uStack_38;
+  
+  if (*(int *)(param_1 + 0x218) != 1) {
+    local_40 = "Unsupported board revision for Ad9637";
+    uStack_38 = 0x25;
+                    /* WARNING: Subroutine does not return */
+    FUN_02eca300("mBoardRevision.mAdcType == RevisionDetail::AdcType::AD9637",0x3a,
+                 "void Logic2FpgaDevice::SetAd9637Enabled(bool)",0x2d,
+                 "/workspace/monorepo/graph-io/devices/logic_interface/src/Logic2FpgaDevice.cpp",
+                 0x4d,0x489,0x4709c8,0x25);
+  }
+  if (param_2 == '\0') {
+    FUN_01d208f0(param_1,8,1);
+    FUN_01d22af0(param_1);
+    uVar4 = (**(code **)(**(long **)(param_1 + 0x180) + 0x20))(*(long **)(param_1 + 0x180),0x40,0);
+    (**(code **)(**(long **)(param_1 + 0x180) + 0x20))(*(long **)(param_1 + 0x180),0x4a,0);
+    iVar1 = *(int *)(param_1 + 0x21c);
+    if (((uVar4 & 0x20) != 0) && (iVar1 == 0)) {
+      lVar7 = FUN_02eddf70();
+      iVar2 = *(int *)(lVar7 + 0x38);
+      cVar3 = FUN_02edfa80(lVar7 + 0x70);
+      if ((iVar2 < 3) || (cVar3 != '\0')) {
+        if ((*(byte *)(lVar7 + 8) & 1) == 0) {
+          lVar8 = lVar7 + 9;
+          uVar5 = (ulong)(*(byte *)(lVar7 + 8) >> 1);
+        }
+        else {
+          lVar8 = *(long *)(lVar7 + 0x18);
+          uVar5 = *(ulong *)(lVar7 + 0x10);
+        }
+        FUN_02ee25b0(&local_a0,lVar8,uVar5,2,"Main DCM locked after PD",0x18,0x49e1eb,0x4ae,
+                     "SetAd9637Enabled");
+        FUN_02ee4120(lVar7,&local_a0,iVar2 < 3,cVar3);
+      }
+    }
+    if (((uVar4 & 0x40) != 0) && (iVar1 == 0)) {
+      lVar7 = FUN_02eddf70();
+      iVar1 = *(int *)(lVar7 + 0x38);
+      cVar3 = FUN_02edfa80(lVar7 + 0x70);
+      if ((iVar1 < 3) || (cVar3 != '\0')) {
+        if ((*(byte *)(lVar7 + 8) & 1) == 0) {
+          lVar8 = lVar7 + 9;
+          uVar5 = (ulong)(*(byte *)(lVar7 + 8) >> 1);
+        }
+        else {
+          lVar8 = *(long *)(lVar7 + 0x18);
+          uVar5 = *(ulong *)(lVar7 + 0x10);
+        }
+        FUN_02ee25b0(&local_a0,lVar8,uVar5,2,"Slow DCM locked after PD",0x18,0x49e1eb,0x4b0,
+                     "SetAd9637Enabled");
+        FUN_02ee4120(lVar7,&local_a0,iVar1 < 3,cVar3);
+      }
+    }
+  }
+  else {
+    FUN_01d208f0(param_1,8,0);
+    local_a0 = (duration)0x40;
+    acStack_9f[0] = 'B';
+    acStack_9f[1] = '\x0f';
+    acStack_9f[2] = '\0';
+    acStack_9f[3] = '\0';
+    uStack_9b._0_3_ = 0;
+    std::this_thread::sleep_for(&local_a0);
+    FUN_01d208f0(param_1,8,3);
+    FUN_01d208f0(param_1,8,0);
+    local_a0 = (duration)0x80;
+    acStack_9f[0] = -0x10;
+    acStack_9f[1] = -6;
+    acStack_9f[2] = '\x02';
+    acStack_9f[3] = '\0';
+    uStack_9b = (uint)uStack_9b._3_1_ << 0x18;
+    std::this_thread::sleep_for(&local_a0);
+    FUN_01d22af0(param_1);
+    uVar4 = (**(code **)(**(long **)(param_1 + 0x180) + 0x20))(*(long **)(param_1 + 0x180),0x40,0);
+    (**(code **)(**(long **)(param_1 + 0x180) + 0x20))(*(long **)(param_1 + 0x180),0x4a,0);
+    if (((uVar4 & 0x20) == 0) || (*(int *)(param_1 + 0x21c) != 0)) {
+      uVar6 = __cxa_allocate_exception(0x20);
+      local_a0 = (duration)0x28;
+      acStack_9f[0] = s_Main_DCM_didn_t_lock_00490ac6[0];
+      acStack_9f[1] = s_Main_DCM_didn_t_lock_00490ac6[1];
+      acStack_9f[2] = s_Main_DCM_didn_t_lock_00490ac6[2];
+      acStack_9f[3] = s_Main_DCM_didn_t_lock_00490ac6[3];
+      uStack_9b._0_1_ = s_Main_DCM_didn_t_lock_00490ac6[4];
+      uStack_9b._1_1_ = s_Main_DCM_didn_t_lock_00490ac6[5];
+      uStack_9b._2_1_ = s_Main_DCM_didn_t_lock_00490ac6[6];
+      uStack_9b._3_1_ = s_Main_DCM_didn_t_lock_00490ac6[7];
+      acStack_97[0] = s_Main_DCM_didn_t_lock_00490ac6[8];
+      acStack_97[1] = s_Main_DCM_didn_t_lock_00490ac6[9];
+      acStack_97[2] = s_Main_DCM_didn_t_lock_00490ac6[10];
+      acStack_97[3] = s_Main_DCM_didn_t_lock_00490ac6[0xb];
+      uStack_93 = (undefined2)s_Main_DCM_didn_t_lock_00490ac6._12_4_;
+      uStack_91 = SUB42(s_Main_DCM_didn_t_lock_00490ac6._12_4_,2);
+      uStack_8f = 0x6b636f6c;
+      uStack_8b = 0;
+                    /* try { // try from 01d23723 to 01d23747 has its CatchHandler @ 01d23802 */
+      FUN_02e9a860(uVar6,&local_a0);
+                    /* WARNING: Subroutine does not return */
+      __cxa_throw(uVar6,&PTR_vtable_02f479d0,FUN_01b0dd70);
+    }
+    if ((uVar4 & 0x40) == 0) {
+      uVar6 = __cxa_allocate_exception(0x20);
+      local_a0 = (duration)0x28;
+      acStack_9f[0] = s_Slow_DCM_didn_t_lock_0050aa6a[0];
+      acStack_9f[1] = s_Slow_DCM_didn_t_lock_0050aa6a[1];
+      acStack_9f[2] = s_Slow_DCM_didn_t_lock_0050aa6a[2];
+      acStack_9f[3] = s_Slow_DCM_didn_t_lock_0050aa6a[3];
+      uStack_9b._0_1_ = s_Slow_DCM_didn_t_lock_0050aa6a[4];
+      uStack_9b._1_1_ = s_Slow_DCM_didn_t_lock_0050aa6a[5];
+      uStack_9b._2_1_ = s_Slow_DCM_didn_t_lock_0050aa6a[6];
+      uStack_9b._3_1_ = s_Slow_DCM_didn_t_lock_0050aa6a[7];
+      acStack_97[0] = s_Slow_DCM_didn_t_lock_0050aa6a[8];
+      acStack_97[1] = s_Slow_DCM_didn_t_lock_0050aa6a[9];
+      acStack_97[2] = s_Slow_DCM_didn_t_lock_0050aa6a[10];
+      acStack_97[3] = s_Slow_DCM_didn_t_lock_0050aa6a[0xb];
+      uStack_93 = (undefined2)s_Slow_DCM_didn_t_lock_0050aa6a._12_4_;
+      uStack_91 = SUB42(s_Slow_DCM_didn_t_lock_0050aa6a._12_4_,2);
+      uStack_8f = 0x6b636f6c;
+      uStack_8b = 0;
+                    /* try { // try from 01d2377b to 01d2379f has its CatchHandler @ 01d23800 */
+      FUN_02e9a860(uVar6,&local_a0);
+                    /* WARNING: Subroutine does not return */
+      __cxa_throw(uVar6,&PTR_vtable_02f479d0,FUN_01b0dd70);
+    }
+    (**(code **)(**(long **)(param_1 + 0x180) + 0x20))(*(long **)(param_1 + 0x180),0x19,0);
+    (**(code **)(**(long **)(param_1 + 0x180) + 0x20))(*(long **)(param_1 + 0x180),0x40,0);
+    uVar5 = (**(code **)(**(long **)(param_1 + 0x180) + 0x20))(*(long **)(param_1 + 0x180),0x4a,0);
+    if ((uVar5 & 2) != 0) {
+      uVar6 = __cxa_allocate_exception(0x20);
+      local_a0 = (duration)0x2c;
+      acStack_9f[0] = s_ADC_1_bitslip_detected_004be211[0];
+      acStack_9f[1] = s_ADC_1_bitslip_detected_004be211[1];
+      acStack_9f[2] = s_ADC_1_bitslip_detected_004be211[2];
+      acStack_9f[3] = s_ADC_1_bitslip_detected_004be211[3];
+      uStack_9b._0_1_ = s_ADC_1_bitslip_detected_004be211[4];
+      uStack_9b._1_1_ = s_ADC_1_bitslip_detected_004be211[5];
+      uStack_9b._2_1_ = s_ADC_1_bitslip_detected_004be211[6];
+      uStack_9b._3_1_ = s_ADC_1_bitslip_detected_004be211[7];
+      acStack_97[0] = s_ADC_1_bitslip_detected_004be211[8];
+      acStack_97[1] = s_ADC_1_bitslip_detected_004be211[9];
+      acStack_97[2] = s_ADC_1_bitslip_detected_004be211[10];
+      acStack_97[3] = s_ADC_1_bitslip_detected_004be211[0xb];
+      uStack_93 = (undefined2)s_ADC_1_bitslip_detected_004be211._12_4_;
+      uStack_91 = 0x6564;
+      uStack_8f = 0x74636574;
+      uStack_8b = 0x65;
+      uStack_8a = 100;
+      local_89 = 0;
+                    /* try { // try from 01d237d7 to 01d237fb has its CatchHandler @ 01d237fc */
+      FUN_02e9a860(uVar6,&local_a0);
+                    /* WARNING: Subroutine does not return */
+      __cxa_throw(uVar6,&PTR_vtable_02f479d0,FUN_01b0dd70);
+    }
+    if (((uVar5 & 4) != 0) && (*(int *)(param_1 + 400) == 0x10)) {
+      uVar6 = __cxa_allocate_exception(0x20);
+      local_a0 = (duration)0x2c;
+      acStack_9f[0] = s_ADC_2_bitslip_detected_00469c9d[0];
+      acStack_9f[1] = s_ADC_2_bitslip_detected_00469c9d[1];
+      acStack_9f[2] = s_ADC_2_bitslip_detected_00469c9d[2];
+      acStack_9f[3] = s_ADC_2_bitslip_detected_00469c9d[3];
+      uStack_9b._0_1_ = s_ADC_2_bitslip_detected_00469c9d[4];
+      uStack_9b._1_1_ = s_ADC_2_bitslip_detected_00469c9d[5];
+      uStack_9b._2_1_ = s_ADC_2_bitslip_detected_00469c9d[6];
+      uStack_9b._3_1_ = s_ADC_2_bitslip_detected_00469c9d[7];
+      acStack_97[0] = s_ADC_2_bitslip_detected_00469c9d[8];
+      acStack_97[1] = s_ADC_2_bitslip_detected_00469c9d[9];
+      acStack_97[2] = s_ADC_2_bitslip_detected_00469c9d[10];
+      acStack_97[3] = s_ADC_2_bitslip_detected_00469c9d[0xb];
+      uStack_93 = (undefined2)s_ADC_2_bitslip_detected_00469c9d._12_4_;
+      uStack_91 = 0x6564;
+      uStack_8f = 0x74636574;
+      uStack_8b = 0x65;
+      uStack_8a = 100;
+      local_89 = 0;
+                    /* try { // try from 01d2348e to 01d234b2 has its CatchHandler @ 01d237fe */
+      FUN_02e9a860(uVar6,&local_a0);
+                    /* WARNING: Subroutine does not return */
+      __cxa_throw(uVar6,&PTR_vtable_02f479d0,FUN_01b0dd70);
+    }
+  }
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileEeprom.java> ---END---
+ (GhidraScript)  
+INFO  DecompileEeprom.java> === Logic16 Device ID read === (GhidraScript)  
+INFO  DecompileEeprom.java>   Function: FUN_01d1a3a0 (GhidraScript)  
+INFO  DecompileEeprom.java>   Ghidra VA: 01d1a3a0 (GhidraScript)  
+INFO  DecompileEeprom.java>   ELF VA: 0x1c1a3a0 (GhidraScript)  
+INFO  DecompileEeprom.java>   Size: 973 bytes (GhidraScript)  
+INFO  DecompileEeprom.java>  (GhidraScript)  
+INFO  DecompileEeprom.java> 
+void FUN_01d1a3a0(undefined8 *param_1,undefined8 *param_2)
+
+{
+  __shared_weak_count *p_Var1;
+  long *plVar2;
+  __shared_weak_count *p_Var3;
+  char cVar4;
+  ulong uVar5;
+  void *pvVar6;
+  undefined8 uVar7;
+  undefined8 *puVar8;
+  undefined8 *puVar9;
+  int iVar10;
+  undefined8 in_R9;
+  long lVar11;
+  void *local_c0;
+  void *local_b8;
+  char *local_a8;
+  undefined8 uStack_a0;
+  char *local_98;
+  undefined8 *local_90;
+  undefined8 local_88;
+  __shared_weak_count *local_80;
+  undefined8 local_78;
+  __shared_weak_count *local_70;
+  undefined8 local_68;
+  __shared_weak_count *local_60;
+  undefined8 *local_58;
+  undefined8 *local_50;
+  string local_48 [24];
+  
+  local_68 = *param_2;
+  local_60 = (__shared_weak_count *)param_2[1];
+  if (local_60 != (__shared_weak_count *)0x0) {
+    LOCK();
+    *(long *)(local_60 + 8) = *(long *)(local_60 + 8) + 1;
+    UNLOCK();
+  }
+                    /* try { // try from 01d1a3d3 to 01d1a3df has its CatchHandler @ 01d1a849 */
+  FUN_01d4efd0(param_1,&local_68);
+  p_Var3 = local_60;
+  if (local_60 != (__shared_weak_count *)0x0) {
+    LOCK();
+    p_Var1 = local_60 + 8;
+    lVar11 = *(long *)p_Var1;
+    *(long *)p_Var1 = *(long *)p_Var1 + -1;
+    UNLOCK();
+    if (lVar11 == 0) {
+      (**(code **)(*(long *)local_60 + 0x10))(local_60);
+      std::__shared_weak_count::__release_weak(p_Var3);
+    }
+  }
+  *param_1 = &PTR_FUN_02f478a0;
+  *(undefined4 *)(param_1 + 0x32) = 0x200;
+  param_1[0x33] = 0;
+  param_1[0x34] = 0;
+  param_1[0x35] = 0;
+  local_58 = param_1 + 0x37;
+  param_1[0x37] = 0;
+  param_1[0x38] = 0;
+  param_1[0x36] = local_58;
+  *(undefined1 *)(param_1 + 0x39) = 0;
+  param_1[0x3a] = 0;
+  param_1[0x3b] = 0;
+  param_1[0x3c] = 0;
+  *(undefined1 *)(param_1 + 0x3e) = 0;
+  *(undefined1 *)(param_1 + 0x3f) = 0;
+                    /* try { // try from 01d1a47a to 01d1a490 has its CatchHandler @ 01d1a844 */
+  local_90 = param_1;
+  FUN_02e9ac10(&local_c0,param_1[0x12]);
+  uVar5 = (ulong)((long)local_b8 - (long)local_c0) >> 3;
+  local_50 = param_2;
+  if ((int)uVar5 != 0) {
+    lVar11 = 0;
+    iVar10 = 0;
+    while( true ) {
+                    /* try { // try from 01d1a4e3 to 01d1a4e7 has its CatchHandler @ 01d1a898 */
+      cVar4 = FUN_02e9aab0((long)local_c0 + lVar11);
+      puVar8 = local_90;
+      puVar9 = param_1 + 0x2e;
+      if (((cVar4 == -0x7f) || (puVar9 = param_1 + 0x2f, cVar4 == -0x7e)) ||
+         (puVar9 = param_1 + 0x2d, cVar4 == '\x01')) {
+        *puVar9 = *(undefined8 *)((long)local_c0 + lVar11);
+        iVar10 = iVar10 + 1;
+      }
+      if ((uVar5 & 0xffffffff) * 8 + -8 == lVar11) break;
+      lVar11 = lVar11 + 8;
+    }
+    if (iVar10 == 3) {
+                    /* try { // try from 01d1a53b to 01d1a549 has its CatchHandler @ 01d1a889 */
+      pvVar6 = operator_new(0x28);
+      puVar9 = local_50;
+      local_78 = *local_50;
+      local_70 = (__shared_weak_count *)local_50[1];
+      if (local_70 != (__shared_weak_count *)0x0) {
+        LOCK();
+        *(long *)(local_70 + 8) = *(long *)(local_70 + 8) + 1;
+        UNLOCK();
+      }
+                    /* try { // try from 01d1a57f to 01d1a58b has its CatchHandler @ 01d1a7e6 */
+      FUN_01d509a0(pvVar6,&local_78,puVar8[0x2d],puVar8[0x2e]);
+      plVar2 = (long *)puVar8[0x10];
+      puVar8[0x10] = pvVar6;
+      if (plVar2 != (long *)0x0) {
+        (**(code **)(*plVar2 + 8))();
+      }
+      p_Var3 = local_70;
+      if (local_70 != (__shared_weak_count *)0x0) {
+        LOCK();
+        p_Var1 = local_70 + 8;
+        lVar11 = *(long *)p_Var1;
+        *(long *)p_Var1 = *(long *)p_Var1 + -1;
+        UNLOCK();
+        if (lVar11 == 0) {
+          (**(code **)(*(long *)local_70 + 0x10))(local_70);
+          std::__shared_weak_count::__release_weak(p_Var3);
+        }
+      }
+                    /* try { // try from 01d1a5d3 to 01d1a5dc has its CatchHandler @ 01d1a889 */
+      pvVar6 = operator_new(0x28);
+      local_88 = *puVar9;
+      local_80 = (__shared_weak_count *)puVar9[1];
+      if (local_80 != (__shared_weak_count *)0x0) {
+        LOCK();
+        *(long *)(local_80 + 8) = *(long *)(local_80 + 8) + 1;
+        UNLOCK();
+      }
+                    /* try { // try from 01d1a60a to 01d1a616 has its CatchHandler @ 01d1a7dc */
+      FUN_01d53440(pvVar6,&local_88,puVar8[0x2d],puVar8[0x2e]);
+      plVar2 = (long *)puVar8[0x30];
+      puVar8[0x30] = pvVar6;
+      if (plVar2 != (long *)0x0) {
+        (**(code **)(*plVar2 + 8))();
+      }
+      p_Var3 = local_80;
+      if (local_80 != (__shared_weak_count *)0x0) {
+        LOCK();
+        p_Var1 = local_80 + 8;
+        lVar11 = *(long *)p_Var1;
+        *(long *)p_Var1 = *(long *)p_Var1 + -1;
+        UNLOCK();
+        if (lVar11 == 0) {
+          (**(code **)(*(long *)local_80 + 0x10))(local_80);
+          std::__shared_weak_count::__release_weak(p_Var3);
+        }
+      }
+                    /* try { // try from 01d1a665 to 01d1a6d4 has its CatchHandler @ 01d1a889 */
+      uVar7 = FUN_01d51a30(puVar8[0x10]);
+      puVar8[0x15] = uVar7;
+      *(undefined4 *)(puVar8 + 0x16) = 1;
+      local_a8 = "/workspace/monorepo/graph-io/devices/logic_interface/src/Logic16Device.cpp";
+      uStack_a0 = CONCAT44(uStack_a0._4_4_,0x44);
+      local_98 = "Logic16Device";
+      FUN_01d1e990(DAT_030b0128,2,"Logic16 Device ID: {:#x}",0x18,puVar8 + 0x15,in_R9,0x489893,0x44,
+                   "Logic16Device");
+      if (local_c0 != (void *)0x0) {
+        local_b8 = local_c0;
+        operator_delete(local_c0);
+      }
+      return;
+    }
+  }
+  uVar7 = __cxa_allocate_exception(0x20);
+                    /* try { // try from 01d1a70a to 01d1a718 has its CatchHandler @ 01d1a82d */
+  std::to_string((uint)local_48);
+                    /* try { // try from 01d1a719 to 01d1a72e has its CatchHandler @ 01d1a7ba */
+  puVar8 = (undefined8 *)std::string::insert(local_48,0,"Incorrect endpoint count ");
+  local_98 = (char *)puVar8[2];
+  local_a8 = (char *)*puVar8;
+  uStack_a0 = puVar8[1];
+  *puVar8 = 0;
+  puVar8[1] = 0;
+  puVar8[2] = 0;
+                    /* try { // try from 01d1a750 to 01d1a774 has its CatchHandler @ 01d1a775 */
+  FUN_02e9a860(uVar7,&local_a8);
+                    /* WARNING: Subroutine does not return */
+  __cxa_throw(uVar7,&PTR_vtable_02f479d0,FUN_01b0dd70);
+}
+
+ (GhidraScript)  
+INFO  DecompileEeprom.java> ---END---
+ (GhidraScript)  
+INFO  DecompileEeprom.java> === Logic Device ID read (FX2) === (GhidraScript)  
+INFO  DecompileEeprom.java>   Function: FUN_01d39970 (GhidraScript)  
+INFO  DecompileEeprom.java>   Ghidra VA: 01d39970 (GhidraScript)  
+INFO  DecompileEeprom.java>   ELF VA: 0x1c39970 (GhidraScript)  
+INFO  DecompileEeprom.java>   Size: 818 bytes (GhidraScript)  
+INFO  DecompileEeprom.java>  (GhidraScript)  
+INFO  DecompileEeprom.java> 
+void FUN_01d39970(undefined8 *param_1,undefined8 *param_2)
+
+{
+  __shared_weak_count *p_Var1;
+  long *plVar2;
+  __shared_weak_count *p_Var3;
+  char cVar4;
+  ulong uVar5;
+  void *pvVar6;
+  undefined8 uVar7;
+  undefined8 *puVar8;
+  long lVar9;
+  int iVar10;
+  undefined8 in_R9;
+  void *local_a0;
+  void *local_98;
+  char *local_88;
+  undefined8 uStack_80;
+  char *local_78;
+  undefined8 local_68;
+  __shared_weak_count *local_60;
+  undefined8 local_58;
+  __shared_weak_count *local_50;
+  string local_48 [24];
+  
+  local_58 = *param_2;
+  local_50 = (__shared_weak_count *)param_2[1];
+  if (local_50 != (__shared_weak_count *)0x0) {
+    LOCK();
+    *(long *)(local_50 + 8) = *(long *)(local_50 + 8) + 1;
+    UNLOCK();
+  }
+                    /* try { // try from 01d399a3 to 01d399af has its CatchHandler @ 01d39de3 */
+  FUN_01d4efd0(param_1,&local_58);
+  p_Var3 = local_50;
+  if (local_50 != (__shared_weak_count *)0x0) {
+    LOCK();
+    p_Var1 = local_50 + 8;
+    lVar9 = *(long *)p_Var1;
+    *(long *)p_Var1 = *(long *)p_Var1 + -1;
+    UNLOCK();
+    if (lVar9 == 0) {
+      (**(code **)(*(long *)local_50 + 0x10))(local_50);
+      std::__shared_weak_count::__release_weak(p_Var3);
+    }
+  }
+  *param_1 = &PTR_FUN_02f483e0;
+                    /* try { // try from 01d399f1 to 01d399f8 has its CatchHandler @ 01d39ddb */
+  FUN_02e9aa80(param_1 + 0x32);
+  *(undefined4 *)((long)param_1 + 0x19c) = 1;
+  param_1[0x3a] = 0;
+  *(undefined1 *)(param_1 + 0x3c) = 0;
+  *(undefined1 *)(param_1 + 0x3d) = 0;
+  param_1[0x3e] = 0;
+  param_1[0x3f] = 0;
+  param_1[0x40] = 0;
+  param_1[0x41] = 0;
+  param_1[0x42] = 0;
+  param_1[0x43] = 0;
+                    /* try { // try from 01d39a49 to 01d39a52 has its CatchHandler @ 01d39dba */
+  FUN_02e9ac10(&local_a0,param_1[0x12]);
+  uVar5 = (ulong)((long)local_98 - (long)local_a0) >> 3;
+  if ((int)uVar5 != 0) {
+    lVar9 = 0;
+    iVar10 = 0;
+    do {
+                    /* try { // try from 01d39a83 to 01d39a87 has its CatchHandler @ 01d39e36 */
+      cVar4 = FUN_02e9aab0((long)local_a0 + lVar9);
+      if (cVar4 < '\x01') {
+        if (cVar4 == -0x7f) {
+          param_1[0x2e] = *(undefined8 *)((long)local_a0 + lVar9);
+          goto LAB_01d39aea;
+        }
+        if (cVar4 == -0x7e) {
+          param_1[0x2f] = *(undefined8 *)((long)local_a0 + lVar9);
+          goto LAB_01d39aea;
+        }
+      }
+      else {
+        if (cVar4 == '\x06') {
+          param_1[0x32] = *(undefined8 *)((long)local_a0 + lVar9);
+        }
+        else {
+          if (cVar4 != '\x01') goto LAB_01d39aed;
+          param_1[0x2d] = *(undefined8 *)((long)local_a0 + lVar9);
+        }
+LAB_01d39aea:
+        iVar10 = iVar10 + 1;
+      }
+LAB_01d39aed:
+      if ((uVar5 & 0xffffffff) * 8 + -8 == lVar9) goto LAB_01d39afd;
+      lVar9 = lVar9 + 8;
+    } while( true );
+  }
+LAB_01d39c39:
+  uVar7 = __cxa_allocate_exception(0x20);
+                    /* try { // try from 01d39c46 to 01d39c51 has its CatchHandler @ 01d39d9c */
+  std::to_string((uint)local_48);
+                    /* try { // try from 01d39c52 to 01d39c64 has its CatchHandler @ 01d39d2e */
+  puVar8 = (undefined8 *)std::string::insert(local_48,0,"Incorrect endpoint count ");
+  local_78 = (char *)puVar8[2];
+  local_88 = (char *)*puVar8;
+  uStack_80 = puVar8[1];
+  *puVar8 = 0;
+  puVar8[1] = 0;
+  puVar8[2] = 0;
+                    /* try { // try from 01d39c86 to 01d39caa has its CatchHandler @ 01d39cab */
+  FUN_02e9a860(uVar7,&local_88);
+                    /* WARNING: Subroutine does not return */
+  __cxa_throw(uVar7,&PTR_vtable_02f479d0,FUN_01b0dd70);
+LAB_01d39afd:
+  if (iVar10 == 4) {
+                    /* try { // try from 01d39b06 to 01d39b0f has its CatchHandler @ 01d39e23 */
+    pvVar6 = operator_new(0x28);
+    local_68 = *param_2;
+    local_60 = (__shared_weak_count *)param_2[1];
+    if (local_60 != (__shared_weak_count *)0x0) {
+      LOCK();
+      *(long *)(local_60 + 8) = *(long *)(local_60 + 8) + 1;
+      UNLOCK();
+    }
+                    /* try { // try from 01d39b3f to 01d39b4b has its CatchHandler @ 01d39d51 */
+    FUN_01d509a0(pvVar6,&local_68,param_1[0x2d],param_1[0x2e]);
+    plVar2 = (long *)param_1[0x10];
+    param_1[0x10] = pvVar6;
+    if (plVar2 != (long *)0x0) {
+      (**(code **)(*plVar2 + 8))();
+    }
+    p_Var3 = local_60;
+    if (local_60 != (__shared_weak_count *)0x0) {
+      LOCK();
+      p_Var1 = local_60 + 8;
+      lVar9 = *(long *)p_Var1;
+      *(long *)p_Var1 = *(long *)p_Var1 + -1;
+      UNLOCK();
+      if (lVar9 == 0) {
+        (**(code **)(*(long *)local_60 + 0x10))(local_60);
+        std::__shared_weak_count::__release_weak(p_Var3);
+      }
+    }
+                    /* try { // try from 01d39b9d to 01d39c10 has its CatchHandler @ 01d39e23 */
+    uVar7 = FUN_01d51a30(param_1[0x10]);
+    param_1[0x15] = uVar7;
+    *(undefined4 *)(param_1 + 0x16) = 0;
+    local_88 = "/workspace/monorepo/graph-io/devices/logic_interface/src/LogicDevice.cpp";
+    uStack_80 = CONCAT44(uStack_80._4_4_,0x3a);
+    local_78 = "LogicDevice";
+    FUN_01d1e990(DAT_030b0128,2,"Logic Device ID: {:#x}",0x16,param_1 + 0x15,in_R9,0x4a5ae4,0x3a,
+                 "LogicDevice");
+    if (local_a0 != (void *)0x0) {
+      local_98 = local_a0;
+      operator_delete(local_a0);
+    }
+    return;
+  }
+  goto LAB_01d39c39;
+}
+
+ (GhidraScript)  
+INFO  DecompileEeprom.java> ---END---
+ (GhidraScript)  
+INFO  DecompileEeprom.java> === Logic 8 Device ID read === (GhidraScript)  
+INFO  DecompileEeprom.java>   Function: FUN_01d3d1a0 (GhidraScript)  
+INFO  DecompileEeprom.java>   Ghidra VA: 01d3d1a0 (GhidraScript)  
+INFO  DecompileEeprom.java>   ELF VA: 0x1c3d1a0 (GhidraScript)  
+INFO  DecompileEeprom.java>   Size: 1097 bytes (GhidraScript)  
+INFO  DecompileEeprom.java>  (GhidraScript)  
+INFO  DecompileEeprom.java> 
+void FUN_01d3d1a0(undefined8 *param_1,undefined8 param_2,undefined8 *param_3)
+
+{
+  __shared_weak_count *p_Var1;
+  long lVar2;
+  long *plVar3;
+  __shared_weak_count *p_Var4;
+  undefined8 uVar5;
+  void *pvVar6;
+  char *pcVar7;
+  char *pcVar8;
+  char *local_c8;
+  char *local_c0;
+  char *local_b8;
+  undefined4 uStack_b0;
+  char *local_a8;
+  char *local_98;
+  char *local_80;
+  undefined8 local_78;
+  __shared_weak_count *local_70;
+  undefined8 local_68;
+  __shared_weak_count *local_60;
+  undefined8 local_58;
+  __shared_weak_count *local_50;
+  undefined1 local_48 [16];
+  undefined1 local_38 [24];
+  
+  FUN_02ed1290(local_48);
+  local_58 = *param_3;
+  local_50 = (__shared_weak_count *)param_3[1];
+  if (local_50 != (__shared_weak_count *)0x0) {
+    LOCK();
+    *(long *)(local_50 + 8) = *(long *)(local_50 + 8) + 1;
+    UNLOCK();
+  }
+                    /* try { // try from 01d3d1e3 to 01d3d20b has its CatchHandler @ 01d3d69d */
+  FUN_01d201f0(param_1,local_48,&local_58,200000000,&DAT_01312d00,8);
+  p_Var4 = local_50;
+  if (local_50 != (__shared_weak_count *)0x0) {
+    LOCK();
+    p_Var1 = local_50 + 8;
+    lVar2 = *(long *)p_Var1;
+    *(long *)p_Var1 = *(long *)p_Var1 + -1;
+    UNLOCK();
+    if (lVar2 == 0) {
+      (**(code **)(*(long *)local_50 + 0x10))(local_50);
+      std::__shared_weak_count::__release_weak(p_Var4);
+    }
+  }
+  FUN_02ed1260(local_48);
+  *param_1 = &PTR_FUN_02f48698;
+  *(undefined1 *)(param_1 + 0x52) = 0;
+  *(undefined1 *)(param_1 + 0x53) = 0;
+                    /* try { // try from 01d3d26e to 01d3d277 has its CatchHandler @ 01d3d69b */
+  uVar5 = FUN_01d4e5e0(1,param_1[0x12]);
+  param_1[0x2d] = uVar5;
+                    /* try { // try from 01d3d288 to 01d3d291 has its CatchHandler @ 01d3d699 */
+  uVar5 = FUN_01d4e5e0(0x81,param_1[0x12]);
+  param_1[0x2e] = uVar5;
+                    /* try { // try from 01d3d2a2 to 01d3d2ab has its CatchHandler @ 01d3d697 */
+  uVar5 = FUN_01d4e5e0(0x82,param_1[0x12]);
+  param_1[0x2f] = uVar5;
+                    /* try { // try from 01d3d2b4 to 01d3d2bd has its CatchHandler @ 01d3d6e7 */
+  pvVar6 = operator_new(0x28);
+  local_68 = *param_3;
+  local_60 = (__shared_weak_count *)param_3[1];
+  if (local_60 != (__shared_weak_count *)0x0) {
+    LOCK();
+    *(long *)(local_60 + 8) = *(long *)(local_60 + 8) + 1;
+    UNLOCK();
+  }
+                    /* try { // try from 01d3d2f3 to 01d3d302 has its CatchHandler @ 01d3d64c */
+  FUN_01d509a0(pvVar6,&local_68,param_1[0x2d],param_1[0x2e]);
+  plVar3 = (long *)param_1[0x10];
+  param_1[0x10] = pvVar6;
+  if (plVar3 != (long *)0x0) {
+    (**(code **)(*plVar3 + 8))();
+  }
+  p_Var4 = local_60;
+  if (local_60 != (__shared_weak_count *)0x0) {
+    LOCK();
+    p_Var1 = local_60 + 8;
+    lVar2 = *(long *)p_Var1;
+    *(long *)p_Var1 = *(long *)p_Var1 + -1;
+    UNLOCK();
+    if (lVar2 == 0) {
+      (**(code **)(*(long *)local_60 + 0x10))(local_60);
+      std::__shared_weak_count::__release_weak(p_Var4);
+    }
+  }
+                    /* try { // try from 01d3d34e to 01d3d357 has its CatchHandler @ 01d3d6e7 */
+  pvVar6 = operator_new(0x28);
+  local_78 = *param_3;
+  local_70 = (__shared_weak_count *)param_3[1];
+  if (local_70 != (__shared_weak_count *)0x0) {
+    LOCK();
+    *(long *)(local_70 + 8) = *(long *)(local_70 + 8) + 1;
+    UNLOCK();
+  }
+                    /* try { // try from 01d3d387 to 01d3d393 has its CatchHandler @ 01d3d642 */
+  FUN_01d53440(pvVar6,&local_78,param_1[0x2d],param_1[0x2e]);
+  plVar3 = (long *)param_1[0x30];
+  param_1[0x30] = pvVar6;
+  if (plVar3 != (long *)0x0) {
+    (**(code **)(*plVar3 + 8))();
+  }
+  p_Var4 = local_70;
+  if (local_70 != (__shared_weak_count *)0x0) {
+    LOCK();
+    p_Var1 = local_70 + 8;
+    lVar2 = *(long *)p_Var1;
+    *(long *)p_Var1 = *(long *)p_Var1 + -1;
+    UNLOCK();
+    if (lVar2 == 0) {
+      (**(code **)(*(long *)local_70 + 0x10))(local_70);
+      std::__shared_weak_count::__release_weak(p_Var4);
+    }
+  }
+                    /* try { // try from 01d3d3e4 to 01d3d3e8 has its CatchHandler @ 01d3d63d */
+  pcVar7 = (char *)FUN_01d51a30(param_1[0x10]);
+  local_c0 = pcVar7;
+                    /* try { // try from 01d3d3f9 to 01d3d3fd has its CatchHandler @ 01d3d638 */
+  pcVar8 = (char *)FUN_01d51a30(param_1[0x10]);
+  local_c8 = pcVar8;
+                    /* try { // try from 01d3d40e to 01d3d490 has its CatchHandler @ 01d3d6e5 */
+  local_80 = (char *)FUN_01d51a30(param_1[0x10]);
+  if ((pcVar7 != local_80) || (pcVar7 != pcVar8)) {
+    if ((pcVar7 == pcVar8) || (pcVar8 != local_80)) {
+      local_b8 = "/workspace/monorepo/graph-io/devices/logic_interface/src/LogicGraduateDevice.cpp";
+      uStack_b0 = 0x35;
+      local_a8 = "LogicGraduateDevice";
+                    /* try { // try from 01d3d534 to 01d3d570 has its CatchHandler @ 01d3d6e5 */
+      FUN_01d40370(DAT_030b0128,4,
+                   "Logic 8 Device ID read complete failure. 3 IDs: {:#X}, {:#X}, {:#X}",0x43,
+                   &local_c0,&local_c8,0x535013,0x35,"LogicGraduateDevice",&local_80);
+      uVar5 = __cxa_allocate_exception(0x20);
+      local_b8 = local_c0;
+      local_a8 = local_c8;
+      local_98 = local_80;
+                    /* try { // try from 01d3d59c to 01d3d5be has its CatchHandler @ 01d3d61d */
+      FUN_02f06340(local_38,"Logic 8 Device ID read complete failure. 3 IDs: {:#X}, {:#X}, {:#X}",
+                   0x43,0x444,&local_b8);
+                    /* try { // try from 01d3d5c1 to 01d3d5e8 has its CatchHandler @ 01d3d5e9 */
+      FUN_02e9a490(uVar5,local_38);
+                    /* WARNING: Subroutine does not return */
+      __cxa_throw(uVar5,&PTR_vtable_02f43260,FUN_01b0dd70);
+    }
+    local_b8 = "/workspace/monorepo/graph-io/devices/logic_interface/src/LogicGraduateDevice.cpp";
+    uStack_b0 = 0x30;
+    local_a8 = "LogicGraduateDevice";
+    FUN_01d40090(DAT_030b0128,3,
+                 "Logic 8 Device ID read failure detected. Correct ID {:#X}, First, failed read: {:#X}"
+                 ,0x54,&local_c8,&local_c0,0x535013,0x30,"LogicGraduateDevice");
+    pcVar7 = local_c8;
+  }
+  param_1[0x15] = pcVar7;
+  *(undefined4 *)(param_1 + 0x16) = 5;
+  local_b8 = "/workspace/monorepo/graph-io/devices/logic_interface/src/LogicGraduateDevice.cpp";
+  uStack_b0 = 0x3c;
+  local_a8 = "LogicGraduateDevice";
+                    /* try { // try from 01d3d4dc to 01d3d504 has its CatchHandler @ 01d3d6e7 */
+  FUN_01d1e990(DAT_030b0128,2,"Logic 8 Device ID: {:#x}",0x18,param_1 + 0x15);
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileEeprom.java> ---END---
+ (GhidraScript)  
+INFO  DecompileEeprom.java> === Logic 8 Device ID read failure === (GhidraScript)  
+INFO  DecompileEeprom.java>   Function: FUN_01d3d1a0 (GhidraScript)  
+INFO  DecompileEeprom.java>   Ghidra VA: 01d3d1a0 (GhidraScript)  
+INFO  DecompileEeprom.java>   ELF VA: 0x1c3d1a0 (GhidraScript)  
+INFO  DecompileEeprom.java>   Size: 1097 bytes (GhidraScript)  
+INFO  DecompileEeprom.java>  (GhidraScript)  
+INFO  DecompileEeprom.java> 
+void FUN_01d3d1a0(undefined8 *param_1,undefined8 param_2,undefined8 *param_3)
+
+{
+  __shared_weak_count *p_Var1;
+  long lVar2;
+  long *plVar3;
+  __shared_weak_count *p_Var4;
+  undefined8 uVar5;
+  void *pvVar6;
+  char *pcVar7;
+  char *pcVar8;
+  char *local_c8;
+  char *local_c0;
+  char *local_b8;
+  undefined4 uStack_b0;
+  char *local_a8;
+  char *local_98;
+  char *local_80;
+  undefined8 local_78;
+  __shared_weak_count *local_70;
+  undefined8 local_68;
+  __shared_weak_count *local_60;
+  undefined8 local_58;
+  __shared_weak_count *local_50;
+  undefined1 local_48 [16];
+  undefined1 local_38 [24];
+  
+  FUN_02ed1290(local_48);
+  local_58 = *param_3;
+  local_50 = (__shared_weak_count *)param_3[1];
+  if (local_50 != (__shared_weak_count *)0x0) {
+    LOCK();
+    *(long *)(local_50 + 8) = *(long *)(local_50 + 8) + 1;
+    UNLOCK();
+  }
+                    /* try { // try from 01d3d1e3 to 01d3d20b has its CatchHandler @ 01d3d69d */
+  FUN_01d201f0(param_1,local_48,&local_58,200000000,&DAT_01312d00,8);
+  p_Var4 = local_50;
+  if (local_50 != (__shared_weak_count *)0x0) {
+    LOCK();
+    p_Var1 = local_50 + 8;
+    lVar2 = *(long *)p_Var1;
+    *(long *)p_Var1 = *(long *)p_Var1 + -1;
+    UNLOCK();
+    if (lVar2 == 0) {
+      (**(code **)(*(long *)local_50 + 0x10))(local_50);
+      std::__shared_weak_count::__release_weak(p_Var4);
+    }
+  }
+  FUN_02ed1260(local_48);
+  *param_1 = &PTR_FUN_02f48698;
+  *(undefined1 *)(param_1 + 0x52) = 0;
+  *(undefined1 *)(param_1 + 0x53) = 0;
+                    /* try { // try from 01d3d26e to 01d3d277 has its CatchHandler @ 01d3d69b */
+  uVar5 = FUN_01d4e5e0(1,param_1[0x12]);
+  param_1[0x2d] = uVar5;
+                    /* try { // try from 01d3d288 to 01d3d291 has its CatchHandler @ 01d3d699 */
+  uVar5 = FUN_01d4e5e0(0x81,param_1[0x12]);
+  param_1[0x2e] = uVar5;
+                    /* try { // try from 01d3d2a2 to 01d3d2ab has its CatchHandler @ 01d3d697 */
+  uVar5 = FUN_01d4e5e0(0x82,param_1[0x12]);
+  param_1[0x2f] = uVar5;
+                    /* try { // try from 01d3d2b4 to 01d3d2bd has its CatchHandler @ 01d3d6e7 */
+  pvVar6 = operator_new(0x28);
+  local_68 = *param_3;
+  local_60 = (__shared_weak_count *)param_3[1];
+  if (local_60 != (__shared_weak_count *)0x0) {
+    LOCK();
+    *(long *)(local_60 + 8) = *(long *)(local_60 + 8) + 1;
+    UNLOCK();
+  }
+                    /* try { // try from 01d3d2f3 to 01d3d302 has its CatchHandler @ 01d3d64c */
+  FUN_01d509a0(pvVar6,&local_68,param_1[0x2d],param_1[0x2e]);
+  plVar3 = (long *)param_1[0x10];
+  param_1[0x10] = pvVar6;
+  if (plVar3 != (long *)0x0) {
+    (**(code **)(*plVar3 + 8))();
+  }
+  p_Var4 = local_60;
+  if (local_60 != (__shared_weak_count *)0x0) {
+    LOCK();
+    p_Var1 = local_60 + 8;
+    lVar2 = *(long *)p_Var1;
+    *(long *)p_Var1 = *(long *)p_Var1 + -1;
+    UNLOCK();
+    if (lVar2 == 0) {
+      (**(code **)(*(long *)local_60 + 0x10))(local_60);
+      std::__shared_weak_count::__release_weak(p_Var4);
+    }
+  }
+                    /* try { // try from 01d3d34e to 01d3d357 has its CatchHandler @ 01d3d6e7 */
+  pvVar6 = operator_new(0x28);
+  local_78 = *param_3;
+  local_70 = (__shared_weak_count *)param_3[1];
+  if (local_70 != (__shared_weak_count *)0x0) {
+    LOCK();
+    *(long *)(local_70 + 8) = *(long *)(local_70 + 8) + 1;
+    UNLOCK();
+  }
+                    /* try { // try from 01d3d387 to 01d3d393 has its CatchHandler @ 01d3d642 */
+  FUN_01d53440(pvVar6,&local_78,param_1[0x2d],param_1[0x2e]);
+  plVar3 = (long *)param_1[0x30];
+  param_1[0x30] = pvVar6;
+  if (plVar3 != (long *)0x0) {
+    (**(code **)(*plVar3 + 8))();
+  }
+  p_Var4 = local_70;
+  if (local_70 != (__shared_weak_count *)0x0) {
+    LOCK();
+    p_Var1 = local_70 + 8;
+    lVar2 = *(long *)p_Var1;
+    *(long *)p_Var1 = *(long *)p_Var1 + -1;
+    UNLOCK();
+    if (lVar2 == 0) {
+      (**(code **)(*(long *)local_70 + 0x10))(local_70);
+      std::__shared_weak_count::__release_weak(p_Var4);
+    }
+  }
+                    /* try { // try from 01d3d3e4 to 01d3d3e8 has its CatchHandler @ 01d3d63d */
+  pcVar7 = (char *)FUN_01d51a30(param_1[0x10]);
+  local_c0 = pcVar7;
+                    /* try { // try from 01d3d3f9 to 01d3d3fd has its CatchHandler @ 01d3d638 */
+  pcVar8 = (char *)FUN_01d51a30(param_1[0x10]);
+  local_c8 = pcVar8;
+                    /* try { // try from 01d3d40e to 01d3d490 has its CatchHandler @ 01d3d6e5 */
+  local_80 = (char *)FUN_01d51a30(param_1[0x10]);
+  if ((pcVar7 != local_80) || (pcVar7 != pcVar8)) {
+    if ((pcVar7 == pcVar8) || (pcVar8 != local_80)) {
+      local_b8 = "/workspace/monorepo/graph-io/devices/logic_interface/src/LogicGraduateDevice.cpp";
+      uStack_b0 = 0x35;
+      local_a8 = "LogicGraduateDevice";
+                    /* try { // try from 01d3d534 to 01d3d570 has its CatchHandler @ 01d3d6e5 */
+      FUN_01d40370(DAT_030b0128,4,
+                   "Logic 8 Device ID read complete failure. 3 IDs: {:#X}, {:#X}, {:#X}",0x43,
+                   &local_c0,&local_c8,0x535013,0x35,"LogicGraduateDevice",&local_80);
+      uVar5 = __cxa_allocate_exception(0x20);
+      local_b8 = local_c0;
+      local_a8 = local_c8;
+      local_98 = local_80;
+                    /* try { // try from 01d3d59c to 01d3d5be has its CatchHandler @ 01d3d61d */
+      FUN_02f06340(local_38,"Logic 8 Device ID read complete failure. 3 IDs: {:#X}, {:#X}, {:#X}",
+                   0x43,0x444,&local_b8);
+                    /* try { // try from 01d3d5c1 to 01d3d5e8 has its CatchHandler @ 01d3d5e9 */
+      FUN_02e9a490(uVar5,local_38);
+                    /* WARNING: Subroutine does not return */
+      __cxa_throw(uVar5,&PTR_vtable_02f43260,FUN_01b0dd70);
+    }
+    local_b8 = "/workspace/monorepo/graph-io/devices/logic_interface/src/LogicGraduateDevice.cpp";
+    uStack_b0 = 0x30;
+    local_a8 = "LogicGraduateDevice";
+    FUN_01d40090(DAT_030b0128,3,
+                 "Logic 8 Device ID read failure detected. Correct ID {:#X}, First, failed read: {:#X}"
+                 ,0x54,&local_c8,&local_c0,0x535013,0x30,"LogicGraduateDevice");
+    pcVar7 = local_c8;
+  }
+  param_1[0x15] = pcVar7;
+  *(undefined4 *)(param_1 + 0x16) = 5;
+  local_b8 = "/workspace/monorepo/graph-io/devices/logic_interface/src/LogicGraduateDevice.cpp";
+  uStack_b0 = 0x3c;
+  local_a8 = "LogicGraduateDevice";
+                    /* try { // try from 01d3d4dc to 01d3d504 has its CatchHandler @ 01d3d6e7 */
+  FUN_01d1e990(DAT_030b0128,2,"Logic 8 Device ID: {:#x}",0x18,param_1 + 0x15);
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileEeprom.java> ---END---
+ (GhidraScript)  
+INFO  DecompileEeprom.java> === Logic 8 Device ID complete failure === (GhidraScript)  
+INFO  DecompileEeprom.java>   Function: FUN_01d3d1a0 (GhidraScript)  
+INFO  DecompileEeprom.java>   Ghidra VA: 01d3d1a0 (GhidraScript)  
+INFO  DecompileEeprom.java>   ELF VA: 0x1c3d1a0 (GhidraScript)  
+INFO  DecompileEeprom.java>   Size: 1097 bytes (GhidraScript)  
+INFO  DecompileEeprom.java>  (GhidraScript)  
+INFO  DecompileEeprom.java> 
+void FUN_01d3d1a0(undefined8 *param_1,undefined8 param_2,undefined8 *param_3)
+
+{
+  __shared_weak_count *p_Var1;
+  long lVar2;
+  long *plVar3;
+  __shared_weak_count *p_Var4;
+  undefined8 uVar5;
+  void *pvVar6;
+  char *pcVar7;
+  char *pcVar8;
+  char *local_c8;
+  char *local_c0;
+  char *local_b8;
+  undefined4 uStack_b0;
+  char *local_a8;
+  char *local_98;
+  char *local_80;
+  undefined8 local_78;
+  __shared_weak_count *local_70;
+  undefined8 local_68;
+  __shared_weak_count *local_60;
+  undefined8 local_58;
+  __shared_weak_count *local_50;
+  undefined1 local_48 [16];
+  undefined1 local_38 [24];
+  
+  FUN_02ed1290(local_48);
+  local_58 = *param_3;
+  local_50 = (__shared_weak_count *)param_3[1];
+  if (local_50 != (__shared_weak_count *)0x0) {
+    LOCK();
+    *(long *)(local_50 + 8) = *(long *)(local_50 + 8) + 1;
+    UNLOCK();
+  }
+                    /* try { // try from 01d3d1e3 to 01d3d20b has its CatchHandler @ 01d3d69d */
+  FUN_01d201f0(param_1,local_48,&local_58,200000000,&DAT_01312d00,8);
+  p_Var4 = local_50;
+  if (local_50 != (__shared_weak_count *)0x0) {
+    LOCK();
+    p_Var1 = local_50 + 8;
+    lVar2 = *(long *)p_Var1;
+    *(long *)p_Var1 = *(long *)p_Var1 + -1;
+    UNLOCK();
+    if (lVar2 == 0) {
+      (**(code **)(*(long *)local_50 + 0x10))(local_50);
+      std::__shared_weak_count::__release_weak(p_Var4);
+    }
+  }
+  FUN_02ed1260(local_48);
+  *param_1 = &PTR_FUN_02f48698;
+  *(undefined1 *)(param_1 + 0x52) = 0;
+  *(undefined1 *)(param_1 + 0x53) = 0;
+                    /* try { // try from 01d3d26e to 01d3d277 has its CatchHandler @ 01d3d69b */
+  uVar5 = FUN_01d4e5e0(1,param_1[0x12]);
+  param_1[0x2d] = uVar5;
+                    /* try { // try from 01d3d288 to 01d3d291 has its CatchHandler @ 01d3d699 */
+  uVar5 = FUN_01d4e5e0(0x81,param_1[0x12]);
+  param_1[0x2e] = uVar5;
+                    /* try { // try from 01d3d2a2 to 01d3d2ab has its CatchHandler @ 01d3d697 */
+  uVar5 = FUN_01d4e5e0(0x82,param_1[0x12]);
+  param_1[0x2f] = uVar5;
+                    /* try { // try from 01d3d2b4 to 01d3d2bd has its CatchHandler @ 01d3d6e7 */
+  pvVar6 = operator_new(0x28);
+  local_68 = *param_3;
+  local_60 = (__shared_weak_count *)param_3[1];
+  if (local_60 != (__shared_weak_count *)0x0) {
+    LOCK();
+    *(long *)(local_60 + 8) = *(long *)(local_60 + 8) + 1;
+    UNLOCK();
+  }
+                    /* try { // try from 01d3d2f3 to 01d3d302 has its CatchHandler @ 01d3d64c */
+  FUN_01d509a0(pvVar6,&local_68,param_1[0x2d],param_1[0x2e]);
+  plVar3 = (long *)param_1[0x10];
+  param_1[0x10] = pvVar6;
+  if (plVar3 != (long *)0x0) {
+    (**(code **)(*plVar3 + 8))();
+  }
+  p_Var4 = local_60;
+  if (local_60 != (__shared_weak_count *)0x0) {
+    LOCK();
+    p_Var1 = local_60 + 8;
+    lVar2 = *(long *)p_Var1;
+    *(long *)p_Var1 = *(long *)p_Var1 + -1;
+    UNLOCK();
+    if (lVar2 == 0) {
+      (**(code **)(*(long *)local_60 + 0x10))(local_60);
+      std::__shared_weak_count::__release_weak(p_Var4);
+    }
+  }
+                    /* try { // try from 01d3d34e to 01d3d357 has its CatchHandler @ 01d3d6e7 */
+  pvVar6 = operator_new(0x28);
+  local_78 = *param_3;
+  local_70 = (__shared_weak_count *)param_3[1];
+  if (local_70 != (__shared_weak_count *)0x0) {
+    LOCK();
+    *(long *)(local_70 + 8) = *(long *)(local_70 + 8) + 1;
+    UNLOCK();
+  }
+                    /* try { // try from 01d3d387 to 01d3d393 has its CatchHandler @ 01d3d642 */
+  FUN_01d53440(pvVar6,&local_78,param_1[0x2d],param_1[0x2e]);
+  plVar3 = (long *)param_1[0x30];
+  param_1[0x30] = pvVar6;
+  if (plVar3 != (long *)0x0) {
+    (**(code **)(*plVar3 + 8))();
+  }
+  p_Var4 = local_70;
+  if (local_70 != (__shared_weak_count *)0x0) {
+    LOCK();
+    p_Var1 = local_70 + 8;
+    lVar2 = *(long *)p_Var1;
+    *(long *)p_Var1 = *(long *)p_Var1 + -1;
+    UNLOCK();
+    if (lVar2 == 0) {
+      (**(code **)(*(long *)local_70 + 0x10))(local_70);
+      std::__shared_weak_count::__release_weak(p_Var4);
+    }
+  }
+                    /* try { // try from 01d3d3e4 to 01d3d3e8 has its CatchHandler @ 01d3d63d */
+  pcVar7 = (char *)FUN_01d51a30(param_1[0x10]);
+  local_c0 = pcVar7;
+                    /* try { // try from 01d3d3f9 to 01d3d3fd has its CatchHandler @ 01d3d638 */
+  pcVar8 = (char *)FUN_01d51a30(param_1[0x10]);
+  local_c8 = pcVar8;
+                    /* try { // try from 01d3d40e to 01d3d490 has its CatchHandler @ 01d3d6e5 */
+  local_80 = (char *)FUN_01d51a30(param_1[0x10]);
+  if ((pcVar7 != local_80) || (pcVar7 != pcVar8)) {
+    if ((pcVar7 == pcVar8) || (pcVar8 != local_80)) {
+      local_b8 = "/workspace/monorepo/graph-io/devices/logic_interface/src/LogicGraduateDevice.cpp";
+      uStack_b0 = 0x35;
+      local_a8 = "LogicGraduateDevice";
+                    /* try { // try from 01d3d534 to 01d3d570 has its CatchHandler @ 01d3d6e5 */
+      FUN_01d40370(DAT_030b0128,4,
+                   "Logic 8 Device ID read complete failure. 3 IDs: {:#X}, {:#X}, {:#X}",0x43,
+                   &local_c0,&local_c8,0x535013,0x35,"LogicGraduateDevice",&local_80);
+      uVar5 = __cxa_allocate_exception(0x20);
+      local_b8 = local_c0;
+      local_a8 = local_c8;
+      local_98 = local_80;
+                    /* try { // try from 01d3d59c to 01d3d5be has its CatchHandler @ 01d3d61d */
+      FUN_02f06340(local_38,"Logic 8 Device ID read complete failure. 3 IDs: {:#X}, {:#X}, {:#X}",
+                   0x43,0x444,&local_b8);
+                    /* try { // try from 01d3d5c1 to 01d3d5e8 has its CatchHandler @ 01d3d5e9 */
+      FUN_02e9a490(uVar5,local_38);
+                    /* WARNING: Subroutine does not return */
+      __cxa_throw(uVar5,&PTR_vtable_02f43260,FUN_01b0dd70);
+    }
+    local_b8 = "/workspace/monorepo/graph-io/devices/logic_interface/src/LogicGraduateDevice.cpp";
+    uStack_b0 = 0x30;
+    local_a8 = "LogicGraduateDevice";
+    FUN_01d40090(DAT_030b0128,3,
+                 "Logic 8 Device ID read failure detected. Correct ID {:#X}, First, failed read: {:#X}"
+                 ,0x54,&local_c8,&local_c0,0x535013,0x30,"LogicGraduateDevice");
+    pcVar7 = local_c8;
+  }
+  param_1[0x15] = pcVar7;
+  *(undefined4 *)(param_1 + 0x16) = 5;
+  local_b8 = "/workspace/monorepo/graph-io/devices/logic_interface/src/LogicGraduateDevice.cpp";
+  uStack_b0 = 0x3c;
+  local_a8 = "LogicGraduateDevice";
+                    /* try { // try from 01d3d4dc to 01d3d504 has its CatchHandler @ 01d3d6e7 */
+  FUN_01d1e990(DAT_030b0128,2,"Logic 8 Device ID: {:#x}",0x18,param_1 + 0x15);
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileEeprom.java> ---END---
+ (GhidraScript)  
+INFO  DecompileEeprom.java> === Logic Pro Device ID read === (GhidraScript)  
+INFO  DecompileEeprom.java>   Function: FUN_01d40c00 (GhidraScript)  
+INFO  DecompileEeprom.java>   Ghidra VA: 01d40c00 (GhidraScript)  
+INFO  DecompileEeprom.java>   ELF VA: 0x1c40c00 (GhidraScript)  
+INFO  DecompileEeprom.java>   Size: 1403 bytes (GhidraScript)  
+INFO  DecompileEeprom.java>  (GhidraScript)  
+INFO  DecompileEeprom.java> 
+void FUN_01d40c00(undefined8 *param_1,undefined8 param_2,undefined8 *param_3,int param_4,
+                 undefined1 param_5)
+
+{
+  __shared_weak_count *p_Var1;
+  undefined8 *puVar2;
+  undefined8 *puVar3;
+  long lVar4;
+  long *plVar5;
+  __shared_weak_count *p_Var6;
+  byte bVar7;
+  int iVar8;
+  undefined4 uVar9;
+  undefined8 uVar10;
+  void *pvVar11;
+  ulong uVar12;
+  long lVar13;
+  undefined1 local_129;
+  char *local_128;
+  undefined8 uStack_120;
+  char *local_118;
+  int local_10c;
+  undefined8 local_108;
+  __shared_weak_count *local_100;
+  undefined8 local_f8;
+  __shared_weak_count *local_f0;
+  undefined8 local_e8;
+  __shared_weak_count *local_e0;
+  undefined1 local_d8 [16];
+  char *local_c8;
+  undefined8 uStack_c0;
+  char *local_b8;
+  undefined4 uStack_b0;
+  char *local_a8;
+  
+  local_10c = param_4;
+  FUN_02ed1290(local_d8);
+  local_e8 = *param_3;
+  local_e0 = (__shared_weak_count *)param_3[1];
+  if (local_e0 != (__shared_weak_count *)0x0) {
+    LOCK();
+    *(long *)(local_e0 + 8) = *(long *)(local_e0 + 8) + 1;
+    UNLOCK();
+  }
+                    /* try { // try from 01d40c48 to 01d40c67 has its CatchHandler @ 01d411ca */
+  FUN_01d201f0(param_1,local_d8,&local_e8,500000000,&DAT_02faf080,param_4);
+  p_Var6 = local_e0;
+  if (local_e0 != (__shared_weak_count *)0x0) {
+    LOCK();
+    p_Var1 = local_e0 + 8;
+    lVar4 = *(long *)p_Var1;
+    *(long *)p_Var1 = *(long *)p_Var1 + -1;
+    UNLOCK();
+    if (lVar4 == 0) {
+      (**(code **)(*(long *)local_e0 + 0x10))(local_e0);
+      std::__shared_weak_count::__release_weak(p_Var6);
+    }
+  }
+  FUN_02ed1260(local_d8);
+  *param_1 = &PTR_FUN_02f489c0;
+  *(undefined1 *)(param_1 + 0x51) = param_5;
+  *(undefined1 *)(param_1 + 0x52) = 0;
+  *(undefined1 *)(param_1 + 0x53) = 0;
+                    /* try { // try from 01d40cc6 to 01d40ccf has its CatchHandler @ 01d411c8 */
+  uVar10 = FUN_01d4e5e0(1,param_1[0x12]);
+  param_1[0x2d] = uVar10;
+                    /* try { // try from 01d40cde to 01d40ce7 has its CatchHandler @ 01d411c6 */
+  uVar10 = FUN_01d4e5e0(0x81,param_1[0x12]);
+  param_1[0x2e] = uVar10;
+                    /* try { // try from 01d40cf6 to 01d40cff has its CatchHandler @ 01d411c4 */
+  uVar10 = FUN_01d4e5e0(0x82,param_1[0x12]);
+  param_1[0x2f] = uVar10;
+                    /* try { // try from 01d40d07 to 01d40d10 has its CatchHandler @ 01d41224 */
+  pvVar11 = operator_new(0x28);
+  puVar2 = param_1 + 0x2d;
+  puVar3 = param_1 + 0x2e;
+  local_f8 = *param_3;
+  local_f0 = (__shared_weak_count *)param_3[1];
+  if (local_f0 != (__shared_weak_count *)0x0) {
+    LOCK();
+    *(long *)(local_f0 + 8) = *(long *)(local_f0 + 8) + 1;
+    UNLOCK();
+  }
+                    /* try { // try from 01d40d46 to 01d40d52 has its CatchHandler @ 01d4118a */
+  FUN_01d51e10(pvVar11,&local_f8,*puVar2,*puVar3);
+  plVar5 = (long *)param_1[0x10];
+  param_1[0x10] = pvVar11;
+  if (plVar5 != (long *)0x0) {
+    (**(code **)(*plVar5 + 8))();
+  }
+  p_Var6 = local_f0;
+  if (local_f0 != (__shared_weak_count *)0x0) {
+    LOCK();
+    p_Var1 = local_f0 + 8;
+    lVar4 = *(long *)p_Var1;
+    *(long *)p_Var1 = *(long *)p_Var1 + -1;
+    UNLOCK();
+    if (lVar4 == 0) {
+      (**(code **)(*(long *)local_f0 + 0x10))(local_f0);
+      std::__shared_weak_count::__release_weak(p_Var6);
+    }
+  }
+                    /* try { // try from 01d40d9a to 01d40da3 has its CatchHandler @ 01d41224 */
+  pvVar11 = operator_new(0x28);
+  local_108 = *param_3;
+  local_100 = (__shared_weak_count *)param_3[1];
+  if (local_100 != (__shared_weak_count *)0x0) {
+    LOCK();
+    *(long *)(local_100 + 8) = *(long *)(local_100 + 8) + 1;
+    UNLOCK();
+  }
+                    /* try { // try from 01d40dcb to 01d40dd7 has its CatchHandler @ 01d41180 */
+  FUN_01d54890(pvVar11,&local_108,*puVar2,*puVar3);
+  plVar5 = (long *)param_1[0x30];
+  param_1[0x30] = pvVar11;
+  if (plVar5 != (long *)0x0) {
+    (**(code **)(*plVar5 + 8))();
+  }
+  p_Var6 = local_100;
+  if (local_100 != (__shared_weak_count *)0x0) {
+    LOCK();
+    p_Var1 = local_100 + 8;
+    lVar4 = *(long *)p_Var1;
+    *(long *)p_Var1 = *(long *)p_Var1 + -1;
+    UNLOCK();
+    if (lVar4 == 0) {
+      (**(code **)(*(long *)local_100 + 0x10))(local_100);
+      std::__shared_weak_count::__release_weak(p_Var6);
+    }
+  }
+                    /* try { // try from 01d40e26 to 01d40fa1 has its CatchHandler @ 01d41224 */
+  iVar8 = FUN_02e9ac00(param_1[0x12]);
+  lVar4 = DAT_030b0128;
+  if (iVar8 == 2) {
+    local_128 = 
+    "/workspace/monorepo/graph-io/devices/logic_interface/src/LogicProfessionalDevice.cpp";
+    uStack_120._0_4_ = 0x39;
+    local_118 = "LogicProfessionalDevice";
+    iVar8 = *(int *)(DAT_030b0128 + 0x38);
+    bVar7 = FUN_02edfa80(DAT_030b0128 + 0x70);
+    if ((2 < iVar8 & (bVar7 ^ 1)) == 0) {
+      if ((*(byte *)(lVar4 + 8) & 1) == 0) {
+        lVar13 = lVar4 + 9;
+        uVar12 = (ulong)(*(byte *)(lVar4 + 8) >> 1);
+      }
+      else {
+        lVar13 = *(long *)(lVar4 + 0x18);
+        uVar12 = *(ulong *)(lVar4 + 0x10);
+      }
+      FUN_02ee25b0(&local_b8,lVar13,uVar12,2,"SUPER SPEED",0xb,local_128._0_4_,
+                   (undefined4)uStack_120,local_118);
+      FUN_02ee4120(lVar4,&local_b8,iVar8 < 3,bVar7);
+    }
+  }
+  else {
+    local_128 = 
+    "/workspace/monorepo/graph-io/devices/logic_interface/src/LogicProfessionalDevice.cpp";
+    uStack_120._0_4_ = 0x3d;
+    local_118 = "LogicProfessionalDevice";
+    iVar8 = *(int *)(DAT_030b0128 + 0x38);
+    bVar7 = FUN_02edfa80(DAT_030b0128 + 0x70);
+    if ((2 < iVar8 & (bVar7 ^ 1)) == 0) {
+      if ((*(byte *)(lVar4 + 8) & 1) == 0) {
+        lVar13 = lVar4 + 9;
+        uVar12 = (ulong)(*(byte *)(lVar4 + 8) >> 1);
+      }
+      else {
+        lVar13 = *(long *)(lVar4 + 0x18);
+        uVar12 = *(ulong *)(lVar4 + 0x10);
+      }
+      FUN_02ee25b0(&local_b8,lVar13,uVar12,2,"regular speed.",0xe,local_128._0_4_,
+                   (undefined4)uStack_120,local_118);
+      FUN_02ee4120(lVar4,&local_b8,iVar8 < 3,bVar7);
+    }
+  }
+  local_128 = (char *)0x0;
+  uStack_120 = 0;
+  local_118 = (char *)0x0;
+  local_129 = 0x8b;
+                    /* try { // try from 01d40fc2 to 01d40fd7 has its CatchHandler @ 01d4117b */
+  (**(code **)(*(long *)param_1[0x12] + 0x20))((long *)param_1[0x12],puVar2,&local_129,1,0,0);
+                    /* try { // try from 01d40fe2 to 01d41010 has its CatchHandler @ 01d4120c */
+  (**(code **)(*(long *)param_1[0x12] + 0x28))((long *)param_1[0x12],puVar3,&local_b8,0x80,0);
+  std::string::assign((string *)&local_128,(char *)&local_b8);
+  local_b8 = "/workspace/monorepo/graph-io/devices/logic_interface/src/LogicProfessionalDevice.cpp";
+  uStack_b0 = 0x43;
+  local_a8 = "LogicProfessionalDevice";
+                    /* try { // try from 01d4103d to 01d4117a has its CatchHandler @ 01d4120e */
+  FUN_01c04800(DAT_030b0128,2,"Firmware build date: {}",0x17,&local_128);
+  uVar10 = FUN_01d51a30(param_1[0x10]);
+  param_1[0x15] = uVar10;
+  uVar9 = 6;
+  if (local_10c != 8) {
+    if (local_10c != 0x10) {
+      local_c8 = "Unsupported channel count";
+      uStack_c0 = 0x19;
+                    /* WARNING: Subroutine does not return */
+      FUN_02eca300("false",5,
+                   "LogicProfessionalDevice::LogicProfessionalDevice(Saleae::DependencyInjector, std::shared_ptr<UsbDevice>, U32, bool)"
+                   ,0x73,
+                   "/workspace/monorepo/graph-io/devices/logic_interface/src/LogicProfessionalDevice.cpp"
+                   ,0x54,0x50,0x4b76b8,0x19);
+    }
+    uVar9 = 7;
+  }
+  *(undefined4 *)(param_1 + 0x16) = uVar9;
+  local_b8 = "/workspace/monorepo/graph-io/devices/logic_interface/src/LogicProfessionalDevice.cpp";
+  uStack_b0 = 0x53;
+  local_a8 = "LogicProfessionalDevice";
+  FUN_01d45450(DAT_030b0128,2,"Logic Pro {} Device ID: {:#x}",0x1d,&local_10c,param_1 + 0x15,
+               0x49e2cf,0x53,"LogicProfessionalDevice");
+  if (((ulong)local_128 & 1) != 0) {
+    operator_delete(local_118);
+  }
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileEeprom.java> ---END---
+ (GhidraScript)  
+INFO  DecompileEeprom.java> === Logic Student Device ID read === (GhidraScript)  
+INFO  DecompileEeprom.java>   Function: FUN_01d55970 (GhidraScript)  
+INFO  DecompileEeprom.java>   Ghidra VA: 01d55970 (GhidraScript)  
+INFO  DecompileEeprom.java>   ELF VA: 0x1c55970 (GhidraScript)  
+INFO  DecompileEeprom.java>   Size: 1157 bytes (GhidraScript)  
+INFO  DecompileEeprom.java>  (GhidraScript)  
+INFO  DecompileEeprom.java> 
+/* WARNING: Globals starting with '_' overlap smaller symbols at the same address */
+
+void FUN_01d55970(undefined8 *param_1,undefined8 *param_2)
+
+{
+  __shared_weak_count *p_Var1;
+  long *plVar2;
+  __shared_weak_count *p_Var3;
+  char cVar4;
+  ulong uVar5;
+  void *pvVar6;
+  undefined8 uVar7;
+  undefined8 uVar8;
+  undefined8 *puVar9;
+  int iVar10;
+  long lVar11;
+  undefined4 uVar12;
+  undefined4 uVar13;
+  char *pcVar14;
+  void *local_130;
+  long local_128;
+  char *local_118;
+  undefined8 uStack_110;
+  char *local_108;
+  undefined8 local_100;
+  __shared_weak_count *local_f8;
+  undefined8 local_f0;
+  __shared_weak_count *local_e8;
+  undefined8 *local_e0;
+  undefined **local_d8;
+  undefined8 local_d0;
+  undefined8 uStack_c8;
+  undefined8 local_c0;
+  undefined ***local_b8;
+  undefined **local_a8;
+  undefined8 local_a0;
+  undefined8 uStack_98;
+  undefined8 local_90;
+  undefined ***local_88;
+  undefined **local_78;
+  undefined4 local_70;
+  undefined4 uStack_6c;
+  undefined4 uStack_68;
+  undefined4 uStack_64;
+  undefined8 local_60;
+  undefined ***local_58;
+  string local_48 [24];
+  
+  local_f0 = *param_2;
+  local_e8 = (__shared_weak_count *)param_2[1];
+  if (local_e8 != (__shared_weak_count *)0x0) {
+    LOCK();
+    *(long *)(local_e8 + 8) = *(long *)(local_e8 + 8) + 1;
+    UNLOCK();
+  }
+                    /* try { // try from 01d559a3 to 01d559af has its CatchHandler @ 01d55ec5 */
+  FUN_01d4efd0(param_1,&local_f0);
+  p_Var3 = local_e8;
+  if (local_e8 != (__shared_weak_count *)0x0) {
+    LOCK();
+    p_Var1 = local_e8 + 8;
+    lVar11 = *(long *)p_Var1;
+    *(long *)p_Var1 = *(long *)p_Var1 + -1;
+    UNLOCK();
+    if (lVar11 == 0) {
+      (**(code **)(*(long *)local_e8 + 0x10))(local_e8);
+      std::__shared_weak_count::__release_weak(p_Var3);
+    }
+  }
+  *param_1 = &PTR_FUN_02f49220;
+  *(undefined1 *)(param_1 + 0x32) = 0;
+  *(undefined1 *)(param_1 + 0x33) = 0;
+                    /* try { // try from 01d559fd to 01d55a0b has its CatchHandler @ 01d55ebd */
+  FUN_02e9ac10(&local_130,param_1[0x12]);
+  uVar5 = (ulong)(local_128 - (long)local_130) >> 3;
+  local_e0 = param_2;
+  if ((int)uVar5 != 0) {
+    lVar11 = 0;
+    iVar10 = 0;
+    while( true ) {
+                    /* try { // try from 01d55a53 to 01d55a57 has its CatchHandler @ 01d55f9b */
+      cVar4 = FUN_02e9aab0((long)local_130 + lVar11);
+      puVar9 = param_1 + 0x2e;
+      if (((cVar4 == -0x7f) || (puVar9 = param_1 + 0x2f, cVar4 == -0x7e)) ||
+         (puVar9 = param_1 + 0x2d, cVar4 == '\x01')) {
+        *puVar9 = *(undefined8 *)((long)local_130 + lVar11);
+        iVar10 = iVar10 + 1;
+      }
+      if ((uVar5 & 0xffffffff) * 8 + -8 == lVar11) break;
+      lVar11 = lVar11 + 8;
+    }
+    if (iVar10 == 3) {
+                    /* try { // try from 01d55aab to 01d55ab9 has its CatchHandler @ 01d55f8c */
+      pvVar6 = operator_new(0x28);
+      local_100 = *local_e0;
+      local_f8 = (__shared_weak_count *)local_e0[1];
+      if (local_f8 != (__shared_weak_count *)0x0) {
+        LOCK();
+        *(long *)(local_f8 + 8) = *(long *)(local_f8 + 8) + 1;
+        UNLOCK();
+      }
+                    /* try { // try from 01d55aec to 01d55af8 has its CatchHandler @ 01d55e67 */
+      FUN_01d509a0(pvVar6,&local_100,param_1[0x2d],param_1[0x2e]);
+      plVar2 = (long *)param_1[0x10];
+      param_1[0x10] = pvVar6;
+      if (plVar2 != (long *)0x0) {
+        (**(code **)(*plVar2 + 8))();
+      }
+      p_Var3 = local_f8;
+      if (local_f8 != (__shared_weak_count *)0x0) {
+        LOCK();
+        p_Var1 = local_f8 + 8;
+        lVar11 = *(long *)p_Var1;
+        *(long *)p_Var1 = *(long *)p_Var1 + -1;
+        UNLOCK();
+        if (lVar11 == 0) {
+          (**(code **)(*(long *)local_f8 + 0x10))(local_f8);
+          std::__shared_weak_count::__release_weak(p_Var3);
+        }
+      }
+                    /* try { // try from 01d55b47 to 01d55bc0 has its CatchHandler @ 01d55f8c */
+      uVar7 = FUN_01d51a30(param_1[0x10]);
+      param_1[0x15] = uVar7;
+      *(undefined4 *)(param_1 + 0x16) = 4;
+      local_118 = "/workspace/monorepo/graph-io/devices/logic_interface/src/LogicStudentDevice.cpp";
+      uStack_110 = CONCAT44(uStack_110._4_4_,0x3c);
+      uVar7 = uStack_110;
+      local_108 = "LogicStudentDevice";
+      pcVar14 = "LogicStudentDevice";
+      local_118._0_4_ = 0x44eebb;
+      uStack_110._0_4_ = 0x3c;
+      uVar12 = local_118._0_4_;
+      uVar13 = (undefined4)uStack_110;
+      uStack_110 = uVar7;
+      FUN_01d1e990(DAT_030b0128,2,"Logic Student Device ID: {:#x}",0x1e,param_1 + 0x15);
+      pvVar6 = operator_new(0xd0);
+      local_c0 = param_1[0x10];
+      local_a8 = &PTR_FUN_02f47ed8;
+      local_a0 = _DAT_0044ad40;
+      uStack_98 = _UNK_0044ad48;
+      local_88 = &local_a8;
+      local_d8 = &PTR_FUN_02f47ed8;
+      local_d0 = _DAT_0044bc00;
+      uStack_c8 = _UNK_0044bc08;
+      local_b8 = &local_d8;
+      local_78 = &PTR_FUN_02f47f80;
+      local_70 = _DAT_0044c050;
+      uStack_6c = _UNK_0044c054;
+      uStack_68 = _UNK_0044c058;
+      uStack_64 = _UNK_0044c05c;
+      local_58 = &local_78;
+      local_90 = local_c0;
+      local_60 = local_c0;
+                    /* try { // try from 01d55c70 to 01d55cb7 has its CatchHandler @ 01d55f05 */
+      uVar7 = FUN_02e9acb0(param_1[0x12]);
+      uVar8 = FUN_02e9acc0(param_1[0x12]);
+      FUN_01d2c730(pvVar6,&local_a8,&local_d8,&local_78,uVar7,uVar8,uVar12,uVar13,pcVar14);
+      lVar11 = param_1[0x31];
+      param_1[0x31] = pvVar6;
+      if (lVar11 != 0) {
+        FUN_01d2a8b0(param_1 + 0x31);
+      }
+      if (&local_78 == local_58) {
+        (*(code *)(*local_58)[4])();
+      }
+      else if (local_58 != (undefined ***)0x0) {
+        (*(code *)(*local_58)[5])();
+      }
+      if (&local_d8 == local_b8) {
+        (*(code *)(*local_b8)[4])();
+      }
+      else if (local_b8 != (undefined ***)0x0) {
+        (*(code *)(*local_b8)[5])();
+      }
+      if (&local_a8 == local_88) {
+        (*(code *)(*local_88)[4])();
+      }
+      else if (local_88 != (undefined ***)0x0) {
+        (*(code *)(*local_88)[5])();
+      }
+      if (local_130 != (void *)0x0) {
+        operator_delete(local_130);
+      }
+      return;
+    }
+  }
+  uVar7 = __cxa_allocate_exception(0x20);
+                    /* try { // try from 01d55d91 to 01d55d9f has its CatchHandler @ 01d55e9f */
+  std::to_string((uint)local_48);
+                    /* try { // try from 01d55da0 to 01d55db5 has its CatchHandler @ 01d55e43 */
+  puVar9 = (undefined8 *)std::string::insert(local_48,0,"Incorrect endpoint count ");
+  local_108 = (char *)puVar9[2];
+  local_118 = (char *)*puVar9;
+  uStack_110 = puVar9[1];
+  *puVar9 = 0;
+  puVar9[1] = 0;
+  puVar9[2] = 0;
+                    /* try { // try from 01d55dd8 to 01d55dfc has its CatchHandler @ 01d55dfd */
+  FUN_02e9a860(uVar7,&local_118);
+                    /* WARNING: Subroutine does not return */
+  __cxa_throw(uVar7,&PTR_vtable_02f479d0,FUN_01b0dd70);
+}
+
+ (GhidraScript)  
+INFO  DecompileEeprom.java> ---END---
+ (GhidraScript)  
+INFO  DecompileEeprom.java> === Hardware revision (Pro) === (GhidraScript)  
+INFO  DecompileEeprom.java>   Function: FUN_01d3d810 (GhidraScript)  
+INFO  DecompileEeprom.java>   Ghidra VA: 01d3d810 (GhidraScript)  
+INFO  DecompileEeprom.java>   ELF VA: 0x1c3d810 (GhidraScript)  
+INFO  DecompileEeprom.java>   Size: 286 bytes (GhidraScript)  
+INFO  DecompileEeprom.java>  (GhidraScript)  
+INFO  DecompileEeprom.java> 
+void FUN_01d3d810(long *param_1)
+
+{
+  char cVar1;
+  undefined8 in_R9;
+  char *local_80;
+  undefined4 uStack_78;
+  char *local_70;
+  long lStack_68;
+  long local_60;
+  long lStack_58;
+  long local_50;
+  undefined1 local_48 [40];
+  uint local_20;
+  
+  cVar1 = (**(code **)(*param_1 + 0x20))();
+  if (cVar1 == '\0') {
+    FUN_01d23840(&local_80,param_1);
+    *(undefined4 *)(param_1 + 0x44) = uStack_78;
+    param_1[0x43] = (long)local_80;
+    param_1[0x45] = (long)local_70;
+    param_1[0x46] = lStack_68;
+    if ((*(byte *)(param_1 + 0x47) & 1) != 0) {
+      operator_delete((void *)param_1[0x49]);
+    }
+    param_1[0x49] = local_50;
+    param_1[0x47] = local_60;
+    param_1[0x48] = lStack_58;
+    local_80 = "/workspace/monorepo/graph-io/devices/logic_interface/src/LogicGraduateDevice.cpp";
+    uStack_78 = 0x4f;
+    local_70 = "Initialize";
+    FUN_01c04800(DAT_030b0128,2,"Hardware revision: {}",0x15,param_1 + 0x47,in_R9,0x535013,0x4f,
+                 "Initialize");
+    FUN_01d21fb0(param_1);
+  }
+  local_20 = 1;
+                    /* try { // try from 01d3d8f2 to 01d3d8fe has its CatchHandler @ 01d3d936 */
+  FUN_02e902c0(param_1,local_48);
+  if ((ulong)local_20 != 0xffffffff) {
+                    /* try { // try from 01d3d914 to 01d3d920 has its CatchHandler @ 01d3d92e */
+    (*(code *)(&PTR_FUN_02f48738)[local_20])(&local_80,local_48);
+  }
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileEeprom.java> ---END---
+ (GhidraScript)  
+INFO  DecompileEeprom.java> === Hardware revision (other) === (GhidraScript)  
+INFO  DecompileEeprom.java>   Function: FUN_01d412f0 (GhidraScript)  
+INFO  DecompileEeprom.java>   Ghidra VA: 01d412f0 (GhidraScript)  
+INFO  DecompileEeprom.java>   ELF VA: 0x1c412f0 (GhidraScript)  
+INFO  DecompileEeprom.java>   Size: 311 bytes (GhidraScript)  
+INFO  DecompileEeprom.java>  (GhidraScript)  
+INFO  DecompileEeprom.java> 
+void FUN_01d412f0(long *param_1)
+
+{
+  char cVar1;
+  undefined8 in_R9;
+  char *local_80;
+  undefined4 uStack_78;
+  char *local_70;
+  long lStack_68;
+  long local_60;
+  long lStack_58;
+  long local_50;
+  undefined1 local_48 [40];
+  uint local_20;
+  
+  cVar1 = (**(code **)(*param_1 + 0x20))();
+  if (cVar1 == '\0') {
+    FUN_01d23840(&local_80,param_1);
+    *(undefined4 *)(param_1 + 0x44) = uStack_78;
+    param_1[0x43] = (long)local_80;
+    param_1[0x45] = (long)local_70;
+    param_1[0x46] = lStack_68;
+    if ((*(byte *)(param_1 + 0x47) & 1) != 0) {
+      operator_delete((void *)param_1[0x49]);
+    }
+    param_1[0x49] = local_50;
+    param_1[0x47] = local_60;
+    param_1[0x48] = lStack_58;
+    local_80 = 
+    "/workspace/monorepo/graph-io/devices/logic_interface/src/LogicProfessionalDevice.cpp";
+    uStack_78 = 0x5c;
+    local_70 = "Initialize";
+    FUN_01c04800(DAT_030b0128,2,"Hardware revision: {}",0x15,param_1 + 0x47,in_R9,0x49e2cf,0x5c,
+                 "Initialize");
+    FUN_01d21fb0(param_1);
+    (**(code **)(*(long *)param_1[0x30] + 0x10))((long *)param_1[0x30],0x12,4,0);
+  }
+  local_20 = 1;
+                    /* try { // try from 01d413eb to 01d413f7 has its CatchHandler @ 01d4142f */
+  FUN_02e902c0(param_1,local_48);
+  if ((ulong)local_20 != 0xffffffff) {
+                    /* try { // try from 01d4140d to 01d41419 has its CatchHandler @ 01d41427 */
+    (*(code *)(&PTR_FUN_02f48bc0)[local_20])(&local_80,local_48);
+  }
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileEeprom.java> ---END---
+ (GhidraScript)  
+INFO  DecompileEeprom.java> === Firmware build date === (GhidraScript)  
+INFO  DecompileEeprom.java>   Function: FUN_01d40c00 (GhidraScript)  
+INFO  DecompileEeprom.java>   Ghidra VA: 01d40c00 (GhidraScript)  
+INFO  DecompileEeprom.java>   ELF VA: 0x1c40c00 (GhidraScript)  
+INFO  DecompileEeprom.java>   Size: 1403 bytes (GhidraScript)  
+INFO  DecompileEeprom.java>  (GhidraScript)  
+INFO  DecompileEeprom.java> 
+void FUN_01d40c00(undefined8 *param_1,undefined8 param_2,undefined8 *param_3,int param_4,
+                 undefined1 param_5)
+
+{
+  __shared_weak_count *p_Var1;
+  undefined8 *puVar2;
+  undefined8 *puVar3;
+  long lVar4;
+  long *plVar5;
+  __shared_weak_count *p_Var6;
+  byte bVar7;
+  int iVar8;
+  undefined4 uVar9;
+  undefined8 uVar10;
+  void *pvVar11;
+  ulong uVar12;
+  long lVar13;
+  undefined1 local_129;
+  char *local_128;
+  undefined8 uStack_120;
+  char *local_118;
+  int local_10c;
+  undefined8 local_108;
+  __shared_weak_count *local_100;
+  undefined8 local_f8;
+  __shared_weak_count *local_f0;
+  undefined8 local_e8;
+  __shared_weak_count *local_e0;
+  undefined1 local_d8 [16];
+  char *local_c8;
+  undefined8 uStack_c0;
+  char *local_b8;
+  undefined4 uStack_b0;
+  char *local_a8;
+  
+  local_10c = param_4;
+  FUN_02ed1290(local_d8);
+  local_e8 = *param_3;
+  local_e0 = (__shared_weak_count *)param_3[1];
+  if (local_e0 != (__shared_weak_count *)0x0) {
+    LOCK();
+    *(long *)(local_e0 + 8) = *(long *)(local_e0 + 8) + 1;
+    UNLOCK();
+  }
+                    /* try { // try from 01d40c48 to 01d40c67 has its CatchHandler @ 01d411ca */
+  FUN_01d201f0(param_1,local_d8,&local_e8,500000000,&DAT_02faf080,param_4);
+  p_Var6 = local_e0;
+  if (local_e0 != (__shared_weak_count *)0x0) {
+    LOCK();
+    p_Var1 = local_e0 + 8;
+    lVar4 = *(long *)p_Var1;
+    *(long *)p_Var1 = *(long *)p_Var1 + -1;
+    UNLOCK();
+    if (lVar4 == 0) {
+      (**(code **)(*(long *)local_e0 + 0x10))(local_e0);
+      std::__shared_weak_count::__release_weak(p_Var6);
+    }
+  }
+  FUN_02ed1260(local_d8);
+  *param_1 = &PTR_FUN_02f489c0;
+  *(undefined1 *)(param_1 + 0x51) = param_5;
+  *(undefined1 *)(param_1 + 0x52) = 0;
+  *(undefined1 *)(param_1 + 0x53) = 0;
+                    /* try { // try from 01d40cc6 to 01d40ccf has its CatchHandler @ 01d411c8 */
+  uVar10 = FUN_01d4e5e0(1,param_1[0x12]);
+  param_1[0x2d] = uVar10;
+                    /* try { // try from 01d40cde to 01d40ce7 has its CatchHandler @ 01d411c6 */
+  uVar10 = FUN_01d4e5e0(0x81,param_1[0x12]);
+  param_1[0x2e] = uVar10;
+                    /* try { // try from 01d40cf6 to 01d40cff has its CatchHandler @ 01d411c4 */
+  uVar10 = FUN_01d4e5e0(0x82,param_1[0x12]);
+  param_1[0x2f] = uVar10;
+                    /* try { // try from 01d40d07 to 01d40d10 has its CatchHandler @ 01d41224 */
+  pvVar11 = operator_new(0x28);
+  puVar2 = param_1 + 0x2d;
+  puVar3 = param_1 + 0x2e;
+  local_f8 = *param_3;
+  local_f0 = (__shared_weak_count *)param_3[1];
+  if (local_f0 != (__shared_weak_count *)0x0) {
+    LOCK();
+    *(long *)(local_f0 + 8) = *(long *)(local_f0 + 8) + 1;
+    UNLOCK();
+  }
+                    /* try { // try from 01d40d46 to 01d40d52 has its CatchHandler @ 01d4118a */
+  FUN_01d51e10(pvVar11,&local_f8,*puVar2,*puVar3);
+  plVar5 = (long *)param_1[0x10];
+  param_1[0x10] = pvVar11;
+  if (plVar5 != (long *)0x0) {
+    (**(code **)(*plVar5 + 8))();
+  }
+  p_Var6 = local_f0;
+  if (local_f0 != (__shared_weak_count *)0x0) {
+    LOCK();
+    p_Var1 = local_f0 + 8;
+    lVar4 = *(long *)p_Var1;
+    *(long *)p_Var1 = *(long *)p_Var1 + -1;
+    UNLOCK();
+    if (lVar4 == 0) {
+      (**(code **)(*(long *)local_f0 + 0x10))(local_f0);
+      std::__shared_weak_count::__release_weak(p_Var6);
+    }
+  }
+                    /* try { // try from 01d40d9a to 01d40da3 has its CatchHandler @ 01d41224 */
+  pvVar11 = operator_new(0x28);
+  local_108 = *param_3;
+  local_100 = (__shared_weak_count *)param_3[1];
+  if (local_100 != (__shared_weak_count *)0x0) {
+    LOCK();
+    *(long *)(local_100 + 8) = *(long *)(local_100 + 8) + 1;
+    UNLOCK();
+  }
+                    /* try { // try from 01d40dcb to 01d40dd7 has its CatchHandler @ 01d41180 */
+  FUN_01d54890(pvVar11,&local_108,*puVar2,*puVar3);
+  plVar5 = (long *)param_1[0x30];
+  param_1[0x30] = pvVar11;
+  if (plVar5 != (long *)0x0) {
+    (**(code **)(*plVar5 + 8))();
+  }
+  p_Var6 = local_100;
+  if (local_100 != (__shared_weak_count *)0x0) {
+    LOCK();
+    p_Var1 = local_100 + 8;
+    lVar4 = *(long *)p_Var1;
+    *(long *)p_Var1 = *(long *)p_Var1 + -1;
+    UNLOCK();
+    if (lVar4 == 0) {
+      (**(code **)(*(long *)local_100 + 0x10))(local_100);
+      std::__shared_weak_count::__release_weak(p_Var6);
+    }
+  }
+                    /* try { // try from 01d40e26 to 01d40fa1 has its CatchHandler @ 01d41224 */
+  iVar8 = FUN_02e9ac00(param_1[0x12]);
+  lVar4 = DAT_030b0128;
+  if (iVar8 == 2) {
+    local_128 = 
+    "/workspace/monorepo/graph-io/devices/logic_interface/src/LogicProfessionalDevice.cpp";
+    uStack_120._0_4_ = 0x39;
+    local_118 = "LogicProfessionalDevice";
+    iVar8 = *(int *)(DAT_030b0128 + 0x38);
+    bVar7 = FUN_02edfa80(DAT_030b0128 + 0x70);
+    if ((2 < iVar8 & (bVar7 ^ 1)) == 0) {
+      if ((*(byte *)(lVar4 + 8) & 1) == 0) {
+        lVar13 = lVar4 + 9;
+        uVar12 = (ulong)(*(byte *)(lVar4 + 8) >> 1);
+      }
+      else {
+        lVar13 = *(long *)(lVar4 + 0x18);
+        uVar12 = *(ulong *)(lVar4 + 0x10);
+      }
+      FUN_02ee25b0(&local_b8,lVar13,uVar12,2,"SUPER SPEED",0xb,local_128._0_4_,
+                   (undefined4)uStack_120,local_118);
+      FUN_02ee4120(lVar4,&local_b8,iVar8 < 3,bVar7);
+    }
+  }
+  else {
+    local_128 = 
+    "/workspace/monorepo/graph-io/devices/logic_interface/src/LogicProfessionalDevice.cpp";
+    uStack_120._0_4_ = 0x3d;
+    local_118 = "LogicProfessionalDevice";
+    iVar8 = *(int *)(DAT_030b0128 + 0x38);
+    bVar7 = FUN_02edfa80(DAT_030b0128 + 0x70);
+    if ((2 < iVar8 & (bVar7 ^ 1)) == 0) {
+      if ((*(byte *)(lVar4 + 8) & 1) == 0) {
+        lVar13 = lVar4 + 9;
+        uVar12 = (ulong)(*(byte *)(lVar4 + 8) >> 1);
+      }
+      else {
+        lVar13 = *(long *)(lVar4 + 0x18);
+        uVar12 = *(ulong *)(lVar4 + 0x10);
+      }
+      FUN_02ee25b0(&local_b8,lVar13,uVar12,2,"regular speed.",0xe,local_128._0_4_,
+                   (undefined4)uStack_120,local_118);
+      FUN_02ee4120(lVar4,&local_b8,iVar8 < 3,bVar7);
+    }
+  }
+  local_128 = (char *)0x0;
+  uStack_120 = 0;
+  local_118 = (char *)0x0;
+  local_129 = 0x8b;
+                    /* try { // try from 01d40fc2 to 01d40fd7 has its CatchHandler @ 01d4117b */
+  (**(code **)(*(long *)param_1[0x12] + 0x20))((long *)param_1[0x12],puVar2,&local_129,1,0,0);
+                    /* try { // try from 01d40fe2 to 01d41010 has its CatchHandler @ 01d4120c */
+  (**(code **)(*(long *)param_1[0x12] + 0x28))((long *)param_1[0x12],puVar3,&local_b8,0x80,0);
+  std::string::assign((string *)&local_128,(char *)&local_b8);
+  local_b8 = "/workspace/monorepo/graph-io/devices/logic_interface/src/LogicProfessionalDevice.cpp";
+  uStack_b0 = 0x43;
+  local_a8 = "LogicProfessionalDevice";
+                    /* try { // try from 01d4103d to 01d4117a has its CatchHandler @ 01d4120e */
+  FUN_01c04800(DAT_030b0128,2,"Firmware build date: {}",0x17,&local_128);
+  uVar10 = FUN_01d51a30(param_1[0x10]);
+  param_1[0x15] = uVar10;
+  uVar9 = 6;
+  if (local_10c != 8) {
+    if (local_10c != 0x10) {
+      local_c8 = "Unsupported channel count";
+      uStack_c0 = 0x19;
+                    /* WARNING: Subroutine does not return */
+      FUN_02eca300("false",5,
+                   "LogicProfessionalDevice::LogicProfessionalDevice(Saleae::DependencyInjector, std::shared_ptr<UsbDevice>, U32, bool)"
+                   ,0x73,
+                   "/workspace/monorepo/graph-io/devices/logic_interface/src/LogicProfessionalDevice.cpp"
+                   ,0x54,0x50,0x4b76b8,0x19);
+    }
+    uVar9 = 7;
+  }
+  *(undefined4 *)(param_1 + 0x16) = uVar9;
+  local_b8 = "/workspace/monorepo/graph-io/devices/logic_interface/src/LogicProfessionalDevice.cpp";
+  uStack_b0 = 0x53;
+  local_a8 = "LogicProfessionalDevice";
+  FUN_01d45450(DAT_030b0128,2,"Logic Pro {} Device ID: {:#x}",0x1d,&local_10c,param_1 + 0x15,
+               0x49e2cf,0x53,"LogicProfessionalDevice");
+  if (((ulong)local_128 & 1) != 0) {
+    operator_delete(local_118);
+  }
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileEeprom.java> ---END---
+ (GhidraScript)  
+INFO  DecompileEeprom.java> === TestEeprom === (GhidraScript)  
+INFO  DecompileEeprom.java>   Function: FUN_01d44010 (GhidraScript)  
+INFO  DecompileEeprom.java>   Ghidra VA: 01d44010 (GhidraScript)  
+INFO  DecompileEeprom.java>   ELF VA: 0x1c44010 (GhidraScript)  
+INFO  DecompileEeprom.java>   Size: 516 bytes (GhidraScript)  
+INFO  DecompileEeprom.java>  (GhidraScript)  
+INFO  DecompileEeprom.java> 
+void FUN_01d44010(long param_1)
+
+{
+  void *pvVar1;
+  ulong uVar2;
+  int iVar3;
+  ulong uVar4;
+  ulong uVar5;
+  char cVar6;
+  short sVar7;
+  ulong uVar8;
+  void *local_78;
+  void *pvStack_70;
+  undefined8 local_68;
+  undefined1 local_58;
+  undefined7 uStack_57;
+  void *local_50;
+  char *local_40;
+  undefined8 uStack_38;
+  
+  local_78 = (void *)0x0;
+  pvStack_70 = (void *)0x0;
+  local_68 = 0;
+  cVar6 = '\0';
+  sVar7 = 8;
+  for (uVar8 = 8; uVar8 < 0x1000; uVar8 = uVar8 + 0x100) {
+    if (uVar8 < 0xf00) {
+      local_58 = 0xff;
+      uVar2 = (long)pvStack_70 - (long)local_78;
+      if (uVar2 < 0x100) {
+                    /* try { // try from 01d440e3 to 01d440ef has its CatchHandler @ 01d44236 */
+        FUN_01d46090(&local_78,0x100 - uVar2,&local_58);
+      }
+      else if (uVar2 != 0x100) {
+        pvStack_70 = (void *)((long)local_78 + 0x100);
+      }
+    }
+    else {
+      uVar2 = 0x1000 - uVar8;
+      local_58 = 0xff;
+      uVar5 = (long)pvStack_70 - (long)local_78;
+      if (uVar2 < uVar5 || uVar2 - uVar5 == 0) {
+        if (uVar2 < uVar5) {
+          pvStack_70 = (void *)((long)local_78 + uVar2);
+        }
+      }
+      else {
+                    /* try { // try from 01d440ad to 01d440b9 has its CatchHandler @ 01d44238 */
+        FUN_01d46090(&local_78,uVar2 - uVar5,&local_58);
+      }
+    }
+    if (pvStack_70 != local_78) {
+      uVar2 = 1;
+      uVar5 = 0;
+      do {
+        uVar4 = uVar2;
+        *(char *)((long)local_78 + uVar5) = cVar6;
+        cVar6 = cVar6 + '\x01';
+        uVar2 = (ulong)((int)uVar4 + 1);
+        uVar5 = uVar4;
+      } while (uVar4 < (ulong)((long)pvStack_70 - (long)local_78));
+    }
+                    /* try { // try from 01d44069 to 01d44071 has its CatchHandler @ 01d4426f */
+    (**(code **)(**(long **)(param_1 + 0x80) + 0x10))(*(long **)(param_1 + 0x80),sVar7,&local_78);
+    sVar7 = sVar7 + 0x100;
+  }
+                    /* try { // try from 01d44172 to 01d4417e has its CatchHandler @ 01d44234 */
+  FUN_01d43660(&local_58,param_1);
+  pvVar1 = (void *)CONCAT71(uStack_57,local_58);
+  if ((ulong)((long)local_50 - (long)pvVar1) < 9) {
+    if (pvVar1 == (void *)0x0) goto LAB_01d441c1;
+  }
+  else {
+    uVar8 = 8;
+    iVar3 = 0;
+    do {
+      if ((char)iVar3 != *(char *)((long)pvVar1 + uVar8)) {
+        local_40 = "EEprom error detected!";
+        uStack_38 = 0x16;
+                    /* try { // try from 01d441f9 to 01d44233 has its CatchHandler @ 01d4423a */
+                    /* WARNING: Subroutine does not return */
+        FUN_02eca300("false",5,"void LogicProfessionalDevice::TestEeprom()",0x2a,
+                     "/workspace/monorepo/graph-io/devices/logic_interface/src/LogicProfessionalDevice.cpp"
+                     ,0x54,0x224,0x4ee91a,0x16);
+      }
+      uVar8 = (ulong)(iVar3 + 9);
+      iVar3 = iVar3 + 1;
+    } while (uVar8 < (ulong)((long)local_50 - (long)pvVar1));
+  }
+  local_50 = pvVar1;
+  operator_delete(pvVar1);
+LAB_01d441c1:
+  if (local_78 != (void *)0x0) {
+    pvStack_70 = local_78;
+    operator_delete(local_78);
+  }
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileEeprom.java> ---END---
+ (GhidraScript)  
+INFO  DecompileEeprom.java> === EEprom error detected === (GhidraScript)  
+INFO  DecompileEeprom.java>   Function: FUN_01d44010 (GhidraScript)  
+INFO  DecompileEeprom.java>   Ghidra VA: 01d44010 (GhidraScript)  
+INFO  DecompileEeprom.java>   ELF VA: 0x1c44010 (GhidraScript)  
+INFO  DecompileEeprom.java>   Size: 516 bytes (GhidraScript)  
+INFO  DecompileEeprom.java>  (GhidraScript)  
+INFO  DecompileEeprom.java> 
+void FUN_01d44010(long param_1)
+
+{
+  void *pvVar1;
+  ulong uVar2;
+  int iVar3;
+  ulong uVar4;
+  ulong uVar5;
+  char cVar6;
+  short sVar7;
+  ulong uVar8;
+  void *local_78;
+  void *pvStack_70;
+  undefined8 local_68;
+  undefined1 local_58;
+  undefined7 uStack_57;
+  void *local_50;
+  char *local_40;
+  undefined8 uStack_38;
+  
+  local_78 = (void *)0x0;
+  pvStack_70 = (void *)0x0;
+  local_68 = 0;
+  cVar6 = '\0';
+  sVar7 = 8;
+  for (uVar8 = 8; uVar8 < 0x1000; uVar8 = uVar8 + 0x100) {
+    if (uVar8 < 0xf00) {
+      local_58 = 0xff;
+      uVar2 = (long)pvStack_70 - (long)local_78;
+      if (uVar2 < 0x100) {
+                    /* try { // try from 01d440e3 to 01d440ef has its CatchHandler @ 01d44236 */
+        FUN_01d46090(&local_78,0x100 - uVar2,&local_58);
+      }
+      else if (uVar2 != 0x100) {
+        pvStack_70 = (void *)((long)local_78 + 0x100);
+      }
+    }
+    else {
+      uVar2 = 0x1000 - uVar8;
+      local_58 = 0xff;
+      uVar5 = (long)pvStack_70 - (long)local_78;
+      if (uVar2 < uVar5 || uVar2 - uVar5 == 0) {
+        if (uVar2 < uVar5) {
+          pvStack_70 = (void *)((long)local_78 + uVar2);
+        }
+      }
+      else {
+                    /* try { // try from 01d440ad to 01d440b9 has its CatchHandler @ 01d44238 */
+        FUN_01d46090(&local_78,uVar2 - uVar5,&local_58);
+      }
+    }
+    if (pvStack_70 != local_78) {
+      uVar2 = 1;
+      uVar5 = 0;
+      do {
+        uVar4 = uVar2;
+        *(char *)((long)local_78 + uVar5) = cVar6;
+        cVar6 = cVar6 + '\x01';
+        uVar2 = (ulong)((int)uVar4 + 1);
+        uVar5 = uVar4;
+      } while (uVar4 < (ulong)((long)pvStack_70 - (long)local_78));
+    }
+                    /* try { // try from 01d44069 to 01d44071 has its CatchHandler @ 01d4426f */
+    (**(code **)(**(long **)(param_1 + 0x80) + 0x10))(*(long **)(param_1 + 0x80),sVar7,&local_78);
+    sVar7 = sVar7 + 0x100;
+  }
+                    /* try { // try from 01d44172 to 01d4417e has its CatchHandler @ 01d44234 */
+  FUN_01d43660(&local_58,param_1);
+  pvVar1 = (void *)CONCAT71(uStack_57,local_58);
+  if ((ulong)((long)local_50 - (long)pvVar1) < 9) {
+    if (pvVar1 == (void *)0x0) goto LAB_01d441c1;
+  }
+  else {
+    uVar8 = 8;
+    iVar3 = 0;
+    do {
+      if ((char)iVar3 != *(char *)((long)pvVar1 + uVar8)) {
+        local_40 = "EEprom error detected!";
+        uStack_38 = 0x16;
+                    /* try { // try from 01d441f9 to 01d44233 has its CatchHandler @ 01d4423a */
+                    /* WARNING: Subroutine does not return */
+        FUN_02eca300("false",5,"void LogicProfessionalDevice::TestEeprom()",0x2a,
+                     "/workspace/monorepo/graph-io/devices/logic_interface/src/LogicProfessionalDevice.cpp"
+                     ,0x54,0x224,0x4ee91a,0x16);
+      }
+      uVar8 = (ulong)(iVar3 + 9);
+      iVar3 = iVar3 + 1;
+    } while (uVar8 < (ulong)((long)local_50 - (long)pvVar1));
+  }
+  local_50 = pvVar1;
+  operator_delete(pvVar1);
+LAB_01d441c1:
+  if (local_78 != (void *)0x0) {
+    pvStack_70 = local_78;
+    operator_delete(local_78);
+  }
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileEeprom.java> ---END---
+ (GhidraScript)  
+INFO  DecompileEeprom.java> === WipeEeprom === (GhidraScript)  
+INFO  DecompileEeprom.java>   Function: FUN_01d50820 (GhidraScript)  
+INFO  DecompileEeprom.java>   Ghidra VA: 01d50820 (GhidraScript)  
+INFO  DecompileEeprom.java>   ELF VA: 0x1c50820 (GhidraScript)  
+INFO  DecompileEeprom.java>   Size: 304 bytes (GhidraScript)  
+INFO  DecompileEeprom.java>  (GhidraScript)  
+INFO  DecompileEeprom.java> 
+void FUN_01d50820(long param_1)
+
+{
+  int iVar1;
+  long lVar2;
+  char cVar3;
+  ulong uVar4;
+  long lVar5;
+  undefined4 uStack_9c;
+  undefined4 *local_90;
+  undefined4 *local_88;
+  long local_80;
+  
+  lVar2 = DAT_030b0118;
+  iVar1 = *(int *)(DAT_030b0118 + 0x38);
+  cVar3 = FUN_02edfa80(DAT_030b0118 + 0x70);
+  if ((iVar1 < 3) || (cVar3 != '\0')) {
+    if ((*(byte *)(lVar2 + 8) & 1) == 0) {
+      lVar5 = lVar2 + 9;
+      uVar4 = (ulong)(*(byte *)(lVar2 + 8) >> 1);
+    }
+    else {
+      lVar5 = *(long *)(lVar2 + 0x18);
+      uVar4 = *(ulong *)(lVar2 + 0x10);
+    }
+    FUN_02ee25b0(&local_90,lVar5,uVar4,2,"wiping eeprom",0xd,
+                 "/workspace/monorepo/graph-io/devices/logic_interface/src/LogicAnalyzerDevice.cpp",
+                 CONCAT44(uStack_9c,0x1f1),"WipeEeprom");
+    FUN_02ee4120(lVar2,&local_90,iVar1 < 3,cVar3);
+  }
+  local_90 = (undefined4 *)operator_new(0x26);
+  local_88 = (undefined4 *)((long)local_90 + 0x26);
+  *local_90 = 0xffffffff;
+  local_90[1] = 0xffffffff;
+  local_90[2] = 0xffffffff;
+  local_90[3] = 0xffffffff;
+  local_90[4] = 0xffffffff;
+  local_90[5] = 0xffffffff;
+  local_90[6] = 0xffffffff;
+  local_90[7] = 0xffffffff;
+  *(undefined8 *)((long)local_90 + 0x1e) = 0xffffffffffffffff;
+                    /* try { // try from 01d50920 to 01d50929 has its CatchHandler @ 01d50950 */
+  local_80 = (long)local_88;
+  (**(code **)(**(long **)(param_1 + 0x80) + 0x10))(*(long **)(param_1 + 0x80),0,&local_90);
+  if (local_90 != (undefined4 *)0x0) {
+    local_88 = local_90;
+    operator_delete(local_90);
+  }
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileEeprom.java> ---END---
+ (GhidraScript)  
+INFO  DecompileEeprom.java> === SetIdToDevice failed === (GhidraScript)  
+INFO  DecompileEeprom.java>   Function: FUN_01d51a50 (GhidraScript)  
+INFO  DecompileEeprom.java>   Ghidra VA: 01d51a50 (GhidraScript)  
+INFO  DecompileEeprom.java>   ELF VA: 0x1c51a50 (GhidraScript)  
+INFO  DecompileEeprom.java>   Size: 414 bytes (GhidraScript)  
+INFO  DecompileEeprom.java>  (GhidraScript)  
+INFO  DecompileEeprom.java> 
+void FUN_01d51a50(long *param_1,long param_2)
+
+{
+  undefined8 uVar1;
+  undefined8 *puVar2;
+  long *plVar3;
+  long *local_c8;
+  long *plStack_c0;
+  long *local_b8;
+  long local_a8;
+  long lStack_a0;
+  long local_98;
+  byte local_90;
+  char local_8f [7];
+  ulong local_88;
+  char *local_80;
+  undefined8 local_78;
+  undefined8 uStack_70;
+  undefined8 local_68;
+  undefined8 local_58;
+  undefined8 uStack_50;
+  undefined8 local_48;
+  string local_40 [24];
+  
+  local_c8 = (long *)0x0;
+  plStack_c0 = (long *)0x0;
+  local_b8 = (long *)0x0;
+                    /* try { // try from 01d51a75 to 01d51aa7 has its CatchHandler @ 01d51d12 */
+  local_c8 = (long *)operator_new(8);
+  plStack_c0 = local_c8 + 1;
+  *local_c8 = param_2;
+  local_b8 = plStack_c0;
+  (**(code **)(*param_1 + 0x10))(param_1,8,&local_c8);
+                    /* try { // try from 01d51aab to 01d51abf has its CatchHandler @ 01d51d10 */
+  (**(code **)(*param_1 + 0x18))(param_1,8,&local_a8,8);
+  if (local_a8 != param_2) {
+    uVar1 = __cxa_allocate_exception(0x20);
+                    /* try { // try from 01d51afa to 01d51b09 has its CatchHandler @ 01d51cea */
+    std::to_string((ulonglong)local_40);
+                    /* try { // try from 01d51b0a to 01d51b1f has its CatchHandler @ 01d51cbe */
+    puVar2 = (undefined8 *)std::string::insert(local_40,0,"SetIdToDevice failed, ");
+    local_68 = puVar2[2];
+    local_78 = *puVar2;
+    uStack_70 = puVar2[1];
+    *puVar2 = 0;
+    puVar2[1] = 0;
+    puVar2[2] = 0;
+                    /* try { // try from 01d51b3f to 01d51b4f has its CatchHandler @ 01d51c93 */
+    puVar2 = (undefined8 *)std::string::append((string *)&local_78,", ");
+    local_48 = puVar2[2];
+    local_58 = *puVar2;
+    uStack_50 = puVar2[1];
+    *puVar2 = 0;
+    puVar2[1] = 0;
+    puVar2[2] = 0;
+                    /* try { // try from 01d51b72 to 01d51b7e has its CatchHandler @ 01d51c70 */
+    std::to_string((ulonglong)&local_90);
+    if ((local_90 & 1) == 0) {
+      local_88 = (ulong)(local_90 >> 1);
+      local_80 = local_8f;
+    }
+                    /* try { // try from 01d51b9d to 01d51ba6 has its CatchHandler @ 01d51c50 */
+    plVar3 = (long *)std::string::append((string *)&local_58,local_80,local_88);
+    local_98 = plVar3[2];
+    local_a8 = *plVar3;
+    lStack_a0 = plVar3[1];
+    *plVar3 = 0;
+    plVar3[1] = 0;
+    plVar3[2] = 0;
+                    /* try { // try from 01d51bc9 to 01d51bed has its CatchHandler @ 01d51bee */
+    FUN_02e9a860(uVar1,&local_a8);
+                    /* WARNING: Subroutine does not return */
+    __cxa_throw(uVar1,&PTR_vtable_02f479d0,FUN_01b0dd70);
+  }
+  if (local_c8 != (long *)0x0) {
+    plStack_c0 = local_c8;
+    operator_delete(local_c8);
+  }
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileEeprom.java> ---END---
+ (GhidraScript)  
+INFO  DecompileEeprom.java> === eeprom is only 256 bytes === (GhidraScript)  
+INFO  DecompileEeprom.java>   Function: FUN_01d50ad0 (GhidraScript)  
+INFO  DecompileEeprom.java>   Ghidra VA: 01d50ad0 (GhidraScript)  
+INFO  DecompileEeprom.java>   ELF VA: 0x1c50ad0 (GhidraScript)  
+INFO  DecompileEeprom.java>   Size: 542 bytes (GhidraScript)  
+INFO  DecompileEeprom.java>  (GhidraScript)  
+INFO  DecompileEeprom.java> 
+void FUN_01d50ad0(long *param_1,uint param_2,long *param_3)
+
+{
+  int iVar1;
+  undefined2 *__s;
+  ulong *puVar2;
+  size_t __n;
+  ulong __n_00;
+  int iStack_a0;
+  undefined8 local_88;
+  ulong uStack_80;
+  ulong local_78;
+  ulong local_68;
+  ulong uStack_60;
+  char *local_58;
+  undefined8 uStack_50;
+  string local_48 [24];
+  
+  if (0xff < param_2) {
+    local_58 = "eeprom is only 256 bytes";
+    uStack_50 = 0x18;
+                    /* WARNING: Subroutine does not return */
+    FUN_02eca300("false",5,"virtual void Fx2DeviceFeatures::WriteEeprom(U16, std::vector<U8> &)",
+                 0x43,
+                 "/workspace/monorepo/graph-io/devices/logic_interface/src/LogicAnalyzerDevice.cpp",
+                 0x50,0x20c,0x527803,0x18);
+  }
+  __n_00 = (param_3[1] - *param_3) + 5;
+  if ((long)__n_00 < 0) {
+                    /* try { // try from 01d50c36 to 01d50c3f has its CatchHandler @ 01d50d5f */
+                    /* WARNING: Subroutine does not return */
+    std::__vector_base_common<true>::__throw_length_error();
+  }
+                    /* try { // try from 01d50b18 to 01d50b1f has its CatchHandler @ 01d50d5f */
+  __s = (undefined2 *)operator_new(__n_00);
+  memset(__s,0,__n_00);
+  *__s = 0x4206;
+  *(undefined1 *)(__s + 1) = 0x55;
+  *(char *)((long)__s + 3) = (char)param_2;
+  *(char *)(__s + 2) = (char)(int)param_3[1] - (char)(int)*param_3;
+  __n = param_3[1] - *param_3;
+  if (__n != 0) {
+    memmove((void *)((long)__s + 5),(void *)*param_3,__n);
+  }
+                    /* try { // try from 01d50b8f to 01d50bc4 has its CatchHandler @ 01d50d5f */
+  iVar1 = (**(code **)(*param_1 + 0x58))(param_1);
+  if ((ulong)(long)iVar1 < ((long)__s + __n_00) - (long)__s) {
+                    /* try { // try from 01d50c4a to 01d50c56 has its CatchHandler @ 01d50d50 */
+    std::to_string((ulong)local_48);
+                    /* try { // try from 01d50c57 to 01d50c6c has its CatchHandler @ 01d50d2a */
+    puVar2 = (ulong *)std::string::insert(local_48,0,"WriteEeprom cannot write this much data ");
+    local_78 = puVar2[2];
+    local_88 = *puVar2;
+    uStack_80 = puVar2[1];
+    *puVar2 = 0;
+    puVar2[1] = 0;
+    puVar2[2] = 0;
+    uStack_60 = uStack_80;
+    local_68 = local_78;
+    if ((local_88 & 1) == 0) {
+      uStack_60 = local_88 >> 1 & 0x7f;
+      local_68 = (long)&local_88 + 1;
+    }
+                    /* try { // try from 01d50cb3 to 01d50ced has its CatchHandler @ 01d50cee */
+                    /* WARNING: Subroutine does not return */
+    FUN_02eca300("buffer.size() <= EepromPageSize()",0x21,
+                 "virtual void Fx2DeviceFeatures::WriteEeprom(U16, std::vector<U8> &)",0x43,
+                 "/workspace/monorepo/graph-io/devices/logic_interface/src/LogicAnalyzerDevice.cpp",
+                 0x50,0x217,(undefined4)local_68,(undefined4)uStack_60);
+  }
+  iStack_a0 = (int)((long)__s + __n_00);
+  (**(code **)(*(long *)param_1[1] + 0x20))
+            ((long *)param_1[1],param_1 + 3,__s,iStack_a0 - (int)__s,0,0);
+  if (__s != (undefined2 *)0x0) {
+    operator_delete(__s);
+  }
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileEeprom.java> ---END---
+ (GhidraScript)  
+INFO  DecompileEeprom.java> === Fx3 WriteEeprom (opcode 0x55) === (GhidraScript)  
+INFO  DecompileEeprom.java>   Function: FUN_01d51f50 (GhidraScript)  
+INFO  DecompileEeprom.java>   Ghidra VA: 01d51f50 (GhidraScript)  
+INFO  DecompileEeprom.java>   ELF VA: 0x1c51f50 (GhidraScript)  
+INFO  DecompileEeprom.java>   Size: 1045 bytes (GhidraScript)  
+INFO  DecompileEeprom.java>  (GhidraScript)  
+INFO  DecompileEeprom.java> 
+void FUN_01d51f50(long *param_1,ulong param_2,long *param_3)
+
+{
+  long lVar1;
+  undefined2 *puVar2;
+  int iVar3;
+  undefined2 *__s;
+  undefined8 *puVar4;
+  ulong *puVar5;
+  size_t __n;
+  ulong __n_00;
+  long lVar6;
+  undefined8 local_b8;
+  undefined2 *puStack_b0;
+  ulong local_a8;
+  undefined8 local_98;
+  ulong uStack_90;
+  ulong local_88;
+  string local_78 [24];
+  ulong local_60;
+  ulong uStack_58;
+  ulong local_50;
+  ulong uStack_48;
+  ulong local_40;
+  ulong uStack_38;
+  
+  iVar3 = (**(code **)(*param_1 + 0x60))();
+  if (iVar3 <= (int)param_2) {
+    (**(code **)(*param_1 + 0x58))(param_1);
+    std::to_string((int)local_78);
+                    /* try { // try from 01d520e8 to 01d520f8 has its CatchHandler @ 01d5241f */
+    puVar4 = (undefined8 *)std::string::insert(local_78,0,"eeprom is only ");
+    local_88 = puVar4[2];
+    local_98 = *puVar4;
+    uStack_90 = puVar4[1];
+    *puVar4 = 0;
+    puVar4[1] = 0;
+    puVar4[2] = 0;
+                    /* try { // try from 01d52118 to 01d52128 has its CatchHandler @ 01d523f4 */
+    puVar5 = (ulong *)std::string::append((string *)&local_98," bytes");
+    local_a8 = puVar5[2];
+    local_b8 = (undefined2 *)*puVar5;
+    puStack_b0 = (undefined2 *)puVar5[1];
+    *puVar5 = 0;
+    puVar5[1] = 0;
+    puVar5[2] = 0;
+    uStack_38 = (ulong)puStack_b0;
+    local_40 = local_a8;
+    if (((ulong)local_b8 & 1) == 0) {
+      uStack_38 = (ulong)local_b8 >> 1 & 0x7f;
+      local_40 = (long)&local_b8 + 1;
+    }
+                    /* try { // try from 01d52281 to 01d522be has its CatchHandler @ 01d523c7 */
+                    /* WARNING: Subroutine does not return */
+    FUN_02eca300("destination_address < EepromSizeMax()",0x25,
+                 "virtual void Fx3DeviceFeatures::WriteEeprom(U16, std::vector<U8> &)",0x43,
+                 "/workspace/monorepo/graph-io/devices/logic_interface/src/LogicAnalyzerDevice.cpp",
+                 0x50,0x32d,(undefined4)local_40,(undefined4)uStack_38);
+  }
+  lVar6 = param_3[1];
+  lVar1 = *param_3;
+  iVar3 = (**(code **)(*param_1 + 0x58))(param_1);
+  if ((ulong)(long)iVar3 < ((param_2 & 0xffff) + lVar6) - lVar1) {
+    (**(code **)(*param_1 + 0x58))(param_1);
+    std::to_string((int)local_78);
+                    /* try { // try from 01d5217c to 01d5218c has its CatchHandler @ 01d52413 */
+    puVar4 = (undefined8 *)std::string::insert(local_78,0,"eeprom is only ");
+    local_88 = puVar4[2];
+    local_98 = *puVar4;
+    uStack_90 = puVar4[1];
+    *puVar4 = 0;
+    puVar4[1] = 0;
+    puVar4[2] = 0;
+                    /* try { // try from 01d521ac to 01d521bc has its CatchHandler @ 01d523c5 */
+    puVar5 = (ulong *)std::string::append((string *)&local_98," bytes");
+    local_a8 = puVar5[2];
+    local_b8 = (undefined2 *)*puVar5;
+    puStack_b0 = (undefined2 *)puVar5[1];
+    *puVar5 = 0;
+    puVar5[1] = 0;
+    puVar5[2] = 0;
+    uStack_48 = (ulong)puStack_b0;
+    local_50 = local_a8;
+    if (((ulong)local_b8 & 1) == 0) {
+      uStack_48 = (ulong)local_b8 >> 1 & 0x7f;
+      local_50 = (long)&local_b8 + 1;
+    }
+                    /* try { // try from 01d522d7 to 01d52314 has its CatchHandler @ 01d523c3 */
+                    /* WARNING: Subroutine does not return */
+    FUN_02eca300("( destination_address + data.size() ) <= EepromPageSize()",0x39,
+                 "virtual void Fx3DeviceFeatures::WriteEeprom(U16, std::vector<U8> &)",0x43,
+                 "/workspace/monorepo/graph-io/devices/logic_interface/src/LogicAnalyzerDevice.cpp",
+                 0x50,0x330,(undefined4)local_50,(undefined4)uStack_48);
+  }
+  local_b8 = (undefined2 *)0x0;
+  puStack_b0 = (undefined2 *)0x0;
+  local_a8 = 0;
+  __n_00 = (param_3[1] - *param_3) + 7;
+  if ((long)__n_00 < 0) {
+                    /* try { // try from 01d521f8 to 01d52201 has its CatchHandler @ 01d52432 */
+                    /* WARNING: Subroutine does not return */
+    std::__vector_base_common<true>::__throw_length_error();
+  }
+                    /* try { // try from 01d51fb9 to 01d51fc0 has its CatchHandler @ 01d52432 */
+  __s = (undefined2 *)operator_new(__n_00);
+  lVar6 = (long)__s + __n_00;
+  memset(__s,0,__n_00);
+  *__s = 0x4206;
+  *(undefined1 *)(__s + 1) = 0x55;
+  *(char *)((long)__s + 3) = (char)(param_2 & 0xffffffff);
+  *(char *)(__s + 2) = (char)((param_2 & 0xffffffff) >> 8);
+  *(char *)((long)__s + 5) = (char)(int)param_3[1] - (char)(int)*param_3;
+  *(char *)(__s + 3) = (char)((uint)((int)param_3[1] - (int)*param_3) >> 8);
+  __n = param_3[1] - *param_3;
+  local_b8 = __s;
+  puStack_b0 = (undefined2 *)lVar6;
+  local_a8 = lVar6;
+  if (__n != 0) {
+    memmove((void *)((long)__s + 7),(void *)*param_3,__n);
+  }
+  puVar2 = puStack_b0;
+                    /* try { // try from 01d52045 to 01d52077 has its CatchHandler @ 01d52432 */
+  iVar3 = (**(code **)(*param_1 + 0x58))(param_1);
+  if ((ulong)(long)iVar3 < (ulong)((long)puVar2 - (long)__s)) {
+                    /* try { // try from 01d5220c to 01d52215 has its CatchHandler @ 01d52411 */
+    std::to_string((ulong)local_78);
+                    /* try { // try from 01d52216 to 01d52228 has its CatchHandler @ 01d5239c */
+    puVar5 = (ulong *)std::string::insert(local_78,0,
+                                          "WriteEeprom cannot write this much data (ep limit) ");
+    local_88 = puVar5[2];
+    local_98 = *puVar5;
+    uStack_90 = puVar5[1];
+    *puVar5 = 0;
+    puVar5[1] = 0;
+    puVar5[2] = 0;
+    uStack_58 = uStack_90;
+    local_60 = local_88;
+    if ((local_98 & 1) == 0) {
+      uStack_58 = local_98 >> 1 & 0x7f;
+      local_60 = (long)&local_98 + 1;
+    }
+                    /* try { // try from 01d5232a to 01d52364 has its CatchHandler @ 01d52365 */
+                    /* WARNING: Subroutine does not return */
+    FUN_02eca300("buffer.size() <= EepromPageSize()",0x21,
+                 "virtual void Fx3DeviceFeatures::WriteEeprom(U16, std::vector<U8> &)",0x43,
+                 "/workspace/monorepo/graph-io/devices/logic_interface/src/LogicAnalyzerDevice.cpp",
+                 0x50,0x33e,(undefined4)local_60,(undefined4)uStack_58);
+  }
+  (**(code **)(*(long *)param_1[1] + 0x20))
+            ((long *)param_1[1],param_1 + 3,local_b8,(int)puStack_b0 - (int)local_b8,0,0);
+  local_98 = local_98 & 0xffffffffffffff00;
+                    /* try { // try from 01d52088 to 01d5209e has its CatchHandler @ 01d52430 */
+  (**(code **)(*(long *)param_1[1] + 0x28))
+            ((long *)param_1[1],param_1 + 4,&local_98,1,"Write eeprom response read");
+  if (local_98._0_1_ != (string)0x1) {
+                    /* WARNING: Subroutine does not return */
+    abort();
+  }
+  if (local_b8 != (undefined2 *)0x0) {
+    puStack_b0 = local_b8;
+    operator_delete(local_b8);
+  }
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileEeprom.java> ---END---
+ (GhidraScript)  
+INFO  DecompileEeprom.java> === Fx3 ReadEeprom === (GhidraScript)  
+INFO  DecompileEeprom.java>   Function: FUN_01d52460 (GhidraScript)  
+INFO  DecompileEeprom.java>   Ghidra VA: 01d52460 (GhidraScript)  
+INFO  DecompileEeprom.java>   ELF VA: 0x1c52460 (GhidraScript)  
+INFO  DecompileEeprom.java>   Size: 858 bytes (GhidraScript)  
+INFO  DecompileEeprom.java>  (GhidraScript)  
+INFO  DecompileEeprom.java> 
+void FUN_01d52460(long *param_1,uint param_2,undefined8 param_3,int param_4)
+
+{
+  int iVar1;
+  undefined2 *puVar2;
+  undefined8 *puVar3;
+  ulong *puVar4;
+  undefined8 local_b8;
+  ulong uStack_b0;
+  ulong local_a8;
+  undefined8 local_98;
+  undefined8 uStack_90;
+  undefined8 local_88;
+  undefined8 local_80;
+  string local_78 [24];
+  ulong local_60;
+  ulong uStack_58;
+  ulong local_50;
+  ulong uStack_48;
+  ulong local_40;
+  ulong uStack_38;
+  
+  local_80 = param_3;
+  iVar1 = (**(code **)(*param_1 + 0x58))();
+  if (iVar1 < param_4) {
+    std::to_string((int)(string *)&local_98);
+                    /* try { // try from 01d52573 to 01d52583 has its CatchHandler @ 01d52935 */
+    puVar4 = (ulong *)std::string::insert((string *)&local_98,0,
+                                          "ReadEeprom cannot read this much data (ep limit) ");
+    local_a8 = puVar4[2];
+    local_b8 = *puVar4;
+    uStack_b0 = puVar4[1];
+    *puVar4 = 0;
+    puVar4[1] = 0;
+    puVar4[2] = 0;
+    uStack_38 = uStack_b0;
+    local_40 = local_a8;
+    if ((local_b8 & 1) == 0) {
+      uStack_38 = local_b8 >> 1 & 0x7f;
+      local_40 = (long)&local_b8 + 1;
+    }
+                    /* try { // try from 01d526ff to 01d5273c has its CatchHandler @ 01d5291d */
+                    /* WARNING: Subroutine does not return */
+    FUN_02eca300("num_bytes <= EepromPageSize()",0x1d,
+                 "virtual void Fx3DeviceFeatures::ReadEeprom(U16, U8 *, U16)",0x3a,
+                 "/workspace/monorepo/graph-io/devices/logic_interface/src/LogicAnalyzerDevice.cpp",
+                 0x50,0x34b,(undefined4)local_40,(undefined4)uStack_38);
+  }
+  iVar1 = (**(code **)(*param_1 + 0x60))(param_1);
+  if (iVar1 <= (int)(param_2 & 0xffff)) {
+    (**(code **)(*param_1 + 0x60))(param_1);
+    std::to_string((int)local_78);
+                    /* try { // try from 01d525d7 to 01d525e7 has its CatchHandler @ 01d5290a */
+    puVar3 = (undefined8 *)std::string::insert(local_78,0,"eeprom is only ");
+    local_88 = puVar3[2];
+    local_98 = *puVar3;
+    uStack_90 = puVar3[1];
+    *puVar3 = 0;
+    puVar3[1] = 0;
+    puVar3[2] = 0;
+                    /* try { // try from 01d52607 to 01d52617 has its CatchHandler @ 01d528dd */
+    puVar4 = (ulong *)std::string::append((string *)&local_98," bytes");
+    local_a8 = puVar4[2];
+    local_b8 = *puVar4;
+    uStack_b0 = puVar4[1];
+    *puVar4 = 0;
+    puVar4[1] = 0;
+    puVar4[2] = 0;
+    uStack_48 = uStack_b0;
+    local_50 = local_a8;
+    if ((local_b8 & 1) == 0) {
+      uStack_48 = local_b8 >> 1 & 0x7f;
+      local_50 = (long)&local_b8 + 1;
+    }
+                    /* try { // try from 01d52755 to 01d52792 has its CatchHandler @ 01d528ab */
+                    /* WARNING: Subroutine does not return */
+    FUN_02eca300("starting_address < EepromSizeMax()",0x22,
+                 "virtual void Fx3DeviceFeatures::ReadEeprom(U16, U8 *, U16)",0x3a,
+                 "/workspace/monorepo/graph-io/devices/logic_interface/src/LogicAnalyzerDevice.cpp",
+                 0x50,0x34c,(undefined4)local_50,(undefined4)uStack_48);
+  }
+  iVar1 = (**(code **)(*param_1 + 0x60))(param_1);
+  if (iVar1 < (int)((param_2 & 0xffff) + param_4)) {
+    (**(code **)(*param_1 + 0x60))(param_1);
+    std::to_string((int)local_78);
+                    /* try { // try from 01d5266b to 01d5267b has its CatchHandler @ 01d528fc */
+    puVar3 = (undefined8 *)std::string::insert(local_78,0,"eeprom is only ");
+    local_88 = puVar3[2];
+    local_98 = *puVar3;
+    uStack_90 = puVar3[1];
+    *puVar3 = 0;
+    puVar3[1] = 0;
+    puVar3[2] = 0;
+                    /* try { // try from 01d5269b to 01d526ab has its CatchHandler @ 01d528a9 */
+    puVar4 = (ulong *)std::string::append((string *)&local_98," bytes");
+    local_a8 = puVar4[2];
+    local_b8 = *puVar4;
+    uStack_b0 = puVar4[1];
+    *puVar4 = 0;
+    puVar4[1] = 0;
+    puVar4[2] = 0;
+    uStack_58 = uStack_b0;
+    local_60 = local_a8;
+    if ((local_b8 & 1) == 0) {
+      uStack_58 = local_b8 >> 1 & 0x7f;
+      local_60 = (long)&local_b8 + 1;
+    }
+                    /* try { // try from 01d527a8 to 01d527e2 has its CatchHandler @ 01d528a7 */
+                    /* WARNING: Subroutine does not return */
+    FUN_02eca300("( starting_address + num_bytes ) <= EepromSizeMax()",0x33,
+                 "virtual void Fx3DeviceFeatures::ReadEeprom(U16, U8 *, U16)",0x3a,
+                 "/workspace/monorepo/graph-io/devices/logic_interface/src/LogicAnalyzerDevice.cpp",
+                 0x50,0x34e,(undefined4)local_60,(undefined4)uStack_58);
+  }
+  puVar2 = (undefined2 *)operator_new(7);
+  *puVar2 = 0x3307;
+  *(undefined1 *)(puVar2 + 1) = 0x81;
+  *(char *)((long)puVar2 + 3) = (char)param_2;
+  *(char *)(puVar2 + 2) = (char)(param_2 >> 8);
+  *(char *)((long)puVar2 + 5) = (char)param_4;
+  *(char *)(puVar2 + 3) = (char)((uint)param_4 >> 8);
+                    /* try { // try from 01d524ec to 01d524fc has its CatchHandler @ 01d52948 */
+  (**(code **)(*(long *)param_1[1] + 0x20))((long *)param_1[1],param_1 + 3,puVar2,7,0,0);
+                    /* try { // try from 01d5250e to 01d5251e has its CatchHandler @ 01d52521 */
+  (**(code **)(*(long *)param_1[1] + 0x28))((long *)param_1[1],param_1 + 4,local_80,param_4,0);
+  operator_delete(puVar2);
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileEeprom.java> ---END---
+ (GhidraScript)  
+INFO  DecompileEeprom.java> === Fx2 WriteEeprom === (GhidraScript)  
+INFO  DecompileEeprom.java>   Function: FUN_01d50ad0 (GhidraScript)  
+INFO  DecompileEeprom.java>   Ghidra VA: 01d50ad0 (GhidraScript)  
+INFO  DecompileEeprom.java>   ELF VA: 0x1c50ad0 (GhidraScript)  
+INFO  DecompileEeprom.java>   Size: 542 bytes (GhidraScript)  
+INFO  DecompileEeprom.java>  (GhidraScript)  
+INFO  DecompileEeprom.java> 
+void FUN_01d50ad0(long *param_1,uint param_2,long *param_3)
+
+{
+  int iVar1;
+  undefined2 *__s;
+  ulong *puVar2;
+  size_t __n;
+  ulong __n_00;
+  int iStack_a0;
+  undefined8 local_88;
+  ulong uStack_80;
+  ulong local_78;
+  ulong local_68;
+  ulong uStack_60;
+  char *local_58;
+  undefined8 uStack_50;
+  string local_48 [24];
+  
+  if (0xff < param_2) {
+    local_58 = "eeprom is only 256 bytes";
+    uStack_50 = 0x18;
+                    /* WARNING: Subroutine does not return */
+    FUN_02eca300("false",5,"virtual void Fx2DeviceFeatures::WriteEeprom(U16, std::vector<U8> &)",
+                 0x43,
+                 "/workspace/monorepo/graph-io/devices/logic_interface/src/LogicAnalyzerDevice.cpp",
+                 0x50,0x20c,0x527803,0x18);
+  }
+  __n_00 = (param_3[1] - *param_3) + 5;
+  if ((long)__n_00 < 0) {
+                    /* try { // try from 01d50c36 to 01d50c3f has its CatchHandler @ 01d50d5f */
+                    /* WARNING: Subroutine does not return */
+    std::__vector_base_common<true>::__throw_length_error();
+  }
+                    /* try { // try from 01d50b18 to 01d50b1f has its CatchHandler @ 01d50d5f */
+  __s = (undefined2 *)operator_new(__n_00);
+  memset(__s,0,__n_00);
+  *__s = 0x4206;
+  *(undefined1 *)(__s + 1) = 0x55;
+  *(char *)((long)__s + 3) = (char)param_2;
+  *(char *)(__s + 2) = (char)(int)param_3[1] - (char)(int)*param_3;
+  __n = param_3[1] - *param_3;
+  if (__n != 0) {
+    memmove((void *)((long)__s + 5),(void *)*param_3,__n);
+  }
+                    /* try { // try from 01d50b8f to 01d50bc4 has its CatchHandler @ 01d50d5f */
+  iVar1 = (**(code **)(*param_1 + 0x58))(param_1);
+  if ((ulong)(long)iVar1 < ((long)__s + __n_00) - (long)__s) {
+                    /* try { // try from 01d50c4a to 01d50c56 has its CatchHandler @ 01d50d50 */
+    std::to_string((ulong)local_48);
+                    /* try { // try from 01d50c57 to 01d50c6c has its CatchHandler @ 01d50d2a */
+    puVar2 = (ulong *)std::string::insert(local_48,0,"WriteEeprom cannot write this much data ");
+    local_78 = puVar2[2];
+    local_88 = *puVar2;
+    uStack_80 = puVar2[1];
+    *puVar2 = 0;
+    puVar2[1] = 0;
+    puVar2[2] = 0;
+    uStack_60 = uStack_80;
+    local_68 = local_78;
+    if ((local_88 & 1) == 0) {
+      uStack_60 = local_88 >> 1 & 0x7f;
+      local_68 = (long)&local_88 + 1;
+    }
+                    /* try { // try from 01d50cb3 to 01d50ced has its CatchHandler @ 01d50cee */
+                    /* WARNING: Subroutine does not return */
+    FUN_02eca300("buffer.size() <= EepromPageSize()",0x21,
+                 "virtual void Fx2DeviceFeatures::WriteEeprom(U16, std::vector<U8> &)",0x43,
+                 "/workspace/monorepo/graph-io/devices/logic_interface/src/LogicAnalyzerDevice.cpp",
+                 0x50,0x217,(undefined4)local_68,(undefined4)uStack_60);
+  }
+  iStack_a0 = (int)((long)__s + __n_00);
+  (**(code **)(*(long *)param_1[1] + 0x20))
+            ((long *)param_1[1],param_1 + 3,__s,iStack_a0 - (int)__s,0,0);
+  if (__s != (undefined2 *)0x0) {
+    operator_delete(__s);
+  }
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileEeprom.java> ---END---
+ (GhidraScript)  
+INFO  DecompileEeprom.java> === Fx2 ReadEeprom region === (GhidraScript)  
+INFO  DecompileEeprom.java>   Function: FUN_01d50d80 (GhidraScript)  
+INFO  DecompileEeprom.java>   Ghidra VA: 01d50d80 (GhidraScript)  
+INFO  DecompileEeprom.java>   ELF VA: 0x1c50d80 (GhidraScript)  
+INFO  DecompileEeprom.java>   Size: 842 bytes (GhidraScript)  
+INFO  DecompileEeprom.java>  (GhidraScript)  
+INFO  DecompileEeprom.java> 
+void FUN_01d50d80(long *param_1,uint param_2,undefined8 param_3,int param_4)
+
+{
+  int iVar1;
+  undefined2 *puVar2;
+  undefined8 *puVar3;
+  ulong *puVar4;
+  undefined8 local_b8;
+  ulong uStack_b0;
+  ulong local_a8;
+  undefined8 local_98;
+  undefined8 uStack_90;
+  undefined8 local_88;
+  string local_78 [24];
+  ulong local_60;
+  ulong uStack_58;
+  ulong local_50;
+  ulong uStack_48;
+  ulong local_40;
+  ulong uStack_38;
+  
+  iVar1 = (**(code **)(*param_1 + 0x58))();
+  if (iVar1 < param_4) {
+    std::to_string((int)(string *)&local_98);
+                    /* try { // try from 01d50e83 to 01d50e93 has its CatchHandler @ 01d51244 */
+    puVar4 = (ulong *)std::string::insert((string *)&local_98,0,
+                                          "ReadEeprom cannot read this much data ");
+    local_a8 = puVar4[2];
+    local_b8 = *puVar4;
+    uStack_b0 = puVar4[1];
+    *puVar4 = 0;
+    puVar4[1] = 0;
+    puVar4[2] = 0;
+    uStack_38 = uStack_b0;
+    local_40 = local_a8;
+    if ((local_b8 & 1) == 0) {
+      uStack_38 = local_b8 >> 1 & 0x7f;
+      local_40 = (long)&local_b8 + 1;
+    }
+                    /* try { // try from 01d5100f to 01d5104c has its CatchHandler @ 01d5122c */
+                    /* WARNING: Subroutine does not return */
+    FUN_02eca300("num_bytes <= EepromPageSize()",0x1d,
+                 "virtual void Fx2DeviceFeatures::ReadEeprom(U16, U8 *, U16)",0x3a,
+                 "/workspace/monorepo/graph-io/devices/logic_interface/src/LogicAnalyzerDevice.cpp",
+                 0x50,0x21f,(undefined4)local_40,(undefined4)uStack_38);
+  }
+  iVar1 = (**(code **)(*param_1 + 0x60))(param_1);
+  if (iVar1 <= (int)(param_2 & 0xffff)) {
+    (**(code **)(*param_1 + 0x60))(param_1);
+    std::to_string((int)local_78);
+                    /* try { // try from 01d50ee7 to 01d50ef7 has its CatchHandler @ 01d51219 */
+    puVar3 = (undefined8 *)std::string::insert(local_78,0,"eeprom is only ");
+    local_88 = puVar3[2];
+    local_98 = *puVar3;
+    uStack_90 = puVar3[1];
+    *puVar3 = 0;
+    puVar3[1] = 0;
+    puVar3[2] = 0;
+                    /* try { // try from 01d50f17 to 01d50f27 has its CatchHandler @ 01d511ec */
+    puVar4 = (ulong *)std::string::append((string *)&local_98," bytes");
+    local_a8 = puVar4[2];
+    local_b8 = *puVar4;
+    uStack_b0 = puVar4[1];
+    *puVar4 = 0;
+    puVar4[1] = 0;
+    puVar4[2] = 0;
+    uStack_48 = uStack_b0;
+    local_50 = local_a8;
+    if ((local_b8 & 1) == 0) {
+      uStack_48 = local_b8 >> 1 & 0x7f;
+      local_50 = (long)&local_b8 + 1;
+    }
+                    /* try { // try from 01d51065 to 01d510a2 has its CatchHandler @ 01d511ba */
+                    /* WARNING: Subroutine does not return */
+    FUN_02eca300("starting_address < EepromSizeMax()",0x22,
+                 "virtual void Fx2DeviceFeatures::ReadEeprom(U16, U8 *, U16)",0x3a,
+                 "/workspace/monorepo/graph-io/devices/logic_interface/src/LogicAnalyzerDevice.cpp",
+                 0x50,0x220,(undefined4)local_50,(undefined4)uStack_48);
+  }
+  iVar1 = (**(code **)(*param_1 + 0x60))(param_1);
+  if (iVar1 < (int)((param_2 & 0xffff) + param_4)) {
+    (**(code **)(*param_1 + 0x60))(param_1);
+    std::to_string((int)local_78);
+                    /* try { // try from 01d50f7b to 01d50f8b has its CatchHandler @ 01d5120b */
+    puVar3 = (undefined8 *)std::string::insert(local_78,0,"eeprom is only ");
+    local_88 = puVar3[2];
+    local_98 = *puVar3;
+    uStack_90 = puVar3[1];
+    *puVar3 = 0;
+    puVar3[1] = 0;
+    puVar3[2] = 0;
+                    /* try { // try from 01d50fab to 01d50fbb has its CatchHandler @ 01d511b8 */
+    puVar4 = (ulong *)std::string::append((string *)&local_98," bytes");
+    local_a8 = puVar4[2];
+    local_b8 = *puVar4;
+    uStack_b0 = puVar4[1];
+    *puVar4 = 0;
+    puVar4[1] = 0;
+    puVar4[2] = 0;
+    uStack_58 = uStack_b0;
+    local_60 = local_a8;
+    if ((local_b8 & 1) == 0) {
+      uStack_58 = local_b8 >> 1 & 0x7f;
+      local_60 = (long)&local_b8 + 1;
+    }
+                    /* try { // try from 01d510b8 to 01d510f2 has its CatchHandler @ 01d511b6 */
+                    /* WARNING: Subroutine does not return */
+    FUN_02eca300("( starting_address + num_bytes ) <= EepromSizeMax()",0x33,
+                 "virtual void Fx2DeviceFeatures::ReadEeprom(U16, U8 *, U16)",0x3a,
+                 "/workspace/monorepo/graph-io/devices/logic_interface/src/LogicAnalyzerDevice.cpp",
+                 0x50,0x222,(undefined4)local_60,(undefined4)uStack_58);
+  }
+  puVar2 = (undefined2 *)operator_new(5);
+  *puVar2 = 0x3307;
+  *(undefined1 *)(puVar2 + 1) = 0x81;
+  *(char *)((long)puVar2 + 3) = (char)param_2;
+  *(char *)(puVar2 + 2) = (char)param_4;
+                    /* try { // try from 01d50dfe to 01d50e0e has its CatchHandler @ 01d51257 */
+  (**(code **)(*(long *)param_1[1] + 0x20))((long *)param_1[1],param_1 + 3,puVar2,5,0,0);
+                    /* try { // try from 01d50e20 to 01d50e2e has its CatchHandler @ 01d50e31 */
+  (**(code **)(*(long *)param_1[1] + 0x28))((long *)param_1[1],param_1 + 4,param_3,param_4,0);
+  operator_delete(puVar2);
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileEeprom.java> ---END---
+ (GhidraScript)  
+INFO  DecompileEeprom.java> === Getting hardware revision === (GhidraScript)  
+INFO  DecompileEeprom.java>   Function: FUN_02e62780 (GhidraScript)  
+INFO  DecompileEeprom.java>   Ghidra VA: 02e62780 (GhidraScript)  
+INFO  DecompileEeprom.java>   ELF VA: 0x2d62780 (GhidraScript)  
+INFO  DecompileEeprom.java>   Size: 276 bytes (GhidraScript)  
+INFO  DecompileEeprom.java>  (GhidraScript)  
+INFO  DecompileEeprom.java> 
+ushort FUN_02e62780(ushort *param_1)
+
+{
+  ushort uVar1;
+  long lVar2;
+  char cVar3;
+  int iVar4;
+  ulong uVar5;
+  long lVar6;
+  undefined1 local_90 [96];
+  
+  lVar2 = DAT_030b0168;
+  if ((char)param_1[1] == '\0') {
+    iVar4 = *(int *)(DAT_030b0168 + 0x38);
+    cVar3 = FUN_02edfa80(DAT_030b0168 + 0x70);
+    if ((iVar4 < 2) || (cVar3 != '\0')) {
+      if ((*(byte *)(lVar2 + 8) & 1) == 0) {
+        lVar6 = lVar2 + 9;
+        uVar5 = (ulong)(*(byte *)(lVar2 + 8) >> 1);
+      }
+      else {
+        lVar6 = *(long *)(lVar2 + 0x18);
+        uVar5 = *(ulong *)(lVar2 + 0x10);
+      }
+      FUN_02ee25b0(local_90,lVar6,uVar5,1,"Getting hardware revision",0x19,0x49001c,0x1ce,
+                   "GetFpgaBitstreamVersion");
+      FUN_02ee4120(lVar2,local_90,iVar4 < 2,cVar3);
+    }
+    iVar4 = FUN_02e62690(param_1,0);
+    uVar1 = (ushort)((uint)iVar4 >> 8);
+    if ((char)param_1[1] == '\0') {
+      *param_1 = uVar1 & 0xff | (ushort)(iVar4 << 8);
+      *(undefined1 *)(param_1 + 1) = 1;
+    }
+    else {
+      *param_1 = uVar1 & 0xff | (ushort)(iVar4 << 8);
+    }
+  }
+  return *param_1;
+}
+
+ (GhidraScript)  
+INFO  DecompileEeprom.java> ---END---
+ (GhidraScript)  
+INFO  DecompileEeprom.java> === GetFirmwareVersion === (GhidraScript)  
+INFO  DecompileEeprom.java>   Function: FUN_02e34890 (GhidraScript)  
+INFO  DecompileEeprom.java>   Ghidra VA: 02e34890 (GhidraScript)  
+INFO  DecompileEeprom.java>   ELF VA: 0x2d34890 (GhidraScript)  
+INFO  DecompileEeprom.java>   Size: 533 bytes (GhidraScript)  
+INFO  DecompileEeprom.java>  (GhidraScript)  
+INFO  DecompileEeprom.java> 
+/* WARNING: Globals starting with '_' overlap smaller symbols at the same address */
+
+undefined8 * FUN_02e34890(undefined8 *param_1,long *param_2)
+
+{
+  undefined4 uVar1;
+  undefined4 uVar2;
+  undefined4 uVar3;
+  undefined8 uVar4;
+  char cVar5;
+  long lVar6;
+  long lVar7;
+  undefined8 uVar8;
+  char *local_528;
+  undefined8 local_520;
+  undefined8 local_518;
+  undefined8 uStack_510;
+  char *local_508;
+  undefined4 local_4f8 [2];
+  long local_4f0;
+  uint local_4e8;
+  undefined4 local_4e4;
+  double local_4e0 [25];
+  undefined8 local_418;
+  undefined4 uStack_410;
+  char *local_408;
+  
+  if (*param_2 == 0) {
+    *param_1 = 0;
+    param_1[1] = 0;
+    param_1[0x16] = 0;
+    param_1[0x17] = 0;
+    param_1[0x14] = 0;
+    param_1[0x15] = 0;
+    param_1[0x12] = 0;
+    param_1[0x13] = 0;
+    param_1[0x10] = 0;
+    param_1[0x11] = 0;
+    param_1[0xe] = 0;
+    param_1[0xf] = 0;
+    param_1[0xc] = 0;
+    param_1[0xd] = 0;
+    param_1[10] = 0;
+    param_1[0xb] = 0;
+    param_1[8] = 0;
+    param_1[9] = 0;
+    param_1[6] = 0;
+    param_1[7] = 0;
+    param_1[4] = 0;
+    param_1[5] = 0;
+    param_1[2] = 0;
+    param_1[3] = 0;
+    *(undefined4 *)((long)param_1 + 0xbf) = 0;
+    *(undefined2 *)((long)param_1 + 1) = 0xb05;
+  }
+  else {
+    local_528 = "GetFirmwareVersion";
+    local_520 = 0x12;
+    lVar6 = std::chrono::steady_clock::now();
+                    /* try { // try from 02e348ca to 02e348e3 has its CatchHandler @ 02e34b08 */
+    FUN_02e33810(&local_418,param_2,0xde,0,0);
+    local_4f0 = (long)&local_418 + 4;
+    local_4f8[0] = 0;
+    local_4e8 = (uint)local_418._2_2_;
+    local_4e4 = 0;
+                    /* try { // try from 02e3490d to 02e3491b has its CatchHandler @ 02e34b06 */
+    cVar5 = FUN_02e73140(local_4f8,local_4e0);
+    if (cVar5 == '\0') {
+      uVar8 = __cxa_allocate_exception(0x20);
+                    /* try { // try from 02e34a45 to 02e34a4e has its CatchHandler @ 02e34ae4 */
+      local_508 = (char *)operator_new(0x30);
+      uVar4 = s_SerializeVersion___bb___version___0051f6b3._24_8_;
+      local_518 = _DAT_0044be20;
+      uStack_510 = _UNK_0044be28;
+      *(undefined8 *)(local_508 + 0x10) = s_SerializeVersion___bb___version___0051f6b3._16_8_;
+      *(undefined8 *)(local_508 + 0x18) = uVar4;
+      uVar3 = s_SerializeVersion___bb___version___0051f6b3._12_4_;
+      uVar2 = s_SerializeVersion___bb___version___0051f6b3._8_4_;
+      uVar1 = s_SerializeVersion___bb___version___0051f6b3._4_4_;
+      *(undefined4 *)local_508 = s_SerializeVersion___bb___version___0051f6b3._0_4_;
+      *(undefined4 *)(local_508 + 4) = uVar1;
+      *(undefined4 *)(local_508 + 8) = uVar2;
+      *(undefined4 *)(local_508 + 0xc) = uVar3;
+      local_508[0x20] = ')';
+      local_508[0x21] = '\0';
+                    /* try { // try from 02e34a80 to 02e34aa4 has its CatchHandler @ 02e34aad */
+      FUN_02e41300(uVar8,&local_518);
+                    /* WARNING: Subroutine does not return */
+      __cxa_throw(uVar8,&PTR_vtable_02fe2c40,FUN_01b0dd70);
+    }
+    memcpy(param_1,local_4e0,0xc3);
+    lVar7 = std::chrono::steady_clock::now();
+    if (1000000 < lVar7 - lVar6) {
+      local_4e0[0] = (double)(lVar7 - lVar6) / DAT_0044d7a0;
+      local_418 = "/workspace/monorepo/graph-io/core/saleae_base/include/profile.h";
+      uStack_410 = 0x1c;
+      local_408 = "~TimedScope";
+                    /* try { // try from 02e34997 to 02e349ca has its CatchHandler @ 02e34aa5 */
+      FUN_02e3e1b0(DAT_030b0118,2,"{} finished, took {:.3f} ms",0x1b,&local_528,local_4e0,0x488d49,
+                   0x1c,"~TimedScope");
+    }
+  }
+  return param_1;
+}
+
+ (GhidraScript)  
+INFO  DecompileEeprom.java> ---END---
+ (GhidraScript)  
+INFO  DecompileEeprom.java> === Device hardware revision not supported === (GhidraScript)  
+INFO  DecompileEeprom.java>   Function: FUN_02e9a8b0 (GhidraScript)  
+INFO  DecompileEeprom.java>   Ghidra VA: 02e9a8b0 (GhidraScript)  
+INFO  DecompileEeprom.java>   ELF VA: 0x2d9a8b0 (GhidraScript)  
+INFO  DecompileEeprom.java>   Size: 159 bytes (GhidraScript)  
+INFO  DecompileEeprom.java>  (GhidraScript)  
+INFO  DecompileEeprom.java> 
+void FUN_02e9a8b0(undefined8 *param_1,byte *param_2)
+
+{
+  byte *local_48;
+  ulong local_40;
+  void *local_38;
+  string local_28 [16];
+  void *local_18;
+  
+  if ((*param_2 & 1) == 0) {
+    local_48 = param_2 + 1;
+    local_40 = (ulong)(*param_2 >> 1);
+  }
+  else {
+    local_40 = *(ulong *)(param_2 + 8);
+    local_48 = *(byte **)(param_2 + 0x10);
+  }
+  FUN_02f06340(local_28,"Device hardware revision not supported: {}",0x2a,0xd,&local_48);
+                    /* try { // try from 02e9a8fc to 02e9a906 has its CatchHandler @ 02e9a94f */
+  std::string::string((string *)&local_48,local_28);
+  FUN_02ec72e0(param_1,&local_48);
+  if (((ulong)local_48 & 1) != 0) {
+    operator_delete(local_38);
+  }
+  *param_1 = &PTR_FUN_02f47390;
+  if (((byte)local_28[0] & 1) != 0) {
+    operator_delete(local_18);
+  }
+  *param_1 = &DAT_02fe55e8;
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileEeprom.java> ---END---
+ (GhidraScript)  
+INFO  DecompileEeprom.java> === /deviceId handler 1 === (GhidraScript)  
+INFO  DecompileEeprom.java>   Function: FUN_01cddbf0 (GhidraScript)  
+INFO  DecompileEeprom.java>   Ghidra VA: 01cddbf0 (GhidraScript)  
+INFO  DecompileEeprom.java>   ELF VA: 0x1bddbf0 (GhidraScript)  
+INFO  DecompileEeprom.java>   Size: 58 bytes (GhidraScript)  
+INFO  DecompileEeprom.java>  (GhidraScript)  
+INFO  DecompileEeprom.java> 
+void FUN_01cddbf0(long param_1,undefined8 param_2)
+
+{
+  FUN_01cde1a0(param_1 + 0x18,"/deviceId",param_2);
+  FUN_01cde330(param_1 + 0x20,"/deviceType",param_2);
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileEeprom.java> ---END---
+ (GhidraScript)  
+INFO  DecompileEeprom.java> === /deviceId handler 2 === (GhidraScript)  
+INFO  DecompileEeprom.java>   Function: FUN_01cddc80 (GhidraScript)  
+INFO  DecompileEeprom.java>   Ghidra VA: 01cddc80 (GhidraScript)  
+INFO  DecompileEeprom.java>   ELF VA: 0x1bddc80 (GhidraScript)  
+INFO  DecompileEeprom.java>   Size: 19 bytes (GhidraScript)  
+INFO  DecompileEeprom.java>  (GhidraScript)  
+INFO  DecompileEeprom.java> 
+void FUN_01cddc80(long param_1,undefined8 param_2)
+
+{
+  FUN_01cde1a0(param_1 + 0x18,"/deviceId",param_2);
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileEeprom.java> ---END---
+ (GhidraScript)  
+INFO  DecompileEeprom.java> === /deviceId handler 3 === (GhidraScript)  
+INFO  DecompileEeprom.java>   Function: FUN_01cdde00 (GhidraScript)  
+INFO  DecompileEeprom.java>   Ghidra VA: 01cdde00 (GhidraScript)  
+INFO  DecompileEeprom.java>   ELF VA: 0x1bdde00 (GhidraScript)  
+INFO  DecompileEeprom.java>   Size: 190 bytes (GhidraScript)  
+INFO  DecompileEeprom.java>  (GhidraScript)  
+INFO  DecompileEeprom.java> 
+void FUN_01cdde00(long param_1,undefined8 param_2)
+
+{
+  FUN_01ccfd10(param_1,"/deviceInstanceId",param_2);
+  FUN_01cde1a0(param_1 + 8,"/deviceId",param_2);
+  FUN_01cde330(param_1 + 0x10,"/deviceType",param_2);
+  FUN_01b0b6f0(param_1 + 0x18,"/name",param_2);
+  FUN_01c3e2d0(param_1 + 0x30,"/isSimulation",param_2);
+  FUN_01cdf690(param_1 + 0x31,"/hasLimitedBandwidth",param_2);
+  FUN_01cdf820(param_1 + 0x38,"/state",param_2);
+  FUN_01cdf9b0(param_1 + 0x68,"/extraInfo",param_2);
+  FUN_01cdfb40(param_1 + 0x1c48,"/hardwareRevision",param_2);
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileEeprom.java> ---END---
+ (GhidraScript)  
+INFO  DecompileEeprom.java> === /hardwareRevision handler === (GhidraScript)  
+INFO  DecompileEeprom.java>   Function: FUN_01ce0370 (GhidraScript)  
+INFO  DecompileEeprom.java>   Ghidra VA: 01ce0370 (GhidraScript)  
+INFO  DecompileEeprom.java>   ELF VA: 0x1be0370 (GhidraScript)  
+INFO  DecompileEeprom.java>   Size: 1324 bytes (GhidraScript)  
+INFO  DecompileEeprom.java>  (GhidraScript)  
+INFO  DecompileEeprom.java> 
+void FUN_01ce0370(long *param_1,undefined8 param_2)
+
+{
+  undefined4 *puVar1;
+  uint uVar2;
+  undefined4 uVar3;
+  undefined4 uVar4;
+  undefined4 uVar5;
+  char cVar6;
+  undefined8 *puVar7;
+  undefined8 uVar8;
+  long lVar9;
+  uint *puVar10;
+  undefined4 *puVar11;
+  ulong uVar12;
+  runtime_error *this;
+  uint uVar13;
+  long lVar14;
+  long lVar15;
+  uint uVar16;
+  undefined6 local_1cc0;
+  undefined2 local_1cba;
+  undefined6 uStack_1cb8;
+  undefined1 local_1ca8 [8];
+  undefined1 local_1ca0 [8];
+  undefined1 local_1c98 [8];
+  undefined8 local_1c90;
+  undefined2 uStack_1c88;
+  undefined6 uStack_1c86;
+  undefined2 uStack_1c80;
+  undefined8 uStack_1c7e;
+  undefined8 local_1c70;
+  undefined8 uStack_1c68;
+  undefined8 uStack_1c60;
+  undefined4 uStack_1c58;
+  undefined4 local_1c54;
+  undefined4 uStack_1c50;
+  undefined8 uStack_1c4c;
+  undefined1 local_1c40 [7128];
+  undefined1 local_68;
+  undefined1 local_60 [24];
+  undefined1 local_48;
+  undefined8 local_40;
+  undefined8 uStack_38;
+  
+  cVar6 = FUN_02ed7ea0(param_2);
+  if (cVar6 == '\0') {
+    lVar14 = FUN_02ed7e60(param_2);
+    if ((lVar14 == 0) || (lVar14 = FUN_02ed7e60(param_2), *(short *)(lVar14 + 0xe) != 4)) {
+      this = (runtime_error *)__cxa_allocate_exception(0x10);
+                    /* try { // try from 01ce0894 to 01ce08a2 has its CatchHandler @ 01ce08b9 */
+      std::runtime_error::runtime_error(this,"json value is not an array");
+                    /* WARNING: Subroutine does not return */
+      __cxa_throw(this,PTR_typeinfo_02fe8e78,PTR__runtime_error_02fe8e80);
+    }
+    lVar14 = *param_1;
+    lVar15 = param_1[1];
+    while (lVar15 != lVar14) {
+      lVar15 = lVar15 + -0x1c78;
+      FUN_01cd80d0(lVar15);
+    }
+    param_1[1] = lVar14;
+    puVar10 = (uint *)FUN_02ed7e60(param_2);
+    if ((ulong)*puVar10 != 0) {
+      uVar12 = *(ulong *)(puVar10 + 2) & 0xffffffffffff;
+      lVar14 = (ulong)*puVar10 << 4;
+      do {
+        FUN_01d11f60(local_1ca0);
+        uStack_1c50 = 0;
+        uStack_1c4c = 0;
+        uStack_1c60 = 0;
+        uStack_1c58 = 0;
+        local_1c54 = 0;
+        local_1c70 = 0;
+        uStack_1c68 = 0;
+        local_1c40[0] = 0;
+        local_68 = 0;
+        local_60[0] = 0;
+        local_48 = 0;
+        uStack_1c80 = 0;
+        uStack_1c7e = 0;
+        local_1c90 = 0;
+        uStack_1c88 = 0;
+        uStack_1c86 = 0;
+        local_40 = 0;
+        uStack_38 = 0;
+                    /* try { // try from 01ce077b to 01ce0785 has its CatchHandler @ 01ce08db */
+        FUN_02ed7dc0(&local_1cc0,uVar12);
+                    /* try { // try from 01ce0786 to 01ce083b has its CatchHandler @ 01ce08e0 */
+        FUN_01ccfd10(local_1ca8,"/deviceInstanceId",&local_1cc0);
+        FUN_01cde1a0(local_1ca0,"/deviceId",&local_1cc0);
+        FUN_01cde330(local_1c98,"/deviceType",&local_1cc0);
+        FUN_01b0b6f0(&local_1c90,"/name",&local_1cc0);
+        FUN_01c3e2d0((long)&uStack_1c7e + 6,"/isSimulation",&local_1cc0);
+        FUN_01cdf690((long)&uStack_1c7e + 7,"/hasLimitedBandwidth",&local_1cc0);
+        FUN_01cdf820(&local_1c70,"/state",&local_1cc0);
+        FUN_01cdf9b0(local_1c40,"/extraInfo",&local_1cc0);
+        FUN_01cdfb40(local_60,"/hardwareRevision",&local_1cc0);
+        lVar15 = param_1[1];
+        if (lVar15 == param_1[2]) {
+                    /* try { // try from 01ce0700 to 01ce0709 has its CatchHandler @ 01ce08e0 */
+          FUN_01ce0920(param_1,local_1ca8);
+        }
+        else {
+                    /* try { // try from 01ce0851 to 01ce085d has its CatchHandler @ 01ce08ce */
+          FUN_01cda850(lVar15,local_1ca8);
+          param_1[1] = lVar15 + 0x1c78;
+        }
+        FUN_02ed7e40(&local_1cc0);
+        FUN_01cd80d0(local_1ca8);
+        uVar12 = uVar12 + 0x10;
+        lVar14 = lVar14 + -0x10;
+      } while (lVar14 != 0);
+    }
+  }
+  else {
+    FUN_02ed7e80();
+    puVar7 = (undefined8 *)FUN_02ed7e60(param_2);
+    *puVar7 = 0;
+    puVar7[1] = 0;
+    *(undefined2 *)((long)puVar7 + 0xe) = 4;
+    lVar14 = *param_1;
+    lVar15 = param_1[1];
+    if (lVar14 != lVar15) {
+      do {
+        uVar8 = FUN_02ed7e70(param_2);
+        FUN_02ed7db0(local_1ca8,uVar8);
+                    /* try { // try from 01ce0428 to 01ce05a7 has its CatchHandler @ 01ce08ff */
+        FUN_01ccfd10(lVar14,"/deviceInstanceId",local_1ca8);
+        FUN_01cde1a0(lVar14 + 8,"/deviceId",local_1ca8);
+        FUN_01cde330(lVar14 + 0x10,"/deviceType",local_1ca8);
+        FUN_01b0b6f0(lVar14 + 0x18,"/name",local_1ca8);
+        FUN_01c3e2d0(lVar14 + 0x30,"/isSimulation",local_1ca8);
+        FUN_01cdf690(lVar14 + 0x31,"/hasLimitedBandwidth",local_1ca8);
+        FUN_01cdf820(lVar14 + 0x38,"/state",local_1ca8);
+        FUN_01cdf9b0(lVar14 + 0x68,"/extraInfo",local_1ca8);
+        FUN_01cdfb40(lVar14 + 0x1c48,"/hardwareRevision",local_1ca8);
+        lVar9 = FUN_02ed7e60(local_1ca8);
+        if (lVar9 == 0) {
+          puVar10 = (uint *)FUN_02ed7e60(param_2);
+          uStack_1cb8 = 0;
+          local_1cc0 = 0;
+          local_1cba = 0;
+                    /* try { // try from 01ce05bd to 01ce060c has its CatchHandler @ 01ce08cc */
+          uVar8 = FUN_02ed7e70(param_2);
+          uVar13 = *puVar10;
+          uVar2 = puVar10[1];
+          if (uVar2 <= uVar13) {
+            uVar16 = (uVar2 + 1 >> 1) + uVar2;
+            if (uVar2 == 0) {
+              uVar16 = 0x10;
+            }
+            if (uVar2 < uVar16) {
+              uVar12 = FUN_01b22180(uVar8,*(ulong *)(puVar10 + 2) & 0xffffffffffff,(ulong)uVar2 << 4
+                                    ,(ulong)uVar16 << 4);
+              *(ulong *)(puVar10 + 2) = *(ulong *)(puVar10 + 2) & 0xffff000000000000 | uVar12;
+              puVar10[1] = uVar16;
+              uVar13 = *puVar10;
+            }
+          }
+          uVar12 = *(ulong *)(puVar10 + 2) & 0xffffffffffff;
+          *puVar10 = uVar13 + 1;
+          lVar9 = (ulong)uVar13 * 0x10;
+          *(ulong *)(uVar12 + 6 + lVar9) = CONCAT62(uStack_1cb8,local_1cba);
+          *(ulong *)(uVar12 + lVar9) = CONCAT26(local_1cba,local_1cc0);
+          *(undefined2 *)(uVar12 + 0xe + lVar9) = 0;
+        }
+        else {
+          puVar10 = (uint *)FUN_02ed7e60(param_2);
+          puVar11 = (undefined4 *)FUN_02ed7e60(local_1ca8);
+          uVar8 = FUN_02ed7e70(param_2);
+          uVar13 = *puVar10;
+          uVar2 = puVar10[1];
+          if (uVar2 <= uVar13) {
+            uVar16 = (uVar2 + 1 >> 1) + uVar2;
+            if (uVar2 == 0) {
+              uVar16 = 0x10;
+            }
+            if (uVar2 < uVar16) {
+              uVar12 = FUN_01b22180(uVar8,*(ulong *)(puVar10 + 2) & 0xffffffffffff,(ulong)uVar2 << 4
+                                    ,(ulong)uVar16 << 4);
+              *(ulong *)(puVar10 + 2) = *(ulong *)(puVar10 + 2) & 0xffff000000000000 | uVar12;
+              puVar10[1] = uVar16;
+              uVar13 = *puVar10;
+            }
+          }
+          *puVar10 = uVar13 + 1;
+          uVar3 = puVar11[1];
+          uVar4 = puVar11[2];
+          uVar5 = puVar11[3];
+          puVar1 = (undefined4 *)((*(ulong *)(puVar10 + 2) & 0xffffffffffff) + (ulong)uVar13 * 0x10)
+          ;
+          *puVar1 = *puVar11;
+          puVar1[1] = uVar3;
+          puVar1[2] = uVar4;
+          puVar1[3] = uVar5;
+          *(undefined2 *)((long)puVar11 + 0xe) = 0;
+        }
+        FUN_02ed7e40(local_1ca8);
+        lVar14 = lVar14 + 0x1c78;
+      } while (lVar14 != lVar15);
+    }
+  }
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileEeprom.java> ---END---
+ (GhidraScript)  
+INFO  DecompileEeprom.java> === /boardRevision handler 1 === (GhidraScript)  
+INFO  DecompileEeprom.java>   Function: FUN_02e80110 (GhidraScript)  
+INFO  DecompileEeprom.java>   Ghidra VA: 02e80110 (GhidraScript)  
+INFO  DecompileEeprom.java>   ELF VA: 0x2d80110 (GhidraScript)  
+INFO  DecompileEeprom.java>   Size: 130 bytes (GhidraScript)  
+INFO  DecompileEeprom.java>  (GhidraScript)  
+INFO  DecompileEeprom.java> 
+void FUN_02e80110(long param_1,undefined8 param_2)
+
+{
+  FUN_02e80200(param_1,"/metadataVersion",param_2);
+  FUN_02e80390(param_1 + 8,"/podPartNumber",param_2);
+  FUN_02e80520(param_1 + 0x10,"/boardPartNumber",param_2);
+  FUN_02e806b0(param_1 + 0x18,"/boardRevision",param_2);
+  FUN_02e80840(param_1 + 0x20,"/boardId",param_2);
+  FUN_02e809e0(param_1 + 0x28,"/serial",param_2);
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileEeprom.java> ---END---
+ (GhidraScript)  
+INFO  DecompileEeprom.java> === /boardRevision handler 2 === (GhidraScript)  
+INFO  DecompileEeprom.java>   Function: FUN_02e801a0 (GhidraScript)  
+INFO  DecompileEeprom.java>   Ghidra VA: 02e801a0 (GhidraScript)  
+INFO  DecompileEeprom.java>   ELF VA: 0x2d801a0 (GhidraScript)  
+INFO  DecompileEeprom.java>   Size: 92 bytes (GhidraScript)  
+INFO  DecompileEeprom.java>  (GhidraScript)  
+INFO  DecompileEeprom.java> 
+void FUN_02e801a0(long param_1,undefined8 param_2)
+
+{
+  FUN_02e80b80(param_1,"/metadataVersion",param_2);
+  FUN_02e80d10(param_1 + 8,"/boardPartNumber",param_2);
+  FUN_02e80ea0(param_1 + 0x10,"/boardRevision",param_2);
+  FUN_02e80840(param_1 + 0x18,"/boardId",param_2);
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileEeprom.java> ---END---
+ (GhidraScript)  
+INFO  REPORT: Save succeeded for processed file: /libgraph_server_shared.so (HeadlessAnalyzer)  
