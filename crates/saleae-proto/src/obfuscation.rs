@@ -164,6 +164,14 @@ fn seed_byte(seed: u32, i: usize) -> u8 {
 ///
 /// If either side misses a step, all subsequent communication is garbled.
 ///
+/// # Reseed key
+///
+/// ReseedDevice packets are always encrypted with the *initial* seed (the
+/// value passed to [`new`](Self::new)), not the rolling LFSR state. Pcap
+/// analysis of all 4 reseed operations (frames 15, 1627, 1639, 1651)
+/// confirms this. The `initial_seed` field is set once in `new()` and
+/// never modified by [`reseed`](Self::reseed).
+///
 /// # Example
 ///
 /// ```
@@ -182,6 +190,11 @@ fn seed_byte(seed: u32, i: usize) -> u8 {
 #[derive(Debug, Clone)]
 pub struct SimpleEncryption {
     seed: u32,
+    /// The seed value passed to `new()`. Used exclusively by `encrypt_reseed`
+    /// to encrypt ReseedDevice packets. This value never changes -- it is the
+    /// fixed key that both host and firmware use for reseed encryption,
+    /// regardless of how many reseeds have occurred.
+    initial_seed: u32,
     mode: EncryptionMode,
 }
 
@@ -189,9 +202,14 @@ impl SimpleEncryption {
     /// Create a new encryption state with the given seed and mode.
     ///
     /// The seed is the 4-byte value sent by `ReseedDevice` and shared
-    /// between host and firmware.
+    /// between host and firmware. This value is also stored as the
+    /// `initial_seed` used for encrypting all future ReseedDevice packets.
     pub fn new(seed: u32, mode: EncryptionMode) -> Self {
-        Self { seed, mode }
+        Self {
+            seed,
+            initial_seed: seed,
+            mode,
+        }
     }
 
     /// Return the current seed value (for debugging/testing).
@@ -294,15 +312,19 @@ impl SimpleEncryption {
     /// Encrypt a ReseedDevice command for EP1 OUT.
     ///
     /// The reseed sends 4 seed bytes to the device, encrypted with the
-    /// current LFSR state using `prepare_buffer` (VA 0x2d99c10). The wire
-    /// format is 5 bytes:
+    /// **initial seed** (from [`new`](Self::new)), not the rolling LFSR
+    /// state. Pcap analysis of all 4 reseed operations (frames 15, 1627,
+    /// 1639, 1651) confirms that the initial seed is always used as the
+    /// encryption key for reseed packets.
+    ///
+    /// The wire format is 5 bytes:
     ///
     /// ```text
-    /// output[0] = ((seed_bytes[0] & 0xD7) | 0x20) ^ (current_sb0 & 0xD7)
-    /// output[1] = seed_bytes[0] ^ current_sb1
-    /// output[2] = seed_bytes[1] ^ current_sb2
-    /// output[3] = seed_bytes[2] ^ current_sb3
-    /// output[4] = seed_bytes[3] ^ current_sb0
+    /// output[0] = ((seed_bytes[0] & 0xD7) | 0x20) ^ (initial_sb0 & 0xD7)
+    /// output[1] = seed_bytes[0] ^ initial_sb1
+    /// output[2] = seed_bytes[1] ^ initial_sb2
+    /// output[3] = seed_bytes[2] ^ initial_sb3
+    /// output[4] = seed_bytes[3] ^ initial_sb0
     /// ```
     ///
     /// After sending, the caller MUST call [`reseed`](Self::reseed) to set
@@ -318,22 +340,26 @@ impl SimpleEncryption {
             return seed_bytes.to_vec();
         }
 
-        let current = self.seed;
+        // Use the initial seed (from new()), NOT the rolling self.seed.
+        // The firmware always uses the initial/default seed to decrypt
+        // reseed packets, regardless of the current LFSR state.
+        let key = self.initial_seed;
         let mut out = Vec::with_capacity(5);
 
         // Control byte: seed_bytes[0] is the "opcode", with RESEED_FLAG set
         let control =
-            ((seed_bytes[0] & CONTROL_MASK) | RESEED_FLAG) ^ (seed_byte(current, 0) & CONTROL_MASK);
+            ((seed_bytes[0] & CONTROL_MASK) | RESEED_FLAG) ^ (seed_byte(key, 0) & CONTROL_MASK);
         out.push(control);
 
         // Data bytes: XOR with cycling seed bytes starting at sb1
         // (same pattern as encrypt_command)
         for (i, &b) in seed_bytes.iter().enumerate() {
-            out.push(b ^ seed_byte(current, i + 1));
+            out.push(b ^ seed_byte(key, i + 1));
         }
 
-        // Advance seed (matches prepare_buffer behavior; the result will be
-        // discarded when the caller calls reseed() with the new seed value)
+        // Advance the rolling seed (matches prepare_buffer behavior; the
+        // result will be discarded when the caller calls reseed() with
+        // the new seed value)
         advance_seed(&mut self.seed);
 
         out
@@ -998,5 +1024,97 @@ mod tests {
         let mut s2 = 0x6fe7_7bc8u32;
         advance_seed(&mut s2);
         assert_eq!(s2, 0x4c80_1767, "advance_seed(0x6fe77bc8) pinned value");
+    }
+
+    // -- Multiple reseed tests (TASK-0108) --
+
+    #[test]
+    fn encrypt_reseed_always_uses_initial_seed() {
+        // The initial/default seed that both host and firmware start with.
+        let initial_seed = 0x354b248e_u32;
+        let mut enc = SimpleEncryption::new(initial_seed, EncryptionMode::XorAll);
+
+        // Reseed #1: encrypt with initial seed (0x354b248e).
+        let seed1_bytes: [u8; 4] = [0xc8, 0x7b, 0xe7, 0x6f]; // 0x6fe77bc8 LE
+        let wire1 = enc.encrypt_reseed(&seed1_bytes);
+        assert_eq!(
+            wire1,
+            vec![0x66, 0xec, 0x30, 0xd2, 0xe1],
+            "reseed #1 must use initial seed (pcap frame 15)"
+        );
+        enc.reseed(0x6fe77bc8); // rolling seed changes to new value
+
+        // Do some commands to advance the rolling seed further away from
+        // the initial seed, proving encrypt_reseed ignores the rolling state.
+        let _ = enc.encrypt_command(PING_OPCODE, &[PING_TEST_BYTE], false);
+        let mut dummy = vec![0xAA];
+        enc.decrypt_response(&mut dummy, false);
+
+        // Reseed #2: should STILL use initial seed (0x354b248e), NOT the
+        // rolling seed. If the old buggy code were used, this would produce
+        // different wire bytes because self.seed has changed.
+        let seed2_bytes: [u8; 4] = [0x11, 0x22, 0x33, 0x44];
+        let wire2 = enc.encrypt_reseed(&seed2_bytes);
+
+        // Compute expected wire bytes using initial_seed as key.
+        let key = initial_seed;
+        let expected_control =
+            ((seed2_bytes[0] & CONTROL_MASK) | RESEED_FLAG) ^ (seed_byte(key, 0) & CONTROL_MASK);
+        let expected = vec![
+            expected_control,
+            seed2_bytes[0] ^ seed_byte(key, 1),
+            seed2_bytes[1] ^ seed_byte(key, 2),
+            seed2_bytes[2] ^ seed_byte(key, 3),
+            seed2_bytes[3] ^ seed_byte(key, 0),
+        ];
+        assert_eq!(
+            wire2, expected,
+            "reseed #2 must use initial seed, not rolling state"
+        );
+        enc.reseed(0x44332211);
+
+        // Reseed #3: still uses initial seed.
+        let seed3_bytes: [u8; 4] = [0xAA, 0xBB, 0xCC, 0xDD];
+        let wire3 = enc.encrypt_reseed(&seed3_bytes);
+
+        let expected_control3 =
+            ((seed3_bytes[0] & CONTROL_MASK) | RESEED_FLAG) ^ (seed_byte(key, 0) & CONTROL_MASK);
+        let expected3 = vec![
+            expected_control3,
+            seed3_bytes[0] ^ seed_byte(key, 1),
+            seed3_bytes[1] ^ seed_byte(key, 2),
+            seed3_bytes[2] ^ seed_byte(key, 3),
+            seed3_bytes[3] ^ seed_byte(key, 0),
+        ];
+        assert_eq!(
+            wire3, expected3,
+            "reseed #3 must use initial seed, not rolling state"
+        );
+    }
+
+    #[test]
+    fn reseed_does_not_change_initial_seed() {
+        let initial = 0x354b248e_u32;
+        let mut enc = SimpleEncryption::new(initial, EncryptionMode::XorAll);
+
+        // Reseed changes the rolling state but not the initial seed.
+        enc.reseed(0xAAAAAAAA);
+        assert_eq!(enc.seed(), 0xAAAAAAAA, "rolling seed should change");
+
+        // Verify encrypt_reseed still uses the original initial seed by
+        // checking it produces the same output as a fresh instance.
+        let fresh = SimpleEncryption::new(initial, EncryptionMode::XorAll);
+        let test_bytes: [u8; 4] = [0x11, 0x22, 0x33, 0x44];
+
+        let mut enc_clone = enc.clone();
+        let wire_after_reseed = enc_clone.encrypt_reseed(&test_bytes);
+
+        let mut fresh_clone = fresh.clone();
+        let wire_fresh = fresh_clone.encrypt_reseed(&test_bytes);
+
+        assert_eq!(
+            wire_after_reseed, wire_fresh,
+            "encrypt_reseed must produce identical output regardless of rolling seed"
+        );
     }
 }
