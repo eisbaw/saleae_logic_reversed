@@ -17,6 +17,7 @@ pub mod gpif;
 pub mod graph_time;
 pub mod obfuscation;
 pub mod sample_rate;
+pub mod trigger;
 
 // Re-export key types at crate root for convenience.
 pub use analog::AnalogProcessor;
@@ -35,3 +36,7 @@ pub use firmware::fx3::{Fx3Image, Fx3Section};
 pub use graph_time::GraphTime;
 pub use obfuscation::{EncryptionMode, SimpleEncryption};
 pub use sample_rate::{PerformanceTier, SampleRateOption};
+pub use trigger::{
+    EdgeDetector, EdgeType, PulseDetector, PulsePolarity, TriggerCondition, TriggerConfig,
+    TriggerEngine,
+};
