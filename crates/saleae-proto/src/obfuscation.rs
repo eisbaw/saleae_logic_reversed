@@ -59,6 +59,15 @@
 //! - `re/notes/reseed-mechanism.md` (ReseedDevice)
 //! - `doc/protocol/ep1-commands.md` (command table)
 
+/// The firmware's hardcoded default seed, used to encrypt/decrypt ReseedDevice
+/// packets. Both host and firmware use this fixed value regardless of the
+/// current rolling LFSR state. Confirmed by pcap analysis of all 4 reseed
+/// operations (frames 15, 1627, 1639, 1651).
+///
+/// See `re/notes/xor-obfuscation.md` (reseed key discovery) and
+/// `re/notes/init-sequence-pcap.md` (Phase 1 reseed validation).
+pub const DEFAULT_INITIAL_SEED: u32 = 0x354b248e;
+
 /// Mask applied to the control byte and its corresponding seed byte.
 ///
 /// Clears bits 3 and 5 so they can carry the firmware download flag (bit 3)

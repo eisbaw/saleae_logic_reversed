@@ -60,8 +60,10 @@ impl Ep1CommandChannel {
     pub fn new(transport: Box<dyn UsbTransport>, encryption_mode: EncryptionMode) -> Self {
         Self {
             transport,
-            // Seed is 0 until initialize() sets the real seed.
-            encryption: SimpleEncryption::new(0, encryption_mode),
+            encryption: SimpleEncryption::new(
+                saleae_proto::obfuscation::DEFAULT_INITIAL_SEED,
+                encryption_mode,
+            ),
             initialized: false,
         }
     }

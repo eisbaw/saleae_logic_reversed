@@ -20,7 +20,7 @@ pkgs.mkShell {
     # -- Binary / Electron analysis --
     nodePackages.asar
     binutils         # nm, readelf, objdump, strings
-    python3
+    (python3.withPackages (ps: [ ps.pyusb ]))
     xxd
 
     # -- Rust toolchain (stable) --

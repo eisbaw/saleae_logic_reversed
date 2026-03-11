@@ -47,13 +47,10 @@ impl NusbTransport {
                 context: e.to_string(),
             })?;
 
-        // Clear any stall condition on EP1 OUT and EP1 IN.
-        // The pcap shows a CLEAR_FEATURE(ENDPOINT_HALT) before the first EP1
-        // command. This is best-effort: failures are logged but not fatal,
-        // since freshly-configured endpoints are typically not stalled.
-        if let Err(e) = interface.clear_halt(0x01) {
-            tracing::debug!("clear_halt(EP1 OUT) during open: {e} (non-fatal)");
-        }
+        // Clear any stall condition on EP1 IN only.
+        // The pcap shows CLEAR_FEATURE(ENDPOINT_HALT) on EP1 IN (0x81) only,
+        // NOT on EP1 OUT. Clearing halt on EP1 OUT confuses the FX3 firmware's
+        // DMA state and causes EP1 IN reads to hang.
         if let Err(e) = interface.clear_halt(0x81) {
             tracing::debug!("clear_halt(EP1 IN) during open: {e} (non-fatal)");
         }
