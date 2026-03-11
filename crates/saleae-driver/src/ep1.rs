@@ -753,6 +753,115 @@ impl Ep1CommandChannel {
     }
 
     // -----------------------------------------------------------------------
+    // Device info commands
+    // -----------------------------------------------------------------------
+
+    /// Get device info string (opcode 0x8B).
+    ///
+    /// Returns the device identification string, e.g.
+    /// "Logic Pro Firmware Compiled Oct 25 2022 16:42:00".
+    ///
+    /// The response is a variable-length null-terminated string (up to 128
+    /// bytes observed in pcap frame 24).
+    pub fn get_device_info(&mut self) -> DriverResult<String> {
+        self.send_command(0x8B, &[])?;
+
+        let mut buf = [0u8; 256];
+        let n = self.recv_response(&mut buf)?;
+
+        // Find null terminator or use full length.
+        let end = buf[..n].iter().position(|&b| b == 0).unwrap_or(n);
+        let info = String::from_utf8_lossy(&buf[..end]).to_string();
+
+        debug!(info = %info, "GetDeviceInfo response");
+        Ok(info)
+    }
+
+    /// Read firmware/hardware version (opcode 0x07).
+    ///
+    /// Sends a 6-byte parameter block and receives a variable-length
+    /// response. The parameters observed in the pcap are:
+    ///
+    /// - `[0x33, 0x81, 0x08, 0x00, 0x08, 0x00]` -- returns 8 bytes
+    /// - `[0x33, 0x81, 0x20, 0x00, 0x06, 0x00]` -- returns "REV." + version
+    /// - `[0x33, 0x81, 0x10, 0x00, 0x10, 0x00]` -- returns 16 bytes (calibration?)
+    ///
+    /// The parameter format appears to be: `[type, sub_cmd, offset_lo,
+    /// offset_hi, length_lo, length_hi]`.
+    pub fn read_version(&mut self, params: &[u8]) -> DriverResult<Vec<u8>> {
+        self.send_command(0x07, params)?;
+
+        let mut buf = [0u8; 256];
+        let n = self.recv_response(&mut buf)?;
+
+        debug!(len = n, "ReadVersion response");
+        Ok(buf[..n].to_vec())
+    }
+
+    /// Device2_1 command (opcode 0x89).
+    ///
+    /// Observed in pcap Phase 6 before EEPROM calibration reads. The exact
+    /// purpose is unknown -- possibly configures EEPROM/I2C access mode.
+    /// Response is a single byte (0x00 observed).
+    pub fn device2_1(&mut self) -> DriverResult<u8> {
+        self.send_command(0x89, &[])?;
+
+        let mut buf = [0u8; 64];
+        let n = self.recv_response(&mut buf)?;
+
+        let response = if n > 0 { buf[0] } else { 0 };
+        debug!(response = format_args!("{response:#04x}"), "Device2_1 response");
+        Ok(response)
+    }
+
+    /// Write to I2C device (opcode 0x87).
+    ///
+    /// Tunnels an I2C write through the FX3. Used for EEPROM writes and
+    /// other I2C peripherals.
+    ///
+    /// # Arguments
+    ///
+    /// - `i2c_addr`: 8-bit I2C device address (includes R/W bit).
+    /// - `reg`: Register/command byte.
+    /// - `data`: Additional data bytes to write.
+    pub fn write_i2c(&mut self, i2c_addr: u8, reg: u8, data: &[u8]) -> DriverResult<Vec<u8>> {
+        let mut payload = Vec::with_capacity(2 + data.len());
+        payload.push(i2c_addr);
+        payload.push(reg);
+        payload.extend_from_slice(data);
+
+        self.send_command(0x87, &payload)?;
+
+        let mut buf = [0u8; 256];
+        let n = self.recv_response(&mut buf)?;
+
+        debug!(len = n, "WriteI2C response");
+        Ok(buf[..n].to_vec())
+    }
+
+    /// Read from I2C device (opcode 0x88).
+    ///
+    /// Tunnels an I2C read through the FX3. The payload format varies:
+    /// when used with count=0, reads all available data. When used with
+    /// a specific count, reads that many bytes.
+    ///
+    /// # Arguments
+    ///
+    /// - `i2c_addr`: 8-bit I2C device address (includes R/W bit).
+    /// - `reg`: Register/command byte.
+    /// - `count`: Number of bytes to read (0 = read all available).
+    pub fn read_i2c(&mut self, i2c_addr: u8, reg: u8, count: u8) -> DriverResult<Vec<u8>> {
+        let payload = [i2c_addr, reg, count];
+        self.send_command(0x88, &payload)?;
+
+        let mut buf = [0u8; 256];
+        let n = self.recv_response(&mut buf)?;
+
+        debug!(len = n, "ReadI2C response");
+        Ok(buf[..n].to_vec())
+    }
+
+    // -----------------------------------------------------------------------
     // Capture control
     // -----------------------------------------------------------------------
 
@@ -1311,16 +1420,14 @@ mod tests {
     fn write_config_data_non_pro_panics_on_large_chunk() {
         let mock = std::sync::Arc::new(MockTransport::new());
         let mut channel = mock_channel_with_seed(&mock, 0);
-        channel
-            .write_config_data_non_pro(&[0u8; 10], 100)
-            .unwrap();
+        channel.write_config_data_non_pro(&[0u8; 10], 100).unwrap();
     }
 
     // -- write_config_data_for_device dispatch tests --
 
     #[test]
     fn write_config_data_for_device_pro_uses_chunked() {
-        use saleae_proto::device::{LOGIC_PRO_8_PROFILE, UsbSpeed};
+        use saleae_proto::device::{UsbSpeed, LOGIC_PRO_8_PROFILE};
 
         let mock = std::sync::Arc::new(MockTransport::new());
         let seed = 0u32;
@@ -1353,7 +1460,7 @@ mod tests {
 
     #[test]
     fn write_config_data_for_device_non_pro_uses_non_pro_path() {
-        use saleae_proto::device::{LOGIC_8_PROFILE, UsbSpeed};
+        use saleae_proto::device::{UsbSpeed, LOGIC_8_PROFILE};
 
         let mock = std::sync::Arc::new(MockTransport::new());
         let seed = 0u32;
@@ -1382,7 +1489,7 @@ mod tests {
 
     #[test]
     fn write_config_data_for_device_pro_usb2_chunk_size() {
-        use saleae_proto::device::{LOGIC_PRO_8_PROFILE, UsbSpeed};
+        use saleae_proto::device::{UsbSpeed, LOGIC_PRO_8_PROFILE};
 
         let mock = std::sync::Arc::new(MockTransport::new());
         let seed = 0u32;
