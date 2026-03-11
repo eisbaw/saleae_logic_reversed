@@ -4,7 +4,7 @@
 pub type UsbResult<T> = Result<T, UsbError>;
 
 /// Errors that can occur during USB transport operations.
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, Clone, thiserror::Error)]
 pub enum UsbError {
     /// No Saleae device found on the USB bus.
     #[error("no Saleae device found")]

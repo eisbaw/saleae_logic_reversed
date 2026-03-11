@@ -6,7 +6,7 @@ use std::fmt;
 pub type ProtoResult<T> = Result<T, ProtoError>;
 
 /// Errors that can occur during protocol parsing.
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, Clone, thiserror::Error)]
 pub enum ProtoError {
     /// Input buffer is too short to contain the expected data.
     #[error("buffer too short: need {need} bytes, have {have}")]

@@ -37,6 +37,15 @@ pub enum UsbOperation {
     Reset,
 }
 
+/// A pre-loaded bulk IN response: either data or an injected error.
+#[derive(Debug, Clone)]
+pub enum BulkInResponse {
+    /// Successful response with data.
+    Data(u8, Vec<u8>),
+    /// Injected error for the given endpoint.
+    Error(u8, UsbError),
+}
+
 /// Mock USB transport for testing.
 ///
 /// # Usage
@@ -59,7 +68,7 @@ pub struct MockTransport {
     /// Pre-loaded responses for control IN transfers.
     control_in_responses: Mutex<VecDeque<Vec<u8>>>,
     /// Pre-loaded responses for bulk IN transfers, keyed by endpoint.
-    bulk_in_responses: Mutex<VecDeque<(u8, Vec<u8>)>>,
+    bulk_in_responses: Mutex<VecDeque<BulkInResponse>>,
 }
 
 impl MockTransport {
@@ -82,7 +91,18 @@ impl MockTransport {
         self.bulk_in_responses
             .lock()
             .unwrap()
-            .push_back((endpoint, data));
+            .push_back(BulkInResponse::Data(endpoint, data));
+    }
+
+    /// Pre-load an error for the next bulk IN transfer on the given endpoint.
+    ///
+    /// When the driver reads from this endpoint, the mock will return this
+    /// error instead of data. Useful for testing error recovery paths.
+    pub fn push_bulk_in_error(&self, endpoint: u8, error: UsbError) {
+        self.bulk_in_responses
+            .lock()
+            .unwrap()
+            .push_back(BulkInResponse::Error(endpoint, error));
     }
 
     /// Return all recorded operations.
@@ -166,7 +186,7 @@ impl UsbTransport for MockTransport {
     }
 
     fn bulk_transfer_in(&self, endpoint: u8, buf: &mut [u8]) -> UsbResult<usize> {
-        let (resp_ep, response) = self
+        let queued = self
             .bulk_in_responses
             .lock()
             .unwrap()
@@ -175,24 +195,39 @@ impl UsbTransport for MockTransport {
                 context: format!("no mock bulk IN response queued for endpoint {endpoint:#04x}"),
             })?;
 
-        if resp_ep != endpoint {
-            return Err(UsbError::UnexpectedResponse {
-                context: format!(
-                    "mock bulk IN response was for endpoint {resp_ep:#04x}, \
-                     but read was on {endpoint:#04x}"
-                ),
-            });
+        match queued {
+            BulkInResponse::Error(resp_ep, err) => {
+                if resp_ep != endpoint {
+                    return Err(UsbError::UnexpectedResponse {
+                        context: format!(
+                            "mock bulk IN error was for endpoint {resp_ep:#04x}, \
+                             but read was on {endpoint:#04x}"
+                        ),
+                    });
+                }
+                Err(err)
+            }
+            BulkInResponse::Data(resp_ep, response) => {
+                if resp_ep != endpoint {
+                    return Err(UsbError::UnexpectedResponse {
+                        context: format!(
+                            "mock bulk IN response was for endpoint {resp_ep:#04x}, \
+                             but read was on {endpoint:#04x}"
+                        ),
+                    });
+                }
+
+                let len = response.len().min(buf.len());
+                buf[..len].copy_from_slice(&response[..len]);
+
+                self.operations.lock().unwrap().push(UsbOperation::BulkIn {
+                    endpoint,
+                    received_len: len,
+                });
+
+                Ok(len)
+            }
         }
-
-        let len = response.len().min(buf.len());
-        buf[..len].copy_from_slice(&response[..len]);
-
-        self.operations.lock().unwrap().push(UsbOperation::BulkIn {
-            endpoint,
-            received_len: len,
-        });
-
-        Ok(len)
     }
 
     fn reset(&self) -> UsbResult<()> {
