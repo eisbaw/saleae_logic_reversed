@@ -17,9 +17,13 @@ pub enum DriverError {
     /// Device is in the wrong state for the requested operation.
     #[error("invalid state: device is {current}, but operation requires {required}")]
     InvalidState {
-        current: saleae_proto::device::DeviceState,
-        required: saleae_proto::device::DeviceState,
+        current: String,
+        required: String,
     },
+
+    /// A state transition was rejected by the state machine.
+    #[error("invalid state transition: {from} -> {to}")]
+    InvalidTransition { from: String, to: String },
 
     /// Firmware image not found or not available for this device type.
     #[error("no firmware available for {device_type}")]

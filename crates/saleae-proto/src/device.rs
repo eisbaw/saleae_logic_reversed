@@ -610,24 +610,97 @@ pub mod endpoint {
 
 /// Device states from the Saleae state machine.
 ///
-/// See `doc/state-machine/device-states.md`. Confirmed from RTTI strings:
-/// `DSInitializing`, `DSReady`, `DSError`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+/// Maps to the binary's `std::variant<DSInitializing, DSReady, DSError>` with
+/// additional states for the full device lifecycle. See
+/// `doc/state-machine/device-states.md`.
+///
+/// The binary uses three variant types (DSInitializing, DSReady, DSError).
+/// We add Disconnected, Bootloader, and Capturing to model the full
+/// lifecycle that the DevicesManager manages externally to the variant.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DeviceState {
-    /// Device is initializing (FW upload, FPGA program, ADC init, crypto).
+    /// No USB connection. Initial state and reset state after errors.
+    Disconnected,
+    /// Device detected in FX3 bootloader mode (bcdDevice=0x0100).
+    /// Firmware upload is the only valid operation.
+    Bootloader,
+    /// Firmware uploaded, waiting for FPGA programming and post-init.
+    /// Maps to the binary's `DSInitializing`.
     Initializing,
-    /// Device is ready for capture.
+    /// FPGA programmed, post-init complete, idle. Maps to `DSReady`.
     Ready,
-    /// Device encountered an unrecoverable error (requires physical reconnect).
-    Error,
+    /// Capture in progress. Sub-state of Ready in the binary
+    /// (the binary tracks this separately, not in the variant).
+    Capturing,
+    /// Unrecoverable error. Maps to `DSError`. Requires physical
+    /// reconnect (transition to Disconnected) to recover.
+    Error(String),
+}
+
+impl DeviceState {
+    /// Check whether a transition from this state to `next` is valid.
+    ///
+    /// Valid transitions:
+    /// - Disconnected -> Bootloader (device found in bootloader)
+    /// - Bootloader -> Initializing (firmware uploaded, re-enumerated)
+    /// - Initializing -> Ready (FPGA programmed, post-init done)
+    /// - Ready -> Capturing (capture started)
+    /// - Capturing -> Ready (capture stopped)
+    /// - Any -> Error (on USB/device error)
+    /// - Error -> Disconnected (reset for reconnect)
+    /// - Any -> Disconnected (USB disconnect)
+    pub fn can_transition_to(&self, next: &DeviceState) -> bool {
+        match (self, next) {
+            // Any -> Disconnected (USB disconnect or reset)
+            (_, DeviceState::Disconnected) => true,
+            // Any -> Error (error can happen in any state)
+            (_, DeviceState::Error(_)) => true,
+            // Disconnected -> Bootloader
+            (DeviceState::Disconnected, DeviceState::Bootloader) => true,
+            // Bootloader -> Initializing
+            (DeviceState::Bootloader, DeviceState::Initializing) => true,
+            // Initializing -> Ready
+            (DeviceState::Initializing, DeviceState::Ready) => true,
+            // Ready -> Capturing
+            (DeviceState::Ready, DeviceState::Capturing) => true,
+            // Capturing -> Ready
+            (DeviceState::Capturing, DeviceState::Ready) => true,
+            // All other transitions are invalid
+            _ => false,
+        }
+    }
+
+    /// Short name for this state, suitable for error messages.
+    pub fn name(&self) -> &str {
+        match self {
+            DeviceState::Disconnected => "Disconnected",
+            DeviceState::Bootloader => "Bootloader",
+            DeviceState::Initializing => "Initializing",
+            DeviceState::Ready => "Ready",
+            DeviceState::Capturing => "Capturing",
+            DeviceState::Error(_) => "Error",
+        }
+    }
 }
 
 impl std::fmt::Display for DeviceState {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            DeviceState::Disconnected => f.write_str("Disconnected"),
+            DeviceState::Bootloader => f.write_str("Bootloader"),
             DeviceState::Initializing => f.write_str("Initializing"),
             DeviceState::Ready => f.write_str("Ready"),
-            DeviceState::Error => f.write_str("Error"),
+            DeviceState::Capturing => f.write_str("Capturing"),
+            DeviceState::Error(msg) => write!(f, "Error: {msg}"),
+        }
+    }
+}
+
+impl std::hash::Hash for DeviceState {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        core::mem::discriminant(self).hash(state);
+        if let DeviceState::Error(msg) = self {
+            msg.hash(state);
         }
     }
 }
