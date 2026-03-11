@@ -18,5 +18,6 @@ pub mod ep1;
 pub mod error;
 pub mod firmware;
 pub mod fpga;
+pub mod transfer_queue;
 
 pub use error::{DriverError, DriverResult};
