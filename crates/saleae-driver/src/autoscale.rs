@@ -791,7 +791,7 @@ mod tests {
         // Due to discrete sampling the count may vary by a small amount.
         let crossings = k.crossings();
         assert!(
-            crossings >= 90 && crossings <= 110,
+            (90..=110).contains(&crossings),
             "expected ~100 crossings, got {}",
             crossings
         );
@@ -816,7 +816,7 @@ mod tests {
         // crossings. The exact count depends on the state machine behavior.
         let crossings = k.crossings();
         assert!(
-            crossings >= 6 && crossings < CROSSING_THRESHOLD_TOO_FAST,
+            (6..CROSSING_THRESHOLD_TOO_FAST).contains(&crossings),
             "expected AC-range crossings, got {}",
             crossings
         );
@@ -863,7 +863,11 @@ mod tests {
         // -50 should NOT trigger Negative (need < -50).
         let samples = vec![49, -50, 49, -50, 49, -50];
         k.process(&samples);
-        assert_eq!(k.crossings(), 0, "boundary values should not trigger crossings");
+        assert_eq!(
+            k.crossings(),
+            0,
+            "boundary values should not trigger crossings"
+        );
 
         // +50 should trigger Positive, -51 should trigger Negative.
         let mut k2 = FullScaleKernel::new();
@@ -985,7 +989,9 @@ mod tests {
     #[test]
     fn full_scale_frequency_zero_rate_returns_none() {
         let mut k = FullScaleKernel::new();
-        let samples: Vec<i16> = (0..100).map(|i| if i % 2 == 0 { 500 } else { -500 }).collect();
+        let samples: Vec<i16> = (0..100)
+            .map(|i| if i % 2 == 0 { 500 } else { -500 })
+            .collect();
         k.process(&samples);
         assert!(k.estimate_frequency(0).is_none());
     }
@@ -1253,7 +1259,9 @@ mod tests {
         let mut scaler = AutoScaler::new(1, 12);
 
         // Phase 1: very fast alternation.
-        let samples: Vec<i16> = (0..10000).map(|i| if i % 2 == 0 { 100 } else { -100 }).collect();
+        let samples: Vec<i16> = (0..10000)
+            .map(|i| if i % 2 == 0 { 100 } else { -100 })
+            .collect();
         scaler.process_full_scale(0, &samples);
         scaler.finish_full_scale();
         assert_eq!(scaler.channel_state(0), ChannelState::TooFast);

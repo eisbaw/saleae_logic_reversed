@@ -199,7 +199,10 @@ fn firmware_upload_sends_correct_control_transfers() {
                 b_request,
                 ..
             } => {
-                assert_eq!(*bm_request_type, 0x40, "bmRequestType should be vendor host-to-device");
+                assert_eq!(
+                    *bm_request_type, 0x40,
+                    "bmRequestType should be vendor host-to-device"
+                );
                 assert_eq!(*b_request, 0xA0, "bRequest should be FX3 FW_UPLOAD");
             }
             _ => panic!("expected only ControlOut operations during firmware upload"),
@@ -209,7 +212,10 @@ fn firmware_upload_sends_correct_control_transfers() {
     // First section: address 0x00000100.
     match &ops[0] {
         UsbOperation::ControlOut {
-            w_value, w_index, data, ..
+            w_value,
+            w_index,
+            data,
+            ..
         } => {
             assert_eq!(*w_value, 0x0100, "section 1 w_value (low 16 of addr)");
             assert_eq!(*w_index, 0x0000, "section 1 w_index (high 16 of addr)");
@@ -221,7 +227,10 @@ fn firmware_upload_sends_correct_control_transfers() {
     // Second section: address 0x40003000.
     match &ops[1] {
         UsbOperation::ControlOut {
-            w_value, w_index, data, ..
+            w_value,
+            w_index,
+            data,
+            ..
         } => {
             assert_eq!(*w_value, 0x3000, "section 2 w_value");
             assert_eq!(*w_index, 0x4000, "section 2 w_index");
@@ -233,7 +242,10 @@ fn firmware_upload_sends_correct_control_transfers() {
     // Entry trigger: zero-length transfer to entry address 0x4000e020.
     match &ops[2] {
         UsbOperation::ControlOut {
-            w_value, w_index, data, ..
+            w_value,
+            w_index,
+            data,
+            ..
         } => {
             assert_eq!(*w_value, 0xe020, "entry w_value");
             assert_eq!(*w_index, 0x4000, "entry w_index");
@@ -271,10 +283,11 @@ fn firmware_upload_large_section_chunks_at_4096() {
         .iter()
         .filter_map(|op| match op {
             UsbOperation::ControlOut {
-                w_value, w_index, data, ..
-            } if !data.is_empty() => {
-                Some((*w_index as u32) << 16 | (*w_value as u32))
-            }
+                w_value,
+                w_index,
+                data,
+                ..
+            } if !data.is_empty() => Some((*w_index as u32) << 16 | (*w_value as u32)),
             _ => None,
         })
         .collect();
@@ -314,14 +327,21 @@ fn fpga_programming_sends_reset_data_verify() {
     let ops = mock.operations();
     let out_data = extract_bulk_out_data(&ops);
 
-    assert_eq!(out_data.len(), 3, "expected 3 OUT transfers: reset + data + verify");
+    assert_eq!(
+        out_data.len(),
+        3,
+        "expected 3 OUT transfers: reset + data + verify"
+    );
 
     // With EncryptionMode::None, wire bytes are raw [opcode, payload...].
     // Op 0: ResetFpga (0x7E)
     assert_eq!(out_data[0][0], 0x7E, "first command: ResetFpga opcode");
 
     // Op 1: WriteConfigurationData (0x7F)
-    assert_eq!(out_data[1][0], 0x7F, "second command: WriteConfigData opcode");
+    assert_eq!(
+        out_data[1][0], 0x7F,
+        "second command: WriteConfigData opcode"
+    );
 
     // Op 2: ReadRegisters (0x81) to verify readback
     assert_eq!(out_data[2][0], 0x81, "third command: ReadRegisters opcode");
@@ -366,7 +386,11 @@ fn fpga_post_init_writes_registers_in_order() {
 
     let ops = mock.operations();
     let out_data = extract_bulk_out_data(&ops);
-    assert_eq!(out_data.len(), 5, "5 register writes for non-Lattice post-init");
+    assert_eq!(
+        out_data.len(),
+        5,
+        "5 register writes for non-Lattice post-init"
+    );
 
     // With EncryptionMode::None, wire format is raw bytes.
     // First write: COMMIT_CONTROL (0x01C0) via 16-bit path.
@@ -376,11 +400,8 @@ fn fpga_post_init_writes_registers_in_order() {
     assert_eq!(out_data[0][1], 0xC0, "COMMIT_CONTROL addr_lo");
 
     // Remaining writes use 8-bit path: opcode 0x80 (WriteRegisters).
-    for i in 1..5 {
-        assert_eq!(
-            out_data[i][0], 0x80,
-            "register write {i} should use opcode 0x80"
-        );
+    for (i, data) in out_data.iter().enumerate().skip(1) {
+        assert_eq!(data[0], 0x80, "register write {i} should use opcode 0x80");
     }
 
     // Verify specific register addresses in the 8-bit path payload.
@@ -388,7 +409,10 @@ fn fpga_post_init_writes_registers_in_order() {
     // So out_data[i] = [0x80, 0x01, addr, value]
     assert_eq!(out_data[1][2], 0x40, "write 2: CAPTURE_CONTROL addr=0x40");
     assert_eq!(out_data[2][2], 0xE0, "write 3: INIT_CONFIG addr=0xE0");
-    assert_eq!(out_data[3][2], 0x24, "write 4: GPIF_FLUSH_TIMEOUT addr=0x24");
+    assert_eq!(
+        out_data[3][2], 0x24,
+        "write 4: GPIF_FLUSH_TIMEOUT addr=0x24"
+    );
     assert_eq!(out_data[4][2], 0x20, "write 5: GPIF_ENABLE addr=0x20");
 }
 
@@ -571,8 +595,7 @@ fn capture_lifecycle_start_stream_stop() {
     // StartSampling response (2 bytes)
     mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00, 0x00]);
 
-    let mut stream =
-        saleae_driver::capture::start_digital_capture(&mut channel, &config).unwrap();
+    let mut stream = saleae_driver::capture::start_digital_capture(&mut channel, &config).unwrap();
 
     assert!(!stream.is_stopped());
     assert_eq!(stream.total_samples(), 0);
@@ -667,8 +690,7 @@ fn capture_stream_returns_none_after_stop() {
 
     // Start capture.
     queue_capture_start_responses(&mock, 2);
-    let mut stream =
-        saleae_driver::capture::start_digital_capture(&mut channel, &config).unwrap();
+    let mut stream = saleae_driver::capture::start_digital_capture(&mut channel, &config).unwrap();
 
     // Stop the stream.
     mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]); // StopDataPath
@@ -693,8 +715,7 @@ fn capture_stop_is_idempotent() {
 
     // Start capture.
     queue_capture_start_responses(&mock, 2);
-    let mut stream =
-        saleae_driver::capture::start_digital_capture(&mut channel, &config).unwrap();
+    let mut stream = saleae_driver::capture::start_digital_capture(&mut channel, &config).unwrap();
 
     // First stop.
     mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
@@ -729,8 +750,7 @@ fn capture_stream_read_handles_usb_error() {
 
     // Start capture.
     queue_capture_start_responses(&mock, 2);
-    let mut stream =
-        saleae_driver::capture::start_digital_capture(&mut channel, &config).unwrap();
+    let mut stream = saleae_driver::capture::start_digital_capture(&mut channel, &config).unwrap();
 
     // Inject a USB error on EP2 IN (simulating disconnect).
     mock.push_bulk_in_error(
@@ -765,10 +785,7 @@ fn ep1_command_handles_bulk_out_failure() {
 
     // Now the channel is initialized but the next bulk IN will fail.
     // Queue a ping, but the response will be an error.
-    mock.push_bulk_in_error(
-        endpoint::BULK_IN,
-        UsbError::Timeout { timeout_ms: 1000 },
-    );
+    mock.push_bulk_in_error(endpoint::BULK_IN, UsbError::Timeout { timeout_ms: 1000 });
 
     let result = channel.ping();
     assert!(result.is_err(), "timeout should propagate as error");
@@ -829,10 +846,7 @@ fn common_device_init_non_lattice_reads_eeprom() {
     let ops = mock.operations();
     let out_data = extract_bulk_out_data(&ops);
     assert_eq!(out_data.len(), 1, "only EEPROM read command");
-    assert_eq!(
-        out_data[0][0], 0x88,
-        "EEPROM read should use opcode 0x88"
-    );
+    assert_eq!(out_data[0][0], 0x88, "EEPROM read should use opcode 0x88");
 }
 
 // ===========================================================================

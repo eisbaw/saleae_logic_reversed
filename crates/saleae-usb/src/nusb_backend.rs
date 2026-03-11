@@ -89,10 +89,7 @@ where
                 );
                 Err(UsbError::BulkTransfer {
                     endpoint,
-                    context: format!(
-                        "bulk {direction} timed out after {:?}",
-                        BULK_TIMEOUT
-                    ),
+                    context: format!("bulk {direction} timed out after {:?}", BULK_TIMEOUT),
                 })
             },
         )

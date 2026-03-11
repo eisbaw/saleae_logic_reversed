@@ -812,7 +812,10 @@ impl Ep1CommandChannel {
         let n = self.recv_response(&mut buf)?;
 
         let response = if n > 0 { buf[0] } else { 0 };
-        debug!(response = format_args!("{response:#04x}"), "Device2_1 response");
+        debug!(
+            response = format_args!("{response:#04x}"),
+            "Device2_1 response"
+        );
         Ok(response)
     }
 
@@ -952,6 +955,17 @@ mod tests {
         let mock = Box::new(MockTransport::new());
         let channel = Ep1CommandChannel::new(mock, EncryptionMode::XorAll);
         assert!(!channel.is_initialized());
+    }
+
+    #[test]
+    fn new_channel_uses_firmware_default_seed() {
+        let mock = Box::new(MockTransport::new());
+        let channel = Ep1CommandChannel::new(mock, EncryptionMode::XorAll);
+        assert_eq!(
+            channel.encryption.seed(),
+            saleae_proto::obfuscation::DEFAULT_INITIAL_SEED,
+            "Ep1CommandChannel must start with firmware's hardcoded seed"
+        );
     }
 
     #[test]

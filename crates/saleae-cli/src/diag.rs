@@ -75,16 +75,22 @@ pub fn raw_ep1_test() -> Result<()> {
     let seed_bytes = [0x01, 0x02, 0x03, 0x04];
     let seed = u32::from_le_bytes(seed_bytes);
 
+    // Encrypt the reseed with the firmware's hardcoded initial seed.
+    let mut enc = saleae_proto::SimpleEncryption::new(
+        saleae_proto::obfuscation::DEFAULT_INITIAL_SEED,
+        saleae_proto::EncryptionMode::XorAll,
+    );
+    let encrypted_reseed = enc.encrypt_reseed(&seed_bytes);
+    enc.reseed(seed);
+
     // -----------------------------------------------------------------------
-    // Step 1: Send reseed (4 raw bytes on EP1 OUT)
+    // Step 1: Send encrypted reseed on EP1 OUT
     // -----------------------------------------------------------------------
-    println!("[1/4] Sending reseed (4 bytes) on EP1 OUT...");
-    match bulk_out_with_timeout(
-        &interface,
-        0x01,
-        seed_bytes.to_vec(),
-        Duration::from_secs(3),
-    ) {
+    println!(
+        "[1/4] Sending encrypted reseed ({} bytes) on EP1 OUT...",
+        encrypted_reseed.len()
+    );
+    match bulk_out_with_timeout(&interface, 0x01, encrypted_reseed, Duration::from_secs(3)) {
         Ok((status, len, elapsed)) => {
             println!("      OUT: {elapsed:?}, status={status:?}, len={len}");
             if status.is_err() {
@@ -103,11 +109,6 @@ pub fn raw_ep1_test() -> Result<()> {
     }
     println!("      First OUT accepted by DMA.");
     println!();
-
-    // -----------------------------------------------------------------------
-    // Step 2: Send encrypted ping on EP1 OUT
-    // -----------------------------------------------------------------------
-    let mut enc = saleae_proto::SimpleEncryption::new(seed, saleae_proto::EncryptionMode::XorAll);
     let encrypted_ping = enc.encrypt_command(0x7D, &[0x55], false);
     println!(
         "[2/4] Sending encrypted ping {:02x?} on EP1 OUT...",

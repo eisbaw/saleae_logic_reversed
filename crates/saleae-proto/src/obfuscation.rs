@@ -829,8 +829,7 @@ mod tests {
         // Validate against pcap frame 15: reseed from state 0x354b248e
         // Seed bytes (LE of 0x6fe77bc8): [0xc8, 0x7b, 0xe7, 0x6f]
         // Wire bytes from pcap: [0x66, 0xec, 0x30, 0xd2, 0xe1]
-        let old_state = 0x354b248e_u32;
-        let mut enc = SimpleEncryption::new(old_state, EncryptionMode::XorAll);
+        let mut enc = SimpleEncryption::new(DEFAULT_INITIAL_SEED, EncryptionMode::XorAll);
         let seed_bytes: [u8; 4] = [0xc8, 0x7b, 0xe7, 0x6f];
         let wire = enc.encrypt_reseed(&seed_bytes);
         assert_eq!(
@@ -855,9 +854,7 @@ mod tests {
     /// through multiple command/response pairs.
     #[test]
     fn pcap_validation_full_sequence() {
-        // Pre-reseed LFSR state (derived from pcap frame 15)
-        let pre_reseed_state = 0x354b248e_u32;
-        let mut enc = SimpleEncryption::new(pre_reseed_state, EncryptionMode::XorAll);
+        let mut enc = SimpleEncryption::new(DEFAULT_INITIAL_SEED, EncryptionMode::XorAll);
 
         // Frame 15: EP1 OUT 5 bytes - ReseedDevice
         let seed_bytes: [u8; 4] = [0xc8, 0x7b, 0xe7, 0x6f]; // 0x6fe77bc8 LE
@@ -1039,11 +1036,9 @@ mod tests {
 
     #[test]
     fn encrypt_reseed_always_uses_initial_seed() {
-        // The initial/default seed that both host and firmware start with.
-        let initial_seed = 0x354b248e_u32;
-        let mut enc = SimpleEncryption::new(initial_seed, EncryptionMode::XorAll);
+        let mut enc = SimpleEncryption::new(DEFAULT_INITIAL_SEED, EncryptionMode::XorAll);
 
-        // Reseed #1: encrypt with initial seed (0x354b248e).
+        // Reseed #1: encrypt with initial seed.
         let seed1_bytes: [u8; 4] = [0xc8, 0x7b, 0xe7, 0x6f]; // 0x6fe77bc8 LE
         let wire1 = enc.encrypt_reseed(&seed1_bytes);
         assert_eq!(
@@ -1065,8 +1060,8 @@ mod tests {
         let seed2_bytes: [u8; 4] = [0x11, 0x22, 0x33, 0x44];
         let wire2 = enc.encrypt_reseed(&seed2_bytes);
 
-        // Compute expected wire bytes using initial_seed as key.
-        let key = initial_seed;
+        // Compute expected wire bytes using DEFAULT_INITIAL_SEED as key.
+        let key = DEFAULT_INITIAL_SEED;
         let expected_control =
             ((seed2_bytes[0] & CONTROL_MASK) | RESEED_FLAG) ^ (seed_byte(key, 0) & CONTROL_MASK);
         let expected = vec![
@@ -1103,8 +1098,7 @@ mod tests {
 
     #[test]
     fn reseed_does_not_change_initial_seed() {
-        let initial = 0x354b248e_u32;
-        let mut enc = SimpleEncryption::new(initial, EncryptionMode::XorAll);
+        let mut enc = SimpleEncryption::new(DEFAULT_INITIAL_SEED, EncryptionMode::XorAll);
 
         // Reseed changes the rolling state but not the initial seed.
         enc.reseed(0xAAAAAAAA);
@@ -1112,7 +1106,7 @@ mod tests {
 
         // Verify encrypt_reseed still uses the original initial seed by
         // checking it produces the same output as a fresh instance.
-        let fresh = SimpleEncryption::new(initial, EncryptionMode::XorAll);
+        let fresh = SimpleEncryption::new(DEFAULT_INITIAL_SEED, EncryptionMode::XorAll);
         let test_bytes: [u8; 4] = [0x11, 0x22, 0x33, 0x44];
 
         let mut enc_clone = enc.clone();
