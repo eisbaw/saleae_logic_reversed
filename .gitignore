@@ -53,6 +53,9 @@ __pycache__/
 .DS_Store
 Thumbs.db
 
+# MCP server config (machine-specific nix store paths)
+.mcp.json
+
 # Scratch / temporary
 SCRATCHPAD.md
 cruft/
