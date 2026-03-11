@@ -13,6 +13,7 @@ pub mod disaggregator;
 pub mod error;
 pub mod firmware;
 pub mod fpga_regs;
+pub mod graph_time;
 pub mod obfuscation;
 
 // Re-export key types at crate root for convenience.
@@ -28,4 +29,5 @@ pub use device::{
 pub use disaggregator::{DisaggregatedData, Disaggregator, MixRateResult};
 pub use error::{ProtoError, ProtoResult};
 pub use firmware::fx3::{Fx3Image, Fx3Section};
+pub use graph_time::GraphTime;
 pub use obfuscation::{EncryptionMode, SimpleEncryption};
