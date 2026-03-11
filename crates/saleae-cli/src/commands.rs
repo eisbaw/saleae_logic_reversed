@@ -782,12 +782,13 @@ fn create_channel_processor(
     Ok(saleae_proto::AnalogProcessor::new(transform, filter))
 }
 
-/// Parse an export format string ("csv" or "binary") into an ExportFormat.
+/// Parse an export format string ("csv", "binary", or "sal") into an ExportFormat.
 fn parse_export_format(s: &str) -> Result<saleae_proto::ExportFormat> {
     match s.to_lowercase().as_str() {
         "csv" => Ok(saleae_proto::ExportFormat::Csv),
         "binary" | "bin" => Ok(saleae_proto::ExportFormat::Binary),
-        _ => bail!("unknown export format: {s:?}. Expected \"csv\" or \"binary\"."),
+        "sal" => Ok(saleae_proto::ExportFormat::Sal),
+        _ => bail!("unknown export format: {s:?}. Expected \"csv\", \"binary\", or \"sal\"."),
     }
 }
 

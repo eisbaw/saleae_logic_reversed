@@ -53,7 +53,7 @@ enum Command {
         #[arg(long)]
         output: Option<String>,
 
-        /// Export format: "csv" (default) or "binary".
+        /// Export format: "csv" (default), "binary", or "sal".
         #[arg(long, default_value = "csv")]
         format: String,
     },
@@ -118,7 +118,7 @@ enum Command {
         #[arg(long)]
         output: Option<String>,
 
-        /// Export format: "csv" (default) or "binary".
+        /// Export format: "csv" (default), "binary", or "sal".
         #[arg(long, default_value = "csv")]
         format: String,
     },

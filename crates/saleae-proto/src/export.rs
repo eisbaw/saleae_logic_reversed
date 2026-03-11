@@ -37,6 +37,11 @@ pub enum ExportFormat {
     Csv,
     /// Binary format (one file per channel).
     Binary,
+    /// Saleae Logic 2 `.sal` archive format.
+    ///
+    /// Produces a ZIP file compatible with `File > Open Capture` in
+    /// Saleae Logic 2. See [`crate::sal`] for format details.
+    Sal,
 }
 
 /// Configuration for a data export session.
@@ -378,6 +383,9 @@ pub enum DigitalExporter {
 
 impl DigitalExporter {
     /// Create a digital exporter from configuration.
+    ///
+    /// Returns an error for `ExportFormat::Sal` -- use [`crate::sal::SalWriter`]
+    /// directly for `.sal` archive output.
     pub fn new(config: &ExportConfig) -> io::Result<Self> {
         match config.format {
             ExportFormat::Csv => {
@@ -392,6 +400,10 @@ impl DigitalExporter {
                 let writer = DigitalBinaryWriter::new(&config.output_dir, &config.channels)?;
                 Ok(DigitalExporter::Binary(writer))
             }
+            ExportFormat::Sal => Err(io::Error::new(
+                io::ErrorKind::Unsupported,
+                "use SalWriter for .sal format output",
+            )),
         }
     }
 
@@ -414,6 +426,9 @@ pub enum AnalogExporter {
 
 impl AnalogExporter {
     /// Create an analog exporter from configuration.
+    ///
+    /// Returns an error for `ExportFormat::Sal` -- use [`crate::sal::SalWriter`]
+    /// directly for `.sal` archive output.
     pub fn new(config: &ExportConfig) -> io::Result<Self> {
         match config.format {
             ExportFormat::Csv => {
@@ -425,6 +440,10 @@ impl AnalogExporter {
                 let writer = AnalogBinaryWriter::new(&config.output_dir, &config.channels)?;
                 Ok(AnalogExporter::Binary(writer))
             }
+            ExportFormat::Sal => Err(io::Error::new(
+                io::ErrorKind::Unsupported,
+                "use SalWriter for .sal format output",
+            )),
         }
     }
 

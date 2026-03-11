@@ -13,6 +13,7 @@ pub mod disaggregator;
 pub mod error;
 pub mod export;
 pub mod firmware;
+pub mod sal;
 pub mod fpga_regs;
 pub mod gpif;
 pub mod graph_time;
@@ -37,6 +38,7 @@ pub use export::{
     DigitalExporter, ExportConfig, ExportFormat,
 };
 pub use firmware::fx3::{Fx3Image, Fx3Section};
+pub use sal::{SalAnalogChannel, SalCaptureInfo, SalDigitalChannel, SalWriter};
 pub use gpif::{GpifBusWidth, GpifConfig};
 pub use graph_time::GraphTime;
 pub use obfuscation::{EncryptionMode, SimpleEncryption};
