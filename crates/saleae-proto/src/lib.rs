@@ -9,6 +9,7 @@ pub mod biquad;
 pub mod calibration;
 pub mod capture_data;
 pub mod device;
+pub mod disaggregator;
 pub mod error;
 pub mod firmware;
 pub mod fpga_regs;
@@ -21,9 +22,10 @@ pub use calibration::{
     BiquadSection, CalibrationData, CalibrationSet, VoltageRange, VoltageTransform,
 };
 pub use device::{
-    BootState, DeviceProfile, DeviceType, FpgaType, SaleaeDevice, UsbId, UsbSpeed,
-    LOGIC_4_PROFILE, LOGIC_8_PROFILE, LOGIC_PRO_8_PROFILE, LOGIC_PRO_16_PROFILE,
+    BootState, DeviceProfile, DeviceType, FpgaType, SaleaeDevice, UsbId, UsbSpeed, LOGIC_4_PROFILE,
+    LOGIC_8_PROFILE, LOGIC_PRO_16_PROFILE, LOGIC_PRO_8_PROFILE,
 };
+pub use disaggregator::{DisaggregatedData, Disaggregator, MixRateResult};
 pub use error::{ProtoError, ProtoResult};
 pub use firmware::fx3::{Fx3Image, Fx3Section};
 pub use obfuscation::{EncryptionMode, SimpleEncryption};

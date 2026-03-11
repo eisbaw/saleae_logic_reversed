@@ -468,10 +468,10 @@ pub static LOGIC_4_PROFILE: DeviceProfile = DeviceProfile {
     digital_channels: 4,
     analog_channels: 4,
     fpga_type: FpgaType::NonPro,
-    adc_bits: 8,   // HMCAD1100 (Xilinx rev), 12 for ADS528x (Lattice rev)
+    adc_bits: 8,    // HMCAD1100 (Xilinx rev), 12 for ADS528x (Lattice rev)
     gpif_width: 16, // FX2LP has 8 or 16-bit GPIF
     supports_encryption: false,
-    max_digital_rate_usb3: 12_000_000,  // Logic 4 is USB 2.0 only
+    max_digital_rate_usb3: 12_000_000, // Logic 4 is USB 2.0 only
     max_digital_rate_usb2: 12_000_000,
     max_analog_rate: 6_000_000,
 };
@@ -963,10 +963,7 @@ mod tests {
 
     #[test]
     fn default_forced_usb_speed() {
-        assert_eq!(
-            LOGIC_8_PROFILE.default_forced_usb_speed(),
-            UsbSpeed::High
-        );
+        assert_eq!(LOGIC_8_PROFILE.default_forced_usb_speed(), UsbSpeed::High);
         assert_eq!(
             LOGIC_PRO_8_PROFILE.default_forced_usb_speed(),
             UsbSpeed::Super

@@ -151,7 +151,11 @@ pub fn program_fpga(
     ep1.reset_fpga()?;
 
     // Step 2: Send the bitstream data, chunked per device profile.
-    debug!("Sending bitstream data ({} bytes, chunk_size={})", bitstream.len(), chunk_size);
+    debug!(
+        "Sending bitstream data ({} bytes, chunk_size={})",
+        bitstream.len(),
+        chunk_size
+    );
     ep1.write_config_data_chunked(bitstream, chunk_size, read_ack)?;
 
     // Step 3: Verify readback.
@@ -683,7 +687,13 @@ mod tests {
         let mut channel = mock_channel(&mock);
         let bitstream = vec![0xFF; 100]; // 100-byte test bitstream
 
-        program_fpga(&mut channel, &bitstream, &LOGIC_PRO_8_PROFILE, UsbSpeed::Super).unwrap();
+        program_fpga(
+            &mut channel,
+            &bitstream,
+            &LOGIC_PRO_8_PROFILE,
+            UsbSpeed::Super,
+        )
+        .unwrap();
 
         // Verify sequence of operations.
         let ops = mock.operations();
@@ -741,7 +751,13 @@ mod tests {
         mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x55]); // Wrong readback!
 
         let mut channel = mock_channel(&mock);
-        let err = program_fpga(&mut channel, &[0xFF; 10], &LOGIC_PRO_8_PROFILE, UsbSpeed::Super).unwrap_err();
+        let err = program_fpga(
+            &mut channel,
+            &[0xFF; 10],
+            &LOGIC_PRO_8_PROFILE,
+            UsbSpeed::Super,
+        )
+        .unwrap_err();
         let msg = err.to_string();
         assert!(
             msg.contains("0x55") && msg.contains("0xaa"),
@@ -758,7 +774,13 @@ mod tests {
         mock.push_bulk_in_response(endpoint::BULK_IN, vec![]); // Empty!
 
         let mut channel = mock_channel(&mock);
-        let err = program_fpga(&mut channel, &[0xFF; 10], &LOGIC_PRO_8_PROFILE, UsbSpeed::Super).unwrap_err();
+        let err = program_fpga(
+            &mut channel,
+            &[0xFF; 10],
+            &LOGIC_PRO_8_PROFILE,
+            UsbSpeed::Super,
+        )
+        .unwrap_err();
         let msg = err.to_string();
         assert!(
             msg.contains("no data"),
@@ -786,7 +808,13 @@ mod tests {
         mock.push_bulk_in_response(endpoint::BULK_IN, vec![0xAA]); // Readback OK
 
         let mut channel = mock_channel(&mock);
-        program_fpga(&mut channel, &bitstream, &LOGIC_PRO_8_PROFILE, UsbSpeed::Super).unwrap();
+        program_fpga(
+            &mut channel,
+            &bitstream,
+            &LOGIC_PRO_8_PROFILE,
+            UsbSpeed::Super,
+        )
+        .unwrap();
 
         // Count OUT operations
         let ops = mock.operations();
