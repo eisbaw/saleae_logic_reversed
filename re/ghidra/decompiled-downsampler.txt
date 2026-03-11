@@ -1,0 +1,2664 @@
+openjdk version "21.0.9" 2025-10-21
+OpenJDK Runtime Environment (build 21.0.9+-nixos)
+OpenJDK 64-Bit Server VM (build 21.0.9+-nixos, mixed mode)
+Module manifest file error on line 2 of file: /home/mpedersen/.config/ghidra/ghidra_11.3.2_NIX/Extensions/GhidraMCP/Module.manifest
+	-> Invalid line encountered: GHIDRA_MODULE_NAME=GhidraMCP
+Module manifest file error on line 3 of file: /home/mpedersen/.config/ghidra/ghidra_11.3.2_NIX/Extensions/GhidraMCP/Module.manifest
+	-> Invalid line encountered: GHIDRA_MODULE_DESC=An HTTP server plugin for Ghidra
+Module manifest file error on line 2 of file: /home/mpedersen/.config/ghidra/ghidra_11.3.2_NIX/Extensions/GhidraMCP/Module.manifest
+	-> Invalid line encountered: GHIDRA_MODULE_NAME=GhidraMCP
+Module manifest file error on line 3 of file: /home/mpedersen/.config/ghidra/ghidra_11.3.2_NIX/Extensions/GhidraMCP/Module.manifest
+	-> Invalid line encountered: GHIDRA_MODULE_DESC=An HTTP server plugin for Ghidra
+INFO  Using log config file: jar:file:/nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Framework/Generic/lib/Generic.jar!/generic.log4j.xml (LoggingInitialization)  
+INFO  Using log file: /home/mpedersen/.config/ghidra/ghidra_11.3.2_NIX/application.log (LoggingInitialization)  
+INFO  Loading user preferences: /home/mpedersen/.config/ghidra/ghidra_11.3.2_NIX/preferences (Preferences)  
+INFO  Searching for classes... (ClassSearcher)  
+INFO  Class search complete (678 ms) (ClassSearcher)  
+INFO  Initializing SSL Context (SSLContextInitializer)  
+INFO  Initializing Random Number Generator... (SecureRandomFactory)  
+INFO  Random Number Generator initialization complete: NativePRNGNonBlocking (SecureRandomFactory)  
+INFO  Trust manager disabled, cacerts have not been set (ApplicationTrustManagerFactory)  
+INFO  Headless startup complete (1416 ms) (AnalyzeHeadless)  
+INFO  Class searcher loaded 57 extension points (18 false positives) (ClassSearcher)  
+INFO  HEADLESS Script Paths:
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Processors/DATA/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/Jython/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/MicrosoftCodeAnalyzer/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Processors/PIC/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Debug/Debugger/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/SwiftDemangler/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/Base/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/PyGhidra/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/FunctionID/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Debug/Debugger-rmi-trace/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/DecompilerDependent/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/BSim/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/BytePatterns/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/Decompiler/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/WildcardAssembler/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/GnuDemangler/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/PDB/ghidra_scripts
+    /home/mpedersen/nvidia/saleae_reverse/re/ghidra/scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Processors/Atmel/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/FileFormats/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/SystemEmulation/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Processors/JVM/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Processors/8051/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/VersionTracking/ghidra_scripts (HeadlessAnalyzer)  
+INFO  HEADLESS: execution starts (HeadlessAnalyzer)  
+INFO  Opening existing project: /home/mpedersen/nvidia/saleae_reverse/ghidra_proj2/sal_rev2 (HeadlessAnalyzer)  
+INFO  Opening project: /home/mpedersen/nvidia/saleae_reverse/ghidra_proj2/sal_rev2 (HeadlessProject)  
+INFO  REPORT: Processing project file: /libgraph_server_shared.so (HeadlessAnalyzer)  
+INFO  SCRIPT: /home/mpedersen/nvidia/saleae_reverse/re/ghidra/scripts/DecompileDownsampler.java (HeadlessAnalyzer)  
+INFO  DecompileDownsampler.java> === PHASE 1: Finding relevant strings ===
+ (GhidraScript)  
+INFO  DecompileDownsampler.java> STRING @ 00454c73: virtual void Saleae::Graph::WaveformSummaryNode::SetApi(std::shared_ptr<Api>, uint64_t) (GhidraScript)  
+INFO  DecompileDownsampler.java>   -> XREF from FUN_02d803b0 @ 02d803b0 (GhidraScript)  
+INFO  DecompileDownsampler.java> STRING @ 004550b5: Setting sampling config, downsample={}, pre={}, post={}, stats={}, chunk_size={} (GhidraScript)  
+INFO  DecompileDownsampler.java>   -> XREF from FUN_02e4a280 @ 02e4a280 (GhidraScript)  
+INFO  DecompileDownsampler.java> STRING @ 0046908c: new_sampling_config.mDownsampleRatio == Detail::DownsampleRatioFloor( new_sampling_config.mDownsampleMode, new_sampling_... (GhidraScript)  
+INFO  DecompileDownsampler.java>   -> XREF from FUN_02e4a280 @ 02e4a280 (GhidraScript)  
+INFO  DecompileDownsampler.java> STRING @ 004697e6: !mDownsampler (GhidraScript)  
+INFO  DecompileDownsampler.java>   -> XREF from FUN_01bc8f20 @ 01bc8f20 (GhidraScript)  
+INFO  DecompileDownsampler.java>   -> XREF from FUN_01bc8640 @ 01bc8640 (GhidraScript)  
+INFO  DecompileDownsampler.java> STRING @ 004705f4: Received sampling config with a downsampler already initialized (GhidraScript)  
+INFO  DecompileDownsampler.java>   -> XREF from FUN_01bc8640 @ 01bc8640 (GhidraScript)  
+INFO  DecompileDownsampler.java>   -> XREF from FUN_01bc8640 @ 01bc8640 (GhidraScript)  
+INFO  DecompileDownsampler.java> STRING @ 004771f9: /downsampleRatio (GhidraScript)  
+INFO  DecompileDownsampler.java>   -> XREF from FUN_02e83360 @ 02e83360 (GhidraScript)  
+INFO  DecompileDownsampler.java>   -> XREF from FUN_02e852f0 @ 02e852f0 (GhidraScript)  
+INFO  DecompileDownsampler.java>   -> XREF from FUN_02e852f0 @ 02e852f0 (GhidraScript)  
+INFO  DecompileDownsampler.java> STRING @ 0047d889: Saleae::Graph::WaveformSummaryNode (GhidraScript)  
+INFO  DecompileDownsampler.java>   -> XREF from FUN_02d82400 @ 02d82400 (GhidraScript)  
+INFO  DecompileDownsampler.java> STRING @ 00482768: /waveformSummary (GhidraScript)  
+INFO  DecompileDownsampler.java>   -> XREF from FUN_01c6cf80 @ 01c6cf80 (GhidraScript)  
+INFO  DecompileDownsampler.java> STRING @ 004906d2: mDownsampler (GhidraScript)  
+INFO  DecompileDownsampler.java>   -> XREF from FUN_01bc8640 @ 01bc8640 (GhidraScript)  
+INFO  DecompileDownsampler.java> STRING @ 00496f2d: void Saleae::Utilities::SetField(T &, S, uint64_t, uint64_t) [T = unsigned int, S = Saleae::DownsampleMode_impl::Downsam... (GhidraScript)  
+INFO  DecompileDownsampler.java>   -> XREF from FUN_02e64640 @ 02e64640 (GhidraScript)  
+INFO  DecompileDownsampler.java> STRING @ 004a55cb: Saleae::Graph::AnalogDownsamplerNode (GhidraScript)  
+INFO  DecompileDownsampler.java>   -> XREF from FUN_01bc8380 @ 01bc8380 (GhidraScript)  
+INFO  DecompileDownsampler.java>   -> XREF from FUN_01bc83d0 @ 01bc83d0 (GhidraScript)  
+INFO  DecompileDownsampler.java> STRING @ 004b6e7d: /downsampleMode (GhidraScript)  
+INFO  DecompileDownsampler.java>   -> XREF from FUN_02e83360 @ 02e83360 (GhidraScript)  
+INFO  DecompileDownsampler.java>   -> XREF from FUN_02e852f0 @ 02e852f0 (GhidraScript)  
+INFO  DecompileDownsampler.java>   -> XREF from FUN_02e852f0 @ 02e852f0 (GhidraScript)  
+INFO  DecompileDownsampler.java> STRING @ 004c49f9: virtual void Saleae::Graph::AnalogDownsamplerNode::HandlePipeData(const std::string &, uint64_t, std::shared_ptr<const D... (GhidraScript)  
+INFO  DecompileDownsampler.java>   -> XREF from FUN_01bc8640 @ 01bc8640 (GhidraScript)  
+INFO  DecompileDownsampler.java>   -> XREF from FUN_01bc8640 @ 01bc8640 (GhidraScript)  
+INFO  DecompileDownsampler.java> STRING @ 004d1998: /analogDownsample (GhidraScript)  
+INFO  DecompileDownsampler.java>   -> XREF from FUN_01c15570 @ 01c15570 (GhidraScript)  
+INFO  DecompileDownsampler.java> STRING @ 004df569: Saleae::Graph::WaveformSummaryResult (GhidraScript)  
+INFO  DecompileDownsampler.java>   -> XREF from FUN_02d88690 @ 02d88690 (GhidraScript)  
+INFO  DecompileDownsampler.java>   -> XREF from FUN_02d88650 @ 02d88650 (GhidraScript)  
+INFO  DecompileDownsampler.java> STRING @ 004e0279: Cannot set downsampler rate after execution has begun (GhidraScript)  
+INFO  DecompileDownsampler.java>   -> XREF from FUN_01bc8f20 @ 01bc8f20 (GhidraScript)  
+INFO  DecompileDownsampler.java>   -> XREF from FUN_01bc8f20 @ 01bc8f20 (GhidraScript)  
+INFO  DecompileDownsampler.java> STRING @ 004e64c6: /workspace/monorepo/graph-io/nodes/waveform_summary_node/src/waveform_summary_node/waveform_summary_node.cpp (GhidraScript)  
+INFO  DecompileDownsampler.java>   -> XREF from FUN_02d803b0 @ 02d803b0 (GhidraScript)  
+INFO  DecompileDownsampler.java> STRING @ 004edd40: new_sampling_config.mDownsampleMode != DownsampleMode::MinMax (GhidraScript)  
+INFO  DecompileDownsampler.java>   -> XREF from FUN_02e4a280 @ 02e4a280 (GhidraScript)  
+INFO  DecompileDownsampler.java> STRING @ 0051860b: Received analog data without a downsampler (GhidraScript)  
+INFO  DecompileDownsampler.java>   -> XREF from FUN_01bc8640 @ 01bc8640 (GhidraScript)  
+INFO  DecompileDownsampler.java>   -> XREF from FUN_01bc8640 @ 01bc8640 (GhidraScript)  
+INFO  DecompileDownsampler.java> STRING @ 00518636: Saleae::Graph::AnalogDownsamplerActions::SetAnalogDownsampleRate (GhidraScript)  
+INFO  DecompileDownsampler.java>   -> XREF from FUN_01bc99b0 @ 01bc99b0 (GhidraScript)  
+INFO  DecompileDownsampler.java> STRING @ 0051f6e6: 
+  Id={}, CallId={}, 
+  Sampling Configuration
+    downsample={}, pre={}, post={},
+
+  Trigger
+    enabled={}, source={},... (GhidraScript)  
+INFO  DecompileDownsampler.java>   -> XREF from FUN_02e48400 @ 02e48400 (GhidraScript)  
+INFO  DecompileDownsampler.java> STRING @ 005270c8: /workspace/monorepo/graph-io/nodes/analog_downsampler_node/src/analog_downsampler_node.cpp (GhidraScript)  
+INFO  DecompileDownsampler.java>   -> XREF from FUN_01bc8f20 @ 01bc8f20 (GhidraScript)  
+INFO  DecompileDownsampler.java>   -> XREF from FUN_01bc8640 @ 01bc8640 (GhidraScript)  
+INFO  DecompileDownsampler.java>   -> XREF from FUN_01bc8640 @ 01bc8640 (GhidraScript)  
+INFO  DecompileDownsampler.java> STRING @ 0052dd1a: virtual Saleae::Graph::RequestResult Saleae::Graph::AnalogDownsamplerNode::HandleRequest(const Saleae::Graph::KernelRequ... (GhidraScript)  
+INFO  DecompileDownsampler.java>   -> XREF from FUN_01bc8f20 @ 01bc8f20 (GhidraScript)  
+INFO  DecompileDownsampler.java> STRING @ 00541df0: /analogLimit_MaxDownsampleRatio (GhidraScript)  
+INFO  DecompileDownsampler.java>   -> XREF from FUN_02e77af0 @ 02e77af0 (GhidraScript)  
+INFO  DecompileDownsampler.java> STRING @ 005518e5: NSt3__110__function6__funcIZN6Saleae5Graph13KernelFactory9AddKernelINS3_21AnalogDownsamplerNodeEEEDavEUlvE_NS_9allocator... (GhidraScript)  
+INFO  DecompileDownsampler.java> STRING @ 005519a0: ZN6Saleae5Graph13KernelFactory9AddKernelINS0_21AnalogDownsamplerNodeEEEDavEUlvE_ (GhidraScript)  
+INFO  DecompileDownsampler.java>   -> XREF from FUN_01bc0b50 @ 01bc0b50 (GhidraScript)  
+INFO  DecompileDownsampler.java> STRING @ 005519f1: NSt3__110__function6__funcIZN6Saleae5Graph13KernelFactory9AddKernelINS3_21AnalogDownsamplerNodeEEEDavEUlvE0_NS_9allocato... (GhidraScript)  
+INFO  DecompileDownsampler.java> STRING @ 00551ac7: ZN6Saleae5Graph13KernelFactory9AddKernelINS0_21AnalogDownsamplerNodeEEEDavEUlvE0_ (GhidraScript)  
+INFO  DecompileDownsampler.java>   -> XREF from FUN_01bc0bf0 @ 01bc0bf0 (GhidraScript)  
+INFO  DecompileDownsampler.java> STRING @ 005534a1: NSt3__110__function6__funcIZN6Saleae5Graph13KernelFactory9AddKernelINS3_19WaveformSummaryNodeEEEDavEUlvE_NS_9allocatorIS... (GhidraScript)  
+INFO  DecompileDownsampler.java> STRING @ 0055355a: ZN6Saleae5Graph13KernelFactory9AddKernelINS0_19WaveformSummaryNodeEEEDavEUlvE_ (GhidraScript)  
+INFO  DecompileDownsampler.java>   -> XREF from FUN_01bc1e10 @ 01bc1e10 (GhidraScript)  
+INFO  DecompileDownsampler.java> STRING @ 005535a9: NSt3__110__function6__funcIZN6Saleae5Graph13KernelFactory9AddKernelINS3_19WaveformSummaryNodeEEEDavEUlvE0_NS_9allocatorI... (GhidraScript)  
+INFO  DecompileDownsampler.java> STRING @ 0055367d: ZN6Saleae5Graph13KernelFactory9AddKernelINS0_19WaveformSummaryNodeEEEDavEUlvE0_ (GhidraScript)  
+INFO  DecompileDownsampler.java>   -> XREF from FUN_01bc1eb0 @ 01bc1eb0 (GhidraScript)  
+INFO  DecompileDownsampler.java> STRING @ 005563dd: N6Saleae5Graph24AnalogDownsamplerActions23SetAnalogDownsampleRateE (GhidraScript)  
+INFO  DecompileDownsampler.java> STRING @ 00556420: N6Saleae5Graph21AnalogDownsamplerNodeE (GhidraScript)  
+INFO  DecompileDownsampler.java> STRING @ 00556543: N6Saleae18SerializeConverterINS_5Graph24AnalogDownsamplerActions23SetAnalogDownsampleRateEEE (GhidraScript)  
+INFO  DecompileDownsampler.java> STRING @ 00562811: NSt3__110__function6__funcIZN6Saleae5Graph17ConvenienceKernel19RegisterPipeHandlerINS3_21WaveformSummaryResultENS3_20Ren... (GhidraScript)  
+INFO  DecompileDownsampler.java> STRING @ 00562946: ZN6Saleae5Graph17ConvenienceKernel19RegisterPipeHandlerINS0_21WaveformSummaryResultENS0_20RenderingManagerNodeEEEvPT0_MS... (GhidraScript)  
+INFO  DecompileDownsampler.java>   -> XREF from FUN_01c63bf0 @ 01c63bf0 (GhidraScript)  
+INFO  DecompileDownsampler.java> STRING @ 00563dd7: NSt3__120__shared_ptr_emplaceIN6Saleae5Graph21WaveformSummaryResultENS_9allocatorIS3_EEEE (GhidraScript)  
+INFO  DecompileDownsampler.java> STRING @ 008901e8: N6Saleae5Graph19WaveformSummaryNodeE (GhidraScript)  
+INFO  DecompileDownsampler.java> STRING @ 0089020e: NSt3__110__function6__funcIZN6Saleae5Graph17ConvenienceKernel19RegisterPipeHandlerINS3_21WaveformRenderRequestENS3_19Wav... (GhidraScript)  
+INFO  DecompileDownsampler.java> STRING @ 00890342: ZN6Saleae5Graph17ConvenienceKernel19RegisterPipeHandlerINS0_21WaveformRenderRequestENS0_19WaveformSummaryNodeEEEvPT0_MS5... (GhidraScript)  
+INFO  DecompileDownsampler.java>   -> XREF from FUN_02d80b70 @ 02d80b70 (GhidraScript)  
+INFO  DecompileDownsampler.java> STRING @ 00890832: N6Saleae5Graph21WaveformSummaryResultE (GhidraScript)  
+INFO  DecompileDownsampler.java> 
+=== PHASE 2: Decompiling 23 functions ===
+ (GhidraScript)  
+INFO  DecompileDownsampler.java> 
+======================================== (GhidraScript)  
+INFO  DecompileDownsampler.java> FUNCTION 1/23: FUN_02d803b0 @ 02d803b0 (GhidraScript)  
+INFO  DecompileDownsampler.java> Size: 255 bytes (GhidraScript)  
+INFO  DecompileDownsampler.java> ========================================
+ (GhidraScript)  
+INFO  DecompileDownsampler.java> 
+void FUN_02d803b0(long param_1,long *param_2,undefined8 param_3)
+
+{
+  __shared_weak_count *p_Var1;
+  long lVar2;
+  __shared_weak_count *this;
+  long local_38;
+  __shared_weak_count *p_Stack_30;
+  undefined8 local_28;
+  undefined8 local_20;
+  size_t sStack_18;
+  
+  local_28 = param_3;
+  if (*param_2 != 0) {
+    local_38 = __dynamic_cast(*param_2,&PTR_vtable_02f38878,&PTR_vtable_02f3ec60,0);
+    if (local_38 != 0) {
+      p_Stack_30 = (__shared_weak_count *)param_2[1];
+      if (p_Stack_30 != (__shared_weak_count *)0x0) {
+        LOCK();
+        *(long *)(p_Stack_30 + 8) = *(long *)(p_Stack_30 + 8) + 1;
+        UNLOCK();
+      }
+                    /* try { // try from 02d80408 to 02d80419 has its CatchHandler @ 02d804af */
+      FUN_02d80730(param_1 + 0x120,&local_28,&local_38);
+      this = p_Stack_30;
+      if (p_Stack_30 != (__shared_weak_count *)0x0) {
+        LOCK();
+        p_Var1 = p_Stack_30 + 8;
+        lVar2 = *(long *)p_Var1;
+        *(long *)p_Var1 = *(long *)p_Var1 + -1;
+        UNLOCK();
+        if (lVar2 == 0) {
+          (**(code **)(*(long *)p_Stack_30 + 0x10))(p_Stack_30);
+          std::__shared_weak_count::__release_weak(this);
+          return;
+        }
+      }
+      return;
+    }
+  }
+  local_38 = 0;
+  p_Stack_30 = (__shared_weak_count *)0x0;
+  local_20 = 0;
+  sStack_18 = strlen((char *)0x0);
+                    /* try { // try from 02d80474 to 02d804ae has its CatchHandler @ 02d804af */
+                    /* WARNING: Subroutine does not return */
+  FUN_02eca300("waveform_store_api != nullptr",0x1d,
+               "virtual void Saleae::Graph::WaveformSummaryNode::SetApi(std::shared_ptr<Api>, uint64_t)"
+               ,0x57,
+               "/workspace/monorepo/graph-io/nodes/waveform_summary_node/src/waveform_summary_node/waveform_summary_node.cpp"
+               ,0x6c,0x21,(undefined4)local_20,(undefined4)sStack_18);
+}
+
+ (GhidraScript)  
+INFO  DecompileDownsampler.java> 
+======================================== (GhidraScript)  
+INFO  DecompileDownsampler.java> FUNCTION 2/23: FUN_02e4a280 @ 02e4a280 (GhidraScript)  
+INFO  DecompileDownsampler.java> Size: 4594 bytes (GhidraScript)  
+INFO  DecompileDownsampler.java> ========================================
+ (GhidraScript)  
+INFO  DecompileDownsampler.java> 
+void FUN_02e4a280(long param_1,undefined8 param_2)
+
+{
+  mutex *this;
+  uint uVar1;
+  byte bVar2;
+  char cVar3;
+  short sVar4;
+  int iVar5;
+  uint uVar6;
+  char *pcVar7;
+  undefined8 uVar8;
+  ulong uVar9;
+  long lVar10;
+  double *pdVar11;
+  short sVar12;
+  long lVar13;
+  ulong uVar14;
+  short sVar15;
+  ulong uVar16;
+  undefined *puVar17;
+  ulong uVar18;
+  long lVar19;
+  uint uVar20;
+  ulong uVar21;
+  ulong uVar22;
+  double *pdVar23;
+  long lVar24;
+  long lVar25;
+  long *plVar26;
+  undefined8 *puVar27;
+  bool bVar28;
+  double dVar29;
+  uint local_3f4;
+  long local_3f0;
+  undefined1 local_3e4 [2];
+  bool bStack_3e2;
+  bool bStack_3e1;
+  undefined8 local_3e0;
+  undefined8 local_3d8;
+  size_t sStack_3d0;
+  char *local_3c8;
+  undefined8 local_3c0;
+  undefined4 local_3b8;
+  undefined8 local_3b0;
+  undefined4 local_3a4;
+  undefined *local_3a0;
+  long *local_398;
+  undefined8 local_390;
+  undefined4 uStack_388;
+  char *local_380;
+  long local_378;
+  undefined8 local_370;
+  long local_368;
+  undefined8 local_360;
+  long local_318;
+  undefined8 local_310;
+  double local_308 [91];
+  
+  plVar26 = *(long **)(param_1 + 8);
+  local_310 = *(undefined8 *)(param_1 + 0x18);
+  local_3f0 = plVar26[2];
+  local_3b0 = param_2;
+  local_318 = param_1;
+                    /* try { // try from 02e4a2b2 to 02e4a678 has its CatchHandler @ 02e4b475 */
+  local_3e0 = FUN_02e39a60(param_2);
+  pcVar7 = (char *)*plVar26;
+  if (((((*pcVar7 != '\0') || (pcVar7[1] != '\0')) || (pcVar7[2] != '\0')) ||
+      ((pcVar7[3] != '\0' || (pcVar7[5] != '\0')))) || (pcVar7[4] != '\0')) {
+    FUN_02e65280(local_3e0);
+  }
+  FUN_02e650e0();
+  _local_3e4 = 0;
+  pcVar7 = (char *)*plVar26;
+  if ((pcVar7[6] == '\0') && (*pcVar7 == '\0')) {
+    if ((((pcVar7[7] != '\0') || (pcVar7[1] != '\0')) || (pcVar7[8] != '\0')) ||
+       (((pcVar7[2] != '\0' || (pcVar7[9] != '\0')) || (pcVar7[3] != '\0')))) {
+      local_3e4[0] = *(char *)(plVar26[1] + 0x40) != '\0';
+      if (pcVar7[7] == '\0') goto LAB_02e4a326;
+      goto LAB_02e4a386;
+    }
+    local_3a4 = 0;
+    cVar3 = *(char *)(local_3f0 + 0x1e8);
+  }
+  else {
+    local_3e4[0] = false;
+    if (pcVar7[7] == '\0') {
+LAB_02e4a326:
+      if (pcVar7[1] != '\0') goto LAB_02e4a386;
+      local_3e4[1] = *(char *)(plVar26[1] + 0x98) != '\0';
+      if (pcVar7[8] == '\0') goto LAB_02e4a392;
+LAB_02e4a398:
+      _local_3e4 = (uint3)(ushort)local_3e4;
+      if (pcVar7[9] != '\0') goto LAB_02e4a3d0;
+LAB_02e4a3a4:
+      if (pcVar7[3] != '\0') goto LAB_02e4a3d0;
+      bVar28 = *(char *)(plVar26[1] + 0x148) != '\0';
+    }
+    else {
+LAB_02e4a386:
+      local_3e4[1] = 0;
+      if (pcVar7[8] != '\0') goto LAB_02e4a398;
+LAB_02e4a392:
+      if (pcVar7[2] != '\0') goto LAB_02e4a398;
+      _local_3e4 = CONCAT12(*(char *)(plVar26[1] + 0xf0) != '\0',local_3e4);
+      if (pcVar7[9] == '\0') goto LAB_02e4a3a4;
+LAB_02e4a3d0:
+      bVar28 = false;
+    }
+    _local_3e4 = CONCAT13(bVar28,_local_3e4);
+    local_3a4 = _local_3e4;
+    FUN_02e66590();
+    cVar3 = *(char *)(local_3f0 + 0x1e8);
+  }
+  if (cVar3 != '\0') {
+    FUN_02e63f80(local_3e0,1,0);
+  }
+  pcVar7 = (char *)*plVar26;
+  if (pcVar7[5] != '\0') {
+    lVar10 = plVar26[1];
+    uStack_388 = 0;
+    uVar6 = *(uint *)(lVar10 + 0x170);
+    uVar1 = *(uint *)(lVar10 + 0x174);
+    if (((1 < uVar1) || (uVar20 = 1, uVar6 != 0)) &&
+       (((3 < uVar1 || (uVar20 = 2, 1 < uVar6)) &&
+        ((uVar20 = 4, 5 < uVar1 && (uVar20 = 6, 7 < uVar1)))))) {
+      uVar20 = 0x27ac4;
+      if (uVar1 >> 3 < 0x27ac4) {
+        uVar20 = uVar1 >> 3;
+      }
+      uVar20 = uVar20 << 3;
+    }
+    if (uVar1 != uVar20) {
+      local_3d8 = (char *)0x0;
+      sStack_3d0 = strlen((char *)0x0);
+                    /* WARNING: Subroutine does not return */
+      FUN_02eca300("new_sampling_config.mDownsampleRatio == Detail::DownsampleRatioFloor( new_sampling_config.mDownsampleMode, new_sampling_config.mDownsampleRatio )"
+                   ,0x91,
+                   "auto Saleae::MsoOscilloscopeInstrument::ProcessPendingConfiguration()::(anonymous class)::operator()(Saleae::MsoDeviceInterface &) const"
+                   ,0x88,
+                   "/workspace/monorepo/graph-io/devices/mso_device/src/mso_device/oscilloscope_instrument.cpp"
+                   ,0x5a,0x520,(undefined4)local_3d8,sStack_3d0);
+    }
+    local_390 = (char *)CONCAT44(uVar1,(undefined4)local_390);
+    local_380 = (char *)-*(long *)(lVar10 + 0x178);
+    local_378 = *(long *)(lVar10 + 0x180);
+    if (uVar6 == 2) {
+      local_3d8 = (char *)0x0;
+      sStack_3d0 = strlen((char *)0x0);
+                    /* WARNING: Subroutine does not return */
+      FUN_02eca300("new_sampling_config.mDownsampleMode != DownsampleMode::MinMax",0x3d,
+                   "auto Saleae::MsoOscilloscopeInstrument::ProcessPendingConfiguration()::(anonymous class)::operator()(Saleae::MsoDeviceInterface &) const"
+                   ,0x88,
+                   "/workspace/monorepo/graph-io/devices/mso_device/src/mso_device/oscilloscope_instrument.cpp"
+                   ,0x5a,0x526,(undefined4)local_3d8,sStack_3d0);
+    }
+    uStack_388 = uVar6;
+    local_390 = (char *)CONCAT71(local_390._1_7_,uVar1 < 1000);
+    if (uVar1 < 1000) {
+      lVar10 = -*(long *)(lVar10 + 0x178);
+      lVar13 = lVar10 + 0xff;
+      uVar21 = lVar13 + local_378;
+      uVar9 = lVar10 + 0x1fe + local_378;
+      if (-1 < (long)uVar21) {
+        uVar9 = uVar21;
+      }
+      local_378 = ((uVar9 & 0xffffffffffffff00) - lVar13) + 0xff;
+      local_3d8 = (char *)0x1900;
+      uVar6 = 0x100;
+    }
+    else {
+      local_3d8 = (char *)0x1ff0;
+      uVar6 = 2;
+    }
+    dVar29 = (*(double *)(local_3f0 + 0xb8) / (double)uVar1) / 60.0;
+    local_308[0] = (double)(long)dVar29;
+    if (9.223372036854776e+18 <= dVar29) {
+      local_308[0] = -(double)(long)(dVar29 - 9.223372036854776e+18);
+    }
+    pdVar11 = (double *)&local_3d8;
+    if ((ulong)*(double *)(local_3f0 + 0xd0) < local_3d8) {
+      pdVar11 = (double *)(local_3f0 + 0xd0);
+    }
+    pdVar23 = local_308;
+    if ((ulong)*pdVar11 < (ulong)local_308[0]) {
+      pdVar23 = pdVar11;
+    }
+    if ((ulong)local_308[0] < (ulong)*(double *)(local_3f0 + 200)) {
+      pdVar23 = (double *)(local_3f0 + 200);
+    }
+    dVar29 = *pdVar23;
+    if ((ulong)dVar29 >> 0x20 == 0) {
+      iVar5 = (int)(((ulong)dVar29 & 0xffffffff) / (ulong)uVar6);
+    }
+    else {
+      iVar5 = (int)((ulong)dVar29 / (ulong)uVar6);
+    }
+    if (iVar5 == 0) {
+      iVar5 = 1;
+    }
+    local_370 = CONCAT44(local_370._4_4_,iVar5 * uVar6);
+    local_3d8 = 
+    "/workspace/monorepo/graph-io/devices/mso_device/src/mso_device/oscilloscope_instrument.cpp";
+    sStack_3d0 = CONCAT44(sStack_3d0._4_4_,0x536);
+    local_3c8 = "operator()";
+    FUN_02e4f880(DAT_030b0198,1,
+                 "Setting sampling config, downsample={}, pre={}, post={}, stats={}, chunk_size={}",
+                 0x50,(long)&local_390 + 4,&local_380,0x509bee,0x536,"operator()",&local_378,
+                 &local_390,&local_370);
+    FUN_02e64640(local_3e0,&local_390);
+    pcVar7 = (char *)*plVar26;
+  }
+  local_398 = plVar26;
+  if ((((*pcVar7 != '\0') || (pcVar7[1] != '\0')) || (pcVar7[2] != '\0')) || (pcVar7[3] != '\0')) {
+    local_3c0 = 0x101010101010101;
+    local_3b8 = 0x1010101;
+    local_3f4 = 0;
+    if (0 < *(long *)(local_3f0 + 0xa0)) {
+      uVar9 = 0;
+      do {
+        plVar26 = local_398;
+        if (3 < (uint)uVar9) {
+                    /* WARNING: Subroutine does not return */
+          FUN_01b22930("array::at");
+        }
+        lVar10 = local_398[1];
+        lVar25 = uVar9 * 0x40;
+        lVar13 = uVar9 * 3;
+        *(undefined1 *)((long)&local_3c0 + lVar13 + 1) = *(undefined1 *)(lVar10 + 0x1c8 + lVar25);
+        *(undefined1 *)((long)&local_3c0 + lVar13 + 2) = *(undefined1 *)(lVar10 + 0x1c9 + lVar25);
+        *(bool *)((long)&local_3c0 + lVar13) = *(int *)(lVar10 + 0x14 + uVar9 * 0x58) == 1;
+        lVar13 = *plVar26;
+        if (*(char *)(lVar13 + 0x16 + uVar9) != '\0') {
+          sVar15 = *(short *)(lVar10 + 0x1da + lVar25);
+          local_3d8 = (char *)CONCAT26(CONCAT11(local_3d8._7_1_,
+                                                *(undefined1 *)(lVar10 + 0x1d8 + lVar25)),
+                                       CONCAT42(0x40001,sVar15));
+          local_3a0 = &DAT_004f5234;
+          if (sVar15 == 0) {
+            local_3a0 = &DAT_004d1d39;
+          }
+          local_390 = 
+          "/workspace/monorepo/graph-io/devices/mso_device/src/mso_device/oscilloscope_instrument.cpp"
+          ;
+          uStack_388 = 0x556;
+          local_380 = "operator()";
+                    /* try { // try from 02e4a7ac to 02e4a926 has its CatchHandler @ 02e4b477 */
+          FUN_02e4fb90(DAT_030b0198,1,"Updating VGA ch {} gain={} attn={}",0x22,&local_3f4,
+                       &local_3a0,0x509bee,0x556,"operator()",(long)&local_3d8 + 6);
+          uVar8 = FUN_02e39a10(local_3b0,(undefined1)local_3f4);
+          FUN_02e6a1b0(uVar8,&local_3d8);
+          uVar9 = (ulong)local_3f4;
+          if (3 < local_3f4) {
+                    /* WARNING: Subroutine does not return */
+            FUN_01b22930("array::at");
+          }
+          lVar13 = *local_398;
+        }
+        if (*(char *)(lVar13 + 0x1a + (uVar9 & 0xffffffff)) != '\0') {
+          puVar27 = (undefined8 *)(lVar10 + lVar25 + 0x1e0);
+          local_390 = 
+          "/workspace/monorepo/graph-io/devices/mso_device/src/mso_device/oscilloscope_instrument.cpp"
+          ;
+          uStack_388 = 0x55d;
+          local_380 = "operator()";
+          FUN_02e4fe80(DAT_030b0198,1,"Updating DAC ch {} = {}",0x17,&local_3f4,puVar27,0x509bee,
+                       0x55d,"operator()");
+          uVar8 = FUN_02e39a40(local_3b0);
+          FUN_02e6a5f0((int)*puVar27,uVar8,(undefined1)local_3f4);
+        }
+        local_390 = 
+        "/workspace/monorepo/graph-io/devices/mso_device/src/mso_device/oscilloscope_instrument.cpp"
+        ;
+        uStack_388 = 0x562;
+        local_380 = "operator()";
+        FUN_02e50160(DAT_030b0198,1,"Ch {} transform, gain={}, offset={}",0x23,&local_3f4,
+                     lVar10 + lVar25 + 0x1f8,0x509bee,0x562,"operator()",lVar10 + 0x200 + lVar25);
+        uVar9 = (long)(int)local_3f4 + 1;
+        local_3f4 = (uint)uVar9;
+      } while ((long)uVar9 < *(long *)(local_3f0 + 0xa0));
+    }
+    lVar10 = DAT_030b0198;
+    local_3d8 = 
+    "/workspace/monorepo/graph-io/devices/mso_device/src/mso_device/oscilloscope_instrument.cpp";
+    sStack_3d0 = CONCAT44(sStack_3d0._4_4_,0x565);
+    local_3c8 = "operator()";
+    iVar5 = *(int *)(DAT_030b0198 + 0x38);
+                    /* try { // try from 02e4a978 to 02e4aa16 has its CatchHandler @ 02e4b475 */
+    bVar2 = FUN_02edfa80(DAT_030b0198 + 0x70);
+    plVar26 = local_398;
+    if ((1 < iVar5 & (bVar2 ^ 1)) == 0) {
+      if ((*(byte *)(lVar10 + 8) & 1) == 0) {
+        lVar13 = lVar10 + 9;
+        uVar9 = (ulong)(*(byte *)(lVar10 + 8) >> 1);
+      }
+      else {
+        lVar13 = *(long *)(lVar10 + 0x18);
+        uVar9 = *(ulong *)(lVar10 + 0x10);
+      }
+      FUN_02ee25b0(&local_390,lVar13,uVar9,1,"Updating AFE",0xc,(undefined4)local_3d8,
+                   (undefined4)sStack_3d0,local_3c8);
+      FUN_02ee4120(lVar10,&local_390,iVar5 < 2,bVar2);
+    }
+    FUN_02e39e80(local_3b0,local_3c0,local_3b8,0);
+    lVar10 = std::chrono::steady_clock::now();
+    pcVar7 = (char *)*plVar26;
+    if (*pcVar7 == '\0') {
+      uVar9 = 0;
+    }
+    else {
+      uVar22 = 0;
+      uVar21 = 500;
+      if (pcVar7[10] == '\0') {
+        uVar21 = uVar22;
+      }
+      uVar9 = 500;
+      if (pcVar7[0xe] == '\0') {
+        uVar9 = uVar22;
+      }
+      uVar18 = 500000;
+      if (pcVar7[0x12] == '\0') {
+        uVar18 = uVar22;
+      }
+      uVar16 = 0x5dc;
+      if (pcVar7[0x16] == '\0') {
+        uVar16 = uVar22;
+      }
+      uVar14 = 10000;
+      if (pcVar7[0x1a] == '\0') {
+        uVar14 = uVar22;
+      }
+      if (uVar9 <= uVar21) {
+        uVar9 = uVar21;
+      }
+      if (uVar9 < uVar18) {
+        uVar9 = uVar18;
+      }
+      if (uVar9 < uVar16) {
+        uVar9 = uVar16;
+      }
+      if (uVar9 < uVar14) {
+        uVar9 = uVar14;
+      }
+    }
+    lVar13 = uVar9 * 1000 + lVar10;
+    if (lVar13 <= *(long *)(local_3f0 + 0x1c8)) {
+      lVar13 = *(long *)(local_3f0 + 0x1c8);
+    }
+    *(long *)(local_3f0 + 0x1c8) = lVar13;
+    if (pcVar7[1] == '\0') {
+      uVar9 = 0;
+    }
+    else {
+      uVar22 = 0;
+      uVar21 = 500;
+      if (pcVar7[0xb] == '\0') {
+        uVar21 = uVar22;
+      }
+      uVar9 = 500;
+      if (pcVar7[0xf] == '\0') {
+        uVar9 = uVar22;
+      }
+      uVar18 = 500000;
+      if (pcVar7[0x13] == '\0') {
+        uVar18 = uVar22;
+      }
+      uVar16 = 0x5dc;
+      if (pcVar7[0x17] == '\0') {
+        uVar16 = uVar22;
+      }
+      uVar14 = 10000;
+      if (pcVar7[0x1b] == '\0') {
+        uVar14 = uVar22;
+      }
+      if (uVar9 <= uVar21) {
+        uVar9 = uVar21;
+      }
+      if (uVar9 < uVar18) {
+        uVar9 = uVar18;
+      }
+      if (uVar9 < uVar16) {
+        uVar9 = uVar16;
+      }
+      if (uVar9 < uVar14) {
+        uVar9 = uVar14;
+      }
+    }
+    lVar13 = uVar9 * 1000 + lVar10;
+    if (lVar13 <= *(long *)(local_3f0 + 0x1d0)) {
+      lVar13 = *(long *)(local_3f0 + 0x1d0);
+    }
+    *(long *)(local_3f0 + 0x1d0) = lVar13;
+    if (pcVar7[2] == '\0') {
+      lVar13 = 0;
+    }
+    else {
+      uVar21 = 0;
+      uVar9 = 500;
+      if (pcVar7[0xc] == '\0') {
+        uVar9 = uVar21;
+      }
+      uVar22 = 500;
+      if (pcVar7[0x10] == '\0') {
+        uVar22 = uVar21;
+      }
+      uVar18 = 500000;
+      if (pcVar7[0x14] == '\0') {
+        uVar18 = uVar21;
+      }
+      uVar16 = 0x5dc;
+      if (pcVar7[0x18] == '\0') {
+        uVar16 = uVar21;
+      }
+      uVar14 = 10000;
+      if (pcVar7[0x1c] == '\0') {
+        uVar14 = uVar21;
+      }
+      if (uVar22 <= uVar9) {
+        uVar22 = uVar9;
+      }
+      if (uVar22 < uVar18) {
+        uVar22 = uVar18;
+      }
+      if (uVar22 < uVar16) {
+        uVar22 = uVar16;
+      }
+      if (uVar22 < uVar14) {
+        uVar22 = uVar14;
+      }
+      lVar13 = uVar22 * 1000;
+    }
+    lVar25 = lVar13 + lVar10;
+    if (lVar13 + lVar10 <= *(long *)(local_3f0 + 0x1d8)) {
+      lVar25 = *(long *)(local_3f0 + 0x1d8);
+    }
+    *(long *)(local_3f0 + 0x1d8) = lVar25;
+    if (pcVar7[3] == '\0') {
+      lVar13 = 0;
+    }
+    else {
+      uVar21 = 0;
+      uVar9 = 500;
+      if (pcVar7[0xd] == '\0') {
+        uVar9 = uVar21;
+      }
+      uVar22 = 500;
+      if (pcVar7[0x11] == '\0') {
+        uVar22 = uVar21;
+      }
+      uVar18 = 500000;
+      if (pcVar7[0x15] == '\0') {
+        uVar18 = uVar21;
+      }
+      uVar16 = 0x5dc;
+      if (pcVar7[0x19] == '\0') {
+        uVar16 = uVar21;
+      }
+      uVar14 = 10000;
+      if (pcVar7[0x1d] == '\0') {
+        uVar14 = uVar21;
+      }
+      if (uVar22 <= uVar9) {
+        uVar22 = uVar9;
+      }
+      if (uVar22 < uVar18) {
+        uVar22 = uVar18;
+      }
+      if (uVar22 < uVar16) {
+        uVar22 = uVar16;
+      }
+      if (uVar22 < uVar14) {
+        uVar22 = uVar14;
+      }
+      lVar13 = uVar22 * 1000;
+    }
+    lVar25 = lVar13 + lVar10;
+    if (lVar13 + lVar10 <= *(long *)(local_3f0 + 0x1e0)) {
+      lVar25 = *(long *)(local_3f0 + 0x1e0);
+    }
+    *(long *)(local_3f0 + 0x1e0) = lVar25;
+  }
+  local_3c0 = local_3c0 & 0xffffffff00000000;
+  if (0 < *(long *)(local_3f0 + 0xa0)) {
+    uVar21 = 0;
+    uVar9 = 0;
+    do {
+      if (3 < (uint)uVar9) {
+                    /* WARNING: Subroutine does not return */
+        FUN_01b22930("array::at");
+      }
+      lVar10 = plVar26[1];
+      lVar13 = uVar21 * 0x58;
+      cVar3 = *(char *)(lVar10 + 0x40 + lVar13);
+      local_3e4[uVar21] = cVar3;
+      pcVar7 = (char *)*plVar26;
+      if (pcVar7[uVar21 + 6] != '\0') {
+        if (((*pcVar7 != '\0') || (pcVar7[1] != '\0')) ||
+           ((pcVar7[2] != '\0' || (pcVar7[3] != '\0')))) {
+          lVar25 = std::chrono::steady_clock::now();
+          lVar25 = (long)(((double)(*(long *)(local_3f0 + 0x1c8 + uVar21 * 8) - lVar25) /
+                          1000000000.0) * *(double *)(local_3f0 + 0xb8));
+          if (lVar25 < 0) {
+            lVar25 = 0;
+          }
+                    /* try { // try from 02e4ad2e to 02e4ade4 has its CatchHandler @ 02e4b473 */
+          FUN_02e668e0(local_3e0,lVar25);
+          cVar3 = *(char *)(lVar10 + lVar13 + 0x40);
+        }
+        if (cVar3 != '\0') {
+          local_3a0._0_4_ =
+               (int)(long)(*(double *)(lVar10 + 0x60 + lVar13) * *(double *)(local_3f0 + 0xc0));
+          uVar6 = FUN_02e62440();
+          local_3a0 = (undefined *)CONCAT44(local_3a0._4_4_,uVar6);
+          FUN_02e66870(local_3e0,local_3c0 & 0xff,
+                       (ulong)uVar6 << 0x20 | (ulong)*(byte *)(lVar10 + 0x58 + lVar13));
+          if (3 < (local_3c0 & 0xffffffff)) {
+                    /* WARNING: Subroutine does not return */
+            FUN_01b22930("array::at");
+          }
+          lVar25 = local_398[1];
+          lVar19 = (local_3c0 & 0xffffffff) * 0x40;
+          local_3b0 = *(undefined8 *)(lVar10 + 0x50 + lVar13);
+          FUN_02dfe360((int)*(undefined8 *)(lVar25 + 0x1f8 + lVar19),
+                       *(undefined8 *)(lVar25 + 0x200 + lVar19));
+          dVar29 = (double)FUN_02dfe390();
+          local_308[0] = round(dVar29);
+          local_390 = (char *)(double)(int)*(short *)(local_3f0 + 0x98);
+          pdVar11 = local_308;
+          if ((double)(int)*(short *)(local_3f0 + 0x9a) < local_308[0]) {
+            pdVar11 = (double *)&local_3d8;
+          }
+          if (local_308[0] < (double)(int)*(short *)(local_3f0 + 0x98)) {
+            pdVar11 = (double *)&local_390;
+          }
+          local_3d8 = (char *)(double)(int)*(short *)(local_3f0 + 0x9a);
+          local_3f4 = CONCAT22(local_3f4._2_2_,(short)(int)*pdVar11);
+          local_3b0 = *(undefined8 *)(lVar10 + 0x48 + lVar13);
+                    /* try { // try from 02e4ae68 to 02e4ae77 has its CatchHandler @ 02e4b473 */
+          FUN_02dfe360((int)*(undefined8 *)(lVar19 + lVar25 + 0x1f8),
+                       *(undefined8 *)(lVar19 + lVar25 + 0x200));
+          dVar29 = (double)FUN_02dfe390();
+          local_308[0] = round(dVar29);
+          local_390 = (char *)(double)(int)*(short *)(local_3f0 + 0x98);
+          dVar29 = (double)(int)*(short *)(local_3f0 + 0x9a);
+          pdVar11 = local_308;
+          if (dVar29 < local_308[0]) {
+            pdVar11 = (double *)&local_3d8;
+          }
+          if (local_308[0] < (double)(int)*(short *)(local_3f0 + 0x98)) {
+            pdVar11 = (double *)&local_390;
+          }
+          local_3d8 = (char *)dVar29;
+          local_3d8 = (char *)CONCAT62((int6)((ulong)dVar29 >> 0x10),(short)(int)*pdVar11);
+                    /* try { // try from 02e4aee7 to 02e4af70 has its CatchHandler @ 02e4b473 */
+          FUN_02e66a10(local_3e0,local_3c0 & 0xff,(int)(short)local_3f4,(int)(short)(int)*pdVar11);
+          local_390 = 
+          "/workspace/monorepo/graph-io/devices/mso_device/src/mso_device/oscilloscope_instrument.cpp"
+          ;
+          uStack_388 = 0x59c;
+          local_380 = "operator()";
+          FUN_02e50450(DAT_030b0198,1,"ch {} thresholds= {}, {}, pulse_width={}",0x28,&local_3c0,
+                       &local_3f4,0x509bee,0x59c,"operator()",&local_3d8,&local_3a0);
+        }
+      }
+      uVar21 = (long)(int)local_3c0 + 1;
+      local_3c0 = CONCAT44(local_3c0._4_4_,(int)uVar21);
+      uVar9 = uVar21 & 0xffffffff;
+      plVar26 = local_398;
+    } while ((long)uVar21 < *(long *)(local_3f0 + 0xa0));
+    local_3a4 = _local_3e4;
+  }
+                    /* try { // try from 02e4af87 to 02e4b210 has its CatchHandler @ 02e4b475 */
+  FUN_02e662c0(local_3e0,*(undefined4 *)plVar26[1]);
+  FUN_02e66590(local_3e0,local_3a4);
+  lVar13 = local_3f0;
+  lVar10 = plVar26[1];
+  if (*(char *)(lVar10 + 0x188) != '\0') {
+    local_390 = (char *)CONCAT71(local_390._1_7_,1);
+    uStack_388._0_3_ = CONCAT12(*(undefined1 *)(lVar10 + 0x189),(undefined2)uStack_388);
+    local_3c0 = 0;
+    lVar25 = *(long *)(local_3f0 + 0x1c8);
+    if (*(long *)(local_3f0 + 0x1c8) < *(long *)(local_3f0 + 0x1d0)) {
+      lVar25 = *(long *)(local_3f0 + 0x1d0);
+    }
+    if (lVar25 < *(long *)(local_3f0 + 0x1d8)) {
+      lVar25 = *(long *)(local_3f0 + 0x1d8);
+    }
+    if (lVar25 < *(long *)(local_3f0 + 0x1e0)) {
+      lVar25 = *(long *)(local_3f0 + 0x1e0);
+    }
+    lVar19 = std::chrono::steady_clock::now();
+    puVar17 = (undefined *)(lVar25 - lVar19);
+    if (puVar17 == (undefined *)0x0 || lVar25 < lVar19) {
+      uVar9 = 0;
+    }
+    else {
+      local_3c0 = (ulong)(((double)(long)puVar17 / 1000000000.0) * *(double *)(lVar13 + 0xb8));
+      local_3d8 = 
+      "/workspace/monorepo/graph-io/devices/mso_device/src/mso_device/oscilloscope_instrument.cpp";
+      sStack_3d0 = CONCAT44(sStack_3d0._4_4_,0x5d2);
+      local_3c8 = "operator()";
+      local_3a0 = puVar17;
+      FUN_02e50760(DAT_030b0198,1,"AFE Settling Time: {} ns, {} samples",0x24,&local_3a0,&local_3c0,
+                   0x509bee,0x5d2,"operator()");
+      uVar9 = local_3c0;
+    }
+    lVar13 = plVar26[1];
+    lVar25 = *(long *)(lVar13 + 0x178);
+    lVar24 = lVar25 * (ulong)*(uint *)(lVar13 + 0x174);
+    lVar19 = -lVar24;
+    if (0 < lVar24) {
+      lVar19 = 0;
+    }
+    local_380 = (char *)(lVar19 + uVar9);
+    lVar19 = 0;
+    if (-1 < *(long *)(lVar13 + 0x180)) {
+      lVar19 = *(long *)(lVar13 + 0x180);
+    }
+    local_368 = (lVar19 + (lVar25 >> 0x3f & -lVar25)) * (ulong)*(uint *)(lVar13 + 0x174);
+    local_378 = *(long *)(lVar10 + 0x1b0);
+    if (*(long *)(lVar10 + 0x1b0) <= local_368) {
+      local_378 = local_368;
+    }
+    if (local_368 < *(long *)(lVar10 + 0x1c0)) {
+      local_368 = *(long *)(lVar10 + 0x1c0);
+    }
+    local_370 = *(undefined8 *)(lVar10 + 0x1a8);
+    local_360 = *(undefined8 *)(lVar10 + 0x1b8);
+    if (*(uint *)(lVar10 + 0x198) < 4) {
+      uStack_388 = CONCAT31(uStack_388._1_3_,(char)*(uint *)(lVar10 + 0x198));
+      uVar6 = *(uint *)(lVar10 + 0x18c);
+      if (uVar6 < 3) goto LAB_02e4b341;
+LAB_02e4b173:
+      bVar2 = *(byte *)(lVar10 + 0x189);
+    }
+    else {
+      uVar6 = *(uint *)(lVar10 + 0x18c);
+      if (2 < uVar6) goto LAB_02e4b173;
+LAB_02e4b341:
+      uStack_388._0_2_ = CONCAT11((char)uVar6 + '\x01',(undefined1)uStack_388);
+      bVar2 = *(byte *)(lVar10 + 0x189);
+    }
+    if (3 < (ulong)bVar2) {
+                    /* WARNING: Subroutine does not return */
+      FUN_01b22930("array::at");
+    }
+    lVar25 = (ulong)bVar2 * 0x40;
+    uVar8 = FUN_02e42610((int)*(undefined8 *)(lVar13 + 0x1f8 + lVar25),
+                         *(undefined8 *)(lVar13 + 0x200 + lVar25),local_3f0 + 0x98,lVar13 + 0x10);
+    sVar4 = (short)uVar8;
+    local_390._0_4_ = CONCAT22(sVar4,(undefined2)local_390);
+    sVar15 = (short)((ulong)uVar8 >> 0x10);
+    if (sVar15 < (short)(sVar4 + 1)) {
+      sVar15 = sVar4 + 1;
+    }
+    if (*(short *)(local_3f0 + 0x9a) <= sVar15) {
+      sVar15 = *(short *)(local_3f0 + 0x9a);
+    }
+    sVar12 = (short)((ulong)uVar8 >> 0x20);
+    if ((short)(sVar4 + -1) < sVar12) {
+      sVar12 = sVar4 + -1;
+    }
+    if (sVar12 <= *(short *)(local_3f0 + 0x98)) {
+      sVar12 = *(short *)(local_3f0 + 0x98);
+    }
+    local_390 = (char *)CONCAT26(sVar12,CONCAT24(sVar15,(undefined4)local_390));
+  }
+  this = (mutex *)(local_3f0 + 0x178);
+  std::mutex::lock(this);
+  memcpy(local_308,(void *)plVar26[1],0x2d8);
+  lVar25 = local_3f0;
+  memcpy((void *)((ulong)((uint)*(undefined8 *)(local_3f0 + 0x3248) & 0xf) * 0x2d8 + local_3f0 +
+                 0x4c8),local_308,0x2d8);
+  lVar13 = *(long *)(lVar25 + 0x3248);
+  *(long *)(lVar25 + 0x3248) = lVar13 + 1;
+  lVar13 = lVar13 + -0xf;
+  if (lVar13 < *(long *)(lVar25 + 0x3250)) {
+    lVar13 = *(long *)(lVar25 + 0x3250);
+  }
+  *(long *)(lVar25 + 0x3250) = lVar13;
+  std::mutex::unlock(this);
+                    /* try { // try from 02e4b29b to 02e4b472 has its CatchHandler @ 02e4b475 */
+  FUN_02e64230(local_3e0,CONCAT44(*(undefined4 *)plVar26[1],*(undefined4 *)plVar26[1]));
+  pcVar7 = local_3d8;
+  lVar13 = plVar26[1];
+  bVar28 = *(char *)(lVar13 + 0x10) == '\0';
+  if (((bVar28) && (bVar28 = *(char *)(lVar13 + 0x68) == '\0', bVar28)) &&
+     (bVar28 = *(char *)(lVar13 + 0xc0) == '\0', bVar28)) {
+    if (*(char *)(lVar13 + 0x118) == '\0') goto LAB_02e4b303;
+  }
+  else if (bVar28) goto LAB_02e4b303;
+  local_3d8._4_4_ = SUB84(pcVar7,4);
+  local_3d8._0_4_ =
+       CONCAT13(*(undefined1 *)(lVar13 + 0x118),
+                CONCAT12(*(undefined1 *)(lVar13 + 0xc0),
+                         CONCAT11(*(undefined1 *)(lVar13 + 0x68),*(undefined1 *)(lVar13 + 0x10))));
+  FUN_02e64550(local_3e0,&local_3d8);
+LAB_02e4b303:
+  if (*(char *)(lVar10 + 0x188) != '\0') {
+    FUN_02e654a0(local_3e0,&local_390);
+  }
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileDownsampler.java> 
+======================================== (GhidraScript)  
+INFO  DecompileDownsampler.java> FUNCTION 3/23: FUN_01bc8f20 @ 01bc8f20 (GhidraScript)  
+INFO  DecompileDownsampler.java> Size: 192 bytes (GhidraScript)  
+INFO  DecompileDownsampler.java> ========================================
+ (GhidraScript)  
+INFO  DecompileDownsampler.java> 
+undefined8 * FUN_01bc8f20(undefined8 *param_1,long param_2,undefined8 param_3)
+
+{
+  long lVar1;
+  
+  lVar1 = __dynamic_cast(param_3,&PTR_vtable_02fde008,&PTR_vtable_02f38558,0);
+  if (lVar1 == 0) {
+    FUN_02d90fd0(param_1,param_2,param_3);
+  }
+  else {
+    if (*(char *)(param_2 + 0xf0) != '\0') {
+                    /* WARNING: Subroutine does not return */
+      FUN_02eca300("!mDownsampler",0xd,
+                   "virtual Saleae::Graph::RequestResult Saleae::Graph::AnalogDownsamplerNode::HandleRequest(const Saleae::Graph::KernelRequest &)"
+                   ,0x7e,
+                   "/workspace/monorepo/graph-io/nodes/analog_downsampler_node/src/analog_downsampler_node.cpp"
+                   ,0x5a,0x76,0x4e0279,0x35);
+    }
+    *(undefined8 *)(param_2 + 0xd0) = *(undefined8 *)(lVar1 + 0x18);
+    *(undefined1 *)(param_2 + 0xd8) = 1;
+    *param_1 = 0;
+    param_1[1] = 0;
+  }
+  return param_1;
+}
+
+ (GhidraScript)  
+INFO  DecompileDownsampler.java> 
+======================================== (GhidraScript)  
+INFO  DecompileDownsampler.java> FUNCTION 4/23: FUN_01bc8640 @ 01bc8640 (GhidraScript)  
+INFO  DecompileDownsampler.java> Size: 1990 bytes (GhidraScript)  
+INFO  DecompileDownsampler.java> ========================================
+ (GhidraScript)  
+INFO  DecompileDownsampler.java> 
+void FUN_01bc8640(long param_1,byte *param_2,undefined8 param_3,long *param_4)
+
+{
+  __shared_weak_count *p_Var1;
+  undefined8 *puVar2;
+  undefined4 *puVar3;
+  undefined4 *puVar4;
+  long lVar5;
+  long *plVar6;
+  undefined4 uVar7;
+  undefined4 uVar8;
+  undefined8 uVar9;
+  undefined8 uVar10;
+  long lVar11;
+  ulong uVar12;
+  ulong uVar13;
+  __shared_weak_count *p_Var14;
+  undefined8 uVar15;
+  undefined8 *puVar16;
+  ulong uVar17;
+  __shared_weak_count *p_Var18;
+  long lVar19;
+  long lVar20;
+  ulong uVar21;
+  ulong uVar22;
+  ulong uVar23;
+  byte *pbVar24;
+  undefined8 in_stack_ffffffffffffff08;
+  undefined4 uVar25;
+  undefined8 local_d8;
+  undefined8 uStack_d0;
+  undefined8 local_c8;
+  __shared_weak_count *local_c0;
+  __shared_weak_count *local_b8;
+  long local_b0;
+  __shared_weak_count *local_a8;
+  __shared_weak_count *local_a0;
+  __shared_weak_count *local_98;
+  __shared_weak_count *local_90;
+  __shared_weak_count *local_88;
+  undefined *local_80;
+  undefined8 uStack_78;
+  undefined *local_70;
+  undefined8 uStack_68;
+  undefined8 local_60;
+  undefined8 uStack_58;
+  char *local_50;
+  undefined8 uStack_48;
+  char *local_40;
+  undefined8 uStack_38;
+  
+  uVar25 = (undefined4)((ulong)in_stack_ffffffffffffff08 >> 0x20);
+  lVar5 = *param_4;
+  if (lVar5 == 0) {
+LAB_01bc87e3:
+    if ((*param_2 & 1) == 0) {
+      pbVar24 = param_2 + 1;
+      uVar17 = (ulong)(*param_2 >> 1);
+    }
+    else {
+      uVar17 = *(ulong *)(param_2 + 8);
+      pbVar24 = *(byte **)(param_2 + 0x10);
+    }
+    local_a8 = (__shared_weak_count *)param_4[1];
+    if (local_a8 != (__shared_weak_count *)0x0) {
+      LOCK();
+      *(long *)(local_a8 + 8) = *(long *)(local_a8 + 8) + 1;
+      UNLOCK();
+    }
+    local_70 = &DAT_0052034f;
+    uStack_68 = 2;
+    local_80 = &DAT_00462db2;
+    uStack_78 = 3;
+                    /* try { // try from 01bc8849 to 01bc8873 has its CatchHandler @ 01bc8ee0 */
+    local_b0 = lVar5;
+    FUN_01bc90c0(param_1,pbVar24,uVar17,param_3,&local_b0);
+    p_Var14 = local_a8;
+  }
+  else {
+    lVar11 = __dynamic_cast(lVar5,&PTR_vtable_02fdf5f0,&PTR_vtable_02f383a8,0);
+    if (lVar11 == 0) {
+      lVar11 = __dynamic_cast(lVar5,&PTR_vtable_02fdf5f0,&PTR_vtable_02fdf630,0);
+      if (lVar11 != 0) {
+        p_Var14 = (__shared_weak_count *)param_4[1];
+        if (p_Var14 != (__shared_weak_count *)0x0) {
+          LOCK();
+          *(long *)(p_Var14 + 8) = *(long *)(p_Var14 + 8) + 1;
+          UNLOCK();
+        }
+        if (*(char *)(param_1 + 0xf0) != '\0') {
+          local_50 = "Received sampling config with a downsampler already initialized";
+          uStack_48 = 0x3f;
+                    /* try { // try from 01bc8d29 to 01bc8d68 has its CatchHandler @ 01bc8e14 */
+                    /* WARNING: Subroutine does not return */
+          FUN_02eca300("!mDownsampler",0xd,
+                       "virtual void Saleae::Graph::AnalogDownsamplerNode::HandlePipeData(const std::string &, uint64_t, std::shared_ptr<const Data>)"
+                       ,0x7d,
+                       "/workspace/monorepo/graph-io/nodes/analog_downsampler_node/src/analog_downsampler_node.cpp"
+                       ,0x5a,CONCAT44(uVar25,0x66),
+                       "Received sampling config with a downsampler already initialized",0x3f);
+        }
+        local_c8 = *(undefined8 *)(lVar11 + 0x28);
+        local_d8 = *(void **)(lVar11 + 0x18);
+        uStack_d0 = *(void **)(lVar11 + 0x20);
+        if (*(char *)(param_1 + 0xd8) == '\0') {
+                    /* try { // try from 01bc8d69 to 01bc8d6d has its CatchHandler @ 01bc8e12 */
+          uVar15 = FUN_01b0ced0();
+                    /* catch() { ... } // from try @ 01bc8897 with catch @ 01bc8d6e */
+          if (local_d8 != (void *)0x0) {
+            uStack_d0 = local_d8;
+            operator_delete(local_d8);
+          }
+          if (local_c0 != (__shared_weak_count *)0x0) {
+            LOCK();
+            p_Var14 = local_c0 + 8;
+            lVar5 = *(long *)p_Var14;
+            *(long *)p_Var14 = *(long *)p_Var14 + -1;
+            UNLOCK();
+            if (lVar5 == 0) {
+              (**(code **)(*(long *)local_c0 + 0x10))(local_c0);
+              std::__shared_weak_count::__release_weak(local_c0);
+            }
+          }
+          if (local_b8 != (__shared_weak_count *)0x0) {
+            LOCK();
+            p_Var14 = local_b8 + 8;
+            lVar5 = *(long *)p_Var14;
+            *(long *)p_Var14 = *(long *)p_Var14 + -1;
+            UNLOCK();
+            if (lVar5 == 0) {
+              (**(code **)(*(long *)local_b8 + 0x10))(local_b8);
+              std::__shared_weak_count::__release_weak(local_b8);
+            }
+          }
+                    /* WARNING: Subroutine does not return */
+          _Unwind_Resume(uVar15);
+        }
+        local_d8 = *(void **)(param_1 + 0xd0);
+                    /* try { // try from 01bc87ad to 01bc87b9 has its CatchHandler @ 01bc8e10 */
+        FUN_01bc7fd0(&local_60,(long)*(double *)(lVar11 + 0x18),(long)(double)local_d8);
+        if (*(char *)(param_1 + 0xf0) == '\0') {
+          *(undefined8 *)(param_1 + 0xe0) = local_60;
+          *(undefined8 *)(param_1 + 0xe8) = uStack_58;
+          *(undefined1 *)(param_1 + 0xf0) = 1;
+        }
+        else {
+          *(undefined8 *)(param_1 + 0xe0) = local_60;
+          *(undefined8 *)(param_1 + 0xe8) = uStack_58;
+        }
+                    /* try { // try from 01bc8911 to 01bc891a has its CatchHandler @ 01bc8e0e */
+        p_Var18 = (__shared_weak_count *)operator_new(0x50);
+        *(undefined8 *)(p_Var18 + 8) = 0;
+        *(undefined8 *)(p_Var18 + 0x10) = 0;
+        *(undefined ***)p_Var18 = &PTR_FUN_02f38648;
+                    /* try { // try from 01bc8938 to 01bc8958 has its CatchHandler @ 01bc8df9 */
+        FUN_02db06c0(0,p_Var18 + 0x18);
+                    /* try { // try from 01bc8963 to 01bc897d has its CatchHandler @ 01bc8dc7 */
+        local_a0 = p_Var18 + 0x18;
+        local_98 = p_Var18;
+        FUN_02d910f0(param_1,&DAT_00462db2,3,0,&local_a0);
+        p_Var18 = local_98;
+        if (local_98 != (__shared_weak_count *)0x0) {
+          LOCK();
+          p_Var1 = local_98 + 8;
+          lVar5 = *(long *)p_Var1;
+          *(long *)p_Var1 = *(long *)p_Var1 + -1;
+          UNLOCK();
+          if (lVar5 == 0) {
+            (**(code **)(*(long *)local_98 + 0x10))(local_98);
+            std::__shared_weak_count::__release_weak(p_Var18);
+          }
+        }
+        if (p_Var14 == (__shared_weak_count *)0x0) {
+          return;
+        }
+        LOCK();
+        p_Var18 = p_Var14 + 8;
+        lVar5 = *(long *)p_Var18;
+        *(long *)p_Var18 = *(long *)p_Var18 + -1;
+        UNLOCK();
+        if (lVar5 != 0) {
+          return;
+        }
+        (**(code **)(*(long *)p_Var14 + 0x10))(p_Var14);
+        goto LAB_01bc8c79;
+      }
+      goto LAB_01bc87e3;
+    }
+    local_b8 = (__shared_weak_count *)param_4[1];
+    if (local_b8 != (__shared_weak_count *)0x0) {
+      LOCK();
+      *(long *)(local_b8 + 8) = *(long *)(local_b8 + 8) + 1;
+      UNLOCK();
+    }
+    if (*(char *)(param_1 + 0xf0) == '\0') {
+      local_40 = "Received analog data without a downsampler";
+      uStack_38 = 0x2a;
+                    /* try { // try from 01bc8cce to 01bc8d0d has its CatchHandler @ 01bc8eb7 */
+                    /* WARNING: Subroutine does not return */
+      FUN_02eca300("mDownsampler",0xc,
+                   "virtual void Saleae::Graph::AnalogDownsamplerNode::HandlePipeData(const std::string &, uint64_t, std::shared_ptr<const Data>)"
+                   ,0x7d,
+                   "/workspace/monorepo/graph-io/nodes/analog_downsampler_node/src/analog_downsampler_node.cpp"
+                   ,0x5a,CONCAT44(uVar25,0x5d),"Received analog data without a downsampler",0x2a);
+    }
+    plVar6 = *(long **)(lVar11 + 0x18);
+    local_c0 = *(__shared_weak_count **)(lVar11 + 0x20);
+    if (local_c0 != (__shared_weak_count *)0x0) {
+      LOCK();
+      *(long *)(local_c0 + 8) = *(long *)(local_c0 + 8) + 1;
+      UNLOCK();
+    }
+    local_d8 = (void *)0x0;
+    uStack_d0 = (void *)0x0;
+    local_c8 = 0;
+    uVar23 = plVar6[1] - *plVar6 >> 1;
+    uVar17 = *(ulong *)(param_1 + 0xe0);
+    if (uVar17 <= uVar23) {
+      uVar21 = *(ulong *)(param_1 + 0xe8);
+      uVar12 = ~uVar17 + uVar23 + uVar21;
+      if ((uVar12 | uVar21) >> 0x20 == 0) {
+        uVar13 = (uVar12 & 0xffffffff) / (uVar21 & 0xffffffff);
+        uVar12 = (uVar12 & 0xffffffff) % (uVar21 & 0xffffffff);
+      }
+      else {
+        uVar13 = (long)uVar12 / (long)uVar21;
+        uVar12 = (long)uVar12 % (long)uVar21;
+      }
+      if (uVar13 != 0) {
+                    /* try { // try from 01bc8897 to 01bc88a3 has its CatchHandler @ 01bc8d6e */
+        FUN_01bc92e0(&local_d8,uVar13,uVar12);
+        uVar17 = *(ulong *)(param_1 + 0xe0);
+        lVar5 = *(long *)(param_1 + 0xe8);
+        lVar11 = *plVar6;
+        uVar21 = 0;
+        if ((0xf < uVar13) && (lVar5 == 1)) {
+          if ((local_d8 < (void *)(lVar11 + (uVar17 + uVar13) * 2)) &&
+             ((void *)(lVar11 + uVar17 * 2) < (void *)((long)local_d8 + uVar13 * 2))) {
+            uVar21 = 0;
+          }
+          else {
+            uVar21 = uVar13 & 0xfffffffffffffff0;
+            uVar12 = (uVar21 - 0x10 >> 4) + 1;
+            if (uVar21 - 0x10 == 0) {
+              lVar20 = 0;
+            }
+            else {
+              puVar16 = (undefined8 *)(lVar11 + uVar17 * 2 + 0x10);
+              lVar19 = -(uVar12 & 0xfffffffffffffffe);
+              lVar20 = 0;
+              do {
+                uVar15 = puVar16[-1];
+                uVar9 = *puVar16;
+                uVar10 = puVar16[1];
+                puVar2 = (undefined8 *)((long)local_d8 + lVar20 * 2);
+                *puVar2 = puVar16[-2];
+                puVar2[1] = uVar15;
+                puVar2 = (undefined8 *)((long)local_d8 + lVar20 * 2 + 0x10);
+                *puVar2 = uVar9;
+                puVar2[1] = uVar10;
+                uVar25 = *(undefined4 *)((long)puVar16 + 0x14);
+                uVar7 = *(undefined4 *)(puVar16 + 3);
+                uVar8 = *(undefined4 *)((long)puVar16 + 0x1c);
+                uVar15 = puVar16[4];
+                uVar9 = puVar16[5];
+                puVar4 = (undefined4 *)((long)local_d8 + lVar20 * 2 + 0x20);
+                *puVar4 = *(undefined4 *)(puVar16 + 2);
+                puVar4[1] = uVar25;
+                puVar4[2] = uVar7;
+                puVar4[3] = uVar8;
+                puVar2 = (undefined8 *)((long)local_d8 + lVar20 * 2 + 0x30);
+                *puVar2 = uVar15;
+                puVar2[1] = uVar9;
+                lVar20 = lVar20 + 0x20;
+                puVar16 = puVar16 + 8;
+                lVar19 = lVar19 + 2;
+              } while (lVar19 != 0);
+            }
+            if ((uVar12 & 1) != 0) {
+              puVar4 = (undefined4 *)(lVar11 + (lVar20 + uVar17) * 2);
+              uVar25 = puVar4[1];
+              uVar7 = puVar4[2];
+              uVar8 = puVar4[3];
+              puVar16 = (undefined8 *)(lVar11 + 0x10 + (lVar20 + uVar17) * 2);
+              uVar15 = *puVar16;
+              uVar9 = puVar16[1];
+              puVar3 = (undefined4 *)((long)local_d8 + lVar20 * 2);
+              *puVar3 = *puVar4;
+              puVar3[1] = uVar25;
+              puVar3[2] = uVar7;
+              puVar3[3] = uVar8;
+              puVar16 = (undefined8 *)((long)local_d8 + lVar20 * 2 + 0x10);
+              *puVar16 = uVar15;
+              puVar16[1] = uVar9;
+            }
+            uVar17 = uVar17 + uVar21;
+            if (uVar13 == uVar21) goto LAB_01bc8b1f;
+          }
+        }
+        uVar22 = ~uVar21;
+        for (uVar12 = uVar13 & 3; uVar12 != 0; uVar12 = uVar12 - 1) {
+          *(undefined2 *)((long)local_d8 + uVar21 * 2) = *(undefined2 *)(lVar11 + uVar17 * 2);
+          uVar21 = uVar21 + 1;
+          uVar17 = uVar17 + lVar5;
+        }
+        if (2 < uVar22 + uVar13) {
+          uVar12 = uVar17;
+          do {
+            *(undefined2 *)((long)local_d8 + uVar21 * 2) = *(undefined2 *)(lVar11 + uVar12 * 2);
+            uVar17 = uVar12 + lVar5 * 4;
+            *(undefined2 *)((long)local_d8 + uVar21 * 2 + 2) =
+                 *(undefined2 *)(lVar11 + lVar5 * 2 + uVar12 * 2);
+            *(undefined2 *)((long)local_d8 + uVar21 * 2 + 4) =
+                 *(undefined2 *)(lVar11 + lVar5 * 4 + uVar12 * 2);
+            *(undefined2 *)((long)local_d8 + uVar21 * 2 + 6) =
+                 *(undefined2 *)(lVar11 + lVar5 * 6 + uVar12 * 2);
+            uVar21 = uVar21 + 4;
+            uVar12 = uVar17;
+          } while (uVar13 != uVar21);
+        }
+      }
+    }
+LAB_01bc8b1f:
+    p_Var14 = local_c0;
+    *(ulong *)(param_1 + 0xe0) = uVar17 - uVar23;
+    if (local_c0 == (__shared_weak_count *)0x0) {
+LAB_01bc8b4a:
+      if (uStack_d0 != local_d8) {
+LAB_01bc8b5a:
+                    /* try { // try from 01bc8b5a to 01bc8b63 has its CatchHandler @ 01bc8ea0 */
+        p_Var14 = (__shared_weak_count *)operator_new(0x40);
+        *(undefined8 *)(p_Var14 + 8) = 0;
+        *(undefined8 *)(p_Var14 + 0x10) = 0;
+        *(undefined ***)p_Var14 = &PTR_FUN_02f38580;
+        p_Var18 = p_Var14 + 0x18;
+        uVar15 = FUN_02db5490();
+                    /* try { // try from 01bc8b86 to 01bc8b90 has its CatchHandler @ 01bc8e86 */
+        FUN_02db0660(p_Var18,uVar15);
+        *(undefined ***)p_Var18 = &PTR_FUN_02f385d0;
+                    /* try { // try from 01bc8b9b to 01bc8ba4 has its CatchHandler @ 01bc8e79 */
+        puVar16 = (undefined8 *)operator_new(0x30);
+        puVar16[1] = 0;
+        puVar16[2] = 0;
+        *puVar16 = &PTR_FUN_02f385f8;
+        *(undefined4 *)(puVar16 + 3) = (undefined4)local_d8;
+        *(undefined4 *)((long)puVar16 + 0x1c) = local_d8._4_4_;
+        *(undefined4 *)(puVar16 + 4) = (undefined4)uStack_d0;
+        *(undefined4 *)((long)puVar16 + 0x24) = uStack_d0._4_4_;
+        puVar16[5] = local_c8;
+        local_d8 = (void *)0x0;
+        uStack_d0 = (void *)0x0;
+        local_c8 = 0;
+        *(undefined8 **)(p_Var14 + 0x30) = puVar16 + 3;
+        *(undefined8 **)(p_Var14 + 0x38) = puVar16;
+                    /* try { // try from 01bc8bf2 to 01bc8c0c has its CatchHandler @ 01bc8e47 */
+        local_90 = p_Var18;
+        local_88 = p_Var14;
+        FUN_02d910f0(param_1,&DAT_00462db2,3,0,&local_90);
+        p_Var14 = local_88;
+        if (local_88 != (__shared_weak_count *)0x0) {
+          LOCK();
+          p_Var18 = local_88 + 8;
+          lVar5 = *(long *)p_Var18;
+          *(long *)p_Var18 = *(long *)p_Var18 + -1;
+          UNLOCK();
+          if (lVar5 == 0) {
+            (**(code **)(*(long *)local_88 + 0x10))(local_88);
+            std::__shared_weak_count::__release_weak(p_Var14);
+          }
+        }
+      }
+    }
+    else {
+      LOCK();
+      p_Var18 = local_c0 + 8;
+      lVar5 = *(long *)p_Var18;
+      *(long *)p_Var18 = *(long *)p_Var18 + -1;
+      UNLOCK();
+      if (lVar5 != 0) goto LAB_01bc8b4a;
+      (**(code **)(*(long *)local_c0 + 0x10))(local_c0);
+      std::__shared_weak_count::__release_weak(p_Var14);
+      if (uStack_d0 != local_d8) goto LAB_01bc8b5a;
+    }
+    p_Var14 = local_b8;
+    if (local_d8 != (void *)0x0) {
+      uStack_d0 = local_d8;
+      operator_delete(local_d8);
+      p_Var14 = local_b8;
+    }
+  }
+  if (p_Var14 == (__shared_weak_count *)0x0) {
+    return;
+  }
+  LOCK();
+  p_Var18 = p_Var14 + 8;
+  lVar5 = *(long *)p_Var18;
+  *(long *)p_Var18 = *(long *)p_Var18 + -1;
+  UNLOCK();
+  if (lVar5 != 0) {
+    return;
+  }
+  (**(code **)(*(long *)p_Var14 + 0x10))(p_Var14);
+LAB_01bc8c79:
+  std::__shared_weak_count::__release_weak(p_Var14);
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileDownsampler.java> 
+======================================== (GhidraScript)  
+INFO  DecompileDownsampler.java> FUNCTION 5/23: FUN_02e83360 @ 02e83360 (GhidraScript)  
+INFO  DecompileDownsampler.java> Size: 92 bytes (GhidraScript)  
+INFO  DecompileDownsampler.java> ========================================
+ (GhidraScript)  
+INFO  DecompileDownsampler.java> 
+void FUN_02e83360(long param_1,undefined8 param_2)
+
+{
+  FUN_02e843b0(param_1,"/downsampleMode",param_2);
+  FUN_02e84540(param_1 + 4,"/downsampleRatio",param_2);
+  FUN_02e77440(param_1 + 8,"/preTriggerIndex",param_2);
+  FUN_02e846d0(param_1 + 0x10,"/postTriggerIndex",param_2);
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileDownsampler.java> 
+======================================== (GhidraScript)  
+INFO  DecompileDownsampler.java> FUNCTION 6/23: FUN_02e852f0 @ 02e852f0 (GhidraScript)  
+INFO  DecompileDownsampler.java> Size: 461 bytes (GhidraScript)  
+INFO  DecompileDownsampler.java> ========================================
+ (GhidraScript)  
+INFO  DecompileDownsampler.java> 
+void FUN_02e852f0(long param_1,char *param_2,undefined8 param_3)
+
+{
+  char cVar1;
+  long lVar2;
+  undefined8 *puVar3;
+  undefined8 uVar4;
+  undefined8 uVar5;
+  undefined8 uVar6;
+  size_t sVar7;
+  undefined8 local_58;
+  void *pvStack_50;
+  long local_48;
+  void *pvStack_40;
+  undefined8 local_38;
+  undefined8 uStack_30;
+  undefined4 local_28;
+  
+  cVar1 = FUN_02ed7ea0(param_3);
+  if (cVar1 == '\0') {
+    local_38 = 0;
+    uStack_30 = 0;
+    local_48 = 0;
+    pvStack_40 = (void *)0x0;
+    local_58 = 0;
+    pvStack_50 = (void *)0x0;
+    local_28 = 0;
+    sVar7 = strlen(param_2);
+    FUN_01b20a10(&local_58,param_2,sVar7 & 0xffffffff);
+                    /* try { // try from 02e85414 to 02e85428 has its CatchHandler @ 02e854bd */
+    uVar4 = FUN_02ed7e60(param_3);
+    uVar4 = FUN_01b20820(&local_58,uVar4,0);
+    if (local_48 != 0) {
+      free(pvStack_40);
+    }
+    if (pvStack_50 != (void *)0x0) {
+      operator_delete(pvStack_50);
+    }
+    FUN_02ed7dc0(&local_58,uVar4);
+                    /* try { // try from 02e8545b to 02e854a8 has its CatchHandler @ 02e854e9 */
+    FUN_02e843b0(param_1,"/downsampleMode",&local_58);
+    FUN_02e84540(param_1 + 4,"/downsampleRatio",&local_58);
+    FUN_02e77440(param_1 + 8,"/preTriggerIndex",&local_58);
+    FUN_02e846d0(param_1 + 0x10,"/postTriggerIndex",&local_58);
+  }
+  else {
+    lVar2 = FUN_02ed7e60(param_3);
+    if (lVar2 == 0) {
+      FUN_02ed7e80(param_3);
+      puVar3 = (undefined8 *)FUN_02ed7e60(param_3);
+      *puVar3 = 0;
+      puVar3[1] = 0;
+      *(undefined2 *)((long)puVar3 + 0xe) = 3;
+    }
+    uVar4 = FUN_02ed7e70(param_3);
+    FUN_02ed7db0(&local_58,uVar4);
+                    /* try { // try from 02e85353 to 02e853e0 has its CatchHandler @ 02e854eb */
+    FUN_02e843b0(param_1,"/downsampleMode",&local_58);
+    FUN_02e84540(param_1 + 4,"/downsampleRatio",&local_58);
+    FUN_02e77440(param_1 + 8,"/preTriggerIndex",&local_58);
+    FUN_02e846d0(param_1 + 0x10,"/postTriggerIndex",&local_58);
+    lVar2 = FUN_02ed7e60(&local_58);
+    if (lVar2 != 0) {
+      uVar4 = FUN_02ed7e60(param_3);
+      uVar5 = FUN_02ed7e60(&local_58);
+      uVar6 = FUN_02ed7e70(param_3);
+      FUN_01d7e630(uVar4,param_2,uVar5,uVar6);
+    }
+  }
+  FUN_02ed7e40(&local_58);
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileDownsampler.java> 
+======================================== (GhidraScript)  
+INFO  DecompileDownsampler.java> FUNCTION 7/23: FUN_02d82400 @ 02d82400 (GhidraScript)  
+INFO  DecompileDownsampler.java> Size: 12 bytes (GhidraScript)  
+INFO  DecompileDownsampler.java> ========================================
+ (GhidraScript)  
+INFO  DecompileDownsampler.java> 
+void FUN_02d82400(void)
+
+{
+  FUN_02d82410("Saleae::Graph::WaveformSummaryNode");
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileDownsampler.java> 
+======================================== (GhidraScript)  
+INFO  DecompileDownsampler.java> FUNCTION 8/23: FUN_01c6cf80 @ 01c6cf80 (GhidraScript)  
+INFO  DecompileDownsampler.java> Size: 464 bytes (GhidraScript)  
+INFO  DecompileDownsampler.java> ========================================
+ (GhidraScript)  
+INFO  DecompileDownsampler.java> 
+void FUN_01c6cf80(long param_1,undefined8 param_2)
+
+{
+  FUN_01b38a60(param_1 + 0x18,&DAT_004ee548,param_2);
+  FUN_01c6e700(param_1 + 0x20,"/interval",param_2);
+  FUN_01c6e890(param_1 + 0x40,"/viewState",param_2);
+  FUN_01c6ead0(param_1 + 0x70,"/navigationViewMode",param_2);
+  FUN_01c6ec60(param_1 + 0x74,"/followViewMode",param_2);
+  FUN_01c6edf0(param_1 + 0x78,"/displayableInterval",param_2);
+  FUN_01c6ef80(param_1 + 0x98,"/activeAnimation",param_2);
+  FUN_01be63b0(param_1 + 0xe0,"/currentTriggerTime",param_2);
+  FUN_01c6f110(param_1 + 0xf8,"/currentTriggerType",param_2);
+  FUN_01c6f350(param_1 + 0x100,"/currentTriggerWaveformId",param_2);
+  FUN_01bf9450(param_1 + 0x110,"/hasNextTrigger",param_2);
+  FUN_01c6f590(param_1 + 0x111,"/hasPreviousTrigger",param_2);
+  FUN_01c6f720(param_1 + 0x112,"/deltaFrame",param_2);
+  FUN_01c6f8b0(param_1 + 0x118,"/dataViewState",param_2);
+  FUN_01c6fa40(param_1 + 0x150,"/triggeringFrameStartEvent",param_2);
+  FUN_01c6fc80(param_1 + 0x160,"/digitalRenderers",param_2);
+  FUN_01c6fe10(param_1 + 0x178,"/analogRenderers",param_2);
+  FUN_01c6ffa0(param_1 + 400,"/waveformSummary",param_2);
+  FUN_01c70130(param_1 + 0x1a8,"/waveformRenderers",param_2);
+  FUN_01c702c0(param_1 + 0x1c0,"/analyzerRenderers",param_2);
+  FUN_01c70450(param_1 + 0x1d8,"/measurementResults",param_2);
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileDownsampler.java> 
+======================================== (GhidraScript)  
+INFO  DecompileDownsampler.java> FUNCTION 9/23: FUN_02e64640 @ 02e64640 (GhidraScript)  
+INFO  DecompileDownsampler.java> Size: 2706 bytes (GhidraScript)  
+INFO  DecompileDownsampler.java> ========================================
+ (GhidraScript)  
+INFO  DecompileDownsampler.java> 
+void FUN_02e64640(long param_1,byte *param_2)
+
+{
+  int iVar1;
+  long lVar2;
+  long *plVar3;
+  double dVar4;
+  char cVar5;
+  ulong uVar6;
+  size_t sVar7;
+  long lVar8;
+  uint uVar9;
+  long lVar10;
+  undefined8 uVar11;
+  char *pcVar12;
+  undefined4 uVar13;
+  undefined4 uVar14;
+  ushort local_182;
+  uint local_180;
+  undefined1 local_179;
+  undefined8 local_178;
+  undefined4 uStack_170;
+  char *local_168;
+  char *local_160;
+  undefined8 *puStack_158;
+  char *local_150;
+  undefined8 local_100;
+  size_t sStack_f8;
+  undefined8 local_f0;
+  size_t sStack_e8;
+  undefined8 local_e0;
+  size_t sStack_d8;
+  undefined8 local_d0;
+  size_t sStack_c8;
+  undefined8 local_c0;
+  size_t sStack_b8;
+  undefined8 local_b0;
+  size_t sStack_a8;
+  undefined8 local_a0;
+  size_t sStack_98;
+  undefined8 local_90;
+  size_t sStack_88;
+  undefined8 local_80;
+  size_t sStack_78;
+  undefined8 local_70;
+  size_t sStack_68;
+  undefined8 local_60;
+  size_t sStack_58;
+  undefined8 local_50;
+  size_t sStack_48;
+  undefined8 local_40;
+  size_t sStack_38;
+  
+  lVar8 = DAT_030b0168;
+  local_178 = 
+  "/workspace/monorepo/graph-io/devices/mso_device/src/mso_device/component/mso_fpga.cpp";
+  uStack_170 = 0x256;
+  local_168 = "SetAnalogChannelConfiguration";
+  iVar1 = *(int *)(DAT_030b0168 + 0x38);
+  cVar5 = FUN_02edfa80();
+  if ((iVar1 < 2) || (cVar5 != '\0')) {
+    local_179 = iVar1 < 2;
+    if ((*(byte *)(lVar8 + 8) & 1) == 0) {
+      lVar10 = lVar8 + 9;
+      uVar6 = (ulong)(*(byte *)(lVar8 + 8) >> 1);
+    }
+    else {
+      lVar10 = *(long *)(lVar8 + 0x18);
+      uVar6 = *(ulong *)(lVar8 + 0x10);
+    }
+    FUN_02ee25b0(&local_160,lVar10,uVar6,1,"Setting analog channel configuration",0x24,
+                 (undefined4)local_178,uStack_170,local_168);
+    FUN_02ee4120(lVar8,&local_160,local_179,cVar5);
+  }
+  lVar10 = *(long *)(param_2 + 0x10);
+  lVar2 = *(long *)(param_2 + 0x18);
+  lVar8 = lVar2 + lVar10;
+  if (lVar8 < 8) {
+    local_40 = 0;
+    sVar7 = strlen((char *)0x0);
+    uVar13 = 0x25c;
+    pcVar12 = "sample_length >= MsoConstants::MinTriggerBufferSamples";
+    uVar11 = 0x36;
+    uVar14 = (undefined4)local_40;
+    sStack_38 = sVar7;
+    goto LAB_02e650c2;
+  }
+  if (lVar2 == -lVar10 || SBORROW8(lVar2,-lVar10) != lVar2 + lVar10 < 0) {
+    local_50 = 0;
+    sVar7 = strlen((char *)0x0);
+    uVar13 = 0x25d;
+    pcVar12 = "-config.mPreTriggerLength < config.mPostTriggerLength";
+    uVar11 = 0x35;
+    uVar14 = (undefined4)local_50;
+    sStack_48 = sVar7;
+    goto LAB_02e650c2;
+  }
+  if (0xffffffffbfff < lVar2) {
+    local_60 = 0;
+    sVar7 = strlen((char *)0x0);
+    uVar13 = 0x25e;
+    pcVar12 = "config.mPostTriggerLength <= MsoConstants::MaxTriggerBufferIndex";
+    uVar11 = 0x40;
+    uVar14 = (undefined4)local_60;
+    sStack_58 = sVar7;
+    goto LAB_02e650c2;
+  }
+  uVar6 = FUN_02e62780();
+  if ((uVar6 & 0xfe) == 0) {
+    if (0x2fffc000 < lVar8) {
+      local_b0 = 0;
+      sVar7 = strlen((char *)0x0);
+      uVar13 = 0x269;
+      pcVar12 = "sample_length <= MsoConstants::MaxTriggerBufferSamples_Altera";
+      uVar14 = (undefined4)local_b0;
+      sStack_a8 = sVar7;
+      goto LAB_02e64fdb;
+    }
+    lVar8 = *(long *)(param_2 + 0x10);
+    if (0x2fffc000 < lVar8) {
+      local_c0 = 0;
+      sVar7 = strlen((char *)0x0);
+      uVar13 = 0x26a;
+      pcVar12 = "-config.mPreTriggerLength >= MsoConstants::MinTriggerBufferIndex_Altera";
+      uVar14 = (undefined4)local_c0;
+      sStack_b8 = sVar7;
+      goto LAB_02e65029;
+    }
+    uVar9 = *(uint *)(param_2 + 0x20);
+    if (uVar9 < 0x40) {
+      local_d0 = 0;
+      sVar7 = strlen((char *)0x0);
+      uVar13 = 0x26b;
+      pcVar12 = "config.mSamplesPerChunk >= FpgaConstants::MinSamplesPerPacket_Altera";
+      uVar14 = (undefined4)local_d0;
+      sStack_c8 = sVar7;
+    }
+    else {
+      if (uVar9 < 0x1781) goto LAB_02e6480c;
+      local_e0 = 0;
+      sVar7 = strlen((char *)0x0);
+      uVar13 = 0x26c;
+      pcVar12 = "config.mSamplesPerChunk <= FpgaConstants::MaxSamplesPerPacket_Altera";
+      uVar14 = (undefined4)local_e0;
+      sStack_d8 = sVar7;
+    }
+  }
+  else {
+    if (0x3fffc000 < lVar8) {
+      local_70 = 0;
+      sVar7 = strlen((char *)0x0);
+      uVar13 = 0x262;
+      pcVar12 = "sample_length <= MsoConstants::MaxTriggerBufferSamples_Xilinx";
+      uVar14 = (undefined4)local_70;
+      sStack_68 = sVar7;
+LAB_02e64fdb:
+      uVar11 = 0x3d;
+      goto LAB_02e650c2;
+    }
+    lVar8 = *(long *)(param_2 + 0x10);
+    if (0x3fffc000 < lVar8) {
+      local_80 = 0;
+      sVar7 = strlen((char *)0x0);
+      uVar13 = 0x263;
+      pcVar12 = "-config.mPreTriggerLength >= MsoConstants::MinTriggerBufferIndex_Xilinx";
+      uVar14 = (undefined4)local_80;
+      sStack_78 = sVar7;
+LAB_02e65029:
+      uVar11 = 0x47;
+      goto LAB_02e650c2;
+    }
+    uVar9 = *(uint *)(param_2 + 0x20);
+    if (uVar9 < 0x100) {
+      local_90 = 0;
+      sVar7 = strlen((char *)0x0);
+      uVar13 = 0x264;
+      pcVar12 = "config.mSamplesPerChunk >= FpgaConstants::MinSamplesPerPacket_Xilinx";
+      uVar14 = (undefined4)local_90;
+      sStack_88 = sVar7;
+    }
+    else {
+      if (uVar9 < 0x1e01) {
+LAB_02e6480c:
+        if (*param_2 == 0) {
+LAB_02e64826:
+          local_180 = *(uint *)(param_2 + 4);
+          local_182 = 0x54;
+          local_160 = 
+          "/workspace/monorepo/graph-io/devices/mso_device/src/mso_device/component/mso_fpga.cpp";
+          puStack_158 = (undefined8 *)CONCAT44(puStack_158._4_4_,0x422);
+          local_150 = "WriteRegister";
+          FUN_02e69000(DAT_030b0168,1,"FPGA WriteRegister 0x{:04x} = 0x{:08x} ({})",0x2b,&local_182,
+                       &local_180,0x49001c,0x422,"WriteRegister",&local_180);
+          local_178._0_6_ = CONCAT42(local_180,local_182 << 8 | local_182 >> 8);
+          local_160 = (char *)0x6;
+          plVar3 = *(long **)(param_1 + 0x80);
+          if (plVar3 != (long *)0x0) {
+            puStack_158 = &local_178;
+            (**(code **)(*plVar3 + 0x30))(plVar3,&local_160);
+            dVar4 = round(2147483648.0 / (double)*(uint *)(param_2 + 4));
+            local_182 = 0x60;
+            local_180 = (uint)(long)dVar4;
+            local_160 = 
+            "/workspace/monorepo/graph-io/devices/mso_device/src/mso_device/component/mso_fpga.cpp";
+            puStack_158 = (undefined8 *)CONCAT44(puStack_158._4_4_,0x422);
+            local_150 = "WriteRegister";
+            FUN_02e69000(DAT_030b0168,1,"FPGA WriteRegister 0x{:04x} = 0x{:08x} ({})",0x2b,
+                         &local_182,&local_180,0x49001c,0x422,"WriteRegister",&local_180);
+            local_178._0_6_ = CONCAT42(local_180,local_182 << 8 | local_182 >> 8);
+            local_160 = (char *)0x6;
+            plVar3 = *(long **)(param_1 + 0x80);
+            if (plVar3 != (long *)0x0) {
+              puStack_158 = &local_178;
+              (**(code **)(*plVar3 + 0x30))(plVar3,&local_160);
+              lVar8 = *(long *)(param_2 + 0x10);
+              local_182 = 0x58;
+              local_180 = (uint)-lVar8;
+              local_160 = 
+              "/workspace/monorepo/graph-io/devices/mso_device/src/mso_device/component/mso_fpga.cpp"
+              ;
+              puStack_158 = (undefined8 *)CONCAT44(puStack_158._4_4_,0x422);
+              local_150 = "WriteRegister";
+              FUN_02e69000(DAT_030b0168,1,"FPGA WriteRegister 0x{:04x} = 0x{:08x} ({})",0x2b,
+                           &local_182,&local_180,0x49001c,0x422,"WriteRegister",&local_180);
+              local_178._0_6_ = CONCAT42(local_180,local_182 << 8 | local_182 >> 8);
+              local_160 = (char *)0x6;
+              puStack_158 = &local_178;
+              plVar3 = *(long **)(param_1 + 0x80);
+              if (plVar3 != (long *)0x0) {
+                (**(code **)(*plVar3 + 0x30))(plVar3,&local_160);
+                uVar11 = *(undefined8 *)(param_2 + 0x18);
+                local_182 = 0x5c;
+                local_180 = (uint)uVar11;
+                local_160 = 
+                "/workspace/monorepo/graph-io/devices/mso_device/src/mso_device/component/mso_fpga.cpp"
+                ;
+                puStack_158 = (undefined8 *)CONCAT44(puStack_158._4_4_,0x422);
+                local_150 = "WriteRegister";
+                FUN_02e69000(DAT_030b0168,1,"FPGA WriteRegister 0x{:04x} = 0x{:08x} ({})",0x2b,
+                             &local_182,&local_180,0x49001c,0x422,"WriteRegister",&local_180);
+                local_178._0_6_ = CONCAT42(local_180,local_182 << 8 | local_182 >> 8);
+                local_160 = (char *)0x6;
+                puStack_158 = &local_178;
+                plVar3 = *(long **)(param_1 + 0x80);
+                if (plVar3 != (long *)0x0) {
+                  (**(code **)(*plVar3 + 0x30))(plVar3,&local_160);
+                  local_180 = (uint)((ulong)-lVar8 >> 0x20) & 0xffff |
+                              (uint)((ulong)uVar11 >> 0x10) & 0xffff0000;
+                  local_182 = 100;
+                  local_160 = 
+                  "/workspace/monorepo/graph-io/devices/mso_device/src/mso_device/component/mso_fpga.cpp"
+                  ;
+                  puStack_158 = (undefined8 *)CONCAT44(puStack_158._4_4_,0x422);
+                  local_150 = "WriteRegister";
+                  FUN_02e69000(DAT_030b0168,1,"FPGA WriteRegister 0x{:04x} = 0x{:08x} ({})",0x2b,
+                               &local_182,&local_180,0x49001c,0x422,"WriteRegister",&local_180);
+                  local_178._0_6_ = CONCAT42(local_180,local_182 << 8 | local_182 >> 8);
+                  local_160 = (char *)0x6;
+                  puStack_158 = &local_178;
+                  plVar3 = *(long **)(param_1 + 0x80);
+                  if (plVar3 != (long *)0x0) {
+                    (**(code **)(*plVar3 + 0x30))(plVar3,&local_160);
+                    local_180 = *(uint *)(param_2 + 0x20);
+                    local_182 = 0x68;
+                    local_160 = 
+                    "/workspace/monorepo/graph-io/devices/mso_device/src/mso_device/component/mso_fpga.cpp"
+                    ;
+                    puStack_158 = (undefined8 *)CONCAT44(puStack_158._4_4_,0x422);
+                    local_150 = "WriteRegister";
+                    FUN_02e69000(DAT_030b0168,1,"FPGA WriteRegister 0x{:04x} = 0x{:08x} ({})",0x2b,
+                                 &local_182,&local_180,0x49001c,0x422,"WriteRegister",&local_180);
+                    local_178._0_6_ = CONCAT42(local_180,local_182 << 8 | local_182 >> 8);
+                    local_160 = (char *)0x6;
+                    puStack_158 = &local_178;
+                    plVar3 = *(long **)(param_1 + 0x80);
+                    if (plVar3 != (long *)0x0) {
+                      (**(code **)(*plVar3 + 0x30))(plVar3,&local_160);
+                      uVar9 = *(uint *)(param_1 + 8) & 0xffffff8f;
+                      *(uint *)(param_1 + 8) = uVar9;
+                      if (3 < *(uint *)(param_2 + 8)) {
+                        local_160 = 
+                        "Trying to set a value that is outside the range of the bits being set";
+                        puStack_158 = (undefined8 *)0x45;
+                    /* WARNING: Subroutine does not return */
+                        FUN_02eca300("( value & upper_mask ) == 0",0x1b,
+                                     "void Saleae::Utilities::SetField(T &, S, uint64_t, uint64_t) [T = unsigned int, S = Saleae::DownsampleMode_impl::DownsampleMode]"
+                                     ,0x80,
+                                     "/workspace/monorepo/graph-io/core/saleae_base/include/utilities.h"
+                                     ,0x41,0xb8,0x4e752a,0x45);
+                      }
+                      local_180 = (uint)*param_2 << 4 | (*(uint *)(param_2 + 8) & 3) << 5 | uVar9;
+                      *(uint *)(param_1 + 8) = local_180;
+                      local_182 = 0x40;
+                      local_160 = 
+                      "/workspace/monorepo/graph-io/devices/mso_device/src/mso_device/component/mso_fpga.cpp"
+                      ;
+                      puStack_158 = (undefined8 *)CONCAT44(puStack_158._4_4_,0x422);
+                      local_150 = "WriteRegister";
+                      FUN_02e69000(DAT_030b0168,1,"FPGA WriteRegister 0x{:04x} = 0x{:08x} ({})",0x2b
+                                   ,&local_182,&local_180,0x49001c,0x422,"WriteRegister",&local_180)
+                      ;
+                      local_178._0_6_ = CONCAT42(local_180,local_182 << 8 | local_182 >> 8);
+                      local_160 = (char *)0x6;
+                      puStack_158 = &local_178;
+                      plVar3 = *(long **)(param_1 + 0x80);
+                      if (plVar3 != (long *)0x0) {
+                        (**(code **)(*plVar3 + 0x30))(plVar3,&local_160);
+                        return;
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+          puStack_158 = &local_178;
+          local_160 = (char *)0x6;
+                    /* WARNING: Subroutine does not return */
+          FUN_01b292f0();
+        }
+        if ((char)uVar9 == '\0') {
+          if ((byte)((char)lVar8 + param_2[0x18]) == '\0') goto LAB_02e64826;
+          local_100 = 0;
+          sVar7 = strlen((char *)0x0);
+          uVar13 = 0x272;
+          pcVar12 = 
+          "( config.mPreTriggerLength + config.mPostTriggerLength ) % FpgaConstants::SamplesPerPacketMultiple_WithStats == 0"
+          ;
+          uVar11 = 0x71;
+          uVar14 = (undefined4)local_100;
+          sStack_f8 = sVar7;
+        }
+        else {
+          local_f0 = 0;
+          sVar7 = strlen((char *)0x0);
+          uVar13 = 0x270;
+          pcVar12 = 
+          "config.mSamplesPerChunk % FpgaConstants::SamplesPerPacketMultiple_WithStats == 0";
+          uVar11 = 0x50;
+          uVar14 = (undefined4)local_f0;
+          sStack_e8 = sVar7;
+        }
+        goto LAB_02e650c2;
+      }
+      local_a0 = 0;
+      sVar7 = strlen((char *)0x0);
+      uVar13 = 0x265;
+      pcVar12 = "config.mSamplesPerChunk <= FpgaConstants::MaxSamplesPerPacket_Xilinx";
+      uVar14 = (undefined4)local_a0;
+      sStack_98 = sVar7;
+    }
+  }
+  uVar11 = 0x44;
+LAB_02e650c2:
+                    /* WARNING: Subroutine does not return */
+  FUN_02eca300(pcVar12,uVar11,
+               "void Saleae::MsoFpga::SetAnalogChannelConfiguration(const Saleae::MsoFpga::AnalogChannelConfiguration &)"
+               ,0x68,
+               "/workspace/monorepo/graph-io/devices/mso_device/src/mso_device/component/mso_fpga.cpp"
+               ,0x55,uVar13,uVar14,sVar7);
+}
+
+ (GhidraScript)  
+INFO  DecompileDownsampler.java> 
+======================================== (GhidraScript)  
+INFO  DecompileDownsampler.java> FUNCTION 10/23: FUN_01bc8380 @ 01bc8380 (GhidraScript)  
+INFO  DecompileDownsampler.java> Size: 67 bytes (GhidraScript)  
+INFO  DecompileDownsampler.java> ========================================
+ (GhidraScript)  
+INFO  DecompileDownsampler.java> 
+void FUN_01bc8380(undefined8 *param_1)
+
+{
+  undefined8 uVar1;
+  
+  uVar1 = FUN_01bc91e0("Saleae::Graph::AnalogDownsamplerNode");
+  FUN_02d90ae0(param_1,uVar1);
+  *param_1 = &PTR_thunk_FUN_02d90b40_02f384b0;
+  *(undefined1 *)(param_1 + 0x1a) = 0;
+  *(undefined1 *)(param_1 + 0x1b) = 0;
+  *(undefined1 *)(param_1 + 0x1c) = 0;
+  *(undefined1 *)(param_1 + 0x1e) = 0;
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileDownsampler.java> 
+======================================== (GhidraScript)  
+INFO  DecompileDownsampler.java> FUNCTION 11/23: FUN_01bc83d0 @ 01bc83d0 (GhidraScript)  
+INFO  DecompileDownsampler.java> Size: 12 bytes (GhidraScript)  
+INFO  DecompileDownsampler.java> ========================================
+ (GhidraScript)  
+INFO  DecompileDownsampler.java> 
+void FUN_01bc83d0(void)
+
+{
+  FUN_01bc91e0("Saleae::Graph::AnalogDownsamplerNode");
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileDownsampler.java> 
+======================================== (GhidraScript)  
+INFO  DecompileDownsampler.java> FUNCTION 12/23: FUN_01c15570 @ 01c15570 (GhidraScript)  
+INFO  DecompileDownsampler.java> Size: 181 bytes (GhidraScript)  
+INFO  DecompileDownsampler.java> ========================================
+ (GhidraScript)  
+INFO  DecompileDownsampler.java> 
+void FUN_01c15570(long param_1,undefined8 param_2)
+
+{
+  FUN_01c15690(param_1 + 0x18,"/format",param_2);
+  FUN_01c15820(param_1 + 0x20,"/exportFilepath",param_2);
+  FUN_01c159b0(param_1 + 0x38,"/analogChannels",param_2);
+  FUN_01c15b40(param_1 + 0x50,"/digitalChannels",param_2);
+  FUN_01c15cd0(param_1 + 0x68,"/graphInterval",param_2);
+  FUN_01c15e60(param_1 + 0x88,"/analogDownsample",param_2);
+  FUN_01c15ff0(param_1 + 0x8c,"/useWallClockTime",param_2);
+  FUN_01c16180(param_1 + 0x90,"/zeroTime",param_2);
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileDownsampler.java> 
+======================================== (GhidraScript)  
+INFO  DecompileDownsampler.java> FUNCTION 13/23: FUN_02d88690 @ 02d88690 (GhidraScript)  
+INFO  DecompileDownsampler.java> Size: 12 bytes (GhidraScript)  
+INFO  DecompileDownsampler.java> ========================================
+ (GhidraScript)  
+INFO  DecompileDownsampler.java> 
+void FUN_02d88690(void)
+
+{
+  FUN_02d89160("Saleae::Graph::WaveformSummaryResult");
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileDownsampler.java> 
+======================================== (GhidraScript)  
+INFO  DecompileDownsampler.java> FUNCTION 14/23: FUN_02d88650 @ 02d88650 (GhidraScript)  
+INFO  DecompileDownsampler.java> Size: 57 bytes (GhidraScript)  
+INFO  DecompileDownsampler.java> ========================================
+ (GhidraScript)  
+INFO  DecompileDownsampler.java> 
+void FUN_02d88650(undefined8 *param_1)
+
+{
+  undefined8 uVar1;
+  
+  uVar1 = FUN_02d89160("Saleae::Graph::WaveformSummaryResult");
+  FUN_02db0660(param_1,uVar1);
+  *param_1 = &PTR_FUN_02fdd6b8;
+  *(undefined4 *)(param_1 + 3) = 0;
+  param_1[4] = 0;
+  param_1[5] = 0;
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileDownsampler.java> 
+======================================== (GhidraScript)  
+INFO  DecompileDownsampler.java> FUNCTION 15/23: FUN_01bc99b0 @ 01bc99b0 (GhidraScript)  
+INFO  DecompileDownsampler.java> Size: 12 bytes (GhidraScript)  
+INFO  DecompileDownsampler.java> ========================================
+ (GhidraScript)  
+INFO  DecompileDownsampler.java> 
+void FUN_01bc99b0(void)
+
+{
+  FUN_01bc99c0("Saleae::Graph::AnalogDownsamplerActions::SetAnalogDownsampleRate");
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileDownsampler.java> 
+======================================== (GhidraScript)  
+INFO  DecompileDownsampler.java> FUNCTION 16/23: FUN_02e48400 @ 02e48400 (GhidraScript)  
+INFO  DecompileDownsampler.java> Size: 3033 bytes (GhidraScript)  
+INFO  DecompileDownsampler.java> ========================================
+ (GhidraScript)  
+INFO  DecompileDownsampler.java> 
+/* WARNING: Type propagation algorithm not settling */
+
+void FUN_02e48400(void *param_1)
+
+{
+  double dVar1;
+  undefined8 uVar2;
+  undefined8 uVar3;
+  char cVar4;
+  long lVar5;
+  mutex *this;
+  undefined8 *puVar6;
+  char **ppcVar7;
+  double **ppdVar8;
+  byte bVar9;
+  char *local_758;
+  undefined8 uStack_750;
+  char *local_748;
+  undefined1 *local_740;
+  undefined1 *local_738;
+  undefined1 *local_730;
+  undefined1 *local_728;
+  undefined1 *local_720;
+  char ***local_718;
+  byte *local_710;
+  undefined1 *local_708;
+  undefined1 *local_700;
+  long *local_6f8;
+  double *local_6f0;
+  long *local_6e8;
+  double *local_6e0;
+  long *local_6d8;
+  double *local_6d0;
+  long *local_6c8;
+  double *local_6c0;
+  undefined8 *local_6b8;
+  byte *local_6b0;
+  undefined1 *local_6a8;
+  undefined1 *local_6a0;
+  undefined1 *local_698;
+  byte *local_690;
+  undefined1 *local_688;
+  undefined1 *local_680;
+  undefined1 *local_678;
+  byte *local_670;
+  undefined1 *local_668;
+  undefined1 *local_660;
+  undefined1 *local_658;
+  byte *local_650;
+  undefined1 *local_648;
+  undefined1 *local_640;
+  undefined1 *local_638;
+  undefined1 *local_630;
+  undefined1 *local_628;
+  undefined1 *local_620;
+  double *local_618;
+  undefined1 *local_610;
+  undefined1 *local_608;
+  undefined1 *local_600;
+  undefined1 *local_5f8;
+  double *local_5f0;
+  undefined1 *local_5e8;
+  undefined1 *local_5e0;
+  undefined1 *local_5d8;
+  undefined1 *local_5d0;
+  double *local_5c8;
+  undefined1 *local_5c0;
+  undefined1 *local_5b8;
+  undefined1 *local_5b0;
+  undefined1 *local_5a8;
+  double *local_5a0;
+  undefined1 *local_598;
+  undefined1 *local_590;
+  undefined8 *local_588;
+  long local_580;
+  undefined1 *local_578;
+  undefined1 *local_570;
+  undefined1 *local_568;
+  undefined1 *local_560;
+  undefined1 *local_558;
+  undefined1 *local_550;
+  undefined1 *local_548;
+  undefined1 *local_540;
+  undefined1 *local_538;
+  undefined1 *local_530;
+  undefined1 *local_528;
+  undefined1 *local_520;
+  undefined1 *local_518;
+  undefined1 *local_510;
+  undefined1 *local_508;
+  undefined1 *local_500;
+  undefined1 *local_4f8;
+  undefined1 *local_4f0;
+  undefined1 *local_4e8;
+  undefined1 *local_4e0;
+  undefined1 *local_4d8;
+  undefined1 *local_4d0;
+  undefined1 *local_4c8;
+  undefined1 *local_4c0;
+  undefined1 *local_4b8;
+  undefined1 *local_4b0;
+  undefined1 *local_4a8;
+  undefined1 *local_4a0;
+  undefined1 *local_498;
+  undefined1 *local_490;
+  char *local_480;
+  uint uStack_478;
+  undefined2 uStack_474;
+  undefined2 uStack_472;
+  undefined6 local_470;
+  undefined2 uStack_46a;
+  undefined6 local_468;
+  undefined2 uStack_462;
+  char local_460;
+  char **local_458;
+  char **local_450;
+  void *local_448;
+  long local_440;
+  char *local_438;
+  undefined8 local_430;
+  undefined8 local_428;
+  double local_420;
+  double local_418;
+  double local_410;
+  double local_408;
+  byte local_400 [16];
+  void *local_3f0;
+  byte local_3e8 [16];
+  void *local_3d8;
+  byte local_3d0 [16];
+  void *local_3c0;
+  byte local_3b8 [16];
+  void *local_3a8;
+  double local_3a0;
+  double local_398;
+  double local_390;
+  double local_388;
+  byte local_380 [16];
+  void *local_370;
+  char *local_368;
+  undefined6 uStack_360;
+  undefined2 local_35a;
+  undefined6 uStack_358;
+  undefined8 uStack_352;
+  char *local_340;
+  undefined4 uStack_338;
+  undefined4 uStack_334;
+  undefined8 local_330;
+  undefined1 local_328 [32];
+  undefined1 local_308 [8];
+  undefined1 local_300 [8];
+  undefined1 local_2f8 [8];
+  undefined1 local_2f0 [8];
+  undefined1 local_2e8 [8];
+  double local_2e0;
+  undefined1 local_2d8 [4];
+  undefined4 local_2d4;
+  undefined1 local_2d0 [32];
+  undefined1 local_2b0 [8];
+  undefined1 local_2a8 [8];
+  undefined1 local_2a0 [8];
+  undefined1 local_298 [8];
+  undefined1 local_290 [8];
+  double local_288;
+  undefined1 local_280 [4];
+  undefined4 local_27c;
+  undefined1 local_278 [32];
+  undefined1 local_258 [8];
+  undefined1 local_250 [8];
+  undefined1 local_248 [8];
+  undefined1 local_240 [8];
+  undefined1 local_238 [8];
+  double local_230;
+  undefined1 local_228 [4];
+  undefined4 local_224;
+  undefined1 local_220 [32];
+  undefined1 local_200 [8];
+  undefined1 local_1f8 [8];
+  undefined1 local_1f0 [8];
+  undefined1 local_1e8 [8];
+  undefined1 local_1e0 [8];
+  double local_1d8;
+  undefined1 local_1cc [4];
+  undefined1 local_1c8 [8];
+  undefined1 local_1c0 [8];
+  undefined1 local_1b8;
+  undefined1 local_1b7 [3];
+  undefined4 local_1b4;
+  undefined1 local_1b0 [8];
+  undefined4 local_1a8;
+  undefined1 local_1a0 [8];
+  long local_198;
+  long local_190;
+  long local_188;
+  long local_180;
+  undefined8 local_178;
+  undefined1 local_170 [8];
+  undefined1 local_168 [2];
+  undefined1 local_166 [6];
+  undefined1 local_160 [8];
+  undefined1 local_158 [8];
+  undefined1 local_150 [24];
+  undefined1 local_138;
+  undefined1 local_137 [7];
+  undefined1 local_130 [8];
+  undefined1 local_128 [8];
+  undefined1 local_120 [8];
+  undefined1 local_118 [8];
+  undefined1 local_110 [24];
+  undefined1 local_f8;
+  undefined1 local_f7 [7];
+  undefined1 local_f0 [8];
+  undefined1 local_e8 [8];
+  undefined1 local_e0 [8];
+  undefined1 local_d8 [8];
+  undefined1 local_d0 [24];
+  undefined1 local_b8;
+  undefined1 local_b7 [7];
+  undefined1 local_b0 [8];
+  undefined1 local_a8 [8];
+  undefined1 local_a0 [8];
+  undefined1 local_98 [8];
+  undefined1 local_90 [24];
+  undefined1 local_78 [8];
+  undefined1 local_70 [8];
+  long local_68 [4];
+  long *local_48;
+  
+  bVar9 = 0;
+  cVar4 = FUN_02e32dd0();
+  if ((cVar4 != '\0') || (*(char *)((long)param_1 + 0x4d60) == '\0')) {
+    FUN_02ddef20((long)param_1 + 0x3258);
+    return;
+  }
+  local_438 = "ProcessPendingConfiguration";
+  local_430 = 0x1b;
+  local_440 = std::chrono::steady_clock::now();
+  this = (mutex *)((long)param_1 + 0x150);
+                    /* try { // try from 02e48459 to 02e48460 has its CatchHandler @ 02e491a1 */
+  std::mutex::lock(this);
+  if ((*(long *)((long)param_1 + 0x3248) == *(long *)((long)param_1 + 0x3250)) ||
+     (*(int *)((long)param_1 + 0x1f0) !=
+      *(int *)((long)param_1 +
+              (ulong)((int)*(long *)((long)param_1 + 0x3248) - 1U & 0xf) * 0x2d8 + 0x4c8))) {
+    memcpy(&local_340,(void *)((long)param_1 + 0x1f0),0x2d8);
+    std::mutex::unlock(this);
+    if (*(long *)((long)param_1 + 0x3498) == 0) {
+      uStack_358 = 0x10101010101;
+      uStack_352 = 0x101010101010101;
+      local_368 = (char *)0x101010101010101;
+      uStack_360 = 0x10101010101;
+      local_35a = 0x101;
+      if (*(long *)((long)param_1 + 0x3248) != *(long *)((long)param_1 + 0x3250)) {
+                    /* try { // try from 02e486a5 to 02e486b9 has its CatchHandler @ 02e48fd9 */
+        FUN_02e47f80(&local_480,
+                     (long)param_1 +
+                     (ulong)((int)*(long *)((long)param_1 + 0x3248) - 1U & 0xf) * 0x2d8 + 0x4c8,
+                     &local_340);
+        uStack_360 = CONCAT24(uStack_474,uStack_478);
+        uStack_352 = CONCAT62(local_468,uStack_46a);
+        uStack_358 = local_470;
+        local_368 = local_480;
+        local_35a = uStack_472;
+      }
+      uVar2 = DAT_030b0198;
+                    /* try { // try from 02e486ef to 02e486fb has its CatchHandler @ 02e49188 */
+      FUN_02e4bac0(&local_458,local_1a8);
+                    /* try { // try from 02e48703 to 02e4870f has its CatchHandler @ 02e4916c */
+      FUN_02e4bbb0(local_380,local_1b4);
+      dVar1 = *(double *)((long)param_1 + 0xb8);
+      local_388 = ((double)local_190 / dVar1) * 1000.0;
+      local_390 = ((double)local_198 / dVar1) * 1000.0;
+      local_398 = ((double)local_180 / dVar1) * 1000.0;
+      local_3a0 = ((double)local_188 / dVar1) * 1000.0;
+                    /* try { // try from 02e4879f to 02e487ab has its CatchHandler @ 02e49159 */
+      FUN_02e4bca0(local_3b8,local_330._4_4_);
+                    /* try { // try from 02e487b3 to 02e487bf has its CatchHandler @ 02e49146 */
+      FUN_02e4bca0(local_3d0,local_2d4);
+                    /* try { // try from 02e487c7 to 02e487d3 has its CatchHandler @ 02e490ea */
+      FUN_02e4bca0(local_3e8,local_27c);
+      local_428 = uVar2;
+                    /* try { // try from 02e487e3 to 02e487ef has its CatchHandler @ 02e490c4 */
+      FUN_02e4bca0(local_400,local_224);
+      local_480 = 
+      "/workspace/monorepo/graph-io/devices/mso_device/src/mso_device/oscilloscope_instrument.cpp";
+      uStack_478 = 0x4e1;
+      local_470 = 0x511838;
+      uStack_46a = 0;
+      local_408 = local_2e0 / 1000000.0;
+      local_410 = local_288 / 1000000.0;
+      local_418 = local_230 / 1000000.0;
+      local_420 = local_1d8 / 1000000.0;
+      local_570 = local_166;
+      local_4f8 = local_f0;
+      local_4e8 = local_e8;
+      local_4e0 = local_e0;
+      local_4d8 = local_d8;
+      local_4d0 = local_d0;
+      local_4c8 = &local_b8;
+      local_4c0 = local_b7;
+      local_4b8 = local_b0;
+      local_4a8 = local_a8;
+      local_4a0 = local_a0;
+      local_498 = local_98;
+      local_490 = local_90;
+                    /* try { // try from 02e488da to 02e48dee has its CatchHandler @ 02e4905b */
+      local_748 = "ProcessPendingConfiguration";
+      uStack_750 = CONCAT26(uStack_472,CONCAT24(uStack_474,0x4e1));
+      local_758 = 
+      "/workspace/monorepo/graph-io/devices/mso_device/src/mso_device/oscilloscope_instrument.cpp";
+      local_500 = local_f7;
+      local_508 = &local_f8;
+      local_510 = local_110;
+      local_518 = local_118;
+      local_520 = local_120;
+      local_528 = local_128;
+      local_538 = local_130;
+      local_540 = local_137;
+      local_548 = &local_138;
+      local_550 = local_150;
+      local_558 = local_158;
+      local_560 = local_160;
+      local_568 = local_168;
+      local_578 = local_170;
+      local_580 = (long)&local_178 + 1;
+      local_588 = &local_178;
+      local_590 = local_70;
+      local_598 = local_78;
+      local_5a0 = &local_420;
+      local_5a8 = local_1e0;
+      local_5b0 = local_1f0;
+      local_5b8 = local_1e8;
+      local_5c0 = local_1f8;
+      local_5c8 = &local_418;
+      local_5d0 = local_238;
+      local_5d8 = local_248;
+      local_5e0 = local_240;
+      local_5e8 = local_250;
+      local_5f0 = &local_410;
+      local_5f8 = local_290;
+      local_600 = local_2a0;
+      local_608 = local_298;
+      local_610 = local_2a8;
+      local_618 = &local_408;
+      local_620 = local_2e8;
+      local_628 = local_2f8;
+      local_630 = local_2f0;
+      local_638 = local_300;
+      local_640 = local_220;
+      local_648 = local_200;
+      local_650 = local_400;
+      local_658 = local_228;
+      local_660 = local_278;
+      local_668 = local_258;
+      local_670 = local_3e8;
+      local_678 = local_280;
+      local_680 = local_2d0;
+      local_688 = local_2b0;
+      local_690 = local_3d0;
+      local_698 = local_2d8;
+      local_6a0 = local_328;
+      local_6a8 = local_308;
+      local_6b0 = local_3b8;
+      local_6b8 = &local_330;
+      local_6c0 = &local_3a0;
+      local_6c8 = &local_188;
+      local_6d0 = &local_398;
+      local_6d8 = &local_180;
+      local_6e0 = &local_390;
+      local_6e8 = &local_198;
+      local_6f0 = &local_388;
+      local_6f8 = &local_190;
+      local_700 = local_1a0;
+      local_708 = local_1b0;
+      local_710 = local_380;
+      local_720 = local_1b7;
+      local_728 = &local_1b8;
+      local_730 = local_1c0;
+      local_738 = local_1c8;
+      local_740 = local_1cc;
+      local_718 = &local_458;
+      local_530 = local_570;
+      local_4f0 = local_570;
+      local_4b0 = local_570;
+      FUN_02e4db40(local_428,1,
+                   "\n  Id={}, CallId={}, \n  Sampling Configuration\n    downsample={}, pre={}, post={},\n\n  Trigger\n    enabled={}, source={}, mode={}, type={}\n    threshold={:.6f} V, hysteresis={:.4f} V,\n    real_holdoff_samples={} ({} ms), real_timeout_samples={} ({} ms)\n    auto_holdoff_samples={} ({} ms), auto_timeout_samples={} ({} ms)\n\n  Analog Channels\n    0: enabled={}, coupling={}, probe_attenuation={}, afe_config={}\n    1: enabled={}, coupling={}, probe_attenuation={}, afe_config={}\n    2: enabled={}, coupling={}, probe_attenuation={}, afe_config={}\n    3: enabled={}, coupling={}, probe_attenuation={}, afe_config={}\n\n  Digital Derived Channels\n    0: enabled={}, low={} V, high={} V, invert={}, min_pulse_width={} us\n    1: enabled={}, low={} V, high={} V, invert={}, min_pulse_width={} us\n    2: enabled={}, low={} V, high={} V, invert={}, min_pulse_width={} us\n    3: enabled={}, low={} V, high={} V, invert={}, min_pulse_width={} us\n\n  Hardware Configuration\n    trigger_threshold={}, trigger_out_of_range={}\n    0: attn1={}, attn2={}, vga_gain={}, vga_preamp={}, vga_ladder={}, dac={} V, min={} V, max={} V\n    1: attn1={}, attn2={}, vga_gain={}, vga_preamp={}, vga_ladder={}, dac={} V, min={} V, max={} V\n    2: attn1={}, attn2={}, vga_gain={}, vga_preamp={}, vga_ladder={}, dac={} V, min={} V, max={} V\n    3: attn1={}, attn2={}, vga_gain={}, vga_preamp={}, vga_ladder={}, dac={} V, min={} V, max={} V\n"
+                   ,0x57c,&local_340,&uStack_338);
+      if ((local_400[0] & 1) != 0) {
+        operator_delete(local_3f0);
+      }
+      if ((local_3e8[0] & 1) != 0) {
+        operator_delete(local_3d8);
+      }
+      if ((local_3d0[0] & 1) != 0) {
+        operator_delete(local_3c0);
+      }
+      if ((local_3b8[0] & 1) != 0) {
+        operator_delete(local_3a8);
+      }
+      if ((local_380[0] & 1) != 0) {
+        operator_delete(local_370);
+      }
+      if (((ulong)local_458 & 1) != 0) {
+        operator_delete(local_448);
+      }
+      local_458 = &local_368;
+      local_480 = (char *)((ulong)local_480 & 0xffffffffffffff00);
+      local_460 = '\0';
+      uVar2 = *(undefined8 *)((long)param_1 + 0x90);
+      local_48 = (long *)0x0;
+      local_450 = &local_340;
+      local_448 = param_1;
+                    /* try { // try from 02e48e8f to 02e48e98 has its CatchHandler @ 02e4903c */
+      local_48 = (long *)operator_new(0x28);
+      *local_48 = (long)&DAT_02fe44a8;
+      local_48[1] = (long)&local_458;
+      local_48[2] = (long)&local_480;
+      local_48[3] = (long)param_1;
+      local_48[4] = (long)&local_340;
+                    /* try { // try from 02e48ec3 to 02e48ed5 has its CatchHandler @ 02e49014 */
+      FUN_02e14800(uVar2,local_68);
+      if (local_68 == local_48) {
+        (**(code **)(*local_48 + 0x20))();
+      }
+      else if (local_48 != (long *)0x0) {
+        (**(code **)(*local_48 + 0x28))();
+      }
+                    /* try { // try from 02e48f9b to 02e48faa has its CatchHandler @ 02e48fde */
+      if (((local_460 != '\0') && (FUN_02e32de0(param_1,&local_480), local_460 != '\0')) &&
+         ((uStack_478 & 1) != 0)) {
+        operator_delete((void *)CONCAT26(uStack_462,local_468));
+      }
+      goto LAB_02e485ae;
+    }
+    this = (mutex *)((long)param_1 + 0x178);
+                    /* try { // try from 02e484f7 to 02e484fe has its CatchHandler @ 02e49197 */
+    std::mutex::lock(this);
+    memcpy((void *)((long)param_1 +
+                   (ulong)((uint)*(undefined8 *)((long)param_1 + 0x3248) & 0xf) * 0x2d8 + 0x4c8),
+           &local_340,0x2d8);
+    lVar5 = *(long *)((long)param_1 + 0x3248);
+    *(long *)((long)param_1 + 0x3248) = lVar5 + 1;
+    lVar5 = lVar5 + -0xf;
+    if (lVar5 < *(long *)((long)param_1 + 0x3250)) {
+      lVar5 = *(long *)((long)param_1 + 0x3250);
+    }
+    *(long *)((long)param_1 + 0x3250) = lVar5;
+    uVar2 = *(undefined8 *)((long)param_1 + 0x3498);
+    uVar3 = CONCAT44(uStack_334,uStack_338);
+    puVar6 = &local_330;
+    ppcVar7 = &local_758;
+                    /* try { // try from 02e4857e to 02e485a5 has its CatchHandler @ 02e4918a */
+    for (lVar5 = 0x37; lVar5 != 0; lVar5 = lVar5 + -1) {
+      *ppcVar7 = (char *)*puVar6;
+      puVar6 = puVar6 + (ulong)bVar9 * -2 + 1;
+      ppcVar7 = ppcVar7 + (ulong)bVar9 * -2 + 1;
+    }
+    puVar6 = &local_178;
+    ppdVar8 = &local_5a0;
+    for (lVar5 = 0x22; lVar5 != 0; lVar5 = lVar5 + -1) {
+      *ppdVar8 = (double *)*puVar6;
+      puVar6 = puVar6 + (ulong)bVar9 * -2 + 1;
+      ppdVar8 = ppdVar8 + (ulong)bVar9 * -2 + 1;
+    }
+    FUN_02e588c0(uVar2,local_340._0_4_,uVar3);
+  }
+  else {
+                    /* try { // try from 02e48494 to 02e4849b has its CatchHandler @ 02e4900f */
+    FUN_02ddef20((long)param_1 + 0x3258);
+  }
+  std::mutex::unlock(this);
+LAB_02e485ae:
+  lVar5 = std::chrono::steady_clock::now();
+  if (1000000 < lVar5 - local_440) {
+    local_480 = (char *)((double)(lVar5 - local_440) / 1000000.0);
+    local_340 = "/workspace/monorepo/graph-io/core/saleae_base/include/profile.h";
+    uStack_338 = 0x1c;
+    local_330 = "~TimedScope";
+                    /* try { // try from 02e48618 to 02e48650 has its CatchHandler @ 02e49199 */
+    local_748 = "~TimedScope";
+    uStack_750 = CONCAT44(uStack_334,0x1c);
+    local_758 = "/workspace/monorepo/graph-io/core/saleae_base/include/profile.h";
+    FUN_02e3e1b0(DAT_030b0118,2,"{} finished, took {:.3f} ms",0x1b,&local_438,&local_480);
+  }
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileDownsampler.java> 
+======================================== (GhidraScript)  
+INFO  DecompileDownsampler.java> FUNCTION 17/23: FUN_02e77af0 @ 02e77af0 (GhidraScript)  
+INFO  DecompileDownsampler.java> Size: 471 bytes (GhidraScript)  
+INFO  DecompileDownsampler.java> ========================================
+ (GhidraScript)  
+INFO  DecompileDownsampler.java> 
+void FUN_02e77af0(long param_1,undefined8 param_2)
+
+{
+  FUN_02e77cd0(param_1,"/minAdcCode",param_2);
+  FUN_02e77cd0(param_1 + 2,"/maxAdcCode",param_2);
+  FUN_02e77ed0(param_1 + 8,"/analogChannelCount",param_2);
+  FUN_02e78060(param_1 + 0x10,"/smartCablePortCount",param_2);
+  FUN_02ddb080(param_1 + 0x18,"/clockRateHz",param_2);
+  FUN_01c729c0(param_1 + 0x20,"/analogSampleRate",param_2);
+  FUN_02e781f0(param_1 + 0x28,"/scopeDigitalSampleRate",param_2);
+  FUN_02e78380(param_1 + 0x30,"/minAnalogSamplesPerPacket",param_2);
+  FUN_02e78380(param_1 + 0x38,"/maxAnalogSamplesPerPacket",param_2);
+  FUN_01c6e010(param_1 + 0x40,"/minDacVoltage",param_2);
+  FUN_01c6e010(param_1 + 0x48,"/maxDacVoltage",param_2);
+  FUN_02d97370(param_1 + 0x50,"/dacBitDepth",param_2);
+  FUN_02e78510(param_1 + 0x58,"/ddrMemoryCapacityBytes",param_2);
+  FUN_02e786a0(param_1 + 0x60,"/fpgaImageType",param_2);
+  FUN_02e78830(param_1 + 0x68,"/analogLimit_MaxDownsampleRatio",param_2);
+  FUN_02e789c0(param_1 + 0x70,"/analogLimit_MinTotalTriggerBufferLength",param_2);
+  FUN_02e789c0(param_1 + 0x78,"/analogLimit_MaxTotalTriggerBufferLength",param_2);
+  FUN_02e78b50(param_1 + 0x80,"/analogLimit_MinTriggerBufferIndex",param_2);
+  FUN_02e78b50(param_1 + 0x88,"/analogLimit_MaxTriggerBufferIndex",param_2);
+  FUN_02e78ce0(param_1 + 0x90,"/analogLimit_MaxHoldoffSamples",param_2);
+  FUN_02e78ce0(param_1 + 0x98,"/analogLimit_MaxTimeoutSamples",param_2);
+  FUN_02e78e70(param_1 + 0xa0,"/digitalLimit_MinGlitchFilterLength",param_2);
+  FUN_02e78e70(param_1 + 0xa4,"/digitalLimit_MaxGlitchFilterLength",param_2);
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileDownsampler.java> 
+======================================== (GhidraScript)  
+INFO  DecompileDownsampler.java> FUNCTION 18/23: FUN_01bc0b50 @ 01bc0b50 (GhidraScript)  
+INFO  DecompileDownsampler.java> Size: 22 bytes (GhidraScript)  
+INFO  DecompileDownsampler.java> ========================================
+ (GhidraScript)  
+INFO  DecompileDownsampler.java> 
+long FUN_01bc0b50(long param_1,long param_2)
+
+{
+  long lVar1;
+  
+  lVar1 = 0;
+  if (*(char **)(param_2 + 8) ==
+      "ZN6Saleae5Graph13KernelFactory9AddKernelINS0_21AnalogDownsamplerNodeEEEDavEUlvE_") {
+    lVar1 = param_1 + 8;
+  }
+  return lVar1;
+}
+
+ (GhidraScript)  
+INFO  DecompileDownsampler.java> 
+======================================== (GhidraScript)  
+INFO  DecompileDownsampler.java> FUNCTION 19/23: FUN_01bc0bf0 @ 01bc0bf0 (GhidraScript)  
+INFO  DecompileDownsampler.java> Size: 22 bytes (GhidraScript)  
+INFO  DecompileDownsampler.java> ========================================
+ (GhidraScript)  
+INFO  DecompileDownsampler.java> 
+long FUN_01bc0bf0(long param_1,long param_2)
+
+{
+  long lVar1;
+  
+  lVar1 = 0;
+  if (*(char **)(param_2 + 8) ==
+      "ZN6Saleae5Graph13KernelFactory9AddKernelINS0_21AnalogDownsamplerNodeEEEDavEUlvE0_") {
+    lVar1 = param_1 + 8;
+  }
+  return lVar1;
+}
+
+ (GhidraScript)  
+INFO  DecompileDownsampler.java> 
+======================================== (GhidraScript)  
+INFO  DecompileDownsampler.java> FUNCTION 20/23: FUN_01bc1e10 @ 01bc1e10 (GhidraScript)  
+INFO  DecompileDownsampler.java> Size: 22 bytes (GhidraScript)  
+INFO  DecompileDownsampler.java> ========================================
+ (GhidraScript)  
+INFO  DecompileDownsampler.java> 
+long FUN_01bc1e10(long param_1,long param_2)
+
+{
+  long lVar1;
+  
+  lVar1 = 0;
+  if (*(char **)(param_2 + 8) ==
+      "ZN6Saleae5Graph13KernelFactory9AddKernelINS0_19WaveformSummaryNodeEEEDavEUlvE_") {
+    lVar1 = param_1 + 8;
+  }
+  return lVar1;
+}
+
+ (GhidraScript)  
+INFO  DecompileDownsampler.java> 
+======================================== (GhidraScript)  
+INFO  DecompileDownsampler.java> FUNCTION 21/23: FUN_01bc1eb0 @ 01bc1eb0 (GhidraScript)  
+INFO  DecompileDownsampler.java> Size: 22 bytes (GhidraScript)  
+INFO  DecompileDownsampler.java> ========================================
+ (GhidraScript)  
+INFO  DecompileDownsampler.java> 
+long FUN_01bc1eb0(long param_1,long param_2)
+
+{
+  long lVar1;
+  
+  lVar1 = 0;
+  if (*(char **)(param_2 + 8) ==
+      "ZN6Saleae5Graph13KernelFactory9AddKernelINS0_19WaveformSummaryNodeEEEDavEUlvE0_") {
+    lVar1 = param_1 + 8;
+  }
+  return lVar1;
+}
+
+ (GhidraScript)  
+INFO  DecompileDownsampler.java> 
+======================================== (GhidraScript)  
+INFO  DecompileDownsampler.java> FUNCTION 22/23: FUN_01c63bf0 @ 01c63bf0 (GhidraScript)  
+INFO  DecompileDownsampler.java> Size: 22 bytes (GhidraScript)  
+INFO  DecompileDownsampler.java> ========================================
+ (GhidraScript)  
+INFO  DecompileDownsampler.java> 
+long FUN_01c63bf0(long param_1,long param_2)
+
+{
+  long lVar1;
+  
+  lVar1 = 0;
+  if (*(char **)(param_2 + 8) ==
+      "ZN6Saleae5Graph17ConvenienceKernel19RegisterPipeHandlerINS0_21WaveformSummaryResultENS0_20RenderingManagerNodeEEEvPT0_MS5_FvRKNSt3__112basic_stringIcNS7_11char_traitsIcEENS7_9allocatorIcEEEEmNS7_10shared_ptrIKT_EEENS1_18PipeHandlerOptionsEEUlSF_mNSG_IKNS0_4DataEEEE_"
+     ) {
+    lVar1 = param_1 + 8;
+  }
+  return lVar1;
+}
+
+ (GhidraScript)  
+INFO  DecompileDownsampler.java> 
+======================================== (GhidraScript)  
+INFO  DecompileDownsampler.java> FUNCTION 23/23: FUN_02d80b70 @ 02d80b70 (GhidraScript)  
+INFO  DecompileDownsampler.java> Size: 22 bytes (GhidraScript)  
+INFO  DecompileDownsampler.java> ========================================
+ (GhidraScript)  
+INFO  DecompileDownsampler.java> 
+long FUN_02d80b70(long param_1,long param_2)
+
+{
+  long lVar1;
+  
+  lVar1 = 0;
+  if (*(char **)(param_2 + 8) ==
+      "ZN6Saleae5Graph17ConvenienceKernel19RegisterPipeHandlerINS0_21WaveformRenderRequestENS0_19WaveformSummaryNodeEEEvPT0_MS5_FvRKNSt3__112basic_stringIcNS7_11char_traitsIcEENS7_9allocatorIcEEEEmNS7_10shared_ptrIKT_EEENS1_18PipeHandlerOptionsEEUlSF_mNSG_IKNS0_4DataEEEE_"
+     ) {
+    lVar1 = param_1 + 8;
+  }
+  return lVar1;
+}
+
+ (GhidraScript)  
+INFO  DecompileDownsampler.java> 
+=== DONE: Decompiled 23 functions === (GhidraScript)  
+INFO  REPORT: Save succeeded for processed file: /libgraph_server_shared.so (HeadlessAnalyzer)  
