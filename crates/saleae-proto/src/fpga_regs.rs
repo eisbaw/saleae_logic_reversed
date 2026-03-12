@@ -114,14 +114,6 @@ pub const REG_ANALOG_TRIGGER_HI: u16 = 0x0064;
 ///   Altera: 0x40..0x1780,  MaxTriggerBuffer = 0x2FFFC000
 pub const REG_ANALOG_SAMPLES_PER_CHUNK: u16 = 0x0068;
 
-// Keep backward-compatible aliases for existing code.
-pub const REG_ANALOG_CH_CONFIG_0: u16 = REG_ANALOG_SAMPLE_DIVIDER;
-pub const REG_ANALOG_CH_CONFIG_1: u16 = REG_ANALOG_PRE_TRIGGER;
-pub const REG_ANALOG_CH_CONFIG_2: u16 = REG_ANALOG_POST_TRIGGER;
-pub const REG_ANALOG_CH_CONFIG_3: u16 = REG_ANALOG_COMPUTED_RATE;
-pub const REG_ANALOG_CH_CONFIG_4: u16 = REG_ANALOG_TRIGGER_HI;
-pub const REG_ANALOG_CH_CONFIG_5: u16 = REG_ANALOG_SAMPLES_PER_CHUNK;
-
 /// Compute analog parameter register address by index (0..5).
 ///
 /// Registers 0x0054..0x0068 are per-parameter (not per-channel).
@@ -181,14 +173,6 @@ pub const REG_SW_TRIGGER_LO: u16 = 0x0098;
 /// Software trigger timestamp, high 32 bits.
 pub const REG_SW_TRIGGER_HI: u16 = 0x009C;
 
-// Backward-compatible aliases for old trigger register names.
-pub const REG_TRIGGER_AUTO_CONFIG: u16 = REG_TRIGGER_HYSTERESIS;
-pub const REG_TRIGGER_HOLDOFF_LO: u16 = REG_TRIGGER_INITIAL_HOLDOFF_LO;
-pub const REG_TRIGGER_HOLDOFF_HI: u16 = REG_TRIGGER_AUTO_HOLDOFF;
-pub const REG_TRIGGER_TIMEOUT_LO: u16 = REG_TRIGGER_AUTO_TIMEOUT;
-pub const REG_TRIGGER_TIMEOUT_HI: u16 = REG_TRIGGER_HOLDOFF_TIMEOUT_HI;
-pub const REG_TRIGGER_INITIAL: u16 = REG_TRIGGER_INITIAL_HOLDOFF_HI;
-
 // ---------------------------------------------------------------------------
 // Test data registers
 // ---------------------------------------------------------------------------
@@ -206,10 +190,6 @@ pub const REG_TEST_DATA_SIZE: u16 = 0x0030;
 ///
 /// Constraint: only one of TestPattern and DataObject may be enabled.
 pub const REG_TEST_DATA_FREQ_CTL: u16 = 0x0034;
-
-// Backward-compatible aliases.
-pub const REG_TEST_DATA_0: u16 = REG_TEST_DATA_SIZE;
-pub const REG_TEST_DATA_1: u16 = REG_TEST_DATA_FREQ_CTL;
 
 // ---------------------------------------------------------------------------
 // Digital channel registers
@@ -461,14 +441,24 @@ pub const fn smart_cable_config_addr(port: u8, sub_channel: u8) -> u16 {
 /// Capture init register (written as 0 at start of SetCaptureParameters).
 pub const FEAT_CAPTURE_INIT: u8 = 0x00;
 
-/// ADC SPI address high byte (for WriteAd9637Register protocol).
-pub const FEAT_ADC_SPI_ADDR: u8 = 0x03;
+/// ADC bank/register address (indirect access via FPGA proxy).
+///
+/// Used by the WriteAd9637Register protocol (Xilinx Spartan-6 path) and
+/// HMCAD register writes. Sets the target ADC register address before
+/// writing data via [`ADC_REG_ADDR`] and [`ADC_REG_DATA`].
+pub const ADC_BANK_SELECT: u8 = 0x03;
 
-/// ADC SPI data low byte.
-pub const FEAT_ADC_SPI_DATA_LO: u8 = 0x04;
+/// ADC register data value, low byte (indirect access).
+///
+/// Written after [`ADC_BANK_SELECT`] to set the low byte of the value
+/// for the target ADC register.
+pub const ADC_REG_ADDR: u8 = 0x04;
 
-/// ADC SPI data high byte.
-pub const FEAT_ADC_SPI_DATA_HI: u8 = 0x05;
+/// ADC register data value, high byte (indirect access).
+///
+/// Written after [`ADC_REG_ADDR`] to set the high byte. For 8-bit ADC
+/// registers this is typically 0x00.
+pub const ADC_REG_DATA: u8 = 0x05;
 
 /// Analog channel enable mask, low byte.
 pub const FEAT_ANALOG_CH_ENABLE_LO: u8 = 0x06;
@@ -507,8 +497,11 @@ pub const FEAT_CAPTURE_CONTROL: u8 = 0x13;
 /// Computed decimation factor (max 0xFF).
 pub const FEAT_DECIMATION_FACTOR: u8 = 0x14;
 
-/// Extended ADC address bits (for WriteAd9637Register protocol).
-pub const FEAT_ADC_SPI_ADDR_EXT: u8 = 0x16;
+/// ADC register trigger / address high byte (indirect access).
+///
+/// Always written as 0x00 in pcap. Must be written before [`ADC_REG_ADDR`]
+/// and [`ADC_REG_DATA`] to complete the indirect access transaction.
+pub const ADC_REG_TRIGGER: u8 = 0x16;
 
 /// ADC configuration (Pro devices, JESD mode only).
 ///
@@ -518,15 +511,39 @@ pub const FEAT_ADC_CONFIG: u8 = 0x1A;
 /// Upper analog decimation (board revision 1 only, max value 1).
 pub const FEAT_ANALOG_DEC_UPPER: u8 = 0x1B;
 
-/// PLL/DCM lock status register (read-only).
+/// Status register 0x40 (read-only). Dual-purpose depending on device path.
 ///
-/// Bit layout (from SetAd9637Enabled decompilation):
-///   bit 5 = Main DCM locked
-///   bit 6 = Slow DCM locked
+/// **Spartan-6 (non-JESD) path** -- PLL/DCM lock status:
+///   - bit 5 = Main DCM locked
+///   - bit 6 = Slow DCM locked
+///   - Used by `adc.rs` DCM cascade and SetAd9637Enabled flows.
+///
+/// **Lattice ECP5 (JESD) path** -- JESD link status:
+///   - 0xE0 = link established, 0x00 = link down
+///   - Read after JESD power sequence to verify link establishment.
+///   - Used by `init.rs` JESD initialization flows.
+///
+/// Use [`FEAT_PLL_STATUS`] when reading DCM/PLL status.
+/// Use [`FEAT_JESD_LINK_STATUS`] when reading JESD link status.
 pub const FEAT_PLL_STATUS: u8 = 0x40;
 
-/// Secondary PLL status (read-only, read alongside FEAT_PLL_STATUS).
+/// Alias for [`FEAT_PLL_STATUS`] in JESD link status context.
+/// See [`FEAT_PLL_STATUS`] for full documentation of dual semantics.
+pub const FEAT_JESD_LINK_STATUS: u8 = FEAT_PLL_STATUS;
+
+/// Status register 0x4A (read-only). Dual-purpose depending on device path.
+///
+/// **Spartan-6 path** -- secondary PLL status, read alongside [`FEAT_PLL_STATUS`].
+///
+/// **Lattice ECP5 path** -- JESD status detail register with link diagnostics.
+///
+/// Use [`FEAT_PLL_STATUS_2`] when reading PLL status.
+/// Use [`FEAT_JESD_STATUS_DETAIL`] when reading JESD diagnostics.
 pub const FEAT_PLL_STATUS_2: u8 = 0x4A;
+
+/// Alias for [`FEAT_PLL_STATUS_2`] in JESD status context.
+/// See [`FEAT_PLL_STATUS_2`] for full documentation of dual semantics.
+pub const FEAT_JESD_STATUS_DETAIL: u8 = FEAT_PLL_STATUS_2;
 
 // PLL status bit masks.
 pub const PLL_MAIN_DCM_LOCKED: u8 = 1 << 5;
@@ -566,35 +583,6 @@ pub const JESD_POWER_SEQUENCE: [u8; 5] = [
 ];
 
 // ===========================================================================
-// ADC indirect register access (pcap-validated, registers 0x03-0x05, 0x16)
-// ===========================================================================
-// The FPGA provides indirect access to ADC registers through a 4-register
-// protocol observed in pcap Phase 3b:
-//   r0x03 = bank/register address
-//   r0x16 = address high byte (always 0x00 in pcap)
-//   r0x04 = register data value
-//   r0x05 = data high byte (always 0x00 in pcap)
-//
-// These overlap with the existing FEAT_ADC_SPI_* constants because the same
-// physical registers serve dual purpose: SPI bridge on Xilinx paths, indirect
-// ADC bank access on Lattice/FpgaDeviceFeatures paths.
-
-/// ADC bank select register (indirect access via FPGA proxy).
-pub const ADC_BANK_SELECT: u8 = 0x03;
-
-/// ADC register address (indirect access -- data low byte).
-pub const ADC_REG_ADDR: u8 = 0x04;
-
-/// ADC register data (indirect access -- data high byte).
-pub const ADC_REG_DATA: u8 = 0x05;
-
-/// ADC register trigger / address high (indirect access).
-///
-/// Always written as 0x00 in pcap. Must be written before ADC_REG_ADDR
-/// and ADC_REG_DATA to complete the indirect access transaction.
-pub const ADC_REG_TRIGGER: u8 = 0x16;
-
-// ===========================================================================
 // Calibration coefficient register (pcap-validated)
 // ===========================================================================
 
@@ -608,21 +596,8 @@ pub const CAL_COEFF_REG: u8 = 0x17;
 /// Maximum number of calibration coefficients.
 pub const CAL_COEFF_MAX_COUNT: usize = 16;
 
-// ===========================================================================
-// JESD link status registers (pcap-validated, read-only)
-// ===========================================================================
-
-/// JESD link status register (read-only, FpgaDeviceFeatures path).
-///
-/// From pcap: 0xE0 = link established, 0x00 = link down.
-/// Read after JESD power sequence to verify link establishment.
-pub const FEAT_JESD_LINK_STATUS: u8 = 0x40;
-
 /// JESD link established value (all link indicator bits set).
 pub const FEAT_JESD_LINK_ESTABLISHED: u8 = 0xE0;
-
-/// JESD status detail register (read-only, FpgaDeviceFeatures path).
-pub const FEAT_JESD_STATUS_DETAIL: u8 = 0x4A;
 
 /// General status register (read-only, FpgaDeviceFeatures path).
 pub const FEAT_STATUS_GENERAL: u8 = 0x19;
@@ -801,24 +776,14 @@ mod tests {
     }
 
     #[test]
-    fn backward_compat_aliases() {
-        // Verify backward-compatible aliases match the new names.
-        assert_eq!(REG_ANALOG_CH_CONFIG_0, REG_ANALOG_SAMPLE_DIVIDER);
-        assert_eq!(REG_ANALOG_CH_CONFIG_1, REG_ANALOG_PRE_TRIGGER);
-        assert_eq!(REG_ANALOG_CH_CONFIG_2, REG_ANALOG_POST_TRIGGER);
-        assert_eq!(REG_ANALOG_CH_CONFIG_3, REG_ANALOG_COMPUTED_RATE);
-        assert_eq!(REG_ANALOG_CH_CONFIG_4, REG_ANALOG_TRIGGER_HI);
-        assert_eq!(REG_ANALOG_CH_CONFIG_5, REG_ANALOG_SAMPLES_PER_CHUNK);
+    fn dual_purpose_register_aliases() {
+        // 0x40: PLL status (Spartan-6) / JESD link status (ECP5)
+        assert_eq!(FEAT_PLL_STATUS, FEAT_JESD_LINK_STATUS);
+        assert_eq!(FEAT_PLL_STATUS, 0x40);
 
-        assert_eq!(REG_TRIGGER_AUTO_CONFIG, REG_TRIGGER_HYSTERESIS);
-        assert_eq!(REG_TRIGGER_HOLDOFF_LO, REG_TRIGGER_INITIAL_HOLDOFF_LO);
-        assert_eq!(REG_TRIGGER_HOLDOFF_HI, REG_TRIGGER_AUTO_HOLDOFF);
-        assert_eq!(REG_TRIGGER_TIMEOUT_LO, REG_TRIGGER_AUTO_TIMEOUT);
-        assert_eq!(REG_TRIGGER_TIMEOUT_HI, REG_TRIGGER_HOLDOFF_TIMEOUT_HI);
-        assert_eq!(REG_TRIGGER_INITIAL, REG_TRIGGER_INITIAL_HOLDOFF_HI);
-
-        assert_eq!(REG_TEST_DATA_0, REG_TEST_DATA_SIZE);
-        assert_eq!(REG_TEST_DATA_1, REG_TEST_DATA_FREQ_CTL);
+        // 0x4A: PLL status 2 (Spartan-6) / JESD status detail (ECP5)
+        assert_eq!(FEAT_PLL_STATUS_2, FEAT_JESD_STATUS_DETAIL);
+        assert_eq!(FEAT_PLL_STATUS_2, 0x4A);
     }
 
     #[test]
@@ -857,11 +822,10 @@ mod tests {
 
     #[test]
     fn adc_indirect_register_addresses() {
-        // These must match existing FEAT_ADC_SPI_* constants (same registers).
-        assert_eq!(ADC_BANK_SELECT, FEAT_ADC_SPI_ADDR);
-        assert_eq!(ADC_REG_ADDR, FEAT_ADC_SPI_DATA_LO);
-        assert_eq!(ADC_REG_DATA, FEAT_ADC_SPI_DATA_HI);
-        assert_eq!(ADC_REG_TRIGGER, FEAT_ADC_SPI_ADDR_EXT);
+        assert_eq!(ADC_BANK_SELECT, 0x03);
+        assert_eq!(ADC_REG_ADDR, 0x04);
+        assert_eq!(ADC_REG_DATA, 0x05);
+        assert_eq!(ADC_REG_TRIGGER, 0x16);
     }
 
     #[test]
@@ -871,16 +835,10 @@ mod tests {
     }
 
     #[test]
-    fn jesd_link_status_constants() {
-        assert_eq!(FEAT_JESD_LINK_STATUS, 0x40);
+    fn misc_feat_register_addresses() {
         assert_eq!(FEAT_JESD_LINK_ESTABLISHED, 0xE0);
-        assert_eq!(FEAT_JESD_STATUS_DETAIL, 0x4A);
         assert_eq!(FEAT_STATUS_GENERAL, 0x19);
         assert_eq!(FEAT_BANK_POWER, 0x15);
         assert_eq!(FEAT_CAPTURE_CONFIG_2, 0x12);
-
-        // FEAT_JESD_LINK_STATUS is the same register as FEAT_PLL_STATUS
-        // (both are 0x40, read-only, different interpretations per device path).
-        assert_eq!(FEAT_JESD_LINK_STATUS, FEAT_PLL_STATUS);
     }
 }
