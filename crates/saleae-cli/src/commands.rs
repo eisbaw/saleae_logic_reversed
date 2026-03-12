@@ -886,47 +886,22 @@ pub fn full_init(firmware_path: &str, bitstream_path: &str, auto_bitstream: bool
         base_analog_rate: 100_000_000,
         ..saleae_driver::capture::CaptureConfig::default()
     };
-    let capture_regs = capture_config.capture_registers().to_register_pairs();
-    channel.write_registers(&capture_regs)?;
-    let addrs: Vec<u8> = capture_regs.iter().map(|&(a, _)| a).collect();
-    let readback = channel.read_registers(&addrs)?;
-    for (i, &(addr, expected)) in capture_regs.iter().enumerate() {
-        let actual = readback[i];
-        if actual != expected {
-            bail!("Register mismatch: r{addr:#04x} wrote {expected:#04x} read {actual:#04x}");
-        }
-    }
-    println!("Capture registers verified.");
 
-    // Start capture
-    println!("Starting capture...");
-    channel.start_sampling()?;
-    channel.write_registers(&[(0x00, 0x01)])?;
-    println!("Capture running! Reading EP2 data for 2 seconds...");
+    println!("Starting capture (2 seconds)...");
+    let result = saleae_driver::capture::run_capture(
+        &mut channel,
+        &capture_config,
+        Duration::from_secs(2),
+        16384,
+    )
+    .map_err(|e| anyhow::anyhow!("capture failed: {e}"))?;
 
-    let mut raw_data = Vec::new();
-    let start = std::time::Instant::now();
-    let mut buf = vec![0u8; 16384];
-    while start.elapsed() < Duration::from_secs(2) {
-        match channel.transport().bulk_transfer_in(0x82, &mut buf) {
-            Ok(n) => {
-                raw_data.extend_from_slice(&buf[..n]);
-            }
-            Err(e) => {
-                println!("EP2 read error: {e}");
-                break;
-            }
-        }
-    }
-
-    // Stop capture
-    channel.write_registers(&[(0x00, 0x00)])?;
-    channel.stop_stream()?;
-    let total_bytes = raw_data.len();
+    let raw_data = &result.raw_data;
+    let total_bytes = result.bytes_read;
     println!(
         "Capture stopped. Read {} bytes ({:.1} KB/s)",
         total_bytes,
-        total_bytes as f64 / start.elapsed().as_secs_f64() / 1024.0
+        result.throughput_kbps(),
     );
 
     // Compute matching disaggregator settings from the same capture config.
@@ -1224,86 +1199,17 @@ pub fn capture_digital(
     );
     println!();
 
-    // --- Step 6: Capture parameters (computed from config) ---
-    println!("Writing capture parameters...");
-    let capture_regs = config.capture_registers().to_register_pairs();
-    channel.write_registers(&capture_regs)?;
-    for &(addr, val) in &capture_regs {
-        println!("  r{addr:#04x} = {val:#04x}");
-    }
+    // --- Step 6-8: Capture pipeline (configure + start + stream + stop) ---
+    println!("Running capture for {duration:.1}s...");
+    let result = saleae_driver::capture::run_capture(
+        &mut channel,
+        &config,
+        Duration::from_secs_f64(duration),
+        16 * 1024,
+    )
+    .map_err(|e| anyhow::anyhow!("capture failed: {e}"))?;
 
-    // Readback verify
-    let addrs: Vec<u8> = capture_regs.iter().map(|&(a, _)| a).collect();
-    let readback = channel.read_registers(&addrs)?;
-    let mut mismatch = false;
-    for (i, &(addr, expected)) in capture_regs.iter().enumerate() {
-        let actual = readback.get(i).copied().unwrap_or(0xFF);
-        if actual != expected {
-            mismatch = true;
-            println!("  MISMATCH r{addr:#04x}: wrote {expected:#04x}, read {actual:#04x}");
-        }
-    }
-    if mismatch {
-        bail!("Register readback mismatch.");
-    }
-    println!("  All registers verified.");
-    println!();
-
-    // --- Step 7: Start capture ---
-    println!("Sending StartSampling (0x01)...");
-    channel.start_sampling()?;
-    println!("StartSampling acknowledged.");
-
-    println!("Writing r0x00=0x01 (trigger capture)...");
-    channel.write_registers(&[(0x00, 0x01)])?;
-    println!("Capture triggered.");
-    println!();
-
-    // --- Step 8: EP2 read loop ---
-    println!("Reading EP2 capture data for {duration:.1}s...");
-    let capture_start = std::time::Instant::now();
-    let capture_duration = Duration::from_secs_f64(duration);
-    let mut total_bytes: u64 = 0;
-    let mut read_count: u64 = 0;
-    let mut first_data: Option<Vec<u8>> = None;
-    let mut buf = vec![0u8; 16 * 1024]; // 16 KiB read buffer
-
-    while capture_start.elapsed() < capture_duration {
-        match channel.transport().bulk_transfer_in(0x82, &mut buf) {
-            Ok(n) if n > 0 => {
-                total_bytes += n as u64;
-                read_count += 1;
-                if first_data.is_none() {
-                    first_data = Some(buf[..n.min(256)].to_vec());
-                }
-                if read_count <= 5 || read_count % 1000 == 0 {
-                    let elapsed = capture_start.elapsed().as_secs_f64();
-                    println!(
-                        "  read #{read_count}: {n} bytes (total: {total_bytes}, {elapsed:.2}s)"
-                    );
-                }
-            }
-            Ok(_) => {
-                println!("  EP2: zero-length read");
-            }
-            Err(e) => {
-                eprintln!("  EP2 read error: {e}");
-                break;
-            }
-        }
-    }
-
-    let elapsed = capture_start.elapsed();
-    println!();
-
-    // --- Step 9: Stop capture + teardown ---
-    println!("Stopping capture...");
-    channel.write_registers(&[(0x00, 0x00)])?;
-    println!("  r0x00=0x00 (capture stopped)");
-
-    channel.stop_stream()?;
-    println!("  StopStream (0x02) sent.");
-
+    // --- Step 9: Teardown ---
     // Power down ADC
     match saleae_driver::adc::power_down(&mut channel) {
         Ok(()) => println!("  ADC powered down."),
@@ -1313,33 +1219,17 @@ pub fn capture_digital(
 
     // --- Summary ---
     println!("Capture complete:");
-    println!("  Duration:    {:.2}s", elapsed.as_secs_f64());
-    println!("  Total reads: {read_count}");
-    println!("  Total bytes: {total_bytes}");
-    if elapsed.as_secs_f64() > 0.0 {
-        let mbps = (total_bytes as f64 * 8.0) / elapsed.as_secs_f64() / 1_000_000.0;
-        println!("  Throughput:  {mbps:.1} Mbps");
+    println!("  Duration:    {:.2}s", result.elapsed.as_secs_f64());
+    println!("  Total reads: {}", result.read_count);
+    println!("  Total bytes: {}", result.bytes_read);
+    if result.elapsed.as_secs_f64() > 0.0 {
+        println!("  Throughput:  {:.1} Mbps", result.throughput_mbps());
     }
 
-    if let Some(data) = &first_data {
+    if !result.first_bytes.is_empty() {
         println!();
-        println!("First {} bytes of EP2 data:", data.len());
-        for (i, chunk) in data.chunks(16).enumerate() {
-            print!("  {:04x}:", i * 16);
-            for b in chunk {
-                print!(" {b:02x}");
-            }
-            print!("  ");
-            for b in chunk {
-                let c = if b.is_ascii_graphic() || *b == b' ' {
-                    *b as char
-                } else {
-                    '.'
-                };
-                print!("{c}");
-            }
-            println!();
-        }
+        println!("First {} bytes of EP2 data:", result.first_bytes.len());
+        print_hex_dump(&result.first_bytes);
     }
 
     Ok(())
@@ -1553,95 +1443,15 @@ pub fn capture_quick(
         ..saleae_driver::capture::CaptureConfig::default()
     };
 
-    let capture_regs = quick_config.capture_registers().to_register_pairs();
-
-    println!("Writing capture registers...");
-    channel.write_registers(&capture_regs)?;
-    for &(addr, val) in &capture_regs {
-        println!("  r{addr:#04x} = {val:#04x}");
-    }
-
-    // Readback verify.
-    let addrs: Vec<u8> = capture_regs.iter().map(|&(a, _)| a).collect();
-    let readback = channel.read_registers(&addrs)?;
-    let mut any_mismatch = false;
-    for (i, &(addr, expected)) in capture_regs.iter().enumerate() {
-        let actual = readback.get(i).copied().unwrap_or(0xFF);
-        if actual != expected {
-            any_mismatch = true;
-            println!("  MISMATCH r{addr:#04x}: wrote {expected:#04x}, read {actual:#04x}");
-        }
-    }
-    if any_mismatch {
-        println!("WARNING: Register readback mismatches detected. Continuing anyway.");
-    } else {
-        println!("All registers verified.");
-    }
-    println!();
-
-    // Step 6: StartSampling (0x01).
-    println!("Sending StartSampling (0x01)...");
-    channel.start_sampling()?;
-    println!("StartSampling acknowledged.");
-
-    // Step 7: Trigger capture (r0x00=0x01).
-    println!("Writing r0x00=0x01 (trigger capture)...");
-    channel.write_registers(&[(0x00, 0x01)])?;
-    println!("Capture triggered.");
-    println!();
-
-    // Step 8: Read EP2 data for duration.
-    println!("Reading EP2 capture data for {duration:.1}s...");
-    let capture_start = std::time::Instant::now();
-    let capture_duration = Duration::from_secs_f64(duration);
-    let mut total_bytes: u64 = 0;
-    let mut read_count: u64 = 0;
-    let mut first_data: Option<Vec<u8>> = None;
-    let mut buf = vec![0u8; buf_size];
-    let mut output_file = output_path.map(|p| {
-        std::fs::File::create(p).unwrap_or_else(|e| panic!("failed to create output file {p}: {e}"))
-    });
-
-    while capture_start.elapsed() < capture_duration {
-        match channel.transport().bulk_transfer_in(0x82, &mut buf) {
-            Ok(n) if n > 0 => {
-                total_bytes += n as u64;
-                read_count += 1;
-                if first_data.is_none() {
-                    first_data = Some(buf[..n.min(256)].to_vec());
-                }
-                if let Some(ref mut f) = output_file {
-                    use std::io::Write;
-                    f.write_all(&buf[..n])
-                        .unwrap_or_else(|e| eprintln!("write error: {e}"));
-                }
-                if read_count <= 5 || read_count % 1000 == 0 {
-                    let elapsed = capture_start.elapsed().as_secs_f64();
-                    println!(
-                        "  read #{read_count}: {n} bytes (total: {total_bytes}, {elapsed:.2}s)"
-                    );
-                }
-            }
-            Ok(_) => {
-                println!("  EP2: zero-length read");
-            }
-            Err(e) => {
-                eprintln!("  EP2 read error: {e}");
-                break;
-            }
-        }
-    }
-
-    let elapsed = capture_start.elapsed();
-    println!();
-
-    // Step 9: Stop capture.
-    println!("Stopping capture...");
-    channel.write_registers(&[(0x00, 0x00)])?;
-    println!("  r0x00=0x00 (capture stopped)");
-
-    channel.stop_stream()?;
-    println!("  StopStream (0x02) sent.");
+    // Step 5-8: Capture pipeline (configure + start + stream + stop).
+    println!("Running capture for {duration:.1}s...");
+    let result = saleae_driver::capture::run_capture(
+        &mut channel,
+        &quick_config,
+        Duration::from_secs_f64(duration),
+        buf_size,
+    )
+    .map_err(|e| anyhow::anyhow!("capture failed: {e}"))?;
 
     // Power down ADC if we powered it on.
     if !is_digital_only {
@@ -1652,44 +1462,60 @@ pub fn capture_quick(
     }
     println!();
 
+    // Write raw data to output file if requested.
+    if let Some(p) = output_path {
+        use std::io::Write;
+        let mut f = std::fs::File::create(p)
+            .with_context(|| format!("failed to create output file: {p}"))?;
+        f.write_all(&result.raw_data)
+            .with_context(|| format!("failed to write output file: {p}"))?;
+        println!("  Raw data written to: {p} ({} bytes)", result.bytes_read);
+    }
+
     // Summary.
     println!("Capture complete:");
-    println!("  Duration:    {:.2}s", elapsed.as_secs_f64());
-    println!("  Total reads: {read_count}");
-    println!("  Total bytes: {total_bytes}");
-    if elapsed.as_secs_f64() > 0.0 {
-        let mbps = (total_bytes as f64 * 8.0) / elapsed.as_secs_f64() / 1_000_000.0;
-        let kbps = total_bytes as f64 / elapsed.as_secs_f64() / 1024.0;
-        println!("  Throughput:  {mbps:.1} Mbps ({kbps:.0} KB/s)");
+    println!("  Duration:    {:.2}s", result.elapsed.as_secs_f64());
+    println!("  Total reads: {}", result.read_count);
+    println!("  Total bytes: {}", result.bytes_read);
+    if result.elapsed.as_secs_f64() > 0.0 {
+        println!(
+            "  Throughput:  {:.1} Mbps ({:.0} KB/s)",
+            result.throughput_mbps(),
+            result.throughput_kbps(),
+        );
     }
 
-    if let Some(p) = output_path {
-        println!("  Raw data:    {p} ({total_bytes} bytes)");
-    }
-
-    if let Some(data) = &first_data {
+    if !result.first_bytes.is_empty() {
         println!();
-        println!("First {} bytes of EP2 data:", data.len());
-        for (i, chunk) in data.chunks(16).enumerate() {
-            print!("  {:04x}:", i * 16);
-            for b in chunk {
-                print!(" {b:02x}");
-            }
-            // ASCII representation.
-            print!("  ");
-            for b in chunk {
-                let c = if b.is_ascii_graphic() || *b == b' ' {
-                    *b as char
-                } else {
-                    '.'
-                };
-                print!("{c}");
-            }
-            println!();
-        }
+        println!("First {} bytes of EP2 data:", result.first_bytes.len());
+        print_hex_dump(&result.first_bytes);
     }
 
     Ok(())
+}
+
+/// Print a hex dump with ASCII sidebar (16 bytes per line).
+fn print_hex_dump(data: &[u8]) {
+    for (i, chunk) in data.chunks(16).enumerate() {
+        print!("  {:04x}:", i * 16);
+        for b in chunk {
+            print!(" {b:02x}");
+        }
+        // Pad short lines.
+        for _ in 0..(16 - chunk.len()) {
+            print!("   ");
+        }
+        print!("  ");
+        for b in chunk {
+            let c = if b.is_ascii_graphic() || *b == b' ' {
+                *b as char
+            } else {
+                '.'
+            };
+            print!("{c}");
+        }
+        println!();
+    }
 }
 
 /// Parse a hex string like "0xff" or "ff" or decimal "255" into a u8.

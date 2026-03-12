@@ -1255,6 +1255,151 @@ pub fn start_digital_capture(
 }
 
 // ---------------------------------------------------------------------------
+// Unified capture pipeline: configure -> start -> stream -> stop
+// ---------------------------------------------------------------------------
+
+/// Result of a capture pipeline run.
+#[derive(Debug, Clone)]
+pub struct CaptureResult {
+    /// Raw EP2 bytes collected during the capture.
+    pub raw_data: Vec<u8>,
+    /// Number of raw bytes read from EP2.
+    pub bytes_read: usize,
+    /// Number of individual EP2 bulk transfer reads completed.
+    pub read_count: u64,
+    /// Wall-clock duration of the EP2 read loop.
+    pub elapsed: std::time::Duration,
+    /// First N bytes of EP2 data for diagnostic display (up to 256 bytes).
+    pub first_bytes: Vec<u8>,
+}
+
+impl CaptureResult {
+    /// Throughput in megabits per second.
+    pub fn throughput_mbps(&self) -> f64 {
+        let secs = self.elapsed.as_secs_f64();
+        if secs > 0.0 {
+            (self.bytes_read as f64 * 8.0) / secs / 1_000_000.0
+        } else {
+            0.0
+        }
+    }
+
+    /// Throughput in kilobytes per second.
+    pub fn throughput_kbps(&self) -> f64 {
+        let secs = self.elapsed.as_secs_f64();
+        if secs > 0.0 {
+            self.bytes_read as f64 / secs / 1024.0
+        } else {
+            0.0
+        }
+    }
+}
+
+/// Run the capture pipeline: configure registers, start, stream EP2, stop.
+///
+/// This encapsulates the common capture sequence shared by all CLI capture
+/// commands:
+///
+/// 1. Validate and write capture registers to FPGA (via `configure_capture`).
+/// 2. Send StartSampling (0x01) and trigger capture (r0x00=0x01).
+/// 3. Read EP2 bulk data for the specified duration.
+/// 4. Stop capture (r0x00=0x00) and send StopStream (0x02).
+///
+/// The caller is responsible for device init (firmware, FPGA programming,
+/// ADC init) before calling this, and for post-processing (disaggregation,
+/// calibration, export) after.
+///
+/// # Arguments
+///
+/// - `ep1`: Initialized EP1 command channel (firmware loaded, FPGA programmed).
+/// - `config`: Capture configuration (sample rate, channels, etc.).
+/// - `duration`: How long to read EP2 data.
+/// - `buf_size`: Size of the EP2 read buffer (typically 16384).
+///
+/// # Errors
+///
+/// Returns an error if register configuration, start command, or stop
+/// command fails. EP2 read errors during streaming cause an early stop
+/// but do not return an error (the partial data is returned).
+pub fn run_capture(
+    ep1: &mut Ep1CommandChannel,
+    config: &CaptureConfig,
+    duration: std::time::Duration,
+    buf_size: usize,
+) -> DriverResult<CaptureResult> {
+    // Step 1: Configure FPGA registers + readback verify.
+    configure_capture(ep1, config)?;
+
+    // Step 2: Start sampling.
+    info!("Sending StartSampling (0x01)");
+    ep1.start_sampling()?;
+
+    // Step 3: Trigger capture (r0x00=0x01).
+    debug!("Writing r0x00=0x01 (trigger capture)");
+    ep1.write_registers(&[(0x00, 0x01)])?;
+
+    // Step 4: EP2 read loop.
+    info!(
+        duration_ms = duration.as_millis(),
+        buf_size, "Reading EP2 capture data"
+    );
+
+    let mut raw_data = Vec::new();
+    let mut read_count: u64 = 0;
+    let mut first_bytes: Vec<u8> = Vec::new();
+    let mut buf = vec![0u8; buf_size];
+    let start = std::time::Instant::now();
+
+    while start.elapsed() < duration {
+        match ep1.transport().bulk_transfer_in(EP2_CAPTURE_IN, &mut buf) {
+            Ok(n) if n > 0 => {
+                raw_data.extend_from_slice(&buf[..n]);
+                read_count += 1;
+                if first_bytes.is_empty() {
+                    first_bytes = buf[..n.min(256)].to_vec();
+                }
+            }
+            Ok(_) => {
+                debug!("EP2: zero-length read");
+            }
+            Err(e) => {
+                warn!("EP2 read error (stopping early): {e}");
+                break;
+            }
+        }
+    }
+
+    let elapsed = start.elapsed();
+    let bytes_read = raw_data.len();
+
+    // Step 5: Stop capture.
+    info!(
+        bytes_read,
+        read_count,
+        elapsed_ms = elapsed.as_millis(),
+        "Stopping capture"
+    );
+    ep1.write_registers(&[(0x00, 0x00)])?;
+    ep1.stop_stream()?;
+
+    info!(
+        throughput_mbps = format_args!(
+            "{:.1}",
+            bytes_read as f64 * 8.0 / elapsed.as_secs_f64() / 1_000_000.0
+        ),
+        "Capture complete"
+    );
+
+    Ok(CaptureResult {
+        raw_data,
+        bytes_read,
+        read_count,
+        elapsed,
+        first_bytes,
+    })
+}
+
+// ---------------------------------------------------------------------------
 // Streaming capture (queued bulk transfers)
 // ---------------------------------------------------------------------------
 
