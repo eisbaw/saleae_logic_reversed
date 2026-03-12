@@ -9,6 +9,7 @@
 //! encryption state (seed, LFSR advancement) automatically.
 
 use saleae_proto::device::endpoint;
+use saleae_proto::ep1_opcodes;
 use saleae_proto::obfuscation::{
     validate_ping_response, EncryptionMode, SimpleEncryption, PING_EXPECTED_RESPONSE, PING_OPCODE,
     PING_TEST_BYTE,
@@ -271,7 +272,7 @@ impl Ep1CommandChannel {
             payload.push(val);
         }
 
-        self.send_command(0x80, &payload)?;
+        self.send_command(ep1_opcodes::WRITE_REGISTERS, &payload)?;
 
         // Pro devices read a 1-byte response and throw if non-zero.
         // Non-Pro devices skip the response read entirely.
@@ -319,7 +320,7 @@ impl Ep1CommandChannel {
         payload.push(addrs.len() as u8);
         payload.extend_from_slice(addrs);
 
-        self.send_command(0x81, &payload)?;
+        self.send_command(ep1_opcodes::READ_REGISTERS, &payload)?;
 
         let mut buf = [0u8; 64];
         let n = self.recv_response(&mut buf)?;
@@ -339,7 +340,7 @@ impl Ep1CommandChannel {
     ///
     /// Must be called before programming a new bitstream.
     pub fn reset_fpga(&mut self) -> DriverResult<()> {
-        self.send_command(0x7E, &[])?;
+        self.send_command(ep1_opcodes::RESET_FPGA, &[])?;
 
         let mut buf = [0u8; 64];
         let n = self.recv_response(&mut buf)?;
@@ -405,7 +406,7 @@ impl Ep1CommandChannel {
             payload.push((len16 >> 8) as u8); // len_hi
             payload.extend_from_slice(chunk);
 
-            self.send_command(0x7F, &payload)?;
+            self.send_command(ep1_opcodes::WRITE_CONFIG_DATA, &payload)?;
 
             if read_ack {
                 // Read success response (0x00).
@@ -477,7 +478,7 @@ impl Ep1CommandChannel {
             payload.push(chunk_len as u8); // 8-bit length
             payload.extend_from_slice(chunk);
 
-            self.send_command(0x7F, &payload)?;
+            self.send_command(ep1_opcodes::WRITE_CONFIG_DATA, &payload)?;
 
             // No ACK read -- non-Pro is fire-and-forget.
 
@@ -533,7 +534,7 @@ impl Ep1CommandChannel {
     ///
     /// Tells the FX3 to begin forwarding FPGA sample data to EP2 IN.
     pub fn start_sampling(&mut self) -> DriverResult<()> {
-        self.send_command(0x01, &[])?;
+        self.send_command(ep1_opcodes::START_READ, &[])?;
 
         let mut buf = [0u8; 64];
         let n = self.recv_response(&mut buf)?;
@@ -553,7 +554,7 @@ impl Ep1CommandChannel {
     ///
     /// Tells the FX3 to stop forwarding data on EP2 IN.
     pub fn stop_stream(&mut self) -> DriverResult<()> {
-        self.send_command(0x02, &[])?;
+        self.send_command(ep1_opcodes::STOP_STREAM, &[])?;
 
         let mut buf = [0u8; 64];
         let _n = self.recv_response(&mut buf)?;
@@ -792,7 +793,7 @@ impl Ep1CommandChannel {
         // PLACEHOLDER: We send opcode 0x88 with no payload. The actual
         // I2C parameters (slave address, register offset) may need to be
         // included in the payload. This needs USB capture confirmation.
-        self.send_command(0x88, &[])?;
+        self.send_command(ep1_opcodes::READ_I2C, &[])?;
 
         let mut buf = [0u8; 64];
         let n = self.recv_response(&mut buf)?;
@@ -829,7 +830,7 @@ impl Ep1CommandChannel {
     /// The response is a variable-length null-terminated string (up to 128
     /// bytes observed in pcap frame 24).
     pub fn get_device_info(&mut self) -> DriverResult<String> {
-        self.send_command(0x8B, &[])?;
+        self.send_command(ep1_opcodes::GET_DEVICE_INFO, &[])?;
 
         let mut buf = [0u8; 256];
         let n = self.recv_response(&mut buf)?;
@@ -854,7 +855,7 @@ impl Ep1CommandChannel {
     /// The parameter format is: `[0x33, 0x81, offset_lo, offset_hi,
     /// length_lo, length_hi]`. This is the FX3 I2C EEPROM read tunnel.
     pub fn read_version(&mut self, params: &[u8]) -> DriverResult<Vec<u8>> {
-        self.send_command(0x07, params)?;
+        self.send_command(ep1_opcodes::READ_VERSION, params)?;
 
         let mut buf = [0u8; 256];
         let n = self.recv_response(&mut buf)?;
@@ -928,13 +929,13 @@ impl Ep1CommandChannel {
 
         // Step 1: Send the address/count header via ReadVersion command.
         let header = [0x33, 0x81, (address & 0xFF) as u8, count as u8];
-        self.send_command(0x07, &header)?;
+        self.send_command(ep1_opcodes::READ_VERSION, &header)?;
         let mut buf = [0u8; 256];
         let _n = self.recv_response(&mut buf)?;
 
         // Step 2: Send the data payload via a second ReadVersion command.
         // The firmware expects the data as a follow-up to the address header.
-        self.send_command(0x07, data)?;
+        self.send_command(ep1_opcodes::READ_VERSION, data)?;
         let _n = self.recv_response(&mut buf)?;
 
         Ok(())
@@ -946,7 +947,7 @@ impl Ep1CommandChannel {
     /// purpose is unknown -- possibly configures EEPROM/I2C access mode.
     /// Response is a single byte (0x00 observed).
     pub fn device2_1(&mut self) -> DriverResult<u8> {
-        self.send_command(0x89, &[])?;
+        self.send_command(ep1_opcodes::DEVICE2_1, &[])?;
 
         let mut buf = [0u8; 64];
         let n = self.recv_response(&mut buf)?;
@@ -975,7 +976,7 @@ impl Ep1CommandChannel {
         payload.push(reg);
         payload.extend_from_slice(data);
 
-        self.send_command(0x87, &payload)?;
+        self.send_command(ep1_opcodes::WRITE_I2C, &payload)?;
 
         let mut buf = [0u8; 256];
         let n = self.recv_response(&mut buf)?;
@@ -997,7 +998,7 @@ impl Ep1CommandChannel {
     /// - `count`: Number of bytes to read (0 = read all available).
     pub fn read_i2c(&mut self, i2c_addr: u8, reg: u8, count: u8) -> DriverResult<Vec<u8>> {
         let payload = [i2c_addr, reg, count];
-        self.send_command(0x88, &payload)?;
+        self.send_command(ep1_opcodes::READ_I2C, &payload)?;
 
         let mut buf = [0u8; 256];
         let n = self.recv_response(&mut buf)?;
@@ -1014,7 +1015,7 @@ impl Ep1CommandChannel {
     ///
     /// Part of the capture stop sequence.
     pub fn stop_data_path(&mut self) -> DriverResult<()> {
-        self.send_command(0x86, &[])?;
+        self.send_command(ep1_opcodes::STOP_DATA_PATH, &[])?;
 
         // The response format for this command is not fully documented.
         // Try to read a response, but don't fail if none comes.

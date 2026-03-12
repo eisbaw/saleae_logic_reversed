@@ -11,6 +11,7 @@ pub mod capture_data;
 pub mod compare;
 pub mod device;
 pub mod disaggregator;
+pub mod ep1_opcodes;
 pub mod error;
 pub mod export;
 pub mod firmware;
