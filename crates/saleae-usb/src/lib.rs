@@ -9,13 +9,19 @@
 
 pub mod error;
 pub mod mock;
+pub mod mock_stream;
+pub mod stream;
 pub mod transport;
 
 #[cfg(feature = "nusb-backend")]
 pub mod nusb_backend;
 
 #[cfg(feature = "nusb-backend")]
+pub mod nusb_stream;
+
+#[cfg(feature = "nusb-backend")]
 pub mod discovery;
 
 pub use error::{UsbError, UsbResult};
+pub use stream::BulkStreamReader;
 pub use transport::{ControlTransferParams, UsbTransport};

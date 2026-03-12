@@ -311,9 +311,7 @@ impl CaptureConfig {
     /// - `analog_group_size`: 4 (16-bit GPIF) or 8 (32-bit GPIF)
     /// - `low_speed_divider`: 1, 2, 4, or 8 from FPGA config
     /// - Channel enable vectors from the capture config
-    pub fn disaggregator_settings(
-        &self,
-    ) -> crate::disaggregator::DisaggregatorSettings {
+    pub fn disaggregator_settings(&self) -> crate::disaggregator::DisaggregatorSettings {
         let regs = self.capture_registers();
         let total = self.total_device_channels;
 
@@ -745,7 +743,6 @@ pub struct CaptureRegisters {
     pub gpif_bus_width: u8,
 
     // Derived values (not written to registers, but needed for disaggregator).
-
     /// Digital-to-analog sample ratio (digital packets per cycle).
     /// For equal-rate digital+analog: 1. For 2x digital: 2. Digital-only: 1.
     pub digital_ratio: u32,
@@ -781,11 +778,17 @@ impl CaptureRegisters {
         let mut pairs = Vec::with_capacity(15);
 
         pairs.push((fpga_regs::FEAT_CAPTURE_INIT, self.capture_init));
-        pairs.push((fpga_regs::FEAT_DIGITAL_CH_ENABLE_LO, self.digital_ch_enable_lo));
+        pairs.push((
+            fpga_regs::FEAT_DIGITAL_CH_ENABLE_LO,
+            self.digital_ch_enable_lo,
+        ));
         if let Some(hi) = self.digital_ch_enable_hi {
             pairs.push((fpga_regs::FEAT_DIGITAL_CH_ENABLE_HI, hi));
         }
-        pairs.push((fpga_regs::FEAT_ANALOG_CH_ENABLE_LO, self.analog_ch_enable_lo));
+        pairs.push((
+            fpga_regs::FEAT_ANALOG_CH_ENABLE_LO,
+            self.analog_ch_enable_lo,
+        ));
         if let Some(hi) = self.analog_ch_enable_hi {
             pairs.push((fpga_regs::FEAT_ANALOG_CH_ENABLE_HI, hi));
         }
@@ -964,7 +967,11 @@ pub fn compute_capture_registers(config: &CaptureConfig) -> CaptureRegisters {
     };
 
     // Capture control flags.
-    let capture_control: u8 = if config.board_revision >= 2 { 0x01 } else { 0x00 };
+    let capture_control: u8 = if config.board_revision >= 2 {
+        0x01
+    } else {
+        0x00
+    };
 
     // Capture config 2 (0x12): ADC type selection.
     let capture_config_2: u8 = if config.board_revision <= 1 {
@@ -1245,6 +1252,194 @@ pub fn start_digital_capture(
 
     info!("Digital capture started");
     Ok(CaptureStream::new(config))
+}
+
+// ---------------------------------------------------------------------------
+// Streaming capture (queued bulk transfers)
+// ---------------------------------------------------------------------------
+
+/// Handle for a capture session using queued bulk transfers.
+///
+/// Unlike [`CaptureStream`] which uses single-buffered synchronous reads,
+/// `StreamingCapture` uses a [`BulkStreamReader`] with multiple outstanding
+/// transfers to prevent FPGA FIFO overflow at high sample rates.
+///
+/// # Usage
+///
+/// ```rust,no_run
+/// # use saleae_driver::capture::StreamingCapture;
+/// # use saleae_driver::transfer_queue::TransferConfig;
+/// # fn example(reader: Box<dyn saleae_usb::BulkStreamReader>) {
+/// let config = TransferConfig {
+///     transfer_size: 16384,
+///     queue_depth: 128,
+///     block_size: 16384,
+/// };
+/// let mut capture = StreamingCapture::new(reader, config, 0x82);
+/// capture.start().unwrap();
+///
+/// // Read loop: get completed transfers, process data, recycle buffers.
+/// loop {
+///     match capture.next_transfer(std::time::Duration::from_secs(1)) {
+///         Ok(buf) => {
+///             // Process buf...
+///             capture.recycle(buf).unwrap();
+///         }
+///         Err(e) => break,
+///     }
+/// }
+///
+/// capture.stop().unwrap();
+/// # }
+/// ```
+pub struct StreamingCapture {
+    /// The underlying bulk stream reader.
+    reader: Box<dyn saleae_usb::BulkStreamReader>,
+    /// Transfer queue configuration (sizes, depth).
+    config: crate::transfer_queue::TransferConfig,
+    /// EP2 IN endpoint address.
+    endpoint: u8,
+    /// Total bytes received across all transfers.
+    total_bytes: u64,
+    /// Total number of completed transfers.
+    total_transfers: u64,
+    /// Whether the stream is active.
+    active: bool,
+}
+
+impl StreamingCapture {
+    /// Create a new streaming capture.
+    ///
+    /// The stream is not started until [`start()`](StreamingCapture::start) is called.
+    ///
+    /// # Arguments
+    ///
+    /// - `reader`: A bulk stream reader implementation (real or mock).
+    /// - `config`: Transfer queue configuration from [`TransferConfig::from_capture`].
+    /// - `endpoint`: The EP2 IN bulk endpoint address (typically `0x82`).
+    pub fn new(
+        reader: Box<dyn saleae_usb::BulkStreamReader>,
+        config: crate::transfer_queue::TransferConfig,
+        endpoint: u8,
+    ) -> Self {
+        Self {
+            reader,
+            config,
+            endpoint,
+            total_bytes: 0,
+            total_transfers: 0,
+            active: false,
+        }
+    }
+
+    /// Start the streaming capture by submitting initial transfer buffers.
+    pub fn start(&mut self) -> DriverResult<()> {
+        if self.active {
+            return Err(DriverError::InvalidState {
+                current: "streaming".into(),
+                required: "idle".into(),
+            });
+        }
+
+        info!(
+            endpoint = self.endpoint,
+            transfer_size = self.config.transfer_size,
+            queue_depth = self.config.queue_depth,
+            total_buffer_mb = self.config.total_buffer_bytes() / (1024 * 1024),
+            "Starting streaming capture"
+        );
+
+        self.reader
+            .start(
+                self.endpoint,
+                self.config.transfer_size,
+                self.config.queue_depth,
+            )
+            .map_err(DriverError::Usb)?;
+
+        self.active = true;
+        Ok(())
+    }
+
+    /// Wait for the next completed transfer and return its data.
+    ///
+    /// The caller must call [`recycle()`](StreamingCapture::recycle) with the
+    /// returned buffer after processing to maintain queue depth.
+    pub fn next_transfer(&mut self, timeout: std::time::Duration) -> DriverResult<Vec<u8>> {
+        if !self.active {
+            return Err(DriverError::InvalidState {
+                current: "idle".into(),
+                required: "streaming".into(),
+            });
+        }
+
+        let buf = self
+            .reader
+            .next_completion(timeout)
+            .map_err(DriverError::Usb)?;
+        self.total_bytes += buf.len() as u64;
+        self.total_transfers += 1;
+
+        if self.total_transfers % 1000 == 0 {
+            debug!(
+                total_bytes = self.total_bytes,
+                total_transfers = self.total_transfers,
+                pending = self.reader.pending(),
+                "Streaming progress"
+            );
+        }
+
+        Ok(buf)
+    }
+
+    /// Return a processed buffer for reuse (resubmits to the transfer queue).
+    pub fn recycle(&mut self, buf: Vec<u8>) -> DriverResult<()> {
+        if !self.active {
+            return Err(DriverError::InvalidState {
+                current: "idle".into(),
+                required: "streaming".into(),
+            });
+        }
+
+        self.reader.recycle(buf).map_err(DriverError::Usb)
+    }
+
+    /// Stop the streaming capture, cancelling all pending transfers.
+    pub fn stop(&mut self) -> DriverResult<()> {
+        if !self.active {
+            return Ok(());
+        }
+
+        info!(
+            total_bytes = self.total_bytes,
+            total_transfers = self.total_transfers,
+            "Stopping streaming capture"
+        );
+
+        self.reader.stop().map_err(DriverError::Usb)?;
+        self.active = false;
+        Ok(())
+    }
+
+    /// Total bytes received across all completed transfers.
+    pub fn total_bytes(&self) -> u64 {
+        self.total_bytes
+    }
+
+    /// Total number of completed transfers.
+    pub fn total_transfers(&self) -> u64 {
+        self.total_transfers
+    }
+
+    /// Number of transfers currently in-flight.
+    pub fn pending(&self) -> usize {
+        self.reader.pending()
+    }
+
+    /// Whether the stream is currently active.
+    pub fn is_active(&self) -> bool {
+        self.active
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -1736,8 +1931,14 @@ mod tests {
         assert_eq!(regs.digital_divider_hi, 0x00, "r0x0c: digital divider hi");
         assert_eq!(regs.adc_config, Some(0x00), "r0x1a: ADC config");
         assert_eq!(regs.analog_dec_upper, Some(0x00), "r0x1b: upper dec");
-        assert_eq!(regs.mix_ratio_a, 0x18, "r0x0d: mix ratio A (analog GPIF words)");
-        assert_eq!(regs.mix_ratio_b, 0x08, "r0x0e: mix ratio B (digital GPIF words)");
+        assert_eq!(
+            regs.mix_ratio_a, 0x18,
+            "r0x0d: mix ratio A (analog GPIF words)"
+        );
+        assert_eq!(
+            regs.mix_ratio_b, 0x08,
+            "r0x0e: mix ratio B (digital GPIF words)"
+        );
         assert_eq!(regs.capture_config_2, 0x02, "r0x12: ADC type");
         assert_eq!(regs.capture_control, 0x00, "r0x13: capture control");
         assert_eq!(regs.gpif_bus_width, 0x10, "r0x14: GPIF bus width");
@@ -1845,7 +2046,10 @@ mod tests {
         };
         let regs = compute_capture_registers(&config);
 
-        assert_eq!(regs.digital_ch_enable_lo, Some(0x03).map(|_| regs.digital_ch_enable_lo).unwrap());
+        assert_eq!(
+            regs.digital_ch_enable_lo,
+            Some(0x03).map(|_| regs.digital_ch_enable_lo).unwrap()
+        );
         // Channels 0,1 -> lo byte = 0x03; channels 8,9 -> hi byte = 0x03
         assert_eq!(regs.digital_ch_enable_lo, 0x03);
         assert_eq!(regs.digital_ch_enable_hi, Some(0x03));
@@ -2333,5 +2537,164 @@ mod tests {
         };
         let err = config.validate_bandwidth().unwrap_err();
         assert!(err.to_string().contains("bandwidth"), "{}", err);
+    }
+
+    // -------------------------------------------------------------------
+    // StreamingCapture tests
+    // -------------------------------------------------------------------
+
+    #[test]
+    fn streaming_capture_basic_lifecycle() {
+        use crate::transfer_queue::TransferConfig;
+        use saleae_usb::mock_stream::{MockCompletion, MockStreamReader};
+
+        let mut reader = MockStreamReader::new();
+        // Pre-load 3 transfers worth of data.
+        for i in 0..3u8 {
+            reader.push_completion(MockCompletion::Data(vec![i; 1024]));
+        }
+
+        let config = TransferConfig {
+            transfer_size: 1024,
+            queue_depth: 4,
+            block_size: 4096,
+        };
+
+        let mut capture = StreamingCapture::new(Box::new(reader), config, 0x82);
+        assert!(!capture.is_active());
+
+        capture.start().unwrap();
+        assert!(capture.is_active());
+        assert_eq!(capture.pending(), 4);
+
+        // Read first transfer.
+        let buf = capture
+            .next_transfer(std::time::Duration::from_secs(1))
+            .unwrap();
+        assert_eq!(buf[0], 0);
+        assert_eq!(buf.len(), 1024);
+        assert_eq!(capture.total_bytes(), 1024);
+        assert_eq!(capture.total_transfers(), 1);
+        assert_eq!(capture.pending(), 3);
+
+        // Recycle it.
+        capture.recycle(buf).unwrap();
+        assert_eq!(capture.pending(), 4);
+
+        // Read second.
+        let buf = capture
+            .next_transfer(std::time::Duration::from_secs(1))
+            .unwrap();
+        assert_eq!(buf[0], 1);
+        capture.recycle(buf).unwrap();
+
+        // Read third.
+        let buf = capture
+            .next_transfer(std::time::Duration::from_secs(1))
+            .unwrap();
+        assert_eq!(buf[0], 2);
+        capture.recycle(buf).unwrap();
+
+        assert_eq!(capture.total_bytes(), 3072);
+        assert_eq!(capture.total_transfers(), 3);
+
+        capture.stop().unwrap();
+        assert!(!capture.is_active());
+    }
+
+    #[test]
+    fn streaming_capture_timeout_propagates() {
+        use crate::transfer_queue::TransferConfig;
+        use saleae_usb::mock_stream::MockStreamReader;
+
+        let reader = MockStreamReader::new();
+        let config = TransferConfig {
+            transfer_size: 1024,
+            queue_depth: 2,
+            block_size: 4096,
+        };
+
+        let mut capture = StreamingCapture::new(Box::new(reader), config, 0x82);
+        capture.start().unwrap();
+
+        // No completions queued, should get a timeout error.
+        let err = capture
+            .next_transfer(std::time::Duration::from_millis(100))
+            .unwrap_err();
+        assert!(
+            err.to_string().contains("timed out"),
+            "expected timeout error, got: {err}"
+        );
+    }
+
+    #[test]
+    fn streaming_capture_stop_is_idempotent() {
+        use crate::transfer_queue::TransferConfig;
+        use saleae_usb::mock_stream::MockStreamReader;
+
+        let reader = MockStreamReader::new();
+        let config = TransferConfig {
+            transfer_size: 1024,
+            queue_depth: 2,
+            block_size: 4096,
+        };
+
+        let mut capture = StreamingCapture::new(Box::new(reader), config, 0x82);
+        capture.start().unwrap();
+        capture.stop().unwrap();
+        // Second stop should be a no-op.
+        capture.stop().unwrap();
+    }
+
+    #[test]
+    fn streaming_capture_next_before_start_errors() {
+        use crate::transfer_queue::TransferConfig;
+        use saleae_usb::mock_stream::MockStreamReader;
+
+        let reader = MockStreamReader::new();
+        let config = TransferConfig {
+            transfer_size: 1024,
+            queue_depth: 2,
+            block_size: 4096,
+        };
+
+        let mut capture = StreamingCapture::new(Box::new(reader), config, 0x82);
+        let err = capture
+            .next_transfer(std::time::Duration::from_secs(1))
+            .unwrap_err();
+        assert!(
+            err.to_string().contains("idle"),
+            "expected idle state error, got: {err}"
+        );
+    }
+
+    #[test]
+    fn streaming_capture_error_propagates() {
+        use crate::transfer_queue::TransferConfig;
+        use saleae_usb::mock_stream::{MockCompletion, MockStreamReader};
+        use saleae_usb::UsbError;
+
+        let mut reader = MockStreamReader::new();
+        reader.push_completion(MockCompletion::Error(UsbError::BulkTransfer {
+            endpoint: 0x82,
+            context: "stall".into(),
+        }));
+
+        let config = TransferConfig {
+            transfer_size: 1024,
+            queue_depth: 2,
+            block_size: 4096,
+        };
+
+        let mut capture = StreamingCapture::new(Box::new(reader), config, 0x82);
+        capture.start().unwrap();
+
+        let err = capture
+            .next_transfer(std::time::Duration::from_secs(1))
+            .unwrap_err();
+        assert!(
+            err.to_string().contains("stall"),
+            "expected stall error, got: {err}"
+        );
     }
 }
