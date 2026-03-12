@@ -54,4 +54,8 @@ pub enum DriverError {
     /// I/O error (file read/write during calibration caching).
     #[error("I/O error: {0}")]
     Io(#[from] std::io::Error),
+
+    /// An argument to a driver function was out of range or otherwise invalid.
+    #[error("invalid argument: {message}")]
+    InvalidArgument { message: String },
 }

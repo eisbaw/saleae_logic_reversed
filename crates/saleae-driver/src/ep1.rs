@@ -249,9 +249,10 @@ impl Ep1CommandChannel {
     /// Sends batch register writes. For Pro devices, reads back a
     /// 1-byte acknowledgment.
     ///
-    /// # Panics
+    /// # Errors
     ///
-    /// Panics if `pairs` is empty or has more than 31 entries.
+    /// Returns [`DriverError::InvalidArgument`] if `pairs` is empty or has
+    /// more than 31 entries.
     ///
     /// The firmware assertion is `num_registers < 32`, so the valid range
     /// is 1..=31. Pro devices return a 1-byte ACK that must be 0x00;
@@ -259,11 +260,11 @@ impl Ep1CommandChannel {
     ///
     /// Decompiled from ELF VA 0x1c535f0 (non-Pro) and 0x1c549d0 (Pro).
     pub fn write_registers(&mut self, pairs: &[(u8, u8)]) -> DriverResult<()> {
-        assert!(
-            !pairs.is_empty() && pairs.len() < 32,
-            "register count must be 1..31, got {}",
-            pairs.len()
-        );
+        if pairs.is_empty() || pairs.len() >= 32 {
+            return Err(DriverError::InvalidArgument {
+                message: format!("register count must be 1..31, got {}", pairs.len()),
+            });
+        }
 
         let mut payload = Vec::with_capacity(1 + pairs.len() * 2);
         payload.push(pairs.len() as u8);
@@ -303,18 +304,19 @@ impl Ep1CommandChannel {
     ///
     /// Returns the register values in the same order as the addresses.
     ///
-    /// # Panics
+    /// # Errors
     ///
-    /// Panics if `addrs` is empty or has more than 62 entries.
+    /// Returns [`DriverError::InvalidArgument`] if `addrs` is empty or has
+    /// more than 62 entries.
     ///
     /// The firmware assertion is `(count - 1) <= 0x3D`, so the valid range
     /// is 1..=62 (decompiled from ELF VA 0x1c53af0).
     pub fn read_registers(&mut self, addrs: &[u8]) -> DriverResult<Vec<u8>> {
-        assert!(
-            !addrs.is_empty() && addrs.len() <= 62,
-            "register count must be 1..62, got {}",
-            addrs.len()
-        );
+        if addrs.is_empty() || addrs.len() > 62 {
+            return Err(DriverError::InvalidArgument {
+                message: format!("register count must be 1..=62, got {}", addrs.len()),
+            });
+        }
 
         let mut payload = Vec::with_capacity(1 + addrs.len());
         payload.push(addrs.len() as u8);
@@ -460,10 +462,11 @@ impl Ep1CommandChannel {
         data: &[u8],
         chunk_size: usize,
     ) -> DriverResult<()> {
-        assert!(
-            chunk_size <= 62,
-            "non-Pro chunk size must be <= 62, got {chunk_size}"
-        );
+        if chunk_size > 62 {
+            return Err(DriverError::InvalidArgument {
+                message: format!("non-Pro chunk size must be <= 62, got {chunk_size}"),
+            });
+        }
 
         let total = data.len();
         let mut offset = 0;
@@ -729,19 +732,20 @@ impl Ep1CommandChannel {
     /// - `bit_value`: `true` to set the bit, `false` to clear it.
     /// - `bit_position`: Which bit to modify (0..7).
     ///
-    /// # Panics
+    /// # Errors
     ///
-    /// Panics if `bit_position >= 8`.
+    /// Returns [`DriverError::InvalidArgument`] if `bit_position >= 8`.
     pub fn write_register_bit(
         &mut self,
         addr: u8,
         bit_value: bool,
         bit_position: u8,
     ) -> DriverResult<()> {
-        assert!(
-            bit_position < 8,
-            "bit_position must be 0..7, got {bit_position}"
-        );
+        if bit_position >= 8 {
+            return Err(DriverError::InvalidArgument {
+                message: format!("bit_position must be 0..7, got {bit_position}"),
+            });
+        }
 
         let current = self.read_register_8(addr)?;
         let mask = 1u8 << bit_position;
@@ -1274,28 +1278,37 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "register count must be 1..31")]
-    fn write_registers_panics_on_empty() {
+    fn write_registers_returns_error_on_empty() {
         let mock = std::sync::Arc::new(MockTransport::new());
         let mut channel = mock_channel_with_seed(&mock, 0);
-        channel.write_registers(&[]).unwrap();
+        let err = channel.write_registers(&[]).unwrap_err();
+        assert!(
+            err.to_string().contains("register count must be 1..31"),
+            "unexpected error: {err}"
+        );
     }
 
     #[test]
-    #[should_panic(expected = "register count must be 1..31")]
-    fn write_registers_panics_on_too_many() {
+    fn write_registers_returns_error_on_too_many() {
         let mock = std::sync::Arc::new(MockTransport::new());
         let mut channel = mock_channel_with_seed(&mock, 0);
         let pairs: Vec<(u8, u8)> = (0..32).map(|i| (i, 0)).collect();
-        channel.write_registers(&pairs).unwrap();
+        let err = channel.write_registers(&pairs).unwrap_err();
+        assert!(
+            err.to_string().contains("register count must be 1..31"),
+            "unexpected error: {err}"
+        );
     }
 
     #[test]
-    #[should_panic(expected = "register count must be 1..62")]
-    fn read_registers_panics_on_empty() {
+    fn read_registers_returns_error_on_empty() {
         let mock = std::sync::Arc::new(MockTransport::new());
         let mut channel = mock_channel_with_seed(&mock, 0);
-        channel.read_registers(&[]).unwrap();
+        let err = channel.read_registers(&[]).unwrap_err();
+        assert!(
+            err.to_string().contains("register count must be 1..=62"),
+            "unexpected error: {err}"
+        );
     }
 
     // -- 16-bit register path tests --
@@ -1649,11 +1662,16 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "non-Pro chunk size must be <= 62")]
-    fn write_config_data_non_pro_panics_on_large_chunk() {
+    fn write_config_data_non_pro_returns_error_on_large_chunk() {
         let mock = std::sync::Arc::new(MockTransport::new());
         let mut channel = mock_channel_with_seed(&mock, 0);
-        channel.write_config_data_non_pro(&[0u8; 10], 100).unwrap();
+        let err = channel
+            .write_config_data_non_pro(&[0u8; 10], 100)
+            .unwrap_err();
+        assert!(
+            err.to_string().contains("non-Pro chunk size must be <= 62"),
+            "unexpected error: {err}"
+        );
     }
 
     // -- write_config_data_for_device dispatch tests --

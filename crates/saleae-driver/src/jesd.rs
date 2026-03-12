@@ -26,7 +26,7 @@ use saleae_proto::fpga_regs;
 use tracing::debug;
 
 use crate::ep1::Ep1CommandChannel;
-use crate::error::DriverResult;
+use crate::error::{DriverError, DriverResult};
 
 /// Execute the JESD204B link power sequence.
 ///
@@ -114,9 +114,9 @@ pub fn write_adc_register(ep1: &mut Ep1CommandChannel, bank: u8, value: u8) -> D
 /// - `ep1`: EP1 command channel.
 /// - `coefficients`: Calibration coefficient values (up to 16).
 ///
-/// # Panics
+/// # Errors
 ///
-/// Panics if `coefficients.len() > 16`.
+/// Returns [`DriverError::InvalidArgument`] if `coefficients.len() > 16`.
 ///
 /// # Evidence
 ///
@@ -127,12 +127,15 @@ pub fn write_calibration_coefficients(
     ep1: &mut Ep1CommandChannel,
     coefficients: &[u8],
 ) -> DriverResult<()> {
-    assert!(
-        coefficients.len() <= fpga_regs::CAL_COEFF_MAX_COUNT,
-        "calibration coefficient count {} exceeds maximum {}",
-        coefficients.len(),
-        fpga_regs::CAL_COEFF_MAX_COUNT,
-    );
+    if coefficients.len() > fpga_regs::CAL_COEFF_MAX_COUNT {
+        return Err(DriverError::InvalidArgument {
+            message: format!(
+                "calibration coefficient count {} exceeds maximum {}",
+                coefficients.len(),
+                fpga_regs::CAL_COEFF_MAX_COUNT,
+            ),
+        });
+    }
 
     debug!(
         "Writing {} calibration coefficients to register {:#04x}",
@@ -405,12 +408,15 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "exceeds maximum")]
-    fn write_calibration_coefficients_panics_on_too_many() {
+    fn write_calibration_coefficients_returns_error_on_too_many() {
         let mock = std::sync::Arc::new(MockTransport::new());
         let mut ep1 = mock_channel_none(&mock);
 
         // 17 coefficients -- exceeds the 16 maximum.
-        let _ = write_calibration_coefficients(&mut ep1, &[0x00; 17]);
+        let err = write_calibration_coefficients(&mut ep1, &[0x00; 17]).unwrap_err();
+        assert!(
+            err.to_string().contains("exceeds maximum"),
+            "unexpected error: {err}"
+        );
     }
 }

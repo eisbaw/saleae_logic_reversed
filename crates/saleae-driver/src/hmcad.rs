@@ -53,7 +53,7 @@ use saleae_proto::fpga_regs;
 use tracing::{debug, info};
 
 use crate::ep1::Ep1CommandChannel;
-use crate::error::DriverResult;
+use crate::error::{DriverError, DriverResult};
 
 // ---------------------------------------------------------------------------
 // HMCAD1100 register addresses (from HMCAD1100 datasheet + decompilation)
@@ -184,12 +184,13 @@ impl Hmcad1100Settings {
     ///
     /// - `device_type`: Logic4 or Logic8.
     ///
-    /// # Panics
+    /// # Errors
     ///
-    /// Panics if `device_type` is not Logic4 or Logic8.
-    pub fn defaults(device_type: DeviceType) -> Self {
+    /// Returns [`DriverError::InvalidArgument`] if `device_type` is not
+    /// Logic4 or Logic8.
+    pub fn defaults(device_type: DeviceType) -> DriverResult<Self> {
         match device_type {
-            DeviceType::Logic4 => Self {
+            DeviceType::Logic4 => Ok(Self {
                 mode: 5,
                 channels: 6,
                 ch1_gain: 1,
@@ -200,8 +201,8 @@ impl Hmcad1100Settings {
                 fine_gain: 0,
                 coarse_gain_select: 0,
                 sleep_mode: 0,
-            },
-            DeviceType::Logic8 => Self {
+            }),
+            DeviceType::Logic8 => Ok(Self {
                 mode: 4,
                 channels: 7,
                 ch1_gain: 1,
@@ -212,8 +213,10 @@ impl Hmcad1100Settings {
                 fine_gain: 0,
                 coarse_gain_select: 0,
                 sleep_mode: 0,
-            },
-            other => panic!("HMCAD1100 is only used by Logic4/Logic8, got {:?}", other),
+            }),
+            other => Err(DriverError::InvalidArgument {
+                message: format!("HMCAD1100 is only used by Logic4/Logic8, got {other:?}"),
+            }),
         }
     }
 }
@@ -281,10 +284,11 @@ pub fn write_hmcad_register(ep1: &mut Ep1CommandChannel, addr: u8, value: u16) -
 /// 10. r0x55 = coarse gain select
 /// 11. r0x56 = sleep/power mode
 ///
-/// # Assertions (from decompilation)
+/// # Errors
 ///
-/// - `test_pattern < 6` (indices into 6-entry lookup tables)
-/// - `lvds_misc < 0x0D` (fits in 4-bit nibble replicated field)
+/// Returns [`DriverError::InvalidArgument`] if:
+/// - `test_pattern >= 6` (indices into 6-entry lookup tables)
+/// - `lvds_misc >= 0x0D` (fits in 4-bit nibble replicated field)
 pub fn init_hmcad1100(
     ep1: &mut Ep1CommandChannel,
     settings: &Hmcad1100Settings,
@@ -295,16 +299,22 @@ pub fn init_hmcad1100(
     );
 
     // Validate constraints from decompilation
-    assert!(
-        settings.test_pattern < 6,
-        "HMCAD test pattern must be 0..5, got {}",
-        settings.test_pattern
-    );
-    assert!(
-        settings.lvds_misc < 0x0D,
-        "HMCAD LVDS misc must be < 13, got {}",
-        settings.lvds_misc
-    );
+    if settings.test_pattern >= 6 {
+        return Err(DriverError::InvalidArgument {
+            message: format!(
+                "HMCAD test pattern must be 0..5, got {}",
+                settings.test_pattern
+            ),
+        });
+    }
+    if settings.lvds_misc >= 0x0D {
+        return Err(DriverError::InvalidArgument {
+            message: format!(
+                "HMCAD LVDS misc must be < 13, got {}",
+                settings.lvds_misc
+            ),
+        });
+    }
 
     // Step 1: Reset HMCAD test mode via FPGA register (not SPI proxy).
     // From decompilation: `(*(vtable+0x10))(..., 0, 0x80, 0)` which maps to
@@ -375,15 +385,15 @@ pub fn init_hmcad1100(
 ///
 /// - `pattern`: Test pattern ID (0..5). 0 = disabled.
 ///
-/// # Panics
+/// # Errors
 ///
-/// Panics if `pattern >= 6`.
+/// Returns [`DriverError::InvalidArgument`] if `pattern >= 6`.
 pub fn set_test_pattern(ep1: &mut Ep1CommandChannel, pattern: u8) -> DriverResult<()> {
-    assert!(
-        pattern < 6,
-        "HMCAD test pattern must be 0..5, got {}",
-        pattern
-    );
+    if pattern >= 6 {
+        return Err(DriverError::InvalidArgument {
+            message: format!("HMCAD test pattern must be 0..5, got {pattern}"),
+        });
+    }
 
     let tp1 = TEST_PATTERN_1_VALUES[pattern as usize];
     let tp2 = TEST_PATTERN_2_VALUES[pattern as usize];
@@ -419,7 +429,7 @@ pub fn init_hmcad1100_full(
     info!("Starting HMCAD1100 init for {:?}", device_type);
 
     // Step 1: Get default settings for this device type
-    let settings = Hmcad1100Settings::defaults(device_type);
+    let settings = Hmcad1100Settings::defaults(device_type)?;
     debug!("HMCAD1100 defaults: {:?}", settings);
 
     // Step 2: Write ADC configuration
@@ -549,7 +559,7 @@ mod tests {
 
     #[test]
     fn defaults_logic4() {
-        let s = Hmcad1100Settings::defaults(DeviceType::Logic4);
+        let s = Hmcad1100Settings::defaults(DeviceType::Logic4).unwrap();
         assert_eq!(s.mode, 5);
         assert_eq!(s.channels, 6);
         assert_eq!(s.ch1_gain, 1);
@@ -564,7 +574,7 @@ mod tests {
 
     #[test]
     fn defaults_logic8() {
-        let s = Hmcad1100Settings::defaults(DeviceType::Logic8);
+        let s = Hmcad1100Settings::defaults(DeviceType::Logic8).unwrap();
         assert_eq!(s.mode, 4);
         assert_eq!(s.channels, 7);
         assert_eq!(s.ch1_gain, 1);
@@ -578,9 +588,12 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "HMCAD1100 is only used by Logic4/Logic8")]
-    fn defaults_panics_for_pro() {
-        let _ = Hmcad1100Settings::defaults(DeviceType::LogicPro8);
+    fn defaults_returns_error_for_pro() {
+        let err = Hmcad1100Settings::defaults(DeviceType::LogicPro8).unwrap_err();
+        assert!(
+            err.to_string().contains("HMCAD1100 is only used by Logic4/Logic8"),
+            "unexpected error: {err}"
+        );
     }
 
     // -------------------------------------------------------------------
@@ -665,7 +678,7 @@ mod tests {
             mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
         }
 
-        let settings = Hmcad1100Settings::defaults(DeviceType::Logic8);
+        let settings = Hmcad1100Settings::defaults(DeviceType::Logic8).unwrap();
         let mut ep1 = mock_channel_none(&mock);
         init_hmcad1100(&mut ep1, &settings).unwrap();
 
@@ -730,11 +743,14 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "HMCAD test pattern must be 0..5")]
-    fn set_test_pattern_panics_on_invalid() {
+    fn set_test_pattern_returns_error_on_invalid() {
         let mock = std::sync::Arc::new(MockTransport::new());
         let mut ep1 = mock_channel_none(&mock);
-        let _ = set_test_pattern(&mut ep1, 6);
+        let err = set_test_pattern(&mut ep1, 6).unwrap_err();
+        assert!(
+            err.to_string().contains("HMCAD test pattern must be 0..5"),
+            "unexpected error: {err}"
+        );
     }
 
     #[test]
