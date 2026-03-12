@@ -239,14 +239,15 @@ pub fn eeprom_read_register_poll(
                 return Ok(data);
             }
             other => {
-                // Unexpected status byte. Could be a different protocol
-                // version or an error. Log it and return the full response
-                // for the caller to interpret.
-                warn!(
-                    status = format_args!("{other:#04x}"),
-                    attempt, "EEPROM polled read: unexpected status byte, returning full response"
-                );
-                return Ok(response);
+                return Err(DriverError::CommandFailed {
+                    command: "EepromPolledRead",
+                    detail: format!(
+                        "unexpected EEPROM status byte: {other:#04x} \
+                         (expected {EEPROM_STATUS_NOT_READY:#04x}=not-ready \
+                         or {EEPROM_STATUS_READY:#04x}=ready) \
+                         on attempt {attempt}, response: {response:02x?}"
+                    ),
+                });
             }
         }
     }
@@ -767,19 +768,20 @@ mod tests {
     }
 
     #[test]
-    fn polled_read_unexpected_status_returns_full_response() {
+    fn polled_read_unexpected_status_returns_error() {
         let mock = std::sync::Arc::new(MockTransport::new());
 
         // Unexpected status byte 0x03.
         mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x03, 0xDE, 0xAD]);
 
         let mut channel = mock_channel(&mock);
-        let data =
+        let err =
             eeprom_read_register_poll(&mut channel, EEPROM_I2C_ADDR, EEPROM_REG_READ_BLOCK_35)
-                .unwrap();
+                .unwrap_err();
 
-        // Returns the full response including the status byte.
-        assert_eq!(data, vec![0x03, 0xDE, 0xAD]);
+        let msg = err.to_string();
+        assert!(msg.contains("unexpected EEPROM status byte"), "error should mention unexpected status: {msg}");
+        assert!(msg.contains("0x03"), "error should include the status byte value: {msg}");
     }
 
     // -------------------------------------------------------------------
