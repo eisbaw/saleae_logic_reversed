@@ -903,9 +903,7 @@ pub fn full_init(
     )
     .context("capture failed")?;
 
-    if !result.completed_normally {
-        println!("WARNING: capture ended early due to EP2 read error (data may be partial)");
-    }
+    warn_if_partial(&result);
     let raw_data = &result.raw_data;
     let total_bytes = result.bytes_read();
     println!(
@@ -1223,9 +1221,7 @@ pub fn capture_digital(
     println!();
 
     // --- Summary ---
-    if !result.completed_normally {
-        println!("WARNING: capture ended early due to EP2 read error (data may be partial)");
-    }
+    warn_if_partial(&result);
     println!("Capture complete:");
     println!("  Duration:    {:.2}s", result.elapsed.as_secs_f64());
     println!("  Total reads: {}", result.read_count);
@@ -1473,9 +1469,7 @@ pub fn capture_quick(
     }
 
     // Summary.
-    if !result.completed_normally {
-        println!("WARNING: capture ended early due to EP2 read error (data may be partial)");
-    }
+    warn_if_partial(&result);
     println!("Capture complete:");
     println!("  Duration:    {:.2}s", result.elapsed.as_secs_f64());
     println!("  Total reads: {}", result.read_count);
@@ -1496,6 +1490,13 @@ pub fn capture_quick(
     }
 
     Ok(())
+}
+
+/// Print a warning if the capture ended early due to EP2 error.
+fn warn_if_partial(result: &saleae_driver::capture::CaptureResult) {
+    if !result.completed_normally {
+        println!("WARNING: capture ended early due to EP2 read error (data may be partial)");
+    }
 }
 
 /// Print a hex dump with ASCII sidebar (16 bytes per line).

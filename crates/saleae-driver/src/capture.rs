@@ -1378,6 +1378,8 @@ pub fn run_capture(
         buf_size, "Reading EP2 capture data"
     );
 
+    // Assume ~1 USB transfer completes per 10ms (conservative for SuperSpeed).
+    // Cap at 256 MiB to avoid absurd allocations; Vec will grow if needed.
     let estimated_capacity =
         (buf_size as u128 * duration.as_millis() / 10).min(256 * 1024 * 1024) as usize;
     let mut raw_data = Vec::with_capacity(estimated_capacity);
