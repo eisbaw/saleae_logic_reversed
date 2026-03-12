@@ -907,13 +907,13 @@ pub fn full_init(firmware_path: &str, bitstream_path: &str, auto_bitstream: bool
     channel.write_registers(&[(0x00, 0x01)])?;
     println!("Capture running! Reading EP2 data for 2 seconds...");
 
-    let mut total_bytes = 0usize;
+    let mut raw_data = Vec::new();
     let start = std::time::Instant::now();
     let mut buf = vec![0u8; 16384];
     while start.elapsed() < Duration::from_secs(2) {
         match channel.transport().bulk_transfer_in(0x82, &mut buf) {
             Ok(n) => {
-                total_bytes += n;
+                raw_data.extend_from_slice(&buf[..n]);
             }
             Err(e) => {
                 println!("EP2 read error: {e}");
@@ -925,11 +925,109 @@ pub fn full_init(firmware_path: &str, bitstream_path: &str, auto_bitstream: bool
     // Stop capture
     channel.write_registers(&[(0x00, 0x00)])?;
     channel.stop_stream()?;
+    let total_bytes = raw_data.len();
     println!(
         "Capture stopped. Read {} bytes ({:.1} KB/s)",
         total_bytes,
         total_bytes as f64 / start.elapsed().as_secs_f64() / 1024.0
     );
+
+    // Decode captured data through the disaggregator.
+    // The pcap capture config uses 12.5 MSa/s mixed mode with all 8 digital
+    // + 8 analog channels enabled. For Logic Pro 8 with 32-bit GPIF and
+    // 12-bit AD9637 ADC, the settings are:
+    //   digital_ratio = 1 (same rate for digital and analog)
+    //   digital_packet_size = 4 (32-bit GPIF)
+    //   analog_group_size = 8 (32-bit GPIF + 12-bit ADC)
+    //   analog_bytes_per_sample = 3 (12-bit ADC, 1.5 bytes per sample)
+    //   low_speed_divider = 1 (no decimation at this rate)
+    //
+    // With 8 digital + 8 analog channels:
+    //   digital_group_bytes = 1 * 4 * 8 = 32 bytes
+    //   analog_channel_bytes = 3 * 8 / 2 = 12 bytes
+    //   analog_group_bytes = 12 * 8 = 96 bytes
+    //   full_cycle_size = 32 + 96 = 128 bytes
+    println!();
+    println!("Decoding captured data...");
+
+    use saleae_driver::disaggregator::{Disaggregator, DisaggregatorSettings};
+
+    let settings = DisaggregatorSettings {
+        digital_ratio: 1,
+        digital_packet_size: 4,
+        analog_group_size: 8,
+        analog_bytes_per_sample: 3,
+        digital_channels: vec![true; 8],
+        analog_channels: vec![true; 8],
+        low_speed_divider: 1,
+    };
+
+    println!(
+        "  Cycle size: {} bytes (digital={}, analog={})",
+        settings.full_cycle_size(),
+        settings.digital_group_bytes(),
+        settings.analog_group_bytes(),
+    );
+
+    // Truncate to a whole number of cycles.
+    let cycle_size = settings.full_cycle_size();
+    let usable_bytes = (total_bytes / cycle_size) * cycle_size;
+    let num_cycles = usable_bytes / cycle_size;
+    if usable_bytes < total_bytes {
+        println!(
+            "  Truncated {} trailing bytes ({} complete cycles)",
+            total_bytes - usable_bytes,
+            num_cycles,
+        );
+    }
+
+    let disagg = Disaggregator::new(settings)?;
+    let output = disagg.process(&raw_data[..usable_bytes])?;
+
+    // Print digital channel summary.
+    println!();
+    println!("Digital channels ({} channels):", output.digital.len());
+    for (ch, data) in output.digital.iter().enumerate() {
+        // Count ones and zeros across all bytes.
+        let total_bits = data.len() * 8;
+        let ones: u32 = data.iter().map(|b| b.count_ones()).sum();
+        let zeros = total_bits as u32 - ones;
+        // Show first few bytes hex.
+        let preview: String = data
+            .iter()
+            .take(8)
+            .map(|b| format!("{b:02x}"))
+            .collect::<Vec<_>>()
+            .join(" ");
+        println!(
+            "  CH{ch}: {} samples, {ones} high / {zeros} low ({:.1}% high) | {preview}...",
+            total_bits,
+            ones as f64 / total_bits as f64 * 100.0,
+        );
+    }
+
+    // Print analog channel summary.
+    println!();
+    println!("Analog channels ({} channels):", output.analog.len());
+    for (ch, data) in output.analog.iter().enumerate() {
+        if data.is_empty() {
+            println!("  CH{ch}: no samples");
+            continue;
+        }
+        let min = *data.iter().min().unwrap();
+        let max = *data.iter().max().unwrap();
+        let mean = data.iter().map(|&s| s as f64).sum::<f64>() / data.len() as f64;
+        let preview: String = data
+            .iter()
+            .take(8)
+            .map(|s| format!("{s}"))
+            .collect::<Vec<_>>()
+            .join(", ");
+        println!(
+            "  CH{ch}: {} samples, min={min} max={max} mean={mean:.1} | {preview}...",
+            data.len(),
+        );
+    }
 
     // Power down
     saleae_driver::adc::power_down(&mut channel).context("ADC power down failed")?;
