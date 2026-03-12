@@ -198,7 +198,7 @@ mod tests {
     /// Create a mock EP1 channel in None mode (no encryption, simpler assertions).
     fn mock_channel_none(mock: &std::sync::Arc<MockTransport>) -> Ep1CommandChannel {
         let transport = Box::new(MockTransportWrapper(mock.clone()));
-        Ep1CommandChannel::new(transport, EncryptionMode::None)
+        Ep1CommandChannel::new(transport, EncryptionMode::None, true)
     }
 
     /// Extract outbound bulk transfer payloads from mock operations.

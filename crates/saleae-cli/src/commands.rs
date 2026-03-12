@@ -130,8 +130,9 @@ pub fn ensure_device_ready(firmware_path: &str) -> Result<saleae_driver::ep1::Ep
     // encrypted commands directly. Sending framed packets on EP1 corrupts
     // the command thread state.
 
+    let reads_write_ack = device.device_type.is_pro();
     let mut channel =
-        saleae_driver::ep1::Ep1CommandChannel::new(Box::new(transport), encryption_mode);
+        saleae_driver::ep1::Ep1CommandChannel::new(Box::new(transport), encryption_mode, reads_write_ack);
 
     // Initialize the channel (ReseedDevice + Ping).
     channel
@@ -159,8 +160,9 @@ fn try_ping_ep1(device: &saleae_proto::device::SaleaeDevice) -> bool {
         Err(_) => return false,
     };
 
+    let reads_write_ack = device.device_type.is_pro();
     let mut channel =
-        saleae_driver::ep1::Ep1CommandChannel::new(Box::new(transport), encryption_mode);
+        saleae_driver::ep1::Ep1CommandChannel::new(Box::new(transport), encryption_mode, reads_write_ack);
 
     channel.initialize().is_ok()
 }
@@ -188,8 +190,9 @@ fn attempt_reset_to_bootloader(device: &saleae_proto::device::SaleaeDevice) {
         }
     };
 
+    let reads_write_ack = device.device_type.is_pro();
     let mut channel =
-        saleae_driver::ep1::Ep1CommandChannel::new(Box::new(transport), encryption_mode);
+        saleae_driver::ep1::Ep1CommandChannel::new(Box::new(transport), encryption_mode, reads_write_ack);
 
     // Try to initialize first (may fail if EP1 is dead).
     let _ = channel.initialize();
@@ -429,8 +432,9 @@ pub fn reset_device() -> Result<()> {
     let usb_device = saleae_usb::discovery::open_first_device().context("failed to open device")?;
     let transport = saleae_usb::nusb_backend::NusbTransport::open(usb_device)
         .context("failed to claim USB interface")?;
+    let reads_write_ack = device.device_type.is_pro();
     let mut channel =
-        saleae_driver::ep1::Ep1CommandChannel::new(Box::new(transport), encryption_mode);
+        saleae_driver::ep1::Ep1CommandChannel::new(Box::new(transport), encryption_mode, reads_write_ack);
 
     println!("Initializing EP1...");
     channel.initialize().context("EP1 initialization failed")?;
@@ -497,8 +501,9 @@ pub fn ping() -> Result<()> {
     let transport = saleae_usb::nusb_backend::NusbTransport::open(usb_device)
         .context("failed to claim USB interface")?;
 
+    let reads_write_ack = device.device_type.is_pro();
     let mut channel =
-        saleae_driver::ep1::Ep1CommandChannel::new(Box::new(transport), encryption_mode);
+        saleae_driver::ep1::Ep1CommandChannel::new(Box::new(transport), encryption_mode, reads_write_ack);
 
     // Run the ReseedDevice + Ping handshake.
     println!("Running ReseedDevice + Ping...");
@@ -582,8 +587,9 @@ pub fn program_fpga(bitstream_path: &str, skip_post_init: bool) -> Result<()> {
     let transport = saleae_usb::nusb_backend::NusbTransport::open(usb_device)
         .context("failed to claim USB interface")?;
 
+    let reads_write_ack = device.device_type.is_pro();
     let mut channel =
-        saleae_driver::ep1::Ep1CommandChannel::new(Box::new(transport), encryption_mode);
+        saleae_driver::ep1::Ep1CommandChannel::new(Box::new(transport), encryption_mode, reads_write_ack);
 
     // Initialize command channel (ReseedDevice + Ping).
     println!("Initializing command channel (ReseedDevice + Ping)...");
@@ -676,8 +682,9 @@ pub fn device_init(bitstream_path: Option<&str>, skip_fpga: bool) -> Result<()> 
     let transport = saleae_usb::nusb_backend::NusbTransport::open(usb_device)
         .context("failed to claim USB interface")?;
 
+    let reads_write_ack = device.device_type.is_pro();
     let mut channel =
-        saleae_driver::ep1::Ep1CommandChannel::new(Box::new(transport), encryption_mode);
+        saleae_driver::ep1::Ep1CommandChannel::new(Box::new(transport), encryption_mode, reads_write_ack);
 
     // Initialize command channel (ReseedDevice + Ping).
     println!("Initializing command channel (ReseedDevice + Ping)...");
@@ -1331,8 +1338,9 @@ pub fn capture_quick(
             saleae_usb::discovery::open_first_device().context("failed to open device")?;
         let transport = saleae_usb::nusb_backend::NusbTransport::open(usb_device)
             .context("failed to claim USB interface")?;
+        let reads_write_ack = device.device_type.is_pro();
         let mut ch =
-            saleae_driver::ep1::Ep1CommandChannel::new(Box::new(transport), encryption_mode);
+            saleae_driver::ep1::Ep1CommandChannel::new(Box::new(transport), encryption_mode, reads_write_ack);
 
         println!("Initializing EP1 (reseed + ping)...");
         ch.initialize().context("EP1 initialization failed")?;

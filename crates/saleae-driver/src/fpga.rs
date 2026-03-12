@@ -672,7 +672,7 @@ mod tests {
     /// Create a mock channel with XorAll encryption and seed=0 (identity XOR).
     fn mock_channel(mock: &std::sync::Arc<MockTransport>) -> Ep1CommandChannel {
         let transport = Box::new(MockTransportWrapper(mock.clone()));
-        let mut channel = Ep1CommandChannel::new(transport, EncryptionMode::XorAll);
+        let mut channel = Ep1CommandChannel::new(transport, EncryptionMode::XorAll, true);
         // Seed 0 makes XOR identity -- simplifies assertions.
         channel.encryption.reseed(0);
         channel.initialized = true;

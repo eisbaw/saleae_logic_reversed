@@ -50,6 +50,10 @@ pub struct Ep1CommandChannel {
     transport: Box<dyn UsbTransport>,
     pub(crate) encryption: SimpleEncryption,
     pub(crate) initialized: bool,
+    /// Whether `write_registers` and `write_config_data` read a 1-byte ACK
+    /// response after each write. Pro devices send an ACK; non-Pro devices
+    /// are fire-and-forget.
+    reads_write_ack: bool,
 }
 
 impl Ep1CommandChannel {
@@ -62,7 +66,16 @@ impl Ep1CommandChannel {
     ///
     /// - `transport`: USB transport handle (must already have interface claimed).
     /// - `encryption_mode`: Encryption mode for this device type.
-    pub fn new(transport: Box<dyn UsbTransport>, encryption_mode: EncryptionMode) -> Self {
+    /// - `reads_write_ack`: Whether the device sends a 1-byte ACK after
+    ///   `write_registers` and `write_config_data`. Pro devices do; non-Pro
+    ///   devices are fire-and-forget. Use
+    ///   [`DeviceProfile::register_write_verifies`](saleae_proto::device::DeviceProfile::register_write_verifies)
+    ///   to determine the correct value.
+    pub fn new(
+        transport: Box<dyn UsbTransport>,
+        encryption_mode: EncryptionMode,
+        reads_write_ack: bool,
+    ) -> Self {
         Self {
             transport,
             encryption: SimpleEncryption::new(
@@ -70,7 +83,13 @@ impl Ep1CommandChannel {
                 encryption_mode,
             ),
             initialized: false,
+            reads_write_ack,
         }
+    }
+
+    /// Whether the channel reads a 1-byte ACK after register writes.
+    pub fn reads_write_ack(&self) -> bool {
+        self.reads_write_ack
     }
 
     /// Whether the channel has been initialized (ReseedDevice + Ping done).
@@ -246,8 +265,9 @@ impl Ep1CommandChannel {
 
     /// Write FPGA registers (opcode 0x80).
     ///
-    /// Sends batch register writes. For Pro devices, reads back a
-    /// 1-byte acknowledgment.
+    /// Sends batch register writes. If [`reads_write_ack`](Self::reads_write_ack)
+    /// is true (Pro devices), reads back a 1-byte acknowledgment. Non-Pro
+    /// devices are fire-and-forget (no response read).
     ///
     /// # Errors
     ///
@@ -277,24 +297,27 @@ impl Ep1CommandChannel {
 
         // Pro devices read a 1-byte response and throw if non-zero.
         // Non-Pro devices skip the response read entirely.
-        // Since our target is Pro 8, we always expect the ACK.
-        let mut ack = [0u8; 64];
-        let n = self.recv_response(&mut ack)?;
-        debug!(
-            ack_len = n,
-            ack_byte = if n > 0 {
-                format!("{:#04x}", ack[0])
-            } else {
-                "none".into()
-            },
-            "WriteRegisters ACK"
-        );
+        if self.reads_write_ack {
+            let mut ack = [0u8; 64];
+            let n = self.recv_response(&mut ack)?;
+            debug!(
+                ack_len = n,
+                ack_byte = if n > 0 {
+                    format!("{:#04x}", ack[0])
+                } else {
+                    "none".into()
+                },
+                "WriteRegisters ACK"
+            );
 
-        if n >= 1 && ack[0] != 0x00 {
-            return Err(DriverError::CommandFailed {
-                command: "WriteRegisters",
-                detail: format!("expected 0x00 ack, got {:#04x}", ack[0]),
-            });
+            if n >= 1 && ack[0] != 0x00 {
+                return Err(DriverError::CommandFailed {
+                    command: "WriteRegisters",
+                    detail: format!("expected 0x00 ack, got {:#04x}", ack[0]),
+                });
+            }
+        } else {
+            debug!("WriteRegisters sent (no ACK expected)");
         }
 
         Ok(())
@@ -361,11 +384,12 @@ impl Ep1CommandChannel {
     /// Write configuration data (opcode 0x7F), chunked for the device.
     ///
     /// Used for FPGA bitstream download and capture configuration.
-    /// Uses the default Pro USB 3.0 chunk size (1020 bytes). For
-    /// device-specific chunk sizes, use
+    /// Uses the default Pro USB 3.0 chunk size (1020 bytes) and reads
+    /// ACK based on the channel's [`reads_write_ack`](Self::reads_write_ack)
+    /// flag. For device-specific chunk sizes, use
     /// [`write_config_data_chunked`](Self::write_config_data_chunked).
     pub fn write_config_data(&mut self, data: &[u8]) -> DriverResult<()> {
-        self.write_config_data_chunked(data, DEFAULT_CONFIG_CHUNK_SIZE, true)
+        self.write_config_data_chunked(data, DEFAULT_CONFIG_CHUNK_SIZE, self.reads_write_ack)
     }
 
     /// Write configuration data (opcode 0x7F) with explicit chunk size.
@@ -1055,7 +1079,7 @@ mod tests {
         seed: u32,
     ) -> Ep1CommandChannel {
         let transport = Box::new(MockTransportWrapper(mock.clone()));
-        let mut channel = Ep1CommandChannel::new(transport, EncryptionMode::XorAll);
+        let mut channel = Ep1CommandChannel::new(transport, EncryptionMode::XorAll, true);
         // Manually set the seed (bypassing initialize).
         channel.encryption.reseed(seed);
         channel.initialized = true;
@@ -1098,14 +1122,14 @@ mod tests {
     #[test]
     fn new_channel_is_uninitialized() {
         let mock = Box::new(MockTransport::new());
-        let channel = Ep1CommandChannel::new(mock, EncryptionMode::XorAll);
+        let channel = Ep1CommandChannel::new(mock, EncryptionMode::XorAll, true);
         assert!(!channel.is_initialized());
     }
 
     #[test]
     fn new_channel_uses_firmware_default_seed() {
         let mock = Box::new(MockTransport::new());
-        let channel = Ep1CommandChannel::new(mock, EncryptionMode::XorAll);
+        let channel = Ep1CommandChannel::new(mock, EncryptionMode::XorAll, true);
         assert_eq!(
             channel.encryption.seed(),
             saleae_proto::obfuscation::DEFAULT_INITIAL_SEED,
@@ -1127,7 +1151,7 @@ mod tests {
         // For encryption correctness, see pcap_validation tests in
         // obfuscation.rs.
         let transport = Box::new(MockTransportWrapper(mock.clone()));
-        let mut channel = Ep1CommandChannel::new(transport, EncryptionMode::None);
+        let mut channel = Ep1CommandChannel::new(transport, EncryptionMode::None, true);
 
         // Queue response for the ping (unencrypted since mode is None).
         mock.push_bulk_in_response(endpoint::BULK_IN, vec![0xAA]);
@@ -1298,6 +1322,65 @@ mod tests {
             err.to_string().contains("register count must be 1..31"),
             "unexpected error: {err}"
         );
+    }
+
+    #[test]
+    fn write_registers_non_pro_skips_ack_read() {
+        let mock = std::sync::Arc::new(MockTransport::new());
+        // No ACK response queued -- non-Pro should not read one.
+        let transport = Box::new(MockTransportWrapper(mock.clone()));
+        let mut channel = Ep1CommandChannel::new(transport, EncryptionMode::None, false);
+        channel.initialized = true;
+
+        channel
+            .write_registers(&[(0x10, 0xAA)])
+            .expect("non-Pro write_registers should succeed without ACK");
+
+        // Verify: only one OUT transfer, no IN transfers.
+        let ops = mock.operations();
+        let out_count = ops
+            .iter()
+            .filter(|op| matches!(op, UsbOperation::BulkOut { .. }))
+            .count();
+        let in_count = ops
+            .iter()
+            .filter(|op| matches!(op, UsbOperation::BulkIn { .. }))
+            .count();
+        assert_eq!(out_count, 1, "expected 1 OUT transfer");
+        assert_eq!(in_count, 0, "non-Pro should not read ACK");
+    }
+
+    #[test]
+    fn write_config_data_non_pro_channel_skips_ack() {
+        let mock = std::sync::Arc::new(MockTransport::new());
+        // No ACK response queued -- non-Pro should not read one.
+        let transport = Box::new(MockTransportWrapper(mock.clone()));
+        let mut channel = Ep1CommandChannel::new(transport, EncryptionMode::None, false);
+        channel.initialized = true;
+
+        let data = vec![0xAB; 100];
+        channel
+            .write_config_data(&data)
+            .expect("non-Pro write_config_data should succeed without ACK");
+
+        // Verify: only OUT transfers, no IN transfers.
+        let ops = mock.operations();
+        let in_count = ops
+            .iter()
+            .filter(|op| matches!(op, UsbOperation::BulkIn { .. }))
+            .count();
+        assert_eq!(in_count, 0, "non-Pro should not read ACK");
+    }
+
+    #[test]
+    fn reads_write_ack_accessor() {
+        let mock = Box::new(MockTransport::new());
+        let channel_pro = Ep1CommandChannel::new(mock, EncryptionMode::XorAll, true);
+        assert!(channel_pro.reads_write_ack());
+
+        let mock2 = Box::new(MockTransport::new());
+        let channel_non_pro = Ep1CommandChannel::new(mock2, EncryptionMode::None, false);
+        assert!(!channel_non_pro.reads_write_ack());
     }
 
     #[test]

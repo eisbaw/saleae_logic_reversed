@@ -798,7 +798,7 @@ mod tests {
     /// In None mode, no control byte is added and no XOR is applied.
     fn mock_channel_none(mock: &std::sync::Arc<MockTransport>) -> Ep1CommandChannel {
         let transport = Box::new(MockTransportWrapper(mock.clone()));
-        Ep1CommandChannel::new(transport, EncryptionMode::None)
+        Ep1CommandChannel::new(transport, EncryptionMode::None, true)
     }
 
     /// Queue the responses needed for Phase 1 (Handshake) in None mode.

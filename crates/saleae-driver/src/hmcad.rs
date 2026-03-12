@@ -518,7 +518,7 @@ mod tests {
 
     fn mock_channel_none(mock: &std::sync::Arc<MockTransport>) -> Ep1CommandChannel {
         let transport = Box::new(MockTransportWrapper(mock.clone()));
-        Ep1CommandChannel::new(transport, EncryptionMode::None)
+        Ep1CommandChannel::new(transport, EncryptionMode::None, true)
     }
 
     fn extract_out_payloads(mock: &MockTransport) -> Vec<Vec<u8>> {

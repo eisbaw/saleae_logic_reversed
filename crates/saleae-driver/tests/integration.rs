@@ -78,7 +78,7 @@ fn make_initialized_channel(mock: &Arc<MockTransport>) -> Ep1CommandChannel {
     mock.push_bulk_in_response(endpoint::BULK_IN, vec![0xAA]);
 
     let transport = Box::new(SharedMock(mock.clone()));
-    let mut channel = Ep1CommandChannel::new(transport, EncryptionMode::None);
+    let mut channel = Ep1CommandChannel::new(transport, EncryptionMode::None, true);
     channel.initialize().expect("initialize should succeed");
     assert!(channel.is_initialized());
 
@@ -474,7 +474,7 @@ fn ep1_initialize_sends_reseed_then_ping() {
     mock.push_bulk_in_response(endpoint::BULK_IN, vec![0xAA]);
 
     let transport = Box::new(SharedMock(mock.clone()));
-    let mut channel = Ep1CommandChannel::new(transport, EncryptionMode::None);
+    let mut channel = Ep1CommandChannel::new(transport, EncryptionMode::None, true);
 
     assert!(!channel.is_initialized());
     channel.initialize().unwrap();
@@ -529,7 +529,7 @@ fn ep1_initialize_fails_on_wrong_ping_response() {
     mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x55]); // wrong! expected 0xAA
 
     let transport = Box::new(SharedMock(mock.clone()));
-    let mut channel = Ep1CommandChannel::new(transport, EncryptionMode::None);
+    let mut channel = Ep1CommandChannel::new(transport, EncryptionMode::None, true);
 
     let err = channel.initialize().unwrap_err();
     assert!(!channel.is_initialized());
@@ -788,7 +788,7 @@ fn ep1_command_handles_bulk_out_failure() {
     // Initialize channel successfully first.
     mock.push_bulk_in_response(endpoint::BULK_IN, vec![0xAA]);
     let transport = Box::new(SharedMock(mock.clone()));
-    let mut channel = Ep1CommandChannel::new(transport, EncryptionMode::None);
+    let mut channel = Ep1CommandChannel::new(transport, EncryptionMode::None, true);
     channel.initialize().unwrap();
     mock.clear();
 

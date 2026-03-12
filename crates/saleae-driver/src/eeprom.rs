@@ -676,7 +676,7 @@ mod tests {
     /// In None mode, commands are sent unencrypted (no control byte, no XOR).
     fn mock_channel(mock: &std::sync::Arc<MockTransport>) -> Ep1CommandChannel {
         let transport = Box::new(MockTransportWrapper(mock.clone()));
-        let mut channel = Ep1CommandChannel::new(transport, EncryptionMode::None);
+        let mut channel = Ep1CommandChannel::new(transport, EncryptionMode::None, true);
         channel.encryption.reseed(0);
         channel.initialized = true;
         channel
