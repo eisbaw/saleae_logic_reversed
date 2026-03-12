@@ -803,7 +803,12 @@ fn try_bitstreams(
     bail!("No compatible bitstream found. Tried: {:?}", paths);
 }
 
-pub fn full_init(firmware_path: &str, bitstream_path: &str, auto_bitstream: bool) -> Result<()> {
+pub fn full_init(
+    firmware_path: &str,
+    bitstream_path: &str,
+    auto_bitstream: bool,
+    cal_file: Option<&str>,
+) -> Result<()> {
     // Use ensure_device_ready for firmware upload + EP1 recovery.
     let mut channel = ensure_device_ready(firmware_path)?;
 
@@ -835,6 +840,17 @@ pub fn full_init(firmware_path: &str, bitstream_path: &str, auto_bitstream: bool
         saleae_driver::fpga::program_fpga(&mut channel, &bitstream, profile, usb_speed)?;
         println!("FPGA programmed and verified.");
     }
+    println!();
+
+    // Read EEPROM device ID (offset 0x08, 8 bytes LE) for calibration file lookup.
+    let device_id = channel
+        .read_eeprom_device_id()
+        .context("failed to read EEPROM device ID")?;
+    println!("Device ID: {:#018x} ({:x})", device_id, device_id);
+    println!(
+        "Calibration URL: https://downloads.saleae.com/calibration/{:x}.cal",
+        device_id
+    );
     println!();
 
     // Step 5: AD9637 ADC init via driver module
@@ -984,52 +1000,61 @@ pub fn full_init(firmware_path: &str, bitstream_path: &str, auto_bitstream: bool
 
     // Apply analog calibration if a .cal file is available.
     if !output.analog.is_empty() {
-        // Try to load calibration from the workspace-local .cal file.
-        // TODO: derive path from device EEPROM serial or accept as CLI argument.
-        let cal_path = std::path::Path::new("re/calibration-764051b51bd4d9f1.cal");
-        match std::fs::read(cal_path) {
-            Ok(cal_bytes) => match saleae_proto::calibration::parse_calibration(&cal_bytes) {
-                Ok(cal) => {
-                    let analog_indices: Vec<u8> = capture_config.analog_channels.clone();
-                    match saleae_driver::calibrate::apply_calibration(
-                        &output,
-                        &cal,
-                        &analog_indices,
-                        capture_config.sample_rate,
-                        -2048, // Logic Pro 8: 12-bit signed ADC
-                        2047,
-                    ) {
-                        Ok(cal_output) => {
-                            println!();
-                            println!("Calibrated analog voltages:");
-                            for ch in &cal_output.channels {
-                                if let Some((min, max, mean)) = ch.stats() {
-                                    println!(
-                                        "  CH{}: {} samples, min={min:.4}V max={max:.4}V mean={mean:.4}V",
-                                        ch.index, ch.voltages.len(),
-                                    );
-                                } else {
-                                    println!("  CH{}: no samples", ch.index);
+        match resolve_cal_file(cal_file, Some(device_id)) {
+            Ok(cal_path) => {
+                println!("Loading calibration from {}", cal_path.display());
+                match std::fs::read(&cal_path) {
+                    Ok(cal_bytes) => {
+                        match saleae_proto::calibration::parse_calibration(&cal_bytes) {
+                            Ok(cal) => {
+                                let analog_indices: Vec<u8> =
+                                    capture_config.analog_channels.clone();
+                                match saleae_driver::calibrate::apply_calibration(
+                                    &output,
+                                    &cal,
+                                    &analog_indices,
+                                    capture_config.sample_rate,
+                                    -2048, // Logic Pro 8: 12-bit signed ADC
+                                    2047,
+                                ) {
+                                    Ok(cal_output) => {
+                                        println!();
+                                        println!("Calibrated analog voltages:");
+                                        for ch in &cal_output.channels {
+                                            if let Some((min, max, mean)) = ch.stats() {
+                                                println!(
+                                                    "  CH{}: {} samples, min={min:.4}V max={max:.4}V mean={mean:.4}V",
+                                                    ch.index, ch.voltages.len(),
+                                                );
+                                            } else {
+                                                println!("  CH{}: no samples", ch.index);
+                                            }
+                                        }
+                                    }
+                                    Err(e) => {
+                                        println!();
+                                        println!("Calibration skipped: {e}");
+                                    }
                                 }
                             }
-                        }
-                        Err(e) => {
-                            println!();
-                            println!("Calibration skipped: {e}");
+                            Err(e) => {
+                                println!();
+                                println!("Calibration skipped: failed to parse .cal file: {e}");
+                            }
                         }
                     }
+                    Err(e) => {
+                        println!();
+                        println!(
+                            "Calibration skipped: failed to read {}: {e}",
+                            cal_path.display()
+                        );
+                    }
                 }
-                Err(e) => {
-                    println!();
-                    println!("Calibration skipped: failed to parse .cal file: {e}");
-                }
-            },
-            Err(_) => {
+            }
+            Err(e) => {
                 println!();
-                println!(
-                    "Calibration skipped: .cal file not found at {}",
-                    cal_path.display()
-                );
+                println!("Calibration skipped: {e}");
             }
         }
     }
@@ -1547,6 +1572,7 @@ pub fn capture_analog(
     channels: &str,
     output: Option<&str>,
     format: &str,
+    cal_file: Option<&str>,
 ) -> Result<()> {
     let channel_list = parse_channel_list(channels)?;
 
@@ -1583,9 +1609,19 @@ pub fn capture_analog(
     println!();
 
     // Try to load calibration data from local file.
-    // Look for .cal files in re/ directory.
-    let cal_dir = std::path::PathBuf::from("re");
-    let cal_result = find_and_load_calibration(&cal_dir);
+    // Use explicit --cal-file if given, otherwise search common directories.
+    let cal_result = match resolve_cal_file(cal_file, None) {
+        Ok(path) => {
+            println!("Loading calibration from {}", path.display());
+            saleae_driver::calibration::load_calibration_file(&path)
+                .map_err(|e| anyhow::anyhow!("failed to load {}: {}", path.display(), e))
+        }
+        Err(_) => {
+            // Fall back to searching re/ directory for any .cal file.
+            let cal_dir = std::path::PathBuf::from("re");
+            find_and_load_calibration(&cal_dir)
+        }
+    };
 
     match cal_result {
         Ok(cal) => {
@@ -1724,6 +1760,61 @@ fn find_and_load_calibration(dir: &std::path::Path) -> Result<saleae_proto::Cali
     }
 
     bail!("no .cal files found in {}", dir.display());
+}
+
+/// Resolve a .cal calibration file path.
+///
+/// If `explicit_path` is provided, uses that directly.
+/// Otherwise, derives the filename from the device ID (`calibration-{id:x}.cal`)
+/// and searches these locations in order:
+///   1. Current directory
+///   2. `re/` subdirectory
+///   3. `calibration/` subdirectory
+///
+/// Returns the path to the .cal file, or an error if not found.
+fn resolve_cal_file(
+    explicit_path: Option<&str>,
+    device_id: Option<u64>,
+) -> Result<std::path::PathBuf> {
+    // If the user gave an explicit path, use it directly.
+    if let Some(path) = explicit_path {
+        let p = std::path::PathBuf::from(path);
+        if p.exists() {
+            return Ok(p);
+        }
+        bail!("calibration file not found: {}", p.display());
+    }
+
+    // Derive filename from device ID.
+    let device_id =
+        device_id.ok_or_else(|| anyhow::anyhow!("no device ID available to derive .cal path"))?;
+    let filename = format!("calibration-{:x}.cal", device_id);
+
+    // Search in common locations.
+    let search_dirs: &[&str] = &[".", "re", "calibration"];
+    for dir in search_dirs {
+        let candidate = std::path::Path::new(dir).join(&filename);
+        if candidate.exists() {
+            return Ok(candidate);
+        }
+    }
+
+    // Also try just {id:x}.cal (the format used by download_calibration cache).
+    let short_filename = format!("{:x}.cal", device_id);
+    for dir in search_dirs {
+        let candidate = std::path::Path::new(dir).join(&short_filename);
+        if candidate.exists() {
+            return Ok(candidate);
+        }
+    }
+
+    bail!(
+        "calibration file not found for device {:x}. Searched for {} and {} in {:?}",
+        device_id,
+        filename,
+        short_filename,
+        search_dirs,
+    );
 }
 
 /// Create an AnalogProcessor for a specific channel and sample rate.

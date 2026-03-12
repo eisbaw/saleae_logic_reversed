@@ -156,6 +156,10 @@ enum Command {
         /// Auto-detect the correct bitstream by trying all SLX9 variants.
         #[arg(long, default_value = "false")]
         auto_bitstream: bool,
+
+        /// Path to calibration .cal file (derived from device serial if omitted).
+        #[arg(long)]
+        cal_file: Option<String>,
     },
 
     /// Start an analog capture (Pro devices only).
@@ -179,6 +183,10 @@ enum Command {
         /// Export format: "csv" (default), "binary", or "sal".
         #[arg(long, default_value = "csv")]
         format: String,
+
+        /// Path to calibration .cal file (searches common locations if omitted).
+        #[arg(long)]
+        cal_file: Option<String>,
     },
 
     /// Quick capture: minimal sequence to get EP2 data flowing.
@@ -277,11 +285,12 @@ fn main() -> anyhow::Result<()> {
             firmware,
             bitstream,
             auto_bitstream,
+            cal_file,
         } => {
             let fw_path = firmware
                 .or(cli.firmware.clone())
                 .unwrap_or_else(|| commands::DEFAULT_FIRMWARE_PATH.to_string());
-            commands::full_init(&fw_path, &bitstream, auto_bitstream)?
+            commands::full_init(&fw_path, &bitstream, auto_bitstream, cal_file.as_deref())?
         }
         Command::CaptureAnalog {
             sample_rate,
@@ -289,9 +298,15 @@ fn main() -> anyhow::Result<()> {
             channels,
             output,
             format,
-        } => {
-            commands::capture_analog(sample_rate, duration, &channels, output.as_deref(), &format)?
-        }
+            cal_file,
+        } => commands::capture_analog(
+            sample_rate,
+            duration,
+            &channels,
+            output.as_deref(),
+            &format,
+            cal_file.as_deref(),
+        )?,
         Command::CaptureQuick {
             duration,
             digital_mask,
