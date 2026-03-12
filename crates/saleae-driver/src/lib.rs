@@ -22,6 +22,7 @@ pub mod disaggregator;
 pub mod eeprom;
 pub mod ep1;
 pub mod error;
+pub mod facade;
 pub mod firmware;
 pub mod fpga;
 pub mod framed;
