@@ -21,39 +21,39 @@ use saleae_proto::biquad::BiquadFilter;
 use saleae_proto::calibration::{CalibrationData, VoltageTransform};
 
 use crate::disaggregator::DisaggregatorOutput;
+use crate::error::{DriverError, DriverResult};
 
-/// Result of applying calibration to disaggregated analog data.
-///
-/// Each channel gets a `Vec<f64>` of calibrated voltage samples.
-/// The channel order matches the `DisaggregatorOutput::analog` order
-/// (i.e., ordered by enabled channel index).
+/// Per-channel calibrated voltage data.
 #[derive(Debug, Clone)]
-pub struct CalibratedOutput {
-    /// Per-channel calibrated voltage samples.
-    pub channels: Vec<Vec<f64>>,
-    /// Channel indices corresponding to each entry in `channels`.
-    /// These are the original analog channel indices from the capture config.
-    pub channel_indices: Vec<u8>,
+pub struct CalibratedChannel {
+    /// The device channel index (0-based).
+    pub index: u8,
+    /// Calibrated voltage samples.
+    pub voltages: Vec<f64>,
 }
 
-impl CalibratedOutput {
-    /// Print a summary of calibrated voltage statistics per channel.
-    pub fn print_summary(&self) {
-        for (i, voltages) in self.channels.iter().enumerate() {
-            let ch = self.channel_indices[i];
-            if voltages.is_empty() {
-                println!("  CH{ch}: no samples");
-                continue;
-            }
-            let min = voltages.iter().cloned().fold(f64::INFINITY, f64::min);
-            let max = voltages.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
-            let mean = voltages.iter().sum::<f64>() / voltages.len() as f64;
-            println!(
-                "  CH{ch}: {} samples, min={min:.4}V max={max:.4}V mean={mean:.4}V",
-                voltages.len(),
-            );
+impl CalibratedChannel {
+    /// Compute min, max, mean statistics. Returns None if empty.
+    pub fn stats(&self) -> Option<(f64, f64, f64)> {
+        if self.voltages.is_empty() {
+            return None;
         }
+        let min = self.voltages.iter().cloned().fold(f64::INFINITY, f64::min);
+        let max = self
+            .voltages
+            .iter()
+            .cloned()
+            .fold(f64::NEG_INFINITY, f64::max);
+        let mean = self.voltages.iter().sum::<f64>() / self.voltages.len() as f64;
+        Some((min, max, mean))
     }
+}
+
+/// Result of applying calibration to disaggregated analog data.
+#[derive(Debug, Clone)]
+pub struct CalibratedOutput {
+    /// Per-channel calibrated data, in order of enabled channels.
+    pub channels: Vec<CalibratedChannel>,
 }
 
 /// Apply calibration to disaggregated analog data.
@@ -69,41 +69,60 @@ impl CalibratedOutput {
 /// - `output`: Disaggregated data from the EP2 stream
 /// - `cal`: Parsed calibration data from the .cal file
 /// - `analog_channel_indices`: The actual channel numbers (0-based) for each
-///   entry in `output.analog`, in order
+///   entry in `output.analog`, in order. Must have the same length as
+///   `output.analog`.
 /// - `sample_rate`: Capture sample rate in Hz, used to look up the correct
 ///   calibration coefficients
-///
-/// # Returns
-///
-/// `Some(CalibratedOutput)` if calibration data was available for all channels,
-/// or `None` if any channel was missing calibration data.
+/// - `adc_min`, `adc_max`: ADC code range for voltage transform.
+///   Logic Pro 8/16: (-2048, 2047). Logic 4: (0, 255).
 pub fn apply_calibration(
     output: &DisaggregatorOutput,
     cal: &CalibrationData,
     analog_channel_indices: &[u8],
     sample_rate: u64,
-) -> Option<CalibratedOutput> {
-    if output.analog.is_empty() {
-        return Some(CalibratedOutput {
-            channels: vec![],
-            channel_indices: vec![],
+    adc_min: i16,
+    adc_max: i16,
+) -> DriverResult<CalibratedOutput> {
+    if analog_channel_indices.len() != output.analog.len() {
+        return Err(DriverError::InvalidCaptureConfig {
+            reason: format!(
+                "analog_channel_indices length ({}) != output.analog length ({})",
+                analog_channel_indices.len(),
+                output.analog.len()
+            ),
         });
     }
 
+    if output.analog.is_empty() {
+        return Ok(CalibratedOutput { channels: vec![] });
+    }
+
     // Find the closest matching sample rate in the calibration data.
-    // The .cal file has specific rates (50M, 12.5M, 6.25M, 3.125M, 1.5625M, 781.25k).
-    // Use exact match first, then fall back to closest.
-    let effective_rate = find_closest_cal_rate(cal, analog_channel_indices[0], sample_rate)?;
+    let effective_rate = find_closest_cal_rate(cal, analog_channel_indices[0], sample_rate)
+        .ok_or_else(|| DriverError::InvalidCaptureConfig {
+            reason: format!(
+                "no calibration data for channel {} at any sample rate",
+                analog_channel_indices[0]
+            ),
+        })?;
 
     let mut channels = Vec::with_capacity(output.analog.len());
-    let mut indices = Vec::with_capacity(output.analog.len());
 
     for (i, raw_samples) in output.analog.iter().enumerate() {
         let ch = analog_channel_indices[i];
 
-        let cal_set = cal.find_set(ch, effective_rate)?;
-        let vr = cal.find_voltage_range(ch)?;
-        let transform = VoltageTransform::from_range(vr.min_voltage, vr.max_voltage, -2048, 2047);
+        let cal_set =
+            cal.find_set(ch, effective_rate)
+                .ok_or_else(|| DriverError::InvalidCaptureConfig {
+                    reason: format!("no calibration set for channel {ch} at rate {effective_rate}"),
+                })?;
+        let vr = cal
+            .find_voltage_range(ch)
+            .ok_or_else(|| DriverError::InvalidCaptureConfig {
+                reason: format!("no voltage range for channel {ch}"),
+            })?;
+        let transform =
+            VoltageTransform::from_range(vr.min_voltage, vr.max_voltage, adc_min, adc_max);
 
         // Step 1: Filter raw i16 codes (binary-compatible order).
         let mut filtered = raw_samples.clone();
@@ -113,14 +132,13 @@ pub fn apply_calibration(
         // Step 2: Convert filtered i16 codes to voltages.
         let voltages: Vec<f64> = filtered.iter().map(|&code| transform.apply(code)).collect();
 
-        channels.push(voltages);
-        indices.push(ch);
+        channels.push(CalibratedChannel {
+            index: ch,
+            voltages,
+        });
     }
 
-    Some(CalibratedOutput {
-        channels,
-        channel_indices: indices,
-    })
+    Ok(CalibratedOutput { channels })
 }
 
 /// Find the closest calibration sample rate for a given channel.
@@ -187,6 +205,10 @@ mod tests {
         calibration::parse_calibration(&data).expect("parse cal")
     }
 
+    /// Logic Pro 8/16: 12-bit signed ADC range.
+    const PRO_ADC_MIN: i16 = -2048;
+    const PRO_ADC_MAX: i16 = 2047;
+
     #[test]
     fn calibrate_empty_analog() {
         let cal = load_reference_cal();
@@ -194,8 +216,8 @@ mod tests {
             digital: vec![],
             analog: vec![],
         };
-        let result = apply_calibration(&output, &cal, &[], 12_500_000);
-        assert!(result.is_some());
+        let result = apply_calibration(&output, &cal, &[], 12_500_000, PRO_ADC_MIN, PRO_ADC_MAX);
+        assert!(result.is_ok());
         assert!(result.unwrap().channels.is_empty());
     }
 
@@ -203,21 +225,18 @@ mod tests {
     fn calibrate_single_channel_dc_zero() {
         let cal = load_reference_cal();
 
-        // 1000 samples of ADC code 0 on channel 0
         let output = DisaggregatorOutput {
             digital: vec![],
             analog: vec![vec![0i16; 1000]],
         };
 
-        let result =
-            apply_calibration(&output, &cal, &[0], 12_500_000).expect("calibration should succeed");
+        let result = apply_calibration(&output, &cal, &[0], 12_500_000, PRO_ADC_MIN, PRO_ADC_MAX)
+            .expect("calibration should succeed");
 
         assert_eq!(result.channels.len(), 1);
-        assert_eq!(result.channel_indices, vec![0]);
+        assert_eq!(result.channels[0].index, 0);
 
-        // After filter settles, DC=0 should map near 0V (midpoint).
-        // The voltage transform maps code 0 to ~-0.098V for channel 0.
-        let last = result.channels[0].last().unwrap();
+        let last = result.channels[0].voltages.last().unwrap();
         assert!(
             last.is_finite(),
             "calibrated voltage should be finite, got {}",
@@ -230,24 +249,23 @@ mod tests {
     fn calibrate_two_channels_opposite_codes() {
         let cal = load_reference_cal();
 
-        // Channel 0: constant +1024, Channel 1: constant -1024
         let output = DisaggregatorOutput {
             digital: vec![],
             analog: vec![vec![1024i16; 1000], vec![-1024i16; 1000]],
         };
 
-        let result = apply_calibration(&output, &cal, &[0, 1], 12_500_000)
-            .expect("calibration should succeed");
+        let result =
+            apply_calibration(&output, &cal, &[0, 1], 12_500_000, PRO_ADC_MIN, PRO_ADC_MAX)
+                .expect("calibration should succeed");
 
         assert_eq!(result.channels.len(), 2);
-        assert_eq!(result.channel_indices, vec![0, 1]);
+        assert_eq!(result.channels[0].index, 0);
+        assert_eq!(result.channels[1].index, 1);
 
-        // Channel 0 (+1024) should settle to positive voltage
-        let v0 = *result.channels[0].last().unwrap();
+        let v0 = *result.channels[0].voltages.last().unwrap();
         assert!(v0 > 0.0, "ch0 (+1024) should be positive, got {:.4}V", v0);
 
-        // Channel 1 (-1024) should settle to negative voltage
-        let v1 = *result.channels[1].last().unwrap();
+        let v1 = *result.channels[1].voltages.last().unwrap();
         assert!(v1 < 0.0, "ch1 (-1024) should be negative, got {:.4}V", v1);
     }
 
@@ -255,24 +273,30 @@ mod tests {
     fn calibrate_all_eight_channels() {
         let cal = load_reference_cal();
 
-        // All 8 channels with constant 0
         let output = DisaggregatorOutput {
             digital: vec![],
             analog: vec![vec![0i16; 500]; 8],
         };
 
         let indices: Vec<u8> = (0..8).collect();
-        let result = apply_calibration(&output, &cal, &indices, 12_500_000)
-            .expect("calibration should succeed");
+        let result = apply_calibration(
+            &output,
+            &cal,
+            &indices,
+            12_500_000,
+            PRO_ADC_MIN,
+            PRO_ADC_MAX,
+        )
+        .expect("calibration should succeed");
 
         assert_eq!(result.channels.len(), 8);
-        for (i, voltages) in result.channels.iter().enumerate() {
-            assert_eq!(voltages.len(), 500);
-            let last = voltages.last().unwrap();
+        for ch in &result.channels {
+            assert_eq!(ch.voltages.len(), 500);
+            let last = ch.voltages.last().unwrap();
             assert!(
                 last.is_finite(),
                 "ch{} should produce finite voltage, got {}",
-                i,
+                ch.index,
                 last
             );
         }
@@ -281,7 +305,6 @@ mod tests {
     #[test]
     fn calibrate_exact_rate_match() {
         let cal = load_reference_cal();
-        // 12.5 MHz is an exact match
         let rate = find_closest_cal_rate(&cal, 0, 12_500_000);
         assert_eq!(rate, Some(12_500_000));
     }
@@ -289,7 +312,6 @@ mod tests {
     #[test]
     fn calibrate_closest_rate_fallback() {
         let cal = load_reference_cal();
-        // 10 MHz is not an exact match, should fall back to 12.5 MHz (closest)
         let rate = find_closest_cal_rate(&cal, 0, 10_000_000);
         assert_eq!(rate, Some(12_500_000));
     }
@@ -297,42 +319,62 @@ mod tests {
     #[test]
     fn calibrate_closest_rate_low() {
         let cal = load_reference_cal();
-        // 500 kHz is below all rates, should pick 781250 (closest)
         let rate = find_closest_cal_rate(&cal, 0, 500_000);
         assert_eq!(rate, Some(781_250));
     }
 
     #[test]
-    fn calibrate_missing_channel_returns_none() {
+    fn calibrate_missing_channel_returns_error() {
         let cal = load_reference_cal();
-        // Channel 99 doesn't exist
         let output = DisaggregatorOutput {
             digital: vec![],
             analog: vec![vec![0i16; 10]],
         };
-        let result = apply_calibration(&output, &cal, &[99], 12_500_000);
-        assert!(result.is_none());
+        let result = apply_calibration(&output, &cal, &[99], 12_500_000, PRO_ADC_MIN, PRO_ADC_MAX);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn calibrate_mismatched_indices_length() {
+        let cal = load_reference_cal();
+        let output = DisaggregatorOutput {
+            digital: vec![],
+            analog: vec![vec![0i16; 10], vec![0i16; 10]],
+        };
+        // 1 index for 2 channels = error
+        let result = apply_calibration(&output, &cal, &[0], 12_500_000, PRO_ADC_MIN, PRO_ADC_MAX);
+        assert!(result.is_err());
     }
 
     #[test]
     fn calibrate_voltage_range_reasonable() {
         let cal = load_reference_cal();
 
-        // Full-scale positive ADC code through calibration
         let output = DisaggregatorOutput {
             digital: vec![],
             analog: vec![vec![2047i16; 1000]],
         };
 
-        let result =
-            apply_calibration(&output, &cal, &[0], 12_500_000).expect("calibration should succeed");
+        let result = apply_calibration(&output, &cal, &[0], 12_500_000, PRO_ADC_MIN, PRO_ADC_MAX)
+            .expect("calibration should succeed");
 
-        let last = *result.channels[0].last().unwrap();
-        // Should be near +10V (the max voltage for channel 0 is ~10.245V)
+        let last = *result.channels[0].voltages.last().unwrap();
         assert!(
             last > 8.0 && last < 12.0,
             "full-scale positive should be near +10V, got {:.4}V",
             last
         );
+    }
+
+    #[test]
+    fn calibrated_channel_stats() {
+        let ch = CalibratedChannel {
+            index: 0,
+            voltages: vec![1.0, 2.0, 3.0, -1.0],
+        };
+        let (min, max, mean) = ch.stats().unwrap();
+        assert!((min - (-1.0)).abs() < 1e-10);
+        assert!((max - 3.0).abs() < 1e-10);
+        assert!((mean - 1.25).abs() < 1e-10);
     }
 }

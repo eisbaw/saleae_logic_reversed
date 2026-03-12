@@ -1009,28 +1009,38 @@ pub fn full_init(firmware_path: &str, bitstream_path: &str, auto_bitstream: bool
 
     // Apply analog calibration if a .cal file is available.
     if !output.analog.is_empty() {
+        // Try to load calibration from the workspace-local .cal file.
+        // TODO: derive path from device EEPROM serial or accept as CLI argument.
         let cal_path = std::path::Path::new("re/calibration-764051b51bd4d9f1.cal");
         match std::fs::read(cal_path) {
             Ok(cal_bytes) => match saleae_proto::calibration::parse_calibration(&cal_bytes) {
                 Ok(cal) => {
                     let analog_indices: Vec<u8> = capture_config.analog_channels.clone();
-                    let calibrated = saleae_driver::calibrate::apply_calibration(
+                    match saleae_driver::calibrate::apply_calibration(
                         &output,
                         &cal,
                         &analog_indices,
                         capture_config.sample_rate,
-                    );
-                    match calibrated {
-                        Some(cal_output) => {
+                        -2048, // Logic Pro 8: 12-bit signed ADC
+                        2047,
+                    ) {
+                        Ok(cal_output) => {
                             println!();
                             println!("Calibrated analog voltages:");
-                            cal_output.print_summary();
+                            for ch in &cal_output.channels {
+                                if let Some((min, max, mean)) = ch.stats() {
+                                    println!(
+                                        "  CH{}: {} samples, min={min:.4}V max={max:.4}V mean={mean:.4}V",
+                                        ch.index, ch.voltages.len(),
+                                    );
+                                } else {
+                                    println!("  CH{}: no samples", ch.index);
+                                }
+                            }
                         }
-                        None => {
+                        Err(e) => {
                             println!();
-                            println!(
-                                    "Calibration skipped: missing calibration data for one or more channels"
-                                );
+                            println!("Calibration skipped: {e}");
                         }
                     }
                 }
