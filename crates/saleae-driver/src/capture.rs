@@ -1263,22 +1263,28 @@ pub fn start_digital_capture(
 pub struct CaptureResult {
     /// Raw EP2 bytes collected during the capture.
     pub raw_data: Vec<u8>,
-    /// Number of raw bytes read from EP2.
-    pub bytes_read: usize,
     /// Number of individual EP2 bulk transfer reads completed.
     pub read_count: u64,
     /// Wall-clock duration of the EP2 read loop.
     pub elapsed: std::time::Duration,
-    /// First N bytes of EP2 data for diagnostic display (up to 256 bytes).
-    pub first_bytes: Vec<u8>,
 }
 
 impl CaptureResult {
+    /// Number of raw bytes read from EP2.
+    pub fn bytes_read(&self) -> usize {
+        self.raw_data.len()
+    }
+
+    /// First N bytes of EP2 data for diagnostic display.
+    pub fn first_bytes(&self, n: usize) -> &[u8] {
+        &self.raw_data[..self.raw_data.len().min(n)]
+    }
+
     /// Throughput in megabits per second.
     pub fn throughput_mbps(&self) -> f64 {
         let secs = self.elapsed.as_secs_f64();
         if secs > 0.0 {
-            (self.bytes_read as f64 * 8.0) / secs / 1_000_000.0
+            (self.raw_data.len() as f64 * 8.0) / secs / 1_000_000.0
         } else {
             0.0
         }
@@ -1288,7 +1294,7 @@ impl CaptureResult {
     pub fn throughput_kbps(&self) -> f64 {
         let secs = self.elapsed.as_secs_f64();
         if secs > 0.0 {
-            self.bytes_read as f64 / secs / 1024.0
+            self.raw_data.len() as f64 / secs / 1024.0
         } else {
             0.0
         }
@@ -1346,7 +1352,6 @@ pub fn run_capture(
 
     let mut raw_data = Vec::new();
     let mut read_count: u64 = 0;
-    let mut first_bytes: Vec<u8> = Vec::new();
     let mut buf = vec![0u8; buf_size];
     let start = std::time::Instant::now();
 
@@ -1355,9 +1360,6 @@ pub fn run_capture(
             Ok(n) if n > 0 => {
                 raw_data.extend_from_slice(&buf[..n]);
                 read_count += 1;
-                if first_bytes.is_empty() {
-                    first_bytes = buf[..n.min(256)].to_vec();
-                }
             }
             Ok(_) => {
                 debug!("EP2: zero-length read");
@@ -1370,33 +1372,32 @@ pub fn run_capture(
     }
 
     let elapsed = start.elapsed();
-    let bytes_read = raw_data.len();
 
-    // Step 5: Stop capture.
+    // Step 5: Stop capture. Warn on failure but don't lose collected data.
     info!(
-        bytes_read,
+        bytes_read = raw_data.len(),
         read_count,
         elapsed_ms = elapsed.as_millis(),
         "Stopping capture"
     );
-    ep1.write_registers(&[(0x00, 0x00)])?;
-    ep1.stop_stream()?;
+    if let Err(e) = ep1.write_registers(&[(0x00, 0x00)]) {
+        warn!("Failed to clear trigger register: {e}");
+    }
+    if let Err(e) = ep1.stop_stream() {
+        warn!("Failed to send StopStream: {e}");
+    }
 
+    let result = CaptureResult {
+        raw_data,
+        read_count,
+        elapsed,
+    };
     info!(
-        throughput_mbps = format_args!(
-            "{:.1}",
-            bytes_read as f64 * 8.0 / elapsed.as_secs_f64() / 1_000_000.0
-        ),
+        throughput_mbps = format_args!("{:.1}", result.throughput_mbps()),
         "Capture complete"
     );
 
-    Ok(CaptureResult {
-        raw_data,
-        bytes_read,
-        read_count,
-        elapsed,
-        first_bytes,
-    })
+    Ok(result)
 }
 
 // ---------------------------------------------------------------------------

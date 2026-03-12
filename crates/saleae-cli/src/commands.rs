@@ -897,7 +897,7 @@ pub fn full_init(firmware_path: &str, bitstream_path: &str, auto_bitstream: bool
     .map_err(|e| anyhow::anyhow!("capture failed: {e}"))?;
 
     let raw_data = &result.raw_data;
-    let total_bytes = result.bytes_read;
+    let total_bytes = result.bytes_read();
     println!(
         "Capture stopped. Read {} bytes ({:.1} KB/s)",
         total_bytes,
@@ -1221,15 +1221,16 @@ pub fn capture_digital(
     println!("Capture complete:");
     println!("  Duration:    {:.2}s", result.elapsed.as_secs_f64());
     println!("  Total reads: {}", result.read_count);
-    println!("  Total bytes: {}", result.bytes_read);
+    println!("  Total bytes: {}", result.bytes_read());
     if result.elapsed.as_secs_f64() > 0.0 {
         println!("  Throughput:  {:.1} Mbps", result.throughput_mbps());
     }
 
-    if !result.first_bytes.is_empty() {
+    let first = result.first_bytes(256);
+    if !first.is_empty() {
         println!();
-        println!("First {} bytes of EP2 data:", result.first_bytes.len());
-        print_hex_dump(&result.first_bytes);
+        println!("First {} bytes of EP2 data:", first.len());
+        print_hex_dump(first);
     }
 
     Ok(())
@@ -1469,14 +1470,14 @@ pub fn capture_quick(
             .with_context(|| format!("failed to create output file: {p}"))?;
         f.write_all(&result.raw_data)
             .with_context(|| format!("failed to write output file: {p}"))?;
-        println!("  Raw data written to: {p} ({} bytes)", result.bytes_read);
+        println!("  Raw data written to: {p} ({} bytes)", result.bytes_read());
     }
 
     // Summary.
     println!("Capture complete:");
     println!("  Duration:    {:.2}s", result.elapsed.as_secs_f64());
     println!("  Total reads: {}", result.read_count);
-    println!("  Total bytes: {}", result.bytes_read);
+    println!("  Total bytes: {}", result.bytes_read());
     if result.elapsed.as_secs_f64() > 0.0 {
         println!(
             "  Throughput:  {:.1} Mbps ({:.0} KB/s)",
@@ -1485,10 +1486,11 @@ pub fn capture_quick(
         );
     }
 
-    if !result.first_bytes.is_empty() {
+    let first = result.first_bytes(256);
+    if !first.is_empty() {
         println!();
-        println!("First {} bytes of EP2 data:", result.first_bytes.len());
-        print_hex_dump(&result.first_bytes);
+        println!("First {} bytes of EP2 data:", first.len());
+        print_hex_dump(first);
     }
 
     Ok(())
