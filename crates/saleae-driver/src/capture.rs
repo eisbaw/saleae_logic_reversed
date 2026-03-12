@@ -1435,6 +1435,160 @@ pub fn run_capture(
     Ok(result)
 }
 
+/// Run the capture pipeline using queued bulk transfers for sustained throughput.
+///
+/// This is the streaming counterpart to [`run_capture`]. Instead of single-buffered
+/// synchronous EP2 reads (one 16 KiB transfer at a time), it uses a
+/// [`BulkStreamReader`](saleae_usb::BulkStreamReader) with multiple outstanding
+/// transfers to keep the USB pipe saturated and prevent FPGA FIFO overflow.
+///
+/// The transfer size and queue depth are computed from the capture parameters
+/// using [`TransferConfig::from_capture`](crate::transfer_queue::TransferConfig::from_capture),
+/// which implements the same formula as the original Saleae binary:
+/// `bandwidth / 240` rounded to block alignment, with 128 queued transfers.
+///
+/// # Arguments
+///
+/// - `ep1`: Initialized EP1 command channel (firmware loaded, FPGA programmed).
+/// - `config`: Capture configuration (sample rate, channels, etc.).
+/// - `duration`: How long to read EP2 data.
+/// - `stream_reader`: A bulk stream reader implementation (real or mock).
+///
+/// # Errors
+///
+/// Returns an error if register configuration, start command, stop command,
+/// or stream start fails. Individual transfer errors during streaming cause
+/// an early stop but do not return an error (the partial data is returned).
+pub fn run_capture_streaming(
+    ep1: &mut Ep1CommandChannel,
+    config: &CaptureConfig,
+    duration: std::time::Duration,
+    mut stream_reader: Box<dyn saleae_usb::BulkStreamReader>,
+) -> DriverResult<CaptureResult> {
+    // Step 1: Configure FPGA registers + readback verify.
+    configure_capture(ep1, config)?;
+
+    // Step 2: Compute transfer sizing from capture bandwidth.
+    let transfer_config = crate::transfer_queue::TransferConfig::from_capture(
+        config.sample_rate,
+        config.digital_channels.len() as u8,
+        config.analog_channels.len() as u8,
+        2, // 12-bit ADC packed as int16
+        config.usb_speed,
+    );
+
+    info!(
+        transfer_size = transfer_config.transfer_size,
+        queue_depth = transfer_config.queue_depth,
+        total_buffer_mb = transfer_config.total_buffer_bytes() / (1024 * 1024),
+        "Streaming capture: computed transfer config"
+    );
+
+    // Step 3: Start the stream reader (pre-submit transfers).
+    stream_reader
+        .start(
+            EP2_CAPTURE_IN,
+            transfer_config.transfer_size,
+            transfer_config.queue_depth,
+        )
+        .map_err(DriverError::Usb)?;
+
+    // Step 4: Start sampling.
+    info!("Sending StartSampling (0x01)");
+    ep1.start_sampling()?;
+
+    // Step 5: Trigger capture (r0x00=0x01).
+    debug!("Writing r0x00=0x01 (trigger capture)");
+    ep1.write_registers(&[(0x00, 0x01)])?;
+
+    // Step 6: EP2 read loop using queued transfers.
+    let estimated_capacity = (transfer_config.transfer_size as u128
+        * duration.as_millis()
+        / 10)
+        .min(256 * 1024 * 1024) as usize;
+    let mut raw_data = Vec::with_capacity(estimated_capacity);
+    let mut read_count: u64 = 0;
+    let mut completed_normally = true;
+    let start = std::time::Instant::now();
+    let transfer_timeout = std::time::Duration::from_secs(2);
+
+    info!(
+        duration_ms = duration.as_millis(),
+        "Reading EP2 capture data (streaming)"
+    );
+
+    while start.elapsed() < duration {
+        match stream_reader.next_completion(transfer_timeout) {
+            Ok(buf) => {
+                let len = buf.len();
+                raw_data.extend_from_slice(&buf);
+                read_count += 1;
+
+                // Recycle the buffer back to the queue.
+                if let Err(e) = stream_reader.recycle(buf) {
+                    warn!("Failed to recycle transfer buffer: {e}");
+                    completed_normally = false;
+                    break;
+                }
+
+                if read_count % 1000 == 0 {
+                    debug!(
+                        read_count,
+                        total_bytes = raw_data.len(),
+                        last_transfer_bytes = len,
+                        pending = stream_reader.pending(),
+                        "Streaming progress"
+                    );
+                }
+            }
+            Err(e) => {
+                // Timeout is expected at the end of capture when data stops flowing.
+                if matches!(e, saleae_usb::UsbError::Timeout { .. }) && start.elapsed() >= duration
+                {
+                    break;
+                }
+                warn!("EP2 stream error (stopping early): {e}");
+                completed_normally = false;
+                break;
+            }
+        }
+    }
+
+    let elapsed = start.elapsed();
+
+    // Step 7: Stop the stream reader (cancel pending transfers).
+    if let Err(e) = stream_reader.stop() {
+        warn!("Failed to stop stream reader: {e}");
+    }
+
+    // Step 8: Stop capture. Warn on failure but don't lose collected data.
+    info!(
+        bytes_read = raw_data.len(),
+        read_count,
+        elapsed_ms = elapsed.as_millis(),
+        "Stopping capture"
+    );
+    if let Err(e) = ep1.write_registers(&[(0x00, 0x00)]) {
+        warn!("Failed to clear trigger register: {e}");
+    }
+    if let Err(e) = ep1.stop_stream() {
+        warn!("Failed to send StopStream: {e}");
+    }
+
+    let result = CaptureResult {
+        raw_data,
+        read_count,
+        elapsed,
+        completed_normally,
+    };
+    info!(
+        throughput_mbps = format_args!("{:.1}", result.throughput_mbps()),
+        "Streaming capture complete"
+    );
+
+    Ok(result)
+}
+
 // ---------------------------------------------------------------------------
 // Streaming capture (queued bulk transfers)
 // ---------------------------------------------------------------------------
@@ -2844,5 +2998,116 @@ mod tests {
             err.to_string().contains("stall"),
             "expected stall error, got: {err}"
         );
+    }
+
+    // -------------------------------------------------------------------
+    // run_capture_streaming tests
+    // -------------------------------------------------------------------
+
+    /// Queue mock responses for the full run_capture_streaming sequence:
+    /// configure_capture + start_sampling + trigger write + stop write + stop_stream.
+    fn queue_full_capture_sequence(mock: &MockTransport, config: &CaptureConfig) {
+        // 1. configure_capture: WriteRegisters ACK + ReadRegisters readback
+        queue_configure_acks(mock, config);
+
+        // 2. start_sampling: send_command (OUT) + recv_response (IN)
+        mock.push_bulk_in_response(ep::BULK_IN, vec![0x07, 0x00]);
+
+        // 3. write_registers(&[(0x00, 0x01)]) trigger: OUT + IN ACK
+        mock.push_bulk_in_response(ep::BULK_IN, vec![0x00]);
+
+        // 4. write_registers(&[(0x00, 0x00)]) stop trigger: OUT + IN ACK
+        mock.push_bulk_in_response(ep::BULK_IN, vec![0x00]);
+
+        // 5. stop_stream: OUT + IN response
+        mock.push_bulk_in_response(ep::BULK_IN, vec![0x07, 0x00]);
+    }
+
+    #[test]
+    fn run_capture_streaming_basic() {
+        use saleae_usb::mock_stream::{MockCompletion, MockStreamReader};
+
+        let config = CaptureConfig::default();
+        let mock = std::sync::Arc::new(MockTransport::new());
+        let mut channel = mock_channel(&mock);
+
+        queue_full_capture_sequence(&mock, &config);
+
+        // Prepare a mock stream reader with 3 data chunks.
+        let mut reader = MockStreamReader::new();
+        for i in 0..3u8 {
+            reader.push_completion(MockCompletion::Data(vec![i; 512]));
+        }
+
+        let result = run_capture_streaming(
+            &mut channel,
+            &config,
+            std::time::Duration::from_millis(50),
+            Box::new(reader),
+        )
+        .unwrap();
+
+        // Should have read 3 chunks of 512 bytes.
+        assert_eq!(result.bytes_read(), 3 * 512);
+        assert_eq!(result.read_count, 3);
+        // After timeout on 4th read (no more data), loop should exit.
+        // completed_normally may be false due to timeout, which is acceptable.
+    }
+
+    #[test]
+    fn run_capture_streaming_empty() {
+        use saleae_usb::mock_stream::MockStreamReader;
+
+        let config = CaptureConfig::default();
+        let mock = std::sync::Arc::new(MockTransport::new());
+        let mut channel = mock_channel(&mock);
+
+        queue_full_capture_sequence(&mock, &config);
+
+        // No data in stream reader -- will timeout immediately.
+        let reader = MockStreamReader::new();
+
+        let result = run_capture_streaming(
+            &mut channel,
+            &config,
+            std::time::Duration::from_millis(10),
+            Box::new(reader),
+        )
+        .unwrap();
+
+        assert_eq!(result.bytes_read(), 0);
+        assert_eq!(result.read_count, 0);
+    }
+
+    #[test]
+    fn run_capture_streaming_error_stops_early() {
+        use saleae_usb::mock_stream::{MockCompletion, MockStreamReader};
+        use saleae_usb::UsbError;
+
+        let config = CaptureConfig::default();
+        let mock = std::sync::Arc::new(MockTransport::new());
+        let mut channel = mock_channel(&mock);
+
+        queue_full_capture_sequence(&mock, &config);
+
+        // Data then error.
+        let mut reader = MockStreamReader::new();
+        reader.push_completion(MockCompletion::Data(vec![0xAA; 256]));
+        reader.push_completion(MockCompletion::Error(UsbError::BulkTransfer {
+            endpoint: 0x82,
+            context: "device stalled".into(),
+        }));
+
+        let result = run_capture_streaming(
+            &mut channel,
+            &config,
+            std::time::Duration::from_secs(5), // long duration, but error stops early
+            Box::new(reader),
+        )
+        .unwrap();
+
+        assert_eq!(result.bytes_read(), 256);
+        assert_eq!(result.read_count, 1);
+        assert!(!result.completed_normally);
     }
 }
