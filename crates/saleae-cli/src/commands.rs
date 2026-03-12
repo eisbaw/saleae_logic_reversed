@@ -1109,31 +1109,8 @@ pub fn capture_digital(
     println!("  Bitstream:         {bitstream_path}");
     println!();
 
-    // Export configuration.
+    // Parse export format early so we fail fast on bad --format.
     let export_format = parse_export_format(format)?;
-    if let Some(output_dir) = output {
-        let export_config = saleae_proto::ExportConfig {
-            output_dir: std::path::PathBuf::from(output_dir),
-            format: export_format,
-            sample_rate,
-            channels: channel_list.clone(),
-        };
-        println!("Export configuration:");
-        println!("  Output dir: {}", export_config.output_dir.display());
-        println!("  Format:     {:?}", export_config.format);
-        println!();
-
-        let exporter = saleae_proto::DigitalExporter::new(&export_config)
-            .context("failed to create digital exporter")?;
-        exporter
-            .finish()
-            .context("failed to finalize digital exporter")?;
-        println!(
-            "Export directory created: {}",
-            export_config.output_dir.display()
-        );
-        println!();
-    }
 
     if duration <= 0.0 {
         bail!("Duration must be > 0 for hardware capture (Ctrl-C not yet supported).");
@@ -1242,6 +1219,75 @@ pub fn capture_digital(
         println!();
         println!("First {} bytes of EP2 data:", first.len());
         print_hex_dump(first);
+    }
+
+    // --- Export captured data ---
+    if let Some(output_dir) = output {
+        let export_config = saleae_proto::ExportConfig {
+            output_dir: std::path::PathBuf::from(output_dir),
+            format: export_format,
+            sample_rate,
+            channels: channel_list.clone(),
+        };
+        println!();
+        println!("Export configuration:");
+        println!("  Output dir: {}", export_config.output_dir.display());
+        println!("  Format:     {:?}", export_config.format);
+
+        // Disaggregate raw EP2 data into per-channel packed digital samples.
+        let disaggregator = saleae_proto::Disaggregator::new(
+            profile,
+            &channel_list,
+            &[], // no analog channels
+            sample_rate,
+            0, // no analog rate
+        )
+        .context("failed to create disaggregator")?;
+
+        let cycle_size = disaggregator.cycle_bytes();
+        let usable_len = if cycle_size > 0 {
+            result.raw_data.len() - (result.raw_data.len() % cycle_size)
+        } else {
+            0
+        };
+
+        if usable_len > 0 {
+            let disagg = disaggregator
+                .process_chunk(&result.raw_data[..usable_len])
+                .context("failed to disaggregate capture data")?;
+
+            match saleae_proto::DigitalExporter::new(&export_config)
+                .context("failed to create digital exporter")?
+            {
+                saleae_proto::DigitalExporter::Csv(mut w) => {
+                    w.write_packed_samples(&disagg.digital_samples)
+                        .context("failed to write digital CSV samples")?;
+                    w.finish()
+                        .context("failed to finalize digital CSV exporter")?;
+                }
+                saleae_proto::DigitalExporter::Binary(mut w) => {
+                    w.write_samples(&disagg.digital_samples)
+                        .context("failed to write digital binary samples")?;
+                    w.finish()
+                        .context("failed to finalize digital binary exporter")?;
+                }
+            }
+
+            let trimmed = result.raw_data.len() - usable_len;
+            println!(
+                "  Exported {} bytes of sample data ({} channels, {} bytes trimmed for alignment)",
+                usable_len,
+                channel_list.len(),
+                trimmed,
+            );
+        } else {
+            println!("  WARNING: no usable capture data to export (0 bytes).");
+        }
+
+        println!(
+            "  Output written to: {}",
+            export_config.output_dir.display()
+        );
     }
 
     Ok(())
