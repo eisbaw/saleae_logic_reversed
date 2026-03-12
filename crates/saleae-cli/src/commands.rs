@@ -874,22 +874,19 @@ pub fn full_init(firmware_path: &str, bitstream_path: &str, auto_bitstream: bool
     );
     println!();
 
-    // Write capture parameters (pcap Phase 7 values for default capture config:
-    // all channels, 12.5 MSa/s mixed mode).
-    let capture_regs: [(u8, u8); 12] = [
-        (0x00, 0x00),
-        (0x08, 0xff),
-        (0x06, 0xff),
-        (0x0a, 0x20),
-        (0x0b, 0x10),
-        (0x0c, 0x00),
-        (0x1a, 0x00),
-        (0x0d, 0x18),
-        (0x0e, 0x08),
-        (0x12, 0x02),
-        (0x13, 0x00),
-        (0x14, 0x10),
-    ];
+    // Compute capture registers from config (12.5 MSa/s mixed, all channels).
+    let capture_config = saleae_driver::capture::CaptureConfig {
+        sample_rate: 12_500_000,
+        digital_channels: (0..8).collect(),
+        analog_channels: (0..8).collect(),
+        total_device_channels: 8,
+        board_revision: 1,
+        is_pro: true,
+        base_digital_rate: 500_000_000,
+        base_analog_rate: 100_000_000,
+        ..saleae_driver::capture::CaptureConfig::default()
+    };
+    let capture_regs = capture_config.capture_registers().to_register_pairs();
     channel.write_registers(&capture_regs)?;
     let addrs: Vec<u8> = capture_regs.iter().map(|&(a, _)| a).collect();
     let readback = channel.read_registers(&addrs)?;
@@ -932,35 +929,13 @@ pub fn full_init(firmware_path: &str, bitstream_path: &str, auto_bitstream: bool
         total_bytes as f64 / start.elapsed().as_secs_f64() / 1024.0
     );
 
-    // Decode captured data through the disaggregator.
-    // The pcap capture config uses 12.5 MSa/s mixed mode with all 8 digital
-    // + 8 analog channels enabled. For Logic Pro 8 with 32-bit GPIF and
-    // 12-bit AD9637 ADC, the settings are:
-    //   digital_ratio = 1 (same rate for digital and analog)
-    //   digital_packet_size = 4 (32-bit GPIF)
-    //   analog_group_size = 8 (32-bit GPIF + 12-bit ADC)
-    //   analog_bytes_per_sample = 3 (12-bit ADC, 1.5 bytes per sample)
-    //   low_speed_divider = 1 (no decimation at this rate)
-    //
-    // With 8 digital + 8 analog channels:
-    //   digital_group_bytes = 1 * 4 * 8 = 32 bytes
-    //   analog_channel_bytes = 3 * 8 / 2 = 12 bytes
-    //   analog_group_bytes = 12 * 8 = 96 bytes
-    //   full_cycle_size = 32 + 96 = 128 bytes
+    // Compute matching disaggregator settings from the same capture config.
     println!();
     println!("Decoding captured data...");
 
-    use saleae_driver::disaggregator::{Disaggregator, DisaggregatorSettings};
+    use saleae_driver::disaggregator::Disaggregator;
 
-    let settings = DisaggregatorSettings {
-        digital_ratio: 1,
-        digital_packet_size: 4,
-        analog_group_size: 8,
-        analog_bytes_per_sample: 3,
-        digital_channels: vec![true; 8],
-        analog_channels: vec![true; 8],
-        low_speed_divider: 1,
-    };
+    let settings = capture_config.disaggregator_settings();
 
     println!(
         "  Cycle size: {} bytes (digital={}, analog={})",
@@ -1194,23 +1169,9 @@ pub fn capture_digital(
     );
     println!();
 
-    // --- Step 6: Capture parameters (pcap Phase 7 values) ---
-    // Values from pcap for default config: all channels, 12.5 MSa/s mixed mode.
+    // --- Step 6: Capture parameters (computed from config) ---
     println!("Writing capture parameters...");
-    let capture_regs: [(u8, u8); 12] = [
-        (0x00, 0x00), // capture off during config
-        (0x08, 0xff), // digital channel mask
-        (0x06, 0xff), // analog channel mask
-        (0x0a, 0x20), // sample config
-        (0x0b, 0x10), // sample config
-        (0x0c, 0x00), // sample config
-        (0x1a, 0x00), // config
-        (0x0d, 0x18), // timing config
-        (0x0e, 0x08), // timing config
-        (0x12, 0x02), // capture config
-        (0x13, 0x00), // capture config
-        (0x14, 0x10), // capture config
-    ];
+    let capture_regs = config.capture_registers().to_register_pairs();
     channel.write_registers(&capture_regs)?;
     for &(addr, val) in &capture_regs {
         println!("  r{addr:#04x} = {val:#04x}");
@@ -1521,24 +1482,23 @@ pub fn capture_quick(
         println!();
     }
 
-    // Step 5: Write capture registers.
-    //
-    // Register values from pcap Phase 7 (Logic Pro 8, mixed capture).
-    // For digital-only, we set r0x06=0x00 (no analog channels).
-    let capture_regs: [(u8, u8); 12] = [
-        (0x00, 0x00),         // capture off during config
-        (0x08, digital_mask), // digital channel enable
-        (0x06, analog_mask),  // analog channel enable
-        (0x0a, 0x04),         // analog decimation (pcap value)
-        (0x0b, 0x00),         // digital divider lo (pcap: 0x00 = max rate)
-        (0x0c, 0x00),         // digital divider hi
-        (0x1a, 0x02),         // ADC config
-        (0x0d, 0x30),         // mix ratio A
-        (0x0e, 0x28),         // mix ratio B
-        (0x12, 0x01),         // capture config
-        (0x13, 0x00),         // capture control
-        (0x14, 0x02),         // decimation factor
-    ];
+    // Step 5: Write capture registers (computed from mask config).
+    let digital_channels: Vec<u8> = (0..8).filter(|&ch| digital_mask & (1 << ch) != 0).collect();
+    let analog_channels: Vec<u8> = (0..8).filter(|&ch| analog_mask & (1 << ch) != 0).collect();
+
+    let quick_config = saleae_driver::capture::CaptureConfig {
+        sample_rate: 12_500_000,
+        digital_channels,
+        analog_channels,
+        total_device_channels: 8,
+        board_revision: 1,
+        is_pro: true,
+        base_digital_rate: 500_000_000,
+        base_analog_rate: 100_000_000,
+        ..saleae_driver::capture::CaptureConfig::default()
+    };
+
+    let capture_regs = quick_config.capture_registers().to_register_pairs();
 
     println!("Writing capture registers...");
     channel.write_registers(&capture_regs)?;
