@@ -891,17 +891,8 @@ pub fn full_init(
     println!();
 
     // Compute capture registers from config (12.5 MSa/s mixed, all channels).
-    let capture_config = saleae_driver::capture::CaptureConfig {
-        sample_rate: 12_500_000,
-        digital_channels: (0..8).collect(),
-        analog_channels: (0..8).collect(),
-        total_device_channels: 8,
-        board_revision: 1,
-        is_pro: true,
-        base_digital_rate: 500_000_000,
-        base_analog_rate: 100_000_000,
-        ..saleae_driver::capture::CaptureConfig::default()
-    };
+    let capture_config =
+        saleae_driver::capture::CaptureConfig::pro8(12_500_000, (0..8).collect(), (0..8).collect());
 
     println!("Starting capture (2 seconds)...");
     let result = saleae_driver::capture::run_capture(
@@ -1098,20 +1089,8 @@ pub fn capture_digital(
     };
 
     let config = saleae_driver::capture::CaptureConfig {
-        sample_rate,
-        digital_channels: channel_list.clone(),
-        analog_channels: vec![],
         duration_samples,
-        voltage_threshold: 1.65,
-        stats_enabled: true,
-        samples_per_chunk: saleae_driver::capture::DEFAULT_SAMPLES_PER_CHUNK,
-        total_device_channels: 8,
-        board_revision: 1,
-        is_pro: true,
-        base_digital_rate: 500_000_000,
-        base_analog_rate: 100_000_000,
-        usb_speed: saleae_proto::UsbSpeed::Super,
-        fpga_type: saleae_proto::FpgaType::Pro,
+        ..saleae_driver::capture::CaptureConfig::pro8(sample_rate, channel_list.clone(), vec![])
     };
 
     config.validate().context("invalid capture config")?;
@@ -1461,17 +1440,8 @@ pub fn capture_quick(
     let digital_channels: Vec<u8> = (0..8).filter(|&ch| digital_mask & (1 << ch) != 0).collect();
     let analog_channels: Vec<u8> = (0..8).filter(|&ch| analog_mask & (1 << ch) != 0).collect();
 
-    let quick_config = saleae_driver::capture::CaptureConfig {
-        sample_rate: 12_500_000,
-        digital_channels,
-        analog_channels,
-        total_device_channels: 8,
-        board_revision: 1,
-        is_pro: true,
-        base_digital_rate: 500_000_000,
-        base_analog_rate: 100_000_000,
-        ..saleae_driver::capture::CaptureConfig::default()
-    };
+    let quick_config =
+        saleae_driver::capture::CaptureConfig::pro8(12_500_000, digital_channels, analog_channels);
 
     // Step 5-8: Capture pipeline (configure + start + stream + stop).
     println!("Running capture for {duration:.1}s...");

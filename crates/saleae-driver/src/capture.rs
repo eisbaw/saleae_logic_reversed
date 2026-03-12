@@ -131,6 +131,29 @@ impl Default for CaptureConfig {
 }
 
 impl CaptureConfig {
+    /// Create a `CaptureConfig` for Logic Pro 8 with the given capture parameters.
+    ///
+    /// Fills in the Pro 8 device constants:
+    /// - `total_device_channels`: 8
+    /// - `board_revision`: 1 (Xilinx Spartan-6)
+    /// - `is_pro`: true
+    /// - `base_digital_rate`: 500 MHz
+    /// - `base_analog_rate`: 100 MHz
+    /// - `usb_speed`: SuperSpeed
+    /// - `fpga_type`: Pro
+    ///
+    /// Other fields (`duration_samples`, `voltage_threshold`, `stats_enabled`,
+    /// `samples_per_chunk`) use their `Default` values. Override them after
+    /// construction if needed.
+    pub fn pro8(sample_rate: u64, digital_channels: Vec<u8>, analog_channels: Vec<u8>) -> Self {
+        Self {
+            sample_rate,
+            digital_channels,
+            analog_channels,
+            ..Self::default()
+        }
+    }
+
     /// Validate the capture configuration.
     pub fn validate(&self) -> DriverResult<()> {
         if self.sample_rate == 0 {
