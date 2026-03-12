@@ -843,10 +843,15 @@ mod tests {
         }
 
         // Third + Fourth OUT: WriteRegisters (opcode 0x80) writing 0xAA to r0x7F
-        for i in 2..4 {
-            match out_ops[i] {
+        for (i, op) in out_ops[2..4].iter().enumerate() {
+            match op {
                 UsbOperation::BulkOut { data, .. } => {
-                    assert_eq!(data[1], 0x80, "command {i} should be WriteRegisters (0x80)");
+                    assert_eq!(
+                        data[1],
+                        0x80,
+                        "command {} should be WriteRegisters (0x80)",
+                        i + 2
+                    );
                 }
                 _ => unreachable!(),
             }
@@ -1256,7 +1261,7 @@ mod tests {
         //   1 proxy write ACK (0x08=0x01 SPI transfer)
         mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
         //   dcm_cascade (5-step JESD): 5 write ACKs + r0x40=0x00 + r0x4a=0x00
-        queue_one_cascade(&mock, 0x00);
+        queue_one_cascade(mock, 0x00);
 
         // set_ad9637_enabled_true:
         //   3 proxy write ACKs (0x08=0x00, 0x08=0x03, 0x08=0x00)
@@ -1264,7 +1269,7 @@ mod tests {
             mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
         }
         //   reset_main_dcm (5-step JESD cascade):
-        queue_reset_main_dcm(&mock, 0xE0);
+        queue_reset_main_dcm(mock, 0xE0);
         //   3 additional reads in set_ad9637_enabled_true (r0x19, r0x40, r0x4a)
         mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]); // r0x19
         mock.push_bulk_in_response(endpoint::BULK_IN, vec![0xE0]); // r0x40
@@ -1280,7 +1285,7 @@ mod tests {
         }
         //   set_ad9637_enabled_false: 1 proxy ACK + dcm_cascade (5-step JESD)
         mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
-        queue_one_cascade(&mock, 0x00);
+        queue_one_cascade(mock, 0x00);
         //   1 read (r0x40 post-cal)
         mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
         //   1 write (r0x12=0x04)

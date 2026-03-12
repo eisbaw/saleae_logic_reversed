@@ -1043,8 +1043,7 @@ mod tests {
         // That's ceil((4096 - 8) / 256) = 16 chunks.
         // Each write_eeprom does 2 send+recv pairs (header + data).
         let num_write_chunks =
-            (FX3_EEPROM_SIZE - EEPROM_TEST_START_OFFSET as usize + EEPROM_CHUNK_SIZE - 1)
-                / EEPROM_CHUNK_SIZE;
+            (FX3_EEPROM_SIZE - EEPROM_TEST_START_OFFSET as usize).div_ceil(EEPROM_CHUNK_SIZE);
         for _ in 0..num_write_chunks {
             // Header response
             mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
@@ -1084,8 +1083,7 @@ mod tests {
 
         // Write responses (16 chunks, 2 responses each).
         let num_write_chunks =
-            (FX3_EEPROM_SIZE - EEPROM_TEST_START_OFFSET as usize + EEPROM_CHUNK_SIZE - 1)
-                / EEPROM_CHUNK_SIZE;
+            (FX3_EEPROM_SIZE - EEPROM_TEST_START_OFFSET as usize).div_ceil(EEPROM_CHUNK_SIZE);
         for _ in 0..num_write_chunks {
             mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
             mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);

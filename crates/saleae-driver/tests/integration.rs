@@ -674,7 +674,7 @@ fn capture_lifecycle_start_stream_stop() {
 /// configure_capture does:
 /// 1. WriteRegisters (0x80): 1 OUT + 1 IN (1-byte ACK)
 /// 2. ReadRegisters (0x81): 1 OUT + 1 IN (N-byte readback matching written values)
-/// Then start_sampling: 1 OUT + 1 IN (2-byte response)
+///    Then start_sampling: 1 OUT + 1 IN (2-byte response)
 fn queue_capture_start_responses(mock: &MockTransport, config: &CaptureConfig) {
     // WriteRegisters ACK
     mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);

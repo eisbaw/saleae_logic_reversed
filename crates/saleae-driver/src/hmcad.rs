@@ -679,9 +679,10 @@ mod tests {
         assert_eq!(payloads[0][3], 0x00, "cmd 0: value=0x00");
 
         // Commands 1-10: HMCAD SPI writes (3-register batches)
-        for i in 1..11 {
-            assert_eq!(payloads[i][0], 0x80, "cmd {}: opcode", i);
-            assert_eq!(payloads[i][1], 0x03, "cmd {}: count=3 (HMCAD proxy)", i);
+        for (j, payload) in payloads[1..11].iter().enumerate() {
+            let i = j + 1;
+            assert_eq!(payload[0], 0x80, "cmd {}: opcode", i);
+            assert_eq!(payload[1], 0x03, "cmd {}: count=3 (HMCAD proxy)", i);
         }
 
         // Verify specific register addresses in the proxy writes
