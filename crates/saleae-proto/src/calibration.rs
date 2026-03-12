@@ -102,6 +102,11 @@ pub struct CalibrationData {
     pub device_id: u64,
     pub device_type: u8,
     pub calibration_date: String,
+    /// ADC gain value from the .cal file (`mAdcGain`).  Always 0.0 in observed
+    /// calibration files.  NOT used in the software calibration pipeline — the
+    /// binary's `SetAdcFullScaleGain` graph node writes a hardware register to
+    /// the HMCAD1100 ADC (`hittiteAdcGainRegisterValue`), which is a separate
+    /// mechanism from the biquad filter + voltage transform math.
     pub adc_gain: f64,
     pub voltage_ranges: Vec<VoltageRange>,
     pub calibration_sets: Vec<CalibrationSet>,
