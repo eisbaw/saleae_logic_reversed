@@ -163,12 +163,16 @@ enum Command {
     },
 
     /// Start an analog capture (Pro devices only).
+    ///
+    /// Performs the full sequence: firmware upload (auto-recovery),
+    /// FPGA programming, ADC init, capture, disaggregation, calibration,
+    /// and export.
     CaptureAnalog {
         /// Sample rate in Hz.
         #[arg(long, default_value = "1000000")]
         sample_rate: u64,
 
-        /// Duration in seconds (0 = until Ctrl-C).
+        /// Duration in seconds (must be > 0).
         #[arg(long, default_value = "1.0")]
         duration: f64,
 
@@ -187,6 +191,14 @@ enum Command {
         /// Path to calibration .cal file (searches common locations if omitted).
         #[arg(long)]
         cal_file: Option<String>,
+
+        /// Path to FX3 firmware image (overrides global --firmware).
+        #[arg(long)]
+        firmware: Option<String>,
+
+        /// Path to FPGA bitstream file.
+        #[arg(long)]
+        bitstream: Option<String>,
     },
 
     /// Quick capture: minimal sequence to get EP2 data flowing.
@@ -299,14 +311,24 @@ fn main() -> anyhow::Result<()> {
             output,
             format,
             cal_file,
-        } => commands::capture_analog(
-            sample_rate,
-            duration,
-            &channels,
-            output.as_deref(),
-            &format,
-            cal_file.as_deref(),
-        )?,
+            firmware,
+            bitstream,
+        } => {
+            let fw_path = firmware
+                .or(cli.firmware.clone())
+                .unwrap_or_else(|| commands::DEFAULT_FIRMWARE_PATH.to_string());
+            let bs_path = bitstream.unwrap_or_else(|| commands::DEFAULT_BITSTREAM_PATH.to_string());
+            commands::capture_analog(
+                sample_rate,
+                duration,
+                &channels,
+                output.as_deref(),
+                &format,
+                cal_file.as_deref(),
+                &fw_path,
+                &bs_path,
+            )?
+        }
         Command::CaptureQuick {
             duration,
             digital_mask,

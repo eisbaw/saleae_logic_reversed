@@ -1592,12 +1592,14 @@ fn parse_hex_u8(s: &str) -> Result<u8> {
 
 /// Start an analog capture.
 ///
-/// Validates the analog capture configuration, loads calibration data,
-/// creates per-channel AnalogProcessors (VoltageTransform + BiquadFilter),
-/// and prints the capture plan.
+/// Performs the full sequence: firmware upload (auto-recovery), FPGA
+/// programming, ADC init, EP2 capture, disaggregation, calibration
+/// (VoltageTransform + IIR biquad filter), and export.
 ///
-/// Hardware streaming is blocked (device stuck with red LED), so this
-/// performs a dry-run: validates everything, prints diagnostics, and exits.
+/// The capture uses `CaptureConfig` with analog channels enabled and no
+/// digital channels. The raw EP2 stream is disaggregated to extract
+/// per-channel ADC codes, which are then converted to calibrated voltages.
+#[allow(clippy::too_many_arguments)]
 pub fn capture_analog(
     sample_rate: u64,
     duration: f64,
@@ -1605,41 +1607,46 @@ pub fn capture_analog(
     output: Option<&str>,
     format: &str,
     cal_file: Option<&str>,
+    firmware_path: &str,
+    bitstream_path: &str,
 ) -> Result<()> {
     let channel_list = parse_channel_list(channels)?;
 
-    // Build analog capture configuration.
+    // Build capture configuration (analog-only: no digital channels).
     let duration_samples = if duration > 0.0 {
         (sample_rate as f64 * duration) as u64
     } else {
         0
     };
 
-    let config = saleae_driver::capture::AnalogCaptureConfig {
-        sample_rate,
-        analog_channels: channel_list.clone(),
+    let config = saleae_driver::capture::CaptureConfig {
         duration_samples,
-        samples_per_chunk: saleae_driver::capture::DEFAULT_SAMPLES_PER_CHUNK,
-        stats_enabled: true,
+        ..saleae_driver::capture::CaptureConfig::pro8(sample_rate, vec![], channel_list.clone())
     };
 
-    // Validate configuration.
-    config.validate().context("invalid analog capture config")?;
+    config.validate().context("invalid capture config")?;
 
     println!("Analog capture configuration:");
     println!("  Sample rate:       {} Hz", config.sample_rate);
-    println!("  Channels:          {:?}", config.analog_channels);
+    println!("  Analog channels:   {:?}", config.analog_channels);
     println!("  Duration samples:  {}", config.duration_samples);
-    println!("  Stats enabled:     {}", config.stats_enabled);
-    println!("  Samples per chunk: {}", config.samples_per_chunk);
-    println!(
-        "  Sample data bytes: {} bytes/chunk",
-        config.sample_data_bytes_per_chunk()
-    );
+    println!("  Firmware:          {firmware_path}");
+    println!("  Bitstream:         {bitstream_path}");
     println!();
 
-    // Try to load calibration data from local file.
-    // Use explicit --cal-file if given, otherwise search common directories.
+    // Parse export format early so we fail fast on bad --format.
+    let export_format = parse_export_format(format)?;
+
+    if duration <= 0.0 {
+        bail!("Duration must be > 0 for hardware capture (Ctrl-C not yet supported).");
+    }
+
+    // Parse bitstream upfront so we fail fast on bad path.
+    let bitstream = std::fs::read(bitstream_path)
+        .with_context(|| format!("failed to read bitstream: {bitstream_path}"))?;
+
+    // --- Load calibration data ---
+    // Try explicit --cal-file first, then search common directories.
     let cal_result = match resolve_cal_file(cal_file, None) {
         Ok(path) => {
             println!("Loading calibration from {}", path.display());
@@ -1647,13 +1654,12 @@ pub fn capture_analog(
                 .with_context(|| format!("failed to load {}", path.display()))
         }
         Err(_) => {
-            // Fall back to searching re/ directory for any .cal file.
             let cal_dir = std::path::PathBuf::from("re");
             find_and_load_calibration(&cal_dir)
         }
     };
 
-    match cal_result {
+    let cal_data_opt = match cal_result {
         Ok(cal) => {
             println!("Calibration data loaded:");
             println!("  Device ID:        {:#018x}", cal.device_id);
@@ -1664,9 +1670,9 @@ pub fn capture_analog(
                 "  Cal sets:         {} (channel, rate) combos",
                 cal.calibration_sets.len()
             );
-            println!();
 
             // Create per-channel AnalogProcessors.
+            println!();
             println!("Per-channel processor setup:");
             for &ch in &channel_list {
                 match create_channel_processor(&cal, ch, sample_rate) {
@@ -1693,34 +1699,117 @@ pub fn capture_analog(
                 }
             }
             println!();
+            Some(cal)
         }
         Err(e) => {
-            println!("No calibration data available: {e}");
-            println!("  Without calibration, analog output would be uncalibrated.");
-            println!("  Place a .cal file in re/ or download with device ID.");
+            println!("WARNING: No calibration data available: {e}");
+            println!("  Analog output will be uncalibrated (raw ADC codes -> naive voltage).");
+            println!("  Place a .cal file in re/ or use --cal-file.");
             println!();
+            None
         }
-    }
+    };
 
-    // Print AFE configuration (placeholder).
-    println!("AFE configuration (PLACEHOLDER - not validated against hardware):");
-    for &ch in &channel_list {
-        let afe = saleae_driver::capture::AfeChannelConfig::default();
-        println!(
-            "  Channel {ch}: attn1={} attn2={} preamp={} ladder={} gain={} dac_offset={} -> reg={:#010x}",
-            afe.attn1,
-            afe.attn2,
-            afe.preamp,
-            afe.ladder,
-            afe.gain,
-            afe.dac_offset,
-            afe.to_register_value()
-        );
+    // --- Step 1: Firmware + EP1 init (auto-recovery) ---
+    println!("Ensuring device is ready (firmware + EP1)...");
+    let mut channel = ensure_device_ready(firmware_path)?;
+
+    // Re-discover device for profile/speed info.
+    let device =
+        saleae_usb::discovery::find_first_saleae().context("device disappeared after init")?;
+    let profile = device
+        .device_type
+        .profile()
+        .context("no device profile for this device type")?;
+    let usb_speed = device
+        .usb_speed
+        .unwrap_or_else(|| profile.default_forced_usb_speed());
+
+    println!("Device ready: {device}");
+    println!();
+
+    // --- Step 2: FPGA programming ---
+    println!("Programming FPGA ({} bytes)...", bitstream.len());
+    saleae_driver::fpga::program_fpga(&mut channel, &bitstream, profile, usb_speed)
+        .context("FPGA programming failed")?;
+    println!("FPGA programmed and verified.");
+    println!();
+
+    // --- Step 3: AD9637 ADC init ---
+    println!("AD9637 ADC init...");
+    let eeprom_cal = channel
+        .read_version(&[0x33, 0x81, 0x10, 0x00, 0x10, 0x00])
+        .context("failed to read EEPROM calibration")?;
+    println!(
+        "  Calibration: {}",
+        eeprom_cal
+            .iter()
+            .map(|b| format!("{b:02x}"))
+            .collect::<Vec<_>>()
+            .join(" ")
+    );
+
+    let dcm_result = saleae_driver::adc::init_ad9637(&mut channel, &eeprom_cal)
+        .context("AD9637 init failed")?;
+    println!(
+        "  DCM locked: {} (r0x40={:#04x})",
+        dcm_result.locked, dcm_result.status_40
+    );
+    println!();
+
+    // --- Step 4: Re-init EP1 + channel enables ---
+    channel
+        .initialize()
+        .context("EP1 re-initialization failed")?;
+    channel.write_registers(&[(0x0f, 0x00), (0x10, 0x0f), (0x11, 0x00)])?;
+    println!("Channel enables set (r0x0f=0x00, r0x10=0x0f, r0x11=0x00).");
+    println!();
+
+    // --- Step 5: Pre-capture ADC power-on ---
+    println!("Pre-capture ADC power-on...");
+    let capture_dcm = saleae_driver::adc::power_on_for_capture(&mut channel)
+        .context("ADC power-on for capture failed")?;
+    println!(
+        "  DCM locked for capture (r0x40={:#04x})",
+        capture_dcm.status_40
+    );
+    println!();
+
+    // --- Step 6-8: Capture pipeline (configure + start + stream + stop) ---
+    println!("Running analog capture for {duration:.1}s...");
+    let result = saleae_driver::capture::run_capture(
+        &mut channel,
+        &config,
+        Duration::from_secs_f64(duration),
+        16 * 1024,
+    )
+    .context("capture failed")?;
+
+    // --- Step 9: Teardown ---
+    match saleae_driver::adc::power_down(&mut channel) {
+        Ok(()) => println!("  ADC powered down."),
+        Err(e) => println!("  WARNING: ADC power-down failed: {e}"),
     }
     println!();
 
-    // Export configuration.
-    let export_format = parse_export_format(format)?;
+    // --- Summary ---
+    warn_if_partial(&result);
+    println!("Capture complete:");
+    println!("  Duration:    {:.2}s", result.elapsed.as_secs_f64());
+    println!("  Total reads: {}", result.read_count);
+    println!("  Total bytes: {}", result.bytes_read());
+    if result.elapsed.as_secs_f64() > 0.0 {
+        println!("  Throughput:  {:.1} Mbps", result.throughput_mbps());
+    }
+
+    let first = result.first_bytes(256);
+    if !first.is_empty() {
+        println!();
+        println!("First {} bytes of EP2 data:", first.len());
+        print_hex_dump(first);
+    }
+
+    // --- Disaggregate + calibrate + export ---
     if let Some(output_dir) = output {
         let export_config = saleae_proto::ExportConfig {
             output_dir: std::path::PathBuf::from(output_dir),
@@ -1728,47 +1817,116 @@ pub fn capture_analog(
             sample_rate,
             channels: channel_list.clone(),
         };
+        println!();
         println!("Export configuration:");
         println!("  Output dir: {}", export_config.output_dir.display());
         println!("  Format:     {:?}", export_config.format);
-        println!();
 
-        // Validate that the exporter can be created (creates output dir + files).
-        let exporter = saleae_proto::AnalogExporter::new(&export_config)
-            .context("failed to create analog exporter")?;
-        exporter
-            .finish()
-            .context("failed to finalize analog exporter")?;
+        // Disaggregate raw EP2 data into per-channel analog samples.
+        let disaggregator = saleae_proto::Disaggregator::new(
+            profile,
+            &[],              // no digital channels
+            &channel_list,
+            0,                // no digital rate
+            sample_rate,
+        )
+        .context("failed to create disaggregator")?;
+
+        let cycle_size = disaggregator.cycle_bytes();
+        let usable_len = if cycle_size > 0 {
+            result.raw_data.len() - (result.raw_data.len() % cycle_size)
+        } else {
+            0
+        };
+
+        if usable_len > 0 {
+            let disagg = disaggregator
+                .process_chunk(&result.raw_data[..usable_len])
+                .context("failed to disaggregate capture data")?;
+
+            // Apply calibration: convert raw ADC codes to calibrated voltages.
+            let calibrated: Vec<Vec<f64>> = if let Some(ref cal) = cal_data_opt {
+                // Build per-channel processors and apply calibration pipeline.
+                channel_list
+                    .iter()
+                    .enumerate()
+                    .map(|(i, &ch)| {
+                        match create_channel_processor(cal, ch, sample_rate) {
+                            Ok(mut proc) => proc.process(&disagg.analog_samples[i]),
+                            Err(e) => {
+                                println!(
+                                    "  WARNING: no calibration for channel {ch}: {e}. Using naive transform."
+                                );
+                                // Fall back to uncalibrated linear transform.
+                                let vr = cal.find_voltage_range(ch);
+                                let (min_v, max_v) = match vr {
+                                    Some(vr) => (vr.min_voltage, vr.max_voltage),
+                                    None => (-10.0, 10.0),
+                                };
+                                let transform = saleae_proto::VoltageTransform::from_range(
+                                    min_v, max_v, -2048, 2047,
+                                );
+                                disagg.analog_samples[i]
+                                    .iter()
+                                    .map(|&code| transform.apply(code))
+                                    .collect()
+                            }
+                        }
+                    })
+                    .collect()
+            } else {
+                // No calibration at all: use default +/-10V range.
+                let transform =
+                    saleae_proto::VoltageTransform::from_range(-10.0, 10.0, -2048, 2047);
+                disagg
+                    .analog_samples
+                    .iter()
+                    .map(|ch_samples| ch_samples.iter().map(|&code| transform.apply(code)).collect())
+                    .collect()
+            };
+
+            // Write calibrated voltages to export files.
+            match saleae_proto::AnalogExporter::new(&export_config)
+                .context("failed to create analog exporter")?
+            {
+                saleae_proto::AnalogExporter::Csv(mut w) => {
+                    w.write_samples(&calibrated)
+                        .context("failed to write analog CSV samples")?;
+                    w.finish()
+                        .context("failed to finalize analog CSV exporter")?;
+                }
+                saleae_proto::AnalogExporter::Binary(mut w) => {
+                    w.write_samples(&calibrated)
+                        .context("failed to write analog binary samples")?;
+                    w.finish()
+                        .context("failed to finalize analog binary exporter")?;
+                }
+            }
+
+            let num_samples = calibrated.first().map(|c| c.len()).unwrap_or(0);
+            let trimmed = result.raw_data.len() - usable_len;
+            println!(
+                "  Exported {} analog samples per channel ({} channels, {} bytes trimmed for alignment)",
+                num_samples,
+                channel_list.len(),
+                trimmed,
+            );
+        } else {
+            println!("  WARNING: no usable capture data to export (0 bytes).");
+        }
+
         println!(
-            "Export directory created: {}",
+            "  Output written to: {}",
             export_config.output_dir.display()
         );
+    } else if !result.raw_data.is_empty() {
+        // No --output specified, but we have data. Print a summary of what
+        // we could do with it.
         println!();
+        println!("No --output specified. Use --output <dir> to export analog data.");
     }
 
-    bail!(
-        "Hardware capture not yet available.\n\
-         \n\
-         The analog capture pipeline is implemented:\n\
-         - AnalogCaptureConfig with validation\n\
-         - Analog disaggregation (interleaved int16 -> per-channel)\n\
-         - AnalogProcessor (VoltageTransform + IIR biquad calibration filter)\n\
-         - AFE channel config (placeholder register packing)\n\
-         - CSV and binary export writers\n\
-         \n\
-         But hardware is currently blocked. Once the device is recovered,\n\
-         this command will:\n\
-         \n\
-         1. Open the device and initialize the command channel\n\
-         2. Write AFE config to FPGA registers 0x0054-0x0068\n\
-         3. Write capture parameters to FPGA registers\n\
-         4. Send StartSampling (0x01) to begin data flow on EP2 IN\n\
-         5. Read and parse data chunks (header + int16 samples + stats)\n\
-         6. Disaggregate interleaved channels into per-channel int16 streams\n\
-         7. Apply VoltageTransform + IIR biquad filter per channel\n\
-         8. Export data to --output directory (if specified)\n\
-         9. Send StopDataPath (0x86) + StopStream (0x02) to end capture"
-    );
+    Ok(())
 }
 
 /// Find and load the first .cal file in a directory.
