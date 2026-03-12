@@ -1,0 +1,546 @@
+openjdk version "21.0.9" 2025-10-21
+OpenJDK Runtime Environment (build 21.0.9+-nixos)
+OpenJDK 64-Bit Server VM (build 21.0.9+-nixos, mixed mode)
+Module manifest file error on line 2 of file: /home/mpedersen/.config/ghidra/ghidra_11.3.2_NIX/Extensions/GhidraMCP/Module.manifest
+	-> Invalid line encountered: GHIDRA_MODULE_NAME=GhidraMCP
+Module manifest file error on line 3 of file: /home/mpedersen/.config/ghidra/ghidra_11.3.2_NIX/Extensions/GhidraMCP/Module.manifest
+	-> Invalid line encountered: GHIDRA_MODULE_DESC=An HTTP server plugin for Ghidra
+Module manifest file error on line 2 of file: /home/mpedersen/.config/ghidra/ghidra_11.3.2_NIX/Extensions/GhidraMCP/Module.manifest
+	-> Invalid line encountered: GHIDRA_MODULE_NAME=GhidraMCP
+Module manifest file error on line 3 of file: /home/mpedersen/.config/ghidra/ghidra_11.3.2_NIX/Extensions/GhidraMCP/Module.manifest
+	-> Invalid line encountered: GHIDRA_MODULE_DESC=An HTTP server plugin for Ghidra
+INFO  Using log config file: jar:file:/nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Framework/Generic/lib/Generic.jar!/generic.log4j.xml (LoggingInitialization)  
+INFO  Using log file: /home/mpedersen/.config/ghidra/ghidra_11.3.2_NIX/application.log (LoggingInitialization)  
+INFO  Loading user preferences: /home/mpedersen/.config/ghidra/ghidra_11.3.2_NIX/preferences (Preferences)  
+INFO  Searching for classes... (ClassSearcher)  
+INFO  Class search complete (1253 ms) (ClassSearcher)  
+INFO  Initializing SSL Context (SSLContextInitializer)  
+INFO  Initializing Random Number Generator... (SecureRandomFactory)  
+INFO  Random Number Generator initialization complete: NativePRNGNonBlocking (SecureRandomFactory)  
+INFO  Trust manager disabled, cacerts have not been set (ApplicationTrustManagerFactory)  
+INFO  Headless startup complete (2887 ms) (AnalyzeHeadless)  
+INFO  Class searcher loaded 57 extension points (18 false positives) (ClassSearcher)  
+INFO  HEADLESS Script Paths:
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Processors/DATA/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/Jython/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/MicrosoftCodeAnalyzer/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Processors/PIC/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Debug/Debugger/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/SwiftDemangler/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/Base/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/PyGhidra/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/FunctionID/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Debug/Debugger-rmi-trace/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/DecompilerDependent/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/BSim/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/BytePatterns/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/Decompiler/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/WildcardAssembler/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/GnuDemangler/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/PDB/ghidra_scripts
+    /home/mpedersen/nvidia/saleae_reverse/re/ghidra/scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Processors/Atmel/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/FileFormats/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/SystemEmulation/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Processors/JVM/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Processors/8051/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/VersionTracking/ghidra_scripts (HeadlessAnalyzer)  
+INFO  HEADLESS: execution starts (HeadlessAnalyzer)  
+INFO  Opening existing project: /home/mpedersen/nvidia/saleae_reverse/ghidra_proj2/sal_rev2 (HeadlessAnalyzer)  
+INFO  Opening project: /home/mpedersen/nvidia/saleae_reverse/ghidra_proj2/sal_rev2 (HeadlessProject)  
+INFO  REPORT: Processing project file: /libgraph_server_shared.so (HeadlessAnalyzer)  
+INFO  SCRIPT: /home/mpedersen/nvidia/saleae_reverse/re/ghidra/scripts/DecompileHmcadInit.java (HeadlessAnalyzer)  
+INFO  DecompileHmcadInit.java> === FUN_01d20ab0 @ 01d20ab0 (found via: InitHmcad1100 (xref to assertion string)) === (GhidraScript)  
+INFO  DecompileHmcadInit.java> ELF VA: 0x1c20ab0 (GhidraScript)  
+INFO  DecompileHmcadInit.java> Function size: 565 bytes (GhidraScript)  
+INFO  DecompileHmcadInit.java> 
+void FUN_01d20ab0(long param_1)
+
+{
+  undefined2 uVar1;
+  ulong uVar2;
+  ulong uVar3;
+  uint uVar4;
+  uint uStack0000000000000008;
+  uint uStack000000000000000c;
+  int iStack0000000000000010;
+  uint uStack0000000000000014;
+  ulong in_stack_00000018;
+  undefined2 in_stack_00000020;
+  undefined4 in_stack_00000028;
+  
+  (**(code **)(**(long **)(param_1 + 0x180) + 0x10))(*(long **)(param_1 + 0x180),0,0x80,0);
+  uVar2 = (ulong)iStack0000000000000010;
+  if (5 < uVar2) {
+                    /* WARNING: Subroutine does not return */
+    FUN_02eca300("false",5,
+                 "void Logic2FpgaDevice::SetTestPattenHmcad1100(Hmcad1100Settings::AdcTestPattern)",
+                 0x50,
+                 "/workspace/monorepo/graph-io/devices/logic_interface/src/Logic2FpgaDevice.cpp",
+                 0x4d,0x140,0x4c4d8b,0x18);
+  }
+  uVar1 = *(undefined2 *)(&DAT_00572ea0 + uVar2 * 2);
+  FUN_01d207c0(param_1,0x25,*(undefined2 *)(&DAT_00572e94 + uVar2 * 2));
+  FUN_01d207c0(param_1,0x45,uVar1);
+  if (uStack0000000000000014 < 0xd) {
+    uVar3 = (in_stack_00000018 & 0xff) << 2;
+    uVar2 = (ulong)((uint)uVar3 | 8);
+    if (in_stack_00000018._1_1_ == '\0') {
+      uVar2 = uVar3;
+    }
+    uVar1 = FUN_01d1f9b0(in_stack_00000028);
+    FUN_01d207c0(param_1,0x11,
+                 (uStack0000000000000008 << 8 | uStack0000000000000008 << 4 | uStack0000000000000008
+                 ) & 0xffff);
+    FUN_01d207c0(param_1,0x12,
+                 (uStack000000000000000c << 8 | uStack000000000000000c << 4 | uStack000000000000000c
+                 ) & 0xffff);
+    uVar4 = (uStack0000000000000014 << 0xc | uStack0000000000000014 << 8 |
+            uStack0000000000000014 << 4 | uStack0000000000000014) & 0xffff;
+    FUN_01d207c0(param_1,0x2a,uVar4);
+    FUN_01d207c0(param_1,0x2b,uVar4);
+    FUN_01d207c0(param_1,0x46,uVar2);
+    FUN_01d207c0(param_1,0x50,in_stack_00000018._4_2_);
+    FUN_01d207c0(param_1,0x55,uVar1);
+    FUN_01d207c0(param_1,0x56,in_stack_00000020);
+    return;
+  }
+                    /* WARNING: Subroutine does not return */
+  FUN_02eca300("false",5,"void Logic2FpgaDevice::InitHmcad1100(Hmcad1100Settings)",0x37,
+               "/workspace/monorepo/graph-io/devices/logic_interface/src/Logic2FpgaDevice.cpp",0x4d,
+               0x108,0x52e293,0x1a);
+}
+
+ (GhidraScript)  
+INFO  DecompileHmcadInit.java>  (GhidraScript)  
+INFO  DecompileHmcadInit.java> === FUN_01d1f900 @ 01d1f900 (found via: Hmcad1100Settings::SetDefault (xref 1)) === (GhidraScript)  
+INFO  DecompileHmcadInit.java> ELF VA: 0x1c1f900 (GhidraScript)  
+INFO  DecompileHmcadInit.java> Function size: 174 bytes (GhidraScript)  
+INFO  DecompileHmcadInit.java> 
+void FUN_01d1f900(undefined4 *param_1,uint param_2)
+
+{
+  undefined4 uVar1;
+  undefined4 uVar2;
+  undefined4 uVar3;
+  
+  if (param_2 == 5) {
+    uVar1 = 2;
+    uVar2 = 6;
+    uVar3 = 5;
+  }
+  else {
+    if ((param_2 & 0xfffffffe) != 6) {
+                    /* WARNING: Subroutine does not return */
+      FUN_02eca300("false",5,"void Hmcad1100Settings::SetDefault(::DeviceType)",0x30,
+                   "/workspace/monorepo/graph-io/devices/logic_interface/src/Logic2FpgaDevice.cpp",
+                   0x4d,0x54,0x4d1d3d,0xe);
+    }
+    uVar1 = 0;
+    uVar2 = 7;
+    uVar3 = 4;
+  }
+  *param_1 = uVar3;
+  param_1[1] = uVar2;
+  param_1[6] = uVar1;
+  *(undefined8 *)(param_1 + 8) = 0;
+  *(undefined8 *)(param_1 + 2) = 0x100000000;
+  *(undefined2 *)(param_1 + 4) = 1;
+  param_1[5] = 0;
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileHmcadInit.java>  (GhidraScript)  
+INFO  DecompileHmcadInit.java> === FUN_01d21fb0 @ 01d21fb0 (found via: Hmcad1100Settings::SetDefault (xref 2)) === (GhidraScript)  
+INFO  DecompileHmcadInit.java> ELF VA: 0x1c21fb0 (GhidraScript)  
+INFO  DecompileHmcadInit.java> Function size: 2260 bytes (GhidraScript)  
+INFO  DecompileHmcadInit.java> 
+/* WARNING: Globals starting with '_' overlap smaller symbols at the same address */
+
+void FUN_01d21fb0(__shared_weak_count *param_1)
+
+{
+  long lVar1;
+  int iVar2;
+  long *plVar3;
+  undefined4 uVar4;
+  undefined4 uVar5;
+  undefined8 uVar6;
+  char cVar7;
+  void *pvVar8;
+  undefined8 uVar9;
+  __shared_weak_count *p_Var10;
+  __shared_weak_count *p_Var11;
+  __shared_weak_count *p_Var12;
+  undefined4 uVar13;
+  __shared_weak_count *local_148;
+  __shared_weak_count *p_Stack_140;
+  char *local_138;
+  undefined1 local_130 [16];
+  undefined4 local_120;
+  undefined4 uStack_11c;
+  undefined8 uStack_118;
+  undefined4 local_110;
+  undefined4 uStack_10c;
+  undefined4 uStack_108;
+  undefined8 local_100;
+  undefined **local_f8;
+  undefined4 local_f0;
+  undefined4 uStack_ec;
+  undefined4 uStack_e8;
+  undefined4 uStack_e4;
+  long local_e0;
+  undefined ***local_d8;
+  undefined **local_c8;
+  undefined8 local_c0;
+  undefined8 uStack_b8;
+  long local_b0;
+  undefined ***local_a8;
+  undefined **local_98;
+  undefined8 local_90;
+  undefined8 uStack_88;
+  long local_80;
+  undefined ***local_78;
+  undefined **local_68;
+  __shared_weak_count *local_60;
+  undefined ***local_48;
+  
+  FUN_02ed1390(&local_148,param_1 + 0x208,FUN_01d2a770);
+  p_Var12 = p_Stack_140;
+  p_Var11 = local_148;
+  if (p_Stack_140 == (__shared_weak_count *)0x0) {
+LAB_01d22000:
+    if (local_148 != (__shared_weak_count *)0x0) goto LAB_01d22005;
+LAB_01d22043:
+    p_Var12 = (__shared_weak_count *)0x0;
+    p_Var11 = (__shared_weak_count *)0x0;
+    p_Var10 = (__shared_weak_count *)0x0;
+    if (*(int *)(param_1 + 0x220) == 0) goto LAB_01d22056;
+LAB_01d2218d:
+    if (*(int *)(param_1 + 0xb0) != 5) goto LAB_01d22197;
+LAB_01d221dc:
+    uVar13 = (undefined4)DAT_0044e460;
+    if (p_Var11 != (__shared_weak_count *)0x0) goto LAB_01d221e9;
+LAB_01d22214:
+    local_68 = &PTR_FUN_02f47d80;
+                    /* try { // try from 01d22253 to 01d22258 has its CatchHandler @ 01d229a5 */
+    local_60 = param_1;
+    local_48 = &local_68;
+    (**(code **)(**(long **)(param_1 + 0x180) + 0x30))
+              (uVar13,*(long **)(param_1 + 0x180),*(long *)(param_1 + 0x228),
+               *(long *)(param_1 + 0x230),&local_68);
+    if (&local_68 == local_48) {
+      (*(code *)(*local_48)[4])();
+    }
+    else if (local_48 != (undefined ***)0x0) {
+      (*(code *)(*local_48)[5])();
+    }
+    if (p_Var11 != (__shared_weak_count *)0x0) goto LAB_01d22283;
+  }
+  else {
+    LOCK();
+    p_Var10 = p_Stack_140 + 8;
+    lVar1 = *(long *)p_Var10;
+    *(long *)p_Var10 = *(long *)p_Var10 + -1;
+    UNLOCK();
+    if (lVar1 != 0) goto LAB_01d22000;
+    (**(code **)(*(long *)p_Stack_140 + 0x10))(p_Stack_140);
+    std::__shared_weak_count::__release_weak(p_Var12);
+    if (p_Var11 == (__shared_weak_count *)0x0) goto LAB_01d22043;
+LAB_01d22005:
+    FUN_01d296c0(&local_148,param_1 + 0x208);
+    p_Var11 = local_148;
+    p_Var12 = p_Stack_140;
+    p_Var10 = p_Stack_140;
+    if (*(int *)(param_1 + 0x220) != 0) goto LAB_01d2218d;
+LAB_01d22056:
+                    /* try { // try from 01d22056 to 01d22064 has its CatchHandler @ 01d229a3 */
+    p_Var12 = p_Var10;
+    pvVar8 = operator_new(0xd0);
+    local_e0 = *(long *)(param_1 + 0x80);
+    local_98 = &PTR_FUN_02f47ed8;
+    local_90 = _DAT_0044ad40;
+    uStack_88 = _UNK_0044ad48;
+    local_c8 = &PTR_FUN_02f47ed8;
+    local_c0 = _DAT_0044bc00;
+    uStack_b8 = _UNK_0044bc08;
+    local_f8 = &PTR_FUN_02f47f80;
+    local_f0 = _DAT_0044c050;
+    uStack_ec = _UNK_0044c054;
+    uStack_e8 = _UNK_0044c058;
+    uStack_e4 = _UNK_0044c05c;
+    local_d8 = &local_f8;
+    local_b0 = local_e0;
+    local_a8 = &local_c8;
+    local_80 = local_e0;
+    local_78 = &local_98;
+                    /* try { // try from 01d22118 to 01d22128 has its CatchHandler @ 01d22936 */
+    FUN_01d2c730(pvVar8,&local_98,&local_c8,&local_f8,*(long *)(param_1 + 0x278),
+                 *(long *)(param_1 + 0x280));
+    lVar1 = *(long *)(param_1 + 0x188);
+    *(void **)(param_1 + 0x188) = pvVar8;
+    if (lVar1 != 0) {
+      FUN_01d2a8b0();
+    }
+    if (&local_f8 == local_d8) {
+      (*(code *)(*local_d8)[4])();
+      if (&local_c8 == local_a8) goto LAB_01d221b4;
+LAB_01d22165:
+      if (local_a8 != (undefined ***)0x0) {
+        (*(code *)(*local_a8)[5])();
+      }
+    }
+    else {
+      if (local_d8 != (undefined ***)0x0) {
+        (*(code *)(*local_d8)[5])();
+      }
+      if (&local_c8 != local_a8) goto LAB_01d22165;
+LAB_01d221b4:
+      (*(code *)(*local_a8)[4])();
+    }
+    if (&local_98 != local_78) {
+      if (local_78 != (undefined ***)0x0) {
+        (*(code *)(*local_78)[5])();
+      }
+      goto LAB_01d2218d;
+    }
+    (*(code *)(*local_78)[4])();
+    if (*(int *)(param_1 + 0xb0) == 5) goto LAB_01d221dc;
+LAB_01d22197:
+    uVar13 = 0;
+    if (p_Var11 == (__shared_weak_count *)0x0) goto LAB_01d22214;
+LAB_01d221e9:
+    plVar3 = *(long **)(p_Var11 + 0x30);
+    if (plVar3 != (long *)0x0) {
+                    /* try { // try from 01d22200 to 01d22207 has its CatchHandler @ 01d229cf */
+      local_148 = param_1;
+      (**(code **)(*plVar3 + 0x30))(plVar3,&local_148);
+    }
+    if (p_Var11[8] == (__shared_weak_count)0x0) goto LAB_01d22214;
+LAB_01d22283:
+    if (p_Var11[9] != (__shared_weak_count)0x0) {
+                    /* try { // try from 01d2228c to 01d222b9 has its CatchHandler @ 01d229cf */
+      (**(code **)(*(long *)param_1 + 0x40))(param_1,0xff,0xff,0xff);
+    }
+    plVar3 = *(long **)(p_Var11 + 0x60);
+    if (plVar3 != (long *)0x0) {
+      local_148 = param_1;
+      (**(code **)(*plVar3 + 0x30))(plVar3,&local_148);
+    }
+    if (p_Var11[0x70] != (__shared_weak_count)0x0) goto LAB_01d226b1;
+  }
+                    /* try { // try from 01d222ce to 01d22369 has its CatchHandler @ 01d229d1 */
+  (**(code **)(**(long **)(param_1 + 0x180) + 0x10))(*(long **)(param_1 + 0x180),0x7f,0xaa,0);
+  (**(code **)(**(long **)(param_1 + 0x180) + 0x10))(*(long **)(param_1 + 0x180),0x7f,0xaa,0);
+  cVar7 = (**(code **)(**(long **)(param_1 + 0x180) + 0x20))(*(long **)(param_1 + 0x180),0x7f,0);
+  local_130[0] = cVar7;
+  if (cVar7 != -0x56) {
+    local_148 = (__shared_weak_count *)0x49e1eb;
+    p_Stack_140 = (__shared_weak_count *)CONCAT44(p_Stack_140._4_4_,0x410);
+    local_138 = "IsFpgaResponsive";
+    FUN_01d2b120(DAT_030b0128,4,"FPGA readback got {:#x} instead of 0xAA",0x27,local_130);
+    uVar6 = DAT_030b0128;
+    if (local_130[0] != -0x56) {
+                    /* try { // try from 01d2271b to 01d2277b has its CatchHandler @ 01d2292c */
+      uVar9 = FUN_01d11fa0(*(undefined4 *)(param_1 + 0xb0));
+      local_130 = FUN_02edb140(uVar9);
+      local_148 = (__shared_weak_count *)0x49e1eb;
+      p_Stack_140 = (__shared_weak_count *)CONCAT44(p_Stack_140._4_4_,0x283);
+      local_138 = "CommonDeviceInit";
+      FUN_01d2ab70(uVar6,4,"FPGA readback failed for {}",0x1b,local_130);
+      uVar9 = __cxa_allocate_exception(0x20);
+                    /* try { // try from 01d22789 to 01d22792 has its CatchHandler @ 01d228a1 */
+      local_138 = (char *)operator_new(0x20);
+      uVar6 = s_Fpga_initialization_failed_0053b881._18_8_;
+      local_148 = _DAT_0044b820;
+      p_Stack_140 = (__shared_weak_count *)_UNK_0044b828;
+      *(ulong *)(local_138 + 10) =
+           CONCAT26(s_Fpga_initialization_failed_0053b881._16_2_,
+                    CONCAT42(s_Fpga_initialization_failed_0053b881._12_4_,
+                             s_Fpga_initialization_failed_0053b881._10_2_));
+      *(undefined8 *)(local_138 + 0x12) = uVar6;
+      uVar5 = s_Fpga_initialization_failed_0053b881._12_4_;
+      uVar4 = s_Fpga_initialization_failed_0053b881._4_4_;
+      uVar13 = CONCAT22(s_Fpga_initialization_failed_0053b881._10_2_,
+                        s_Fpga_initialization_failed_0053b881._8_2_);
+      *(undefined4 *)local_138 = s_Fpga_initialization_failed_0053b881._0_4_;
+      *(undefined4 *)(local_138 + 4) = uVar4;
+      *(undefined4 *)(local_138 + 8) = uVar13;
+      *(undefined4 *)(local_138 + 0xc) = uVar5;
+      local_138[0x1a] = '\0';
+                    /* try { // try from 01d227bf to 01d227e3 has its CatchHandler @ 01d22884 */
+      FUN_02e9a860(uVar9,&local_148);
+                    /* WARNING: Subroutine does not return */
+      __cxa_throw(uVar9,&PTR_vtable_02f479d0,FUN_01b0dd70);
+    }
+  }
+  iVar2 = *(int *)(param_1 + 0x218);
+  if (iVar2 == 2) {
+                    /* try { // try from 01d223cb to 01d22473 has its CatchHandler @ 01d229d1 */
+    FUN_01d207c0(param_1,0,1);
+    local_148 = (__shared_weak_count *)&DAT_000f4240;
+    std::this_thread::sleep_for((duration *)&local_148);
+    FUN_01d207c0(param_1,0xf,0);
+    FUN_01d20f60((int)DAT_0044dbe0,param_1,0x7d);
+    FUN_01d207c0(param_1,0x2a,0x1111);
+    FUN_01d207c0(param_1,0x2b,0x1111);
+    FUN_01d207c0(param_1,0x42,0x8040);
+    FUN_01d207c0(param_1,0x46,0x8204);
+    local_148 = (__shared_weak_count *)&DAT_00989680;
+    std::this_thread::sleep_for((duration *)&local_148);
+    FUN_01d22af0(param_1);
+  }
+  else if (iVar2 == 1) {
+                    /* try { // try from 01d223b2 to 01d223c5 has its CatchHandler @ 01d228d6 */
+    FUN_01d20d90(param_1,0x200000001,0);
+  }
+  else if (iVar2 == 0) {
+    if (*(uint *)(param_1 + 0xb0) == 5) {
+      uStack_108 = 2;
+      uStack_11c = 6;
+      local_120 = 5;
+    }
+    else {
+      if ((*(uint *)(param_1 + 0xb0) & 0xfffffffe) != 6) {
+        local_148 = (__shared_weak_count *)0x4d1d3d;
+        p_Stack_140 = (__shared_weak_count *)0xe;
+                    /* try { // try from 01d22849 to 01d22883 has its CatchHandler @ 01d22931 */
+                    /* WARNING: Subroutine does not return */
+        FUN_02eca300("false",5,"void Hmcad1100Settings::SetDefault(::DeviceType)",0x30,
+                     "/workspace/monorepo/graph-io/devices/logic_interface/src/Logic2FpgaDevice.cpp"
+                     ,0x4d,0x54,0x4d1d3d,0xe);
+      }
+      uStack_108 = 0;
+      uStack_11c = 7;
+      local_120 = 4;
+    }
+    uStack_118 = 0x100000000;
+    local_110 = CONCAT22(local_110._2_2_,1);
+    uStack_10c = 0;
+    local_100 = 0;
+                    /* try { // try from 01d224c1 to 01d224ed has its CatchHandler @ 01d22931 */
+    FUN_01d20ab0(param_1);
+    FUN_01d22af0(param_1);
+  }
+  if ((*(uint *)(param_1 + 0xb0) & 0xfffffffe) == 6) {
+                    /* try { // try from 01d22507 to 01d225a3 has its CatchHandler @ 01d229d1 */
+    (**(code **)(**(long **)(param_1 + 0x180) + 0x10))(*(long **)(param_1 + 0x180),0x15,0,0);
+    iVar2 = *(int *)(param_1 + 0x218);
+    if (iVar2 == 2) {
+      FUN_01d207c0(param_1,0xf,0x100);
+      goto LAB_01d2255a;
+    }
+    if (iVar2 == 1) {
+      FUN_01d23330(param_1,0);
+      goto LAB_01d2255a;
+    }
+    if (iVar2 == 0) {
+      FUN_01d207c0(param_1,0xf,0x100);
+      goto LAB_01d2255a;
+    }
+  }
+  else {
+LAB_01d2255a:
+    if (*(int *)(param_1 + 0x218) == 1) {
+      FUN_01d23330(param_1,1);
+    }
+  }
+  (**(code **)(**(long **)(param_1 + 0x180) + 0x10))(*(long **)(param_1 + 0x180),0,0,0);
+  if (*(int *)(param_1 + 0x21c) == 0) {
+    (**(code **)(**(long **)(param_1 + 0x180) + 0x10))(*(long **)(param_1 + 0x180),0,0x40,0);
+    local_148 = (__shared_weak_count *)&DAT_000f4240;
+                    /* try { // try from 01d225ad to 01d225b6 has its CatchHandler @ 01d228e0 */
+    std::this_thread::sleep_for((duration *)&local_148);
+                    /* try { // try from 01d225ba to 01d225c4 has its CatchHandler @ 01d228db */
+    (**(code **)(*(long *)param_1 + 0x70))(&local_148,param_1);
+    for (p_Var10 = local_148; p_Var10 != p_Stack_140; p_Var10 = p_Var10 + 1) {
+      if (*p_Var10 != (__shared_weak_count)0xff) {
+                    /* try { // try from 01d226ee to 01d226f8 has its CatchHandler @ 01d228b1 */
+        (**(code **)(*(long *)param_1 + 0x78))(param_1,&local_148);
+        break;
+      }
+    }
+    if (local_148 != (__shared_weak_count *)0x0) {
+      p_Stack_140 = local_148;
+      operator_delete(local_148);
+    }
+  }
+  if (((*(uint *)(param_1 + 0xb0) & 0xfffffffe) == 6) && (*(int *)(param_1 + 0x218) == 1)) {
+                    /* try { // try from 01d2261a to 01d22637 has its CatchHandler @ 01d229d1 */
+    FUN_01d23330(param_1,0);
+  }
+  (**(code **)(**(long **)(param_1 + 0x180) + 0x20))(*(long **)(param_1 + 0x180),0x19,0);
+  if (*(int *)(param_1 + 0x220) - 1U < 2) {
+    if ((p_Var11 == (__shared_weak_count *)0x0) || (p_Var11[0xd0] == (__shared_weak_count)0x0)) {
+                    /* try { // try from 01d22658 to 01d22665 has its CatchHandler @ 01d22927 */
+      (**(code **)(*(long *)param_1 + 0x80))(&local_148,param_1);
+                    /* try { // try from 01d22672 to 01d22679 has its CatchHandler @ 01d228e5 */
+      FUN_02ea2ad0(param_1 + 600,local_148);
+      p_Var11 = p_Stack_140;
+      if (p_Stack_140 != (__shared_weak_count *)0x0) {
+        LOCK();
+        p_Var10 = p_Stack_140 + 8;
+        lVar1 = *(long *)p_Var10;
+        *(long *)p_Var10 = *(long *)p_Var10 + -1;
+        UNLOCK();
+        if (lVar1 == 0) {
+          (**(code **)(*(long *)p_Stack_140 + 0x10))(p_Stack_140);
+          std::__shared_weak_count::__release_weak(p_Var11);
+        }
+      }
+    }
+  }
+  else if (*(int *)(param_1 + 0x220) != 0) {
+    local_148 = (__shared_weak_count *)0x0;
+    p_Stack_140 = (__shared_weak_count *)strlen((char *)0x0);
+                    /* try { // try from 01d227f9 to 01d22833 has its CatchHandler @ 01d229d1 */
+                    /* WARNING: Subroutine does not return */
+    FUN_02eca300("false",5,"bool RevisionDetail::UsesNewCryptoInterface()",0x2d,
+                 "/workspace/monorepo/graph-io/devices/logic_interface/src/Logic2FpgaDevice.cpp",
+                 0x4d,0x9e,local_148._0_4_,p_Stack_140);
+  }
+LAB_01d226b1:
+  if (p_Var12 != (__shared_weak_count *)0x0) {
+    LOCK();
+    p_Var11 = p_Var12 + 8;
+    lVar1 = *(long *)p_Var11;
+    *(long *)p_Var11 = *(long *)p_Var11 + -1;
+    UNLOCK();
+    if (lVar1 == 0) {
+      (**(code **)(*(long *)p_Var12 + 0x10))(p_Var12);
+      std::__shared_weak_count::__release_weak(p_Var12);
+    }
+  }
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileHmcadInit.java>  (GhidraScript)  
+INFO  DecompileHmcadInit.java> --- ALREADY DECOMPILED: FUN_01d20ab0 @ 01d20ab0 (from SetTestPattenHmcad1100 (xref 1)) --- (GhidraScript)  
+INFO  DecompileHmcadInit.java>  (GhidraScript)  
+INFO  DecompileHmcadInit.java> === FUN_01d20cf0 @ 01d20cf0 (found via: SetTestPattenHmcad1100 (xref 2)) === (GhidraScript)  
+INFO  DecompileHmcadInit.java> ELF VA: 0x1c20cf0 (GhidraScript)  
+INFO  DecompileHmcadInit.java> Function size: 150 bytes (GhidraScript)  
+INFO  DecompileHmcadInit.java> 
+void FUN_01d20cf0(undefined8 param_1,uint param_2)
+
+{
+  undefined2 uVar1;
+  
+  if (param_2 < 6) {
+    uVar1 = *(undefined2 *)(&DAT_00572ea0 + (long)(int)param_2 * 2);
+    FUN_01d207c0(param_1,0x25,*(undefined2 *)(&DAT_00572e94 + (long)(int)param_2 * 2));
+    FUN_01d207c0(param_1,0x45,uVar1);
+    return;
+  }
+                    /* WARNING: Subroutine does not return */
+  FUN_02eca300("false",5,
+               "void Logic2FpgaDevice::SetTestPattenHmcad1100(Hmcad1100Settings::AdcTestPattern)",
+               0x50,"/workspace/monorepo/graph-io/devices/logic_interface/src/Logic2FpgaDevice.cpp",
+               0x4d,0x140,0x4c4d8b,0x18);
+}
+
+ (GhidraScript)  
+INFO  DecompileHmcadInit.java>  (GhidraScript)  
+INFO  REPORT: Save succeeded for processed file: /libgraph_server_shared.so (HeadlessAnalyzer)  

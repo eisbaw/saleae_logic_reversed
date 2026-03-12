@@ -124,7 +124,8 @@ has a `messageType` field:
 }
 ```
 
-All 47 known messageType values:
+All 50 known messageType values (see `doc/message-type-catalog.md` for
+complete details including request/response fields):
 
 | messageType | Purpose |
 |-------------|---------|
@@ -132,6 +133,7 @@ All 47 known messageType values:
 | `disconnect` | Tear down connection |
 | `createGraph` | Create new graph session |
 | `destroyGraph` | Destroy graph session |
+| `getState` | Get current graph state |
 | `submitActions` | Submit batch of graph actions |
 | `sendGraphActions` | Alternative action submission |
 | `subscribeToUpdates` | Subscribe to state changes |
@@ -140,8 +142,12 @@ All 47 known messageType values:
 | `sendToPipe` | Send data to a pipe |
 | `addLogicDeviceNode` | Add device control node |
 | `sendLogicDeviceRequest` | Device operation |
+| `addSimulationDevice` | Add simulation device |
+| `removeSimulationDevice` | Remove simulation device |
 | `sendDigitalTriggerSettings` | Configure digital trigger |
 | `sendAnalyzerTriggerSettings` | Configure analyzer trigger |
+| `sendAnalogTriggerSettings` | Configure analog trigger |
+| `disableAnalogTrigger` | Disable analog trigger |
 | `setGlitchFilter` | Configure glitch filter |
 | `loadAnalyzersList` | Load analyzer plugins |
 | `createAnalyzer` | Create analyzer instance |
@@ -569,9 +575,10 @@ The `State2` suffix suggests a versioned state format (v2).
 
 ### What we now know
 
-1. **The IPC protocol is fully mapped** -- 47 messageType values, 60+ request
+1. **The IPC protocol is fully mapped** -- 50 messageType values, 60+ request
    handler registrations, 60+ pipe handler registrations. The protocol surface
-   is complete.
+   is complete. See `doc/message-type-catalog.md` for the full catalog with
+   request/response field documentation.
 
 2. **The gRPC automation API is separate from the internal IPC** -- The automation
    API runs as a gRPC server in the Electron renderer process, not in the native

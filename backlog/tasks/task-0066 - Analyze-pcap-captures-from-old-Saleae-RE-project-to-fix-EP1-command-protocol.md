@@ -1,10 +1,10 @@
 ---
 id: TASK-0066
 title: Analyze pcap captures from old Saleae RE project to fix EP1 command protocol
-status: In Progress
+status: Done
 assignee: []
 created_date: '2026-03-09 21:19'
-updated_date: '2026-03-11 02:05'
+updated_date: '2026-03-11 19:46'
 labels:
   - hardware-testing
   - reverse-engineering
@@ -155,3 +155,9 @@ Created TASK-0108 to fix `encrypt_reseed` in obfuscation.rs.
 
 Complete 8-phase init sequence documented in re/notes/init-sequence-pcap.md. 261 operations across 928 EP1 frames decoded. Critical discovery: reseed packets ALWAYS use the initial LFSR seed (0x354b248e), not the rolling state. Created TASK-0108 to fix this bug. AC#1 (hardware test) still blocked on hardware access.
 <!-- SECTION:NOTES:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+All 928 EP1 frames decoded from pcap with 0 unknown opcodes. Key discovery: reseed uses initial seed (0x354b248e), not rolling seed. Full 8-phase init sequence documented in re/notes/init-sequence-pcap.md. Phase 7 capture parameters extracted as 12 register writes. This directly enabled the EP1 ping fix and is now being used for hardware capture implementation.
+<!-- SECTION:FINAL_SUMMARY:END -->

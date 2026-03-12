@@ -1,4 +1,4 @@
-// Decompile DeviceType enum functions at rebased addresses (+0x100000)
+// Decompile coefficient transformation and sample processing functions
 //@category RE
 import ghidra.app.decompiler.*;
 import ghidra.app.script.GhidraScript;
@@ -7,31 +7,28 @@ import ghidra.program.model.listing.*;
 import ghidra.program.model.address.*;
 import ghidra.program.model.symbol.SourceType;
 
-public class DecompileDeviceType extends GhidraScript {
+public class DecompileCalibFilter3 extends GhidraScript {
     @Override
     public void run() throws Exception {
-        // ELF VAs + 0x100000 = Ghidra addresses
-        // GetVidPidForDevice: ELF VA 0x1c13df0 -> Ghidra 0x1d13df0
-        // DeviceTypeToString function: near ELF VA 0x2ddb0f0 -> Ghidra 0x2edb0f0
-        // The assertion xref function at ELF 0x1ae9815 -> Ghidra 0x1be9815
-        // Second assertion xref function at ELF 0x1aeadf0 -> Ghidra 0x1beadf0
-        // DeviceTypeToString table lookup function at ~0x2ddb141 -> Ghidra 0x2edb141
-        // Small helper at ~0x2ddb0f1 -> Ghidra 0x2edb0f1
-        // AddNewDevice factory near 0x1c13eb0 -> Ghidra 0x1d13eb0
         String[][] targets = new String[][] {
-            {"01d13df0", "GetVidPidForDevice"},
-            {"01d13eb0", "AddNewDevice_factory"},
-            {"02edb0f0", "DeviceTypeToString_helper"},
-            {"02edb141", "DeviceTypeToString_main"},
-            {"01be9815", "assertion_func_1"},
-            {"01beadf0", "assertion_func_2"},
+            // Coefficient transformation (called from Static2By3 ctor)
+            {"01bd6790", "CoeffTransform_5sections"},
+            // The key function that splits coefficients into b/a arrays
+            {"01bd8e50", "SplitCoefficients"},
+            // VectorData<short> pipe handler (sample processing)
+            {"01bd2ed0", "AnalogCalibrationFilter_OnVectorData"},
+            // The SetCalibration handler that stores cal data
+            {"01bd3660", "SetCalibration_handler"},
+            {"01bd3700", "SetChannel_handler"},
+            // Filter processing functions
+            {"01bd8a40", "InitFilterLayout"},
+            {"01bd8d50", "SetFilterStage"},
         };
 
         AddressFactory af = currentProgram.getAddressFactory();
         FunctionManager fm = currentProgram.getFunctionManager();
 
-        // Create functions where missing
-        int tx = currentProgram.startTransaction("Create device type functions");
+        int tx = currentProgram.startTransaction("Create coeff transform functions");
         try {
             for (String[] t : targets) {
                 Address addr = af.getAddress(t[0]);
@@ -48,7 +45,7 @@ public class DecompileDeviceType extends GhidraScript {
                             func.setName(t[1], SourceType.USER_DEFINED);
                             println("CREATED: " + t[1] + " @ " + t[0]);
                         } else {
-                            println("FAILED to create function: " + t[0] + " (" + t[1] + ")");
+                            println("FAILED: " + t[0] + " (" + t[1] + ")");
                         }
                     }
                 } else {
@@ -59,7 +56,6 @@ public class DecompileDeviceType extends GhidraScript {
             currentProgram.endTransaction(tx, true);
         }
 
-        // Decompile
         DecompInterface decomp = new DecompInterface();
         decomp.openProgram(currentProgram);
 
@@ -71,15 +67,16 @@ public class DecompileDeviceType extends GhidraScript {
                 println("=== NO FUNCTION: " + t[0] + " (" + t[1] + ") ===\n");
                 continue;
             }
-            println("=== " + func.getName() + " @ " + func.getEntryPoint() + " (" + t[1] + ") ===");
+            println("\n=== " + func.getName() + " @ " + func.getEntryPoint() + " (" + t[1] + ") ===");
+            println("Size: " + func.getBody().getNumAddresses() + " bytes");
             DecompileResults res = decomp.decompileFunction(func, 120, monitor);
             if (res.decompileCompleted()) {
                 println(res.getDecompiledFunction().getC());
             } else {
                 println("DECOMPILE FAILED: " + res.getErrorMessage());
             }
-            println("");
         }
+
         decomp.dispose();
     }
 }

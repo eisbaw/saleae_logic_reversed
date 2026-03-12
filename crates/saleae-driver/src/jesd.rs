@@ -90,11 +90,7 @@ pub fn jesd_power_sequence(ep1: &mut Ep1CommandChannel) -> DriverResult<()> {
 /// From pcap Phase 3b: multiple 4-register writes using the pattern
 /// `[r0x03, r0x16, r0x04, r0x05]`. The trigger register (0x16) is
 /// always 0x00, and the data high byte (0x05) is always 0x00.
-pub fn write_adc_register(
-    ep1: &mut Ep1CommandChannel,
-    bank: u8,
-    value: u8,
-) -> DriverResult<()> {
+pub fn write_adc_register(ep1: &mut Ep1CommandChannel, bank: u8, value: u8) -> DriverResult<()> {
     debug!(
         "ADC indirect write: bank={:#04x} value={:#04x}",
         bank, value
@@ -145,10 +141,7 @@ pub fn write_calibration_coefficients(
     );
 
     for (i, &coeff) in coefficients.iter().enumerate() {
-        debug!(
-            "  coeff[{i}] = {:#04x}",
-            coeff
-        );
+        debug!("  coeff[{i}] = {:#04x}", coeff);
         ep1.write_register_8(fpga_regs::CAL_COEFF_REG, coeff)?;
     }
 
@@ -244,10 +237,7 @@ mod tests {
                 payload[0], 0x80,
                 "step {i}: opcode should be WriteRegisters (0x80)"
             );
-            assert_eq!(
-                payload[1], 0x01,
-                "step {i}: count should be 1"
-            );
+            assert_eq!(payload[1], 0x01, "step {i}: count should be 1");
             assert_eq!(
                 payload[2], 0x00,
                 "step {i}: register address should be 0x00"
@@ -366,13 +356,11 @@ mod tests {
             assert_eq!(payload[0], 0x80, "coeff {i}: opcode");
             assert_eq!(payload[1], 0x01, "coeff {i}: count");
             assert_eq!(
-                payload[2], fpga_regs::CAL_COEFF_REG,
+                payload[2],
+                fpga_regs::CAL_COEFF_REG,
                 "coeff {i}: register address should be 0x17"
             );
-            assert_eq!(
-                payload[3], coefficients[i],
-                "coeff {i}: value"
-            );
+            assert_eq!(payload[3], coefficients[i], "coeff {i}: value");
         }
     }
 
@@ -382,8 +370,8 @@ mod tests {
 
         // The exact 16 values from pcap Phase 3e.
         let coefficients: [u8; 16] = [
-            0x46, 0xFF, 0xC6, 0xA6, 0x60, 0xB7, 0xDE, 0x07,
-            0x67, 0x8B, 0x03, 0x66, 0x11, 0x35, 0x7C, 0x7F,
+            0x46, 0xFF, 0xC6, 0xA6, 0x60, 0xB7, 0xDE, 0x07, 0x67, 0x8B, 0x03, 0x66, 0x11, 0x35,
+            0x7C, 0x7F,
         ];
 
         for _ in 0..16 {

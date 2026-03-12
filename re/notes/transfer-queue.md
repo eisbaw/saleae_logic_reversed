@@ -326,12 +326,15 @@ Saleae::MemoryPool::MemoryPool(Saleae::MemoryPool::Configuration)
 
 Source: `/workspace/monorepo/graph-io/devices/usb_device/src/usb_device/memory_pool.cpp`
 
-The MemoryPool provides:
-- Pre-allocated buffer regions via `mmap` (confirmed by `munmap(mAllocation, mCapacity) == 0`)
-- Committed/uncommitted memory tracking (`committed_pivot >= mAllocation && committed_pivot < mAllocationEnd`)
-- Buffer size validation (`transfer.mBuffer != nullptr`)
+The MemoryPool provides (confirmed by decompilation 2026-03-12):
+- Fixed-chunk-size buffer free list (LIFO, `std::vector<void*>`)
+- Allocation via `operator new(mChunkSize)`, NOT mmap
+  (the `munmap(mAllocation, mCapacity)` assertion belongs to FixedByteDeque,
+   not MemoryPool -- see `doc/memory-pool.md` for details)
+- Buffer recycling via shared_ptr custom deleter (lambda `$_0`)
 - Memory-pressure-aware allocation (the "Waiting for memory to be available"
-  path blocks when the pool is exhausted)
+  path blocks when the pool is exhausted, checked via HasAvailable())
+- Optional free list cap (mMaxFreeChunks) to bound memory usage
 
 ### DMA Buffers (Zero-Copy)
 
@@ -503,8 +506,10 @@ and has its own error type `MsoInterruptReadStreamError`.
 5. **USB 3.0 stream count**: How many USB 3.0 bulk streams are allocated?
    The `libusb_alloc_streams` call needs its count parameter extracted.
 
-6. **MemoryPool Configuration struct**: What fields does the Configuration
-   struct contain? (initial_size, max_size, alignment, use_dma?)
+6. **MemoryPool Configuration struct**: RESOLVED 2026-03-12. Contains
+   mMaxChunks (u32, asserted > 0), mChunkSize, mMaxFreeChunks, mEnableFreeListCap,
+   and an allocator std::function. Uses `operator new`, not mmap/DMA.
+   See `doc/memory-pool.md` for full struct layout.
 
 7. **ComputeTransferSize exact formulas**: The device-specific transfer
    size computation formulas need extraction from Ghidra decompilation

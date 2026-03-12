@@ -1,0 +1,143 @@
+ParseFirmwareImage and GetFirmwareForDeviceType RE Analysis
+===========================================================
+Date: 2026-03-12
+Binary: libgraph_server_shared.so (Saleae Logic 2 v2.4.40)
+
+Functions analyzed via manual disassembly (Ghidra function boundary issues
+prevented clean decompilation of ParseFirmwareImage).
+
+1. ParseFirmwareImage
+=====================
+   ELF VA: 0x2db9130  (Ghidra: 0x2dc9130)
+   Size: ~608 bytes (0x2db9130 - 0x2db938d = main body)
+   Signature: Saleae::FirmwareImageDescriptor Saleae::ParseFirmwareImage(gsl::span<const uint8_t>)
+
+   gsl::span ABI (libc++ / x86-64 SysV):
+     rsi = size (length)
+     rdx = data (pointer)
+     rdi = output FirmwareImageDescriptor (return via hidden pointer)
+
+   Output struct FirmwareImageDescriptor (0x20 bytes):
+     [+0x00] std::vector<Section> (ptr, end, capacity)  // 24 bytes
+     [+0x18] entry_address (u32)
+     [+0x1C] checksum (u32)
+
+   Each Section is 0x18 bytes:
+     [+0x00] address (u32, zero-padded to 8 bytes)
+     [+0x08] data_ptr (u64, pointer into original firmware blob)
+     [+0x10] data_len (u64, in bytes = dLength * 4)
+
+   Validation sequence:
+     1. Check span != -1 (invalid sentinel)
+     2. Check size > 0
+     3. Check size > 1
+     4. Check data[0] == 0x43 ('C') AND data[1] == 0x59 ('Y')
+        -> else: throw "Bad firmware signature, must be \"CY\""
+     5. Check size > 2
+     6. Check size > 3
+     7. Check data[3] == 0xB0 (IMAGE_TYPE_NORMAL)
+        -> else: throw "Unsupported firmware image type"
+        -> asserts: image_type == IMAGE_TYPE_NORMAL (compile-time assertion string)
+     8. Check size >= 8
+     9. Parse sections loop starting at offset 4:
+        - Read dLength (u32le) at offset
+        - Read dAddress (u32le) at offset+4
+        - If dLength == 0: terminator
+          - Store dAddress as entry_address at output[+0x18]
+          - Read checksum (u32le) at offset+8
+          - Store checksum at output[+0x1C]
+          - Return
+        - Else: push {dAddress, data_ptr, dLength*4} to sections vector
+        - Advance offset by 8 + dLength*4
+
+   Key observations:
+     - image_ctl (byte 2) is NEVER read or validated
+     - Checksum is stored but NEVER verified against accumulated data
+     - No version field checking
+     - No maximum section count limit (trusts input data)
+     - Sections store raw pointers into the original firmware blob
+       (no copying of section data during parse)
+     - The function name string "Saleae::FirmwareImageDescriptor
+       Saleae::ParseFirmwareImage(gsl::span<const uint8_t>)" at 0x411b91
+       is used in assertion macros for error reporting
+
+2. ParseIHexFirmwareImage
+=========================
+   ELF VA: 0x2db96b0  (Ghidra: 0x2dc96b0)
+   Used for: Logic Original, Logic 16, Logic 4, Logic 8
+   Format: Intel HEX (text-based, ':' prefix records)
+   Not analyzed in detail (FX2 devices are out of scope for our implementation)
+
+3. GetFirmwareForDeviceType
+===========================
+   ELF VA: 0x2d9ad60  (Ghidra: 0x2daad60)
+   Size: ~210 bytes
+   Signature: static Saleae::DeviceFirmwareImage UsbDevice::GetFirmwareForDeviceType(::DeviceType)
+
+   Parameter: esi = DeviceType enum (0-7)
+   Return: DeviceFirmwareImage variant (via rdi hidden pointer)
+
+   Jump table at VA 0x79db70 (8 entries, relative offsets):
+
+   | Enum | Target VA  | Format | Firmware Data            |
+   |------|-----------|--------|--------------------------|
+   | 0    | 0x2d9ad85 | IHex   | ptr at 0x2f661f0 -> 0x37e0ac (16,397 bytes) |
+   | 1    | 0x2d9ad8e | IHex   | ptr at 0x2f661f8 -> 0x3ac65e (15,581 bytes) |
+   | 2    | 0x2d9ae29 | ERROR  | "firmware not available for device"          |
+   | 3    | 0x2d9ae29 | ERROR  | "firmware not available for device"          |
+   | 4    | 0x2d9ad97 | IHex   | ptr at 0x2f66200 -> 0x3cb8cd (23,539 bytes) |
+   | 5    | 0x2d9ada0 | IHex   | ptr at 0x2f66208 -> 0x39743d (25,992 bytes) |
+   | 6    | 0x2d9addc | CY/FX3 | {size=0x1d410, ptr->0x79e7a0}               |
+   | 7    | 0x2d9ade5 | CY/FX3 | {size=0x1d410, ptr->0x7bbbb0}               |
+
+   DeviceType enum mapping (inferred):
+     0 = Logic Original (0925:3881, FX2)
+     1 = Logic 16 (21a9:1001, FX2LP)
+     2 = MSO or reserved (no firmware)
+     3 = MSO Plus or reserved (no firmware)
+     4 = Logic 4 (21a9:1003) -- uses IHex (8051 addresses)
+     5 = Logic 8 (21a9:1004) -- uses IHex (8051 addresses)
+     6 = Logic Pro 8 (21a9:1005, FX3)
+     7 = Logic Pro 16 (21a9:1006, FX3)
+
+   DeviceFirmwareImage variant discriminant:
+     0 = FirmwareImageDescriptor (CY/FX3 format) -- for Pro devices
+     1 = IHexFirmwareImageDescriptor -- for non-Pro devices
+
+   IHex path: loads char* from global, calls strlen, then ParseIHexFirmwareImage
+   CY path: loads {size, ptr} struct, then calls ParseFirmwareImage
+
+4. Embedded Firmware Details
+============================
+   Logic Pro 8 firmware (DeviceType 6):
+     Location: ELF VA 0x79e7a0 (.rodata)
+     Size: 119,824 bytes (0x1d410)
+     Header: CY 1C B0
+     image_ctl = 0x1C:
+       - checksum = 0 (disabled)
+       - spi_width = 2 (4-bit SPI)
+       - fast_boot = 1
+       - no_execute = 1
+     image_type = 0xB0 (NORMAL)
+     Sections:
+       0: addr=0x00000100, size=9088 bytes (interrupt vectors + boot code)
+       1: addr=0x40003000, size=65536 bytes (main application code)
+       2: addr=0x40013000, size=37484 bytes (application code continued)
+       3: addr=0x40030000, size=7668 bytes (USB descriptors + data)
+     Entry: 0x4000e020
+     Checksum: 0x7da4aede (computed matches stored)
+
+   Logic Pro 16 firmware (DeviceType 7):
+     Location: ELF VA 0x7bbbb0 (.rodata)
+     Size: 119,824 bytes (0x1d410)
+     Header: CY 1C B0
+     Same structure as Pro 8.
+     Entry: 0x4000e020
+     Checksum: 0x7da6af05
+
+   Differences between Pro 8 and Pro 16 firmware:
+     Only 7 bytes differ (4 code + 3 checksum):
+       0x7b98: 0x30 vs 0x31 (likely channel count constant)
+       0x837c: 0x3e vs 0x64 (likely endpoint/buffer config)
+       0x83fe: 0x05 vs 0x06 (likely product ID low byte)
+       0x841e: 0x05 vs 0x06 (likely product ID low byte, second reference)

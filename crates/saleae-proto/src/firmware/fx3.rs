@@ -50,9 +50,29 @@ pub mod usb {
 }
 
 /// A parsed FX3 firmware image header.
+///
+/// ## image_ctl bit layout (AN76405 Table 3)
+///
+/// | Bit(s) | Field         | Description                              |
+/// |--------|---------------|------------------------------------------|
+/// | 0      | checksum      | 1 = verify checksum during boot          |
+/// | 1-2    | spi_width     | SPI bus width: 0=1bit, 1=2bit, 2=4bit    |
+/// | 3      | fast_boot     | 1 = reduced verify during SPI boot       |
+/// | 4      | no_execute    | 1 = do not auto-execute after load        |
+/// | 5-7    | reserved      | Must be 0                                 |
+///
+/// Saleae firmware uses `image_ctl = 0x1C`:
+///   - checksum = 0 (disabled)
+///   - spi_width = 2 (4-bit SPI)
+///   - fast_boot = 1
+///   - no_execute = 1
+///
+/// Note: the Saleae host application (`ParseFirmwareImage`) does NOT verify
+/// the checksum regardless of this bit. Our parser is more conservative and
+/// validates when the bit is set.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Fx3Header {
-    /// Image control byte. For Saleae firmware: 0x1C (SPI boot, checksum enabled).
+    /// Image control byte.
     pub image_ctl: u8,
     /// Image type byte. Expected: 0xB0 (normal firmware).
     pub image_type: u8,
@@ -62,6 +82,21 @@ impl Fx3Header {
     /// Whether checksum verification is enabled (bit 0 of image_ctl).
     pub const fn checksum_enabled(&self) -> bool {
         self.image_ctl & 0x01 != 0
+    }
+
+    /// SPI bus width setting (bits 1-2 of image_ctl).
+    /// Returns 1, 2, or 4 for 1-bit, 2-bit, or 4-bit SPI.
+    pub const fn spi_width(&self) -> u8 {
+        match (self.image_ctl >> 1) & 0x03 {
+            0 => 1,
+            1 => 2,
+            _ => 4,
+        }
+    }
+
+    /// Whether fast boot is enabled (bit 3 of image_ctl).
+    pub const fn fast_boot(&self) -> bool {
+        self.image_ctl & 0x08 != 0
     }
 }
 
@@ -381,6 +416,167 @@ mod tests {
         assert_eq!(chunks[1].1.len(), FX3_MAX_CHUNK_SIZE);
         assert_eq!(chunks[2].0, 0x4000_3000 + (FX3_MAX_CHUNK_SIZE * 2) as u32);
         assert_eq!(chunks[2].1.len(), 128);
+    }
+
+    /// Parse a firmware image with image_ctl=0x1C (checksum bit NOT set).
+    /// This matches the real Saleae FX3 firmware format: SPI 4-bit width,
+    /// fast boot, but checksum verification disabled.
+    #[test]
+    fn parse_saleae_style_header() {
+        let section_data = [0x10, 0x40, 0x2D, 0xE9]; // ARM instruction
+        let word_count = 1u32;
+
+        // Compute checksum (even though not checked, must be present).
+        let checksum: u32 = u32::from_le_bytes(section_data);
+
+        let mut buf = Vec::new();
+        buf.extend_from_slice(&FX3_MAGIC);
+        buf.push(0x1C); // image_ctl: Saleae-style (checksum disabled, SPI 4-bit, fast boot)
+        buf.push(IMAGE_TYPE_NORMAL);
+        // Section at the FX3 interrupt vector table address.
+        buf.extend_from_slice(&word_count.to_le_bytes());
+        buf.extend_from_slice(&0x0000_0100u32.to_le_bytes());
+        buf.extend_from_slice(&section_data);
+        // Terminator.
+        buf.extend_from_slice(&0u32.to_le_bytes());
+        buf.extend_from_slice(&0x4000_e020u32.to_le_bytes());
+        buf.extend_from_slice(&checksum.to_le_bytes());
+
+        let (image, consumed) = Fx3Image::parse(&buf).unwrap();
+        assert_eq!(consumed, buf.len());
+        assert_eq!(image.header.image_ctl, 0x1C);
+        assert!(!image.header.checksum_enabled());
+        assert_eq!(image.sections.len(), 1);
+        assert_eq!(image.sections[0].address, 0x0000_0100);
+        assert_eq!(image.entry_address, 0x4000_e020);
+    }
+
+    /// Parse a 4-section image matching the real Saleae Pro firmware layout:
+    ///   Section 0: 0x00000100 (interrupt vectors)
+    ///   Section 1: 0x40003000 (main code)
+    ///   Section 2: 0x40013000 (code continued)
+    ///   Section 3: 0x40030000 (data/descriptors)
+    #[test]
+    fn parse_four_section_image() {
+        // Simulate the real layout with small sections.
+        let sections: &[(u32, &[u8])] = &[
+            (0x0000_0100, &[0x10, 0x40, 0x2D, 0xE9]),
+            (0x4000_3000, &[0x30, 0x40, 0x2D, 0xE9]),
+            (0x4001_3000, &[0x04, 0x10, 0x80, 0xE5]),
+            (0x4003_0000, &[0x8E, 0x24, 0x4B, 0x35]),
+        ];
+
+        let mut checksum: u32 = 0;
+        let mut buf = Vec::new();
+        buf.extend_from_slice(&FX3_MAGIC);
+        buf.push(0x1C);
+        buf.push(IMAGE_TYPE_NORMAL);
+
+        for (addr, data) in sections {
+            let word_count = (data.len() / 4) as u32;
+            buf.extend_from_slice(&word_count.to_le_bytes());
+            buf.extend_from_slice(&addr.to_le_bytes());
+            buf.extend_from_slice(data);
+            for chunk in data.chunks_exact(4) {
+                let word = u32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]);
+                checksum = checksum.wrapping_add(word);
+            }
+        }
+
+        buf.extend_from_slice(&0u32.to_le_bytes());
+        buf.extend_from_slice(&0x4000_e020u32.to_le_bytes());
+        buf.extend_from_slice(&checksum.to_le_bytes());
+
+        let (image, consumed) = Fx3Image::parse(&buf).unwrap();
+        assert_eq!(consumed, buf.len());
+        assert_eq!(image.sections.len(), 4);
+        assert_eq!(image.sections[0].address, 0x0000_0100);
+        assert_eq!(image.sections[1].address, 0x4000_3000);
+        assert_eq!(image.sections[2].address, 0x4001_3000);
+        assert_eq!(image.sections[3].address, 0x4003_0000);
+        assert_eq!(image.entry_address, 0x4000_e020);
+    }
+
+    /// Parse the real Saleae Logic Pro 8 firmware extracted from the binary.
+    /// This test is skipped if the firmware file doesn't exist.
+    #[test]
+    fn parse_real_pro8_firmware() {
+        let path = std::path::Path::new("re/captures/fx3-firmware-pro8.bin");
+        if !path.exists() {
+            // Try from workspace root.
+            let ws_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("../../re/captures/fx3-firmware-pro8.bin");
+            if !ws_path.exists() {
+                eprintln!("skipping: firmware file not found");
+                return;
+            }
+            let raw = std::fs::read(&ws_path).unwrap();
+            validate_pro_firmware(&raw, "Pro8");
+            return;
+        }
+        let raw = std::fs::read(path).unwrap();
+        validate_pro_firmware(&raw, "Pro8");
+    }
+
+    /// Parse the real Saleae Logic Pro 16 firmware extracted from the binary.
+    #[test]
+    fn parse_real_pro16_firmware() {
+        let ws_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../re/captures/fx3-firmware-pro16.bin");
+        if !ws_path.exists() {
+            eprintln!("skipping: firmware file not found");
+            return;
+        }
+        let raw = std::fs::read(&ws_path).unwrap();
+        validate_pro_firmware(&raw, "Pro16");
+    }
+
+    fn validate_pro_firmware(raw: &[u8], label: &str) {
+        let (image, consumed) =
+            Fx3Image::parse(raw).unwrap_or_else(|e| panic!("{label} firmware parse failed: {e}"));
+
+        assert_eq!(consumed, raw.len(), "{label}: should consume entire file");
+        assert_eq!(image.header.image_ctl, 0x1C, "{label}: image_ctl");
+        assert_eq!(
+            image.header.image_type, IMAGE_TYPE_NORMAL,
+            "{label}: image_type"
+        );
+        assert!(
+            !image.header.checksum_enabled(),
+            "{label}: checksum should be disabled"
+        );
+        assert_eq!(image.header.spi_width(), 4, "{label}: SPI width");
+        assert!(image.header.fast_boot(), "{label}: fast boot");
+
+        // Real firmware has 4 sections.
+        assert_eq!(image.sections.len(), 4, "{label}: section count");
+
+        // Section addresses match the Saleae firmware layout.
+        assert_eq!(image.sections[0].address, 0x0000_0100, "{label}: sec0 addr");
+        assert_eq!(image.sections[1].address, 0x4000_3000, "{label}: sec1 addr");
+        assert_eq!(image.sections[2].address, 0x4001_3000, "{label}: sec2 addr");
+        assert_eq!(image.sections[3].address, 0x4003_0000, "{label}: sec3 addr");
+
+        assert_eq!(image.entry_address, 0x4000_e020, "{label}: entry addr");
+
+        // Total data should be ~119776 bytes.
+        let total = image.total_data_bytes();
+        assert!(total > 100_000, "{label}: total data {total} too small");
+        assert!(total < 130_000, "{label}: total data {total} too large");
+
+        // Upload chunks should work.
+        let chunks: Vec<_> = image.upload_chunks().collect();
+        assert!(
+            chunks.len() > 10,
+            "{label}: expected many chunks, got {}",
+            chunks.len()
+        );
+
+        eprintln!(
+            "{label}: parsed OK, {total} bytes in {} sections, {} upload chunks",
+            image.sections.len(),
+            chunks.len()
+        );
     }
 
     #[test]

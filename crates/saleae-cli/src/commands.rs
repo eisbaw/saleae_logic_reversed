@@ -5,6 +5,245 @@ use std::time::Duration;
 use anyhow::{bail, Context, Result};
 use saleae_proto::device::BootState;
 
+// -----------------------------------------------------------------------
+// Default firmware/bitstream paths (relative to project root)
+// -----------------------------------------------------------------------
+
+/// Default firmware image path (used when --firmware is not specified).
+pub const DEFAULT_FIRMWARE_PATH: &str = "firmware/fw-fx3-pro8.img";
+
+/// Default FPGA bitstream path (Xilinx Spartan-6 for Logic Pro 8 Rev 1.2).
+pub const DEFAULT_BITSTREAM_PATH: &str = "firmware/bitstream-spartan6-slx9-03.bin";
+
+/// SLX9 bitstream variants to try during auto-detection (ordered by likelihood).
+const SLX9_BITSTREAMS: &[&str] = &[
+    "firmware/bitstream-spartan6-slx9-03.bin",
+    "firmware/bitstream-spartan6-slx9-02.bin",
+    "firmware/bitstream-spartan6-slx9-07.bin",
+    "firmware/bitstream-spartan6-slx9-01.bin",
+    "firmware/bitstream-spartan6-slx9-06.bin",
+    "firmware/bitstream-spartan6-slx9-00.bin",
+];
+
+// -----------------------------------------------------------------------
+// Auto-recovery helper
+// -----------------------------------------------------------------------
+
+/// Ensure a Saleae device is ready for EP1 communication.
+///
+/// This handles the common failure mode where the FX3 command thread is
+/// dead (previous host process exited, DMA channel destroyed). The recovery
+/// sequence is:
+///
+/// 1. Find the device on USB.
+/// 2. If in bootloader mode: upload firmware, wait for re-enumeration.
+/// 3. If firmware running: try a ping to test EP1.
+///    - If ping succeeds: EP1 is alive, return the channel.
+///    - If ping fails (timeout): EP1 thread is dead.
+///      a. Send ResetAndReEnumerate (may fail, that's OK).
+///      b. Wait for device in bootloader mode.
+///      c. Upload firmware.
+///      d. Wait for re-enumeration.
+/// 4. After firmware is confirmed running, open transport + create EP1 channel.
+/// 5. Return the ready-to-use initialized channel.
+///
+/// The returned channel has already passed ReseedDevice + Ping.
+pub fn ensure_device_ready(firmware_path: &str) -> Result<saleae_driver::ep1::Ep1CommandChannel> {
+    // Parse firmware upfront so we fail fast on bad path.
+    let firmware_data = std::fs::read(firmware_path)
+        .with_context(|| format!("failed to read firmware file: {firmware_path}"))?;
+    let (image, _) = saleae_proto::Fx3Image::parse(&firmware_data)
+        .context("failed to parse FX3 firmware image")?;
+
+    let timeout = Duration::from_secs(10);
+    let poll_interval = Duration::from_millis(500);
+
+    // Step 1: Find device.
+    let device =
+        saleae_usb::discovery::find_first_saleae().context("no Saleae device found on USB")?;
+
+    println!("Found device: {device}");
+    println!("  Boot state: {}", device.boot_state);
+
+    match device.boot_state {
+        BootState::Bootloader => {
+            // Device is in bootloader -- upload firmware directly.
+            println!("Device in bootloader mode. Uploading firmware...");
+            upload_firmware_and_wait(&image, timeout, poll_interval)?;
+        }
+        BootState::FirmwareRunning => {
+            // Firmware running -- try a quick ping to see if EP1 thread is alive.
+            println!("Firmware running. Testing EP1 with ping...");
+            if !try_ping_ep1(&device) {
+                // EP1 is dead. Reset device to bootloader, then re-upload firmware.
+                println!("EP1 ping failed (command thread likely dead).");
+                println!("Resetting device to bootloader for firmware re-upload...");
+                attempt_reset_to_bootloader(&device);
+
+                // Wait for bootloader to appear.
+                println!("Waiting for device in bootloader mode...");
+                match saleae_usb::discovery::wait_for_bootloader(timeout, poll_interval) {
+                    Ok(bl_device) => {
+                        println!("Device in bootloader: {bl_device}");
+                    }
+                    Err(_) => {
+                        bail!(
+                            "Device did not enter bootloader mode within {timeout:?}.\n\
+                             The FX3 command thread is dead and the device cannot be reset\n\
+                             via USB. A physical power cycle is required."
+                        );
+                    }
+                }
+
+                // Upload firmware.
+                println!("Uploading firmware...");
+                upload_firmware_and_wait(&image, timeout, poll_interval)?;
+            } else {
+                println!("EP1 ping succeeded. Device is ready.");
+                // Device is good -- open a fresh channel and return it.
+                // (The ping channel consumed the transport, so we open a new one.)
+            }
+        }
+        BootState::Unknown(bcd) => {
+            bail!("Device has unexpected bcdDevice value {bcd:#06x}.");
+        }
+    }
+
+    // At this point, firmware should be running. Open a fresh channel.
+    let device =
+        saleae_usb::discovery::find_first_saleae().context("device disappeared after recovery")?;
+
+    if device.boot_state != BootState::FirmwareRunning {
+        bail!(
+            "Expected firmware running after recovery, got: {}",
+            device.boot_state
+        );
+    }
+
+    let encryption_mode = encryption_mode_for_device(&device);
+    let usb_device = saleae_usb::discovery::open_first_device().context("failed to open device")?;
+    let transport = saleae_usb::nusb_backend::NusbTransport::open(usb_device)
+        .context("failed to claim USB interface")?;
+
+    // Note: The framed protocol handshake (0xA7/0xFE) is NOT needed for EP1.
+    // The FX3 firmware starts the EP1 command thread at boot and it accepts
+    // encrypted commands directly. Sending framed packets on EP1 corrupts
+    // the command thread state.
+
+    let mut channel =
+        saleae_driver::ep1::Ep1CommandChannel::new(Box::new(transport), encryption_mode);
+
+    // Initialize the channel (ReseedDevice + Ping).
+    channel
+        .initialize()
+        .context("EP1 initialization failed after recovery")?;
+    println!("EP1 command channel initialized.");
+
+    Ok(channel)
+}
+
+/// Try to ping the device via EP1. Returns true if ping succeeds.
+///
+/// Opens a fresh transport, creates a channel, and attempts initialize().
+/// If anything fails (timeout, USB error, wrong response), returns false.
+fn try_ping_ep1(device: &saleae_proto::device::SaleaeDevice) -> bool {
+    let encryption_mode = encryption_mode_for_device(device);
+
+    let usb_device = match saleae_usb::discovery::open_first_device() {
+        Ok(d) => d,
+        Err(_) => return false,
+    };
+
+    let transport = match saleae_usb::nusb_backend::NusbTransport::open(usb_device) {
+        Ok(t) => t,
+        Err(_) => return false,
+    };
+
+    let mut channel =
+        saleae_driver::ep1::Ep1CommandChannel::new(Box::new(transport), encryption_mode);
+
+    channel.initialize().is_ok()
+}
+
+/// Attempt to reset the device to bootloader mode via ResetAndReEnumerate.
+///
+/// This may fail if the EP1 thread is dead (which is why we're resetting
+/// in the first place). Failure is expected and silently ignored.
+fn attempt_reset_to_bootloader(device: &saleae_proto::device::SaleaeDevice) {
+    let encryption_mode = encryption_mode_for_device(device);
+
+    let usb_device = match saleae_usb::discovery::open_first_device() {
+        Ok(d) => d,
+        Err(e) => {
+            println!("  Could not open device for reset: {e}");
+            return;
+        }
+    };
+
+    let transport = match saleae_usb::nusb_backend::NusbTransport::open(usb_device) {
+        Ok(t) => t,
+        Err(e) => {
+            println!("  Could not claim interface for reset: {e}");
+            return;
+        }
+    };
+
+    let mut channel =
+        saleae_driver::ep1::Ep1CommandChannel::new(Box::new(transport), encryption_mode);
+
+    // Try to initialize first (may fail if EP1 is dead).
+    let _ = channel.initialize();
+
+    // Send ResetAndReEnumerate (0x82). May fail, that's OK.
+    match channel.send_command(0x82, &[]) {
+        Ok(()) => println!("  ResetAndReEnumerate sent."),
+        Err(e) => println!("  ResetAndReEnumerate failed (expected): {e}"),
+    }
+}
+
+/// Upload firmware to the device and wait for re-enumeration.
+///
+/// Assumes the device is currently in bootloader mode.
+fn upload_firmware_and_wait(
+    image: &saleae_proto::Fx3Image,
+    timeout: Duration,
+    poll_interval: Duration,
+) -> Result<()> {
+    let usb_device = saleae_usb::discovery::open_first_device()
+        .context("failed to open device for firmware upload")?;
+    let transport = saleae_usb::nusb_backend::NusbTransport::open(usb_device)
+        .context("failed to claim USB interface for firmware upload")?;
+
+    saleae_driver::firmware::upload_fx3_firmware(&transport, image)
+        .context("firmware upload failed")?;
+    println!(
+        "Firmware uploaded ({} bytes). Waiting for re-enumeration...",
+        image.total_data_bytes()
+    );
+
+    // Drop transport so the old device handle is released before polling.
+    drop(transport);
+
+    saleae_usb::discovery::wait_for_device(timeout, poll_interval)
+        .context("device did not re-enumerate after firmware upload")?;
+    println!("Device re-enumerated with firmware running.");
+
+    Ok(())
+}
+
+/// Determine the encryption mode for a given device.
+fn encryption_mode_for_device(
+    device: &saleae_proto::device::SaleaeDevice,
+) -> saleae_proto::obfuscation::EncryptionMode {
+    if device.device_type.is_pro() {
+        saleae_proto::obfuscation::EncryptionMode::XorAll
+    } else if device.device_type.is_fx3() {
+        saleae_proto::obfuscation::EncryptionMode::XorFirmwareOnly
+    } else {
+        saleae_proto::obfuscation::EncryptionMode::None
+    }
+}
+
 /// List connected Saleae devices.
 pub fn list_devices() -> Result<()> {
     let devices =
@@ -154,6 +393,53 @@ pub fn upload_firmware(firmware_path: &str) -> Result<()> {
             println!("a power cycle. Try 'saleae-cli list-devices' to check.");
         }
     }
+
+    Ok(())
+}
+
+/// Reset and re-enumerate the device.
+///
+/// Sends ResetAndReEnumerate (opcode 0x82) via EP1. This causes the FX3
+/// to reset and boot from EEPROM (B2 bootloader), returning to bootloader mode.
+pub fn reset_device() -> Result<()> {
+    let device =
+        saleae_usb::discovery::find_first_saleae().context("failed to find Saleae device")?;
+
+    println!("Found device: {device}");
+
+    match device.boot_state {
+        BootState::FirmwareRunning => {}
+        BootState::Bootloader => {
+            println!("Device is already in bootloader mode.");
+            return Ok(());
+        }
+        BootState::Unknown(bcd) => {
+            bail!("Unexpected bcdDevice {bcd:#06x}");
+        }
+    }
+
+    let encryption_mode = if device.device_type.is_pro() {
+        saleae_proto::obfuscation::EncryptionMode::XorAll
+    } else if device.device_type.is_fx3() {
+        saleae_proto::obfuscation::EncryptionMode::XorFirmwareOnly
+    } else {
+        saleae_proto::obfuscation::EncryptionMode::None
+    };
+
+    let usb_device = saleae_usb::discovery::open_first_device().context("failed to open device")?;
+    let transport = saleae_usb::nusb_backend::NusbTransport::open(usb_device)
+        .context("failed to claim USB interface")?;
+    let mut channel =
+        saleae_driver::ep1::Ep1CommandChannel::new(Box::new(transport), encryption_mode);
+
+    println!("Initializing EP1...");
+    channel.initialize().context("EP1 initialization failed")?;
+
+    println!("Sending ResetAndReEnumerate (0x82)...");
+    // Send the command. The device will reset, so we don't expect a response.
+    let _ = channel.send_command(0x82, &[]);
+    println!("Reset command sent. Device should re-enumerate in bootloader mode.");
+    println!("Wait a few seconds, then check with: lsusb -d 21a9:");
 
     Ok(())
 }
@@ -326,11 +612,12 @@ pub fn program_fpga(bitstream_path: &str, skip_post_init: bool) -> Result<()> {
     if skip_post_init {
         println!("Skipping post-init sequence (--skip-post-init).");
     } else {
-        // Determine if this is a Lattice FPGA.
-        // For now, assume Lattice for all current-gen devices (Logic 4/8/Pro 8/Pro 16).
-        // Xilinx is only for legacy Logic 16.
-        let is_lattice = device.device_type.is_fx3();
+        // Determine FPGA type from EEPROM hardware revision.
+        let hw_rev = saleae_driver::fpga::read_hw_revision(&mut channel)
+            .context("failed to read hardware revision from EEPROM")?;
+        let is_lattice = hw_rev.is_lattice();
 
+        println!("Hardware revision: {hw_rev}");
         println!("Running post-init sequence (Lattice: {is_lattice})...");
         saleae_driver::fpga::fpga_post_init(&mut channel, is_lattice)
             .context("FPGA post-init failed")?;
@@ -431,8 +718,11 @@ pub fn device_init(bitstream_path: Option<&str>, skip_fpga: bool) -> Result<()> 
         println!("FPGA programming verified.");
         println!();
 
-        // Post-init.
-        let is_lattice = device.device_type.is_fx3();
+        // Post-init: determine FPGA type from EEPROM hardware revision.
+        let hw_rev = saleae_driver::fpga::read_hw_revision(&mut channel)
+            .context("failed to read hardware revision from EEPROM")?;
+        let is_lattice = hw_rev.is_lattice();
+        println!("Hardware revision: {hw_rev}");
         println!("Running FPGA post-init (Lattice: {is_lattice})...");
         saleae_driver::fpga::fpga_post_init(&mut channel, is_lattice)
             .context("FPGA post-init failed")?;
@@ -443,8 +733,11 @@ pub fn device_init(bitstream_path: Option<&str>, skip_fpga: bool) -> Result<()> 
         println!();
     }
 
-    // Run CommonDeviceInit.
-    let is_lattice = device.device_type.is_fx3();
+    // Determine FPGA type from EEPROM hardware revision.
+    let hw_rev = saleae_driver::fpga::read_hw_revision(&mut channel)
+        .context("failed to read hardware revision from EEPROM")?;
+    let is_lattice = hw_rev.is_lattice();
+    println!("Hardware revision: {hw_rev}");
     println!("Running CommonDeviceInit (Lattice: {is_lattice})...");
     let result = saleae_driver::fpga::common_device_init(&mut channel, is_lattice)
         .context("CommonDeviceInit failed")?;
@@ -457,6 +750,7 @@ pub fn device_init(bitstream_path: Option<&str>, skip_fpga: bool) -> Result<()> 
     );
     println!("  JESD locked: {}", result.jesd_locked);
     println!("  DDR ready:   {}", result.ddr_ready);
+    println!("  DCM locked:  {}", result.dcm_locked);
     println!();
 
     // Print calibration URL for convenience.
@@ -468,21 +762,200 @@ pub fn device_init(bitstream_path: Option<&str>, skip_fpga: bool) -> Result<()> 
     Ok(())
 }
 
+/// Full initialization: firmware upload (with auto-recovery) + FPGA + ADC + capture.
+///
+/// Uses `ensure_device_ready` to handle firmware upload and EP1 recovery
+/// automatically. Works from any device state: bootloader, firmware running
+/// with live EP1, or firmware running with dead EP1.
+/// Try multiple bitstream files and return the first one that programs successfully.
+///
+/// For each bitstream: ResetFpga, program, verify (r0x7F=0xAA readback).
+/// Returns the working bitstream data and its path.
+fn try_bitstreams(
+    channel: &mut saleae_driver::ep1::Ep1CommandChannel,
+    paths: &[&str],
+    profile: &saleae_proto::device::DeviceProfile,
+    usb_speed: saleae_proto::device::UsbSpeed,
+) -> Result<(Vec<u8>, String)> {
+    for path in paths {
+        let bitstream = match std::fs::read(path) {
+            Ok(data) => data,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => continue,
+            Err(e) => {
+                println!("  Skipping {}: {}", path, e);
+                continue;
+            }
+        };
+
+        println!("  Trying {} ({} bytes)...", path, bitstream.len());
+        match saleae_driver::fpga::program_fpga(channel, &bitstream, profile, usb_speed) {
+            Ok(()) => {
+                println!("    Verified!");
+                return Ok((bitstream, path.to_string()));
+            }
+            Err(e) => {
+                println!("    Programming failed: {e}");
+                continue;
+            }
+        }
+    }
+
+    bail!("No compatible bitstream found. Tried: {:?}", paths);
+}
+
+pub fn full_init(firmware_path: &str, bitstream_path: &str, auto_bitstream: bool) -> Result<()> {
+    // Use ensure_device_ready for firmware upload + EP1 recovery.
+    let mut channel = ensure_device_ready(firmware_path)?;
+
+    // Read firmware version string for diagnostics.
+    match channel.get_device_info() {
+        Ok(info) => println!("Firmware: {info}"),
+        Err(e) => println!("GetDeviceInfo failed: {e}"),
+    }
+
+    // Re-discover device for profile/speed info.
+    let device = saleae_usb::discovery::find_first_saleae().context("device disappeared")?;
+    println!();
+
+    let profile = device.device_type.profile().context("no device profile")?;
+    let usb_speed = device
+        .usb_speed
+        .unwrap_or_else(|| profile.default_forced_usb_speed());
+
+    // Step 4: FPGA program + verify
+    if auto_bitstream {
+        println!("Auto-detecting bitstream...");
+        let (_bitstream_data, found_path) =
+            try_bitstreams(&mut channel, SLX9_BITSTREAMS, profile, usb_speed)?;
+        println!("Using bitstream: {found_path}");
+    } else {
+        let bitstream = std::fs::read(bitstream_path)
+            .with_context(|| format!("failed to read bitstream: {bitstream_path}"))?;
+        println!("Programming FPGA ({} bytes)...", bitstream.len());
+        saleae_driver::fpga::program_fpga(&mut channel, &bitstream, profile, usb_speed)?;
+        println!("FPGA programmed and verified.");
+    }
+    println!();
+
+    // Step 5: AD9637 ADC init via driver module
+    println!("AD9637 ADC init...");
+
+    // Read calibration from EEPROM (offset 0x10, 16 bytes)
+    let cal_data = channel.read_version(&[0x33, 0x81, 0x10, 0x00, 0x10, 0x00])?;
+    println!(
+        "  Calibration: {}",
+        cal_data
+            .iter()
+            .map(|b| format!("{b:02x}"))
+            .collect::<Vec<_>>()
+            .join(" ")
+    );
+
+    let dcm_result =
+        saleae_driver::adc::init_ad9637(&mut channel, &cal_data).context("AD9637 init failed")?;
+    println!(
+        "  DCM locked: {} (r0x40={:#04x})",
+        dcm_result.locked, dcm_result.status_40
+    );
+    println!();
+
+    // Re-init EP1 (reseed + ping for next phase)
+    channel.initialize().context("EP1 re-init failed")?;
+    channel.write_registers(&[(0x0f, 0x00), (0x10, 0x0f), (0x11, 0x00)])?;
+    println!("Channel enables set.");
+
+    // Step 6: Pre-capture ADC power on
+    println!("Pre-capture ADC power on...");
+    let capture_dcm = saleae_driver::adc::power_on_for_capture(&mut channel)
+        .context("ADC power-on for capture failed")?;
+    println!(
+        "  DCM locked for capture (r0x40={:#04x})",
+        capture_dcm.status_40
+    );
+    println!();
+
+    // Write capture parameters (pcap Phase 7 values for default capture config:
+    // all channels, 12.5 MSa/s mixed mode).
+    let capture_regs: [(u8, u8); 12] = [
+        (0x00, 0x00),
+        (0x08, 0xff),
+        (0x06, 0xff),
+        (0x0a, 0x20),
+        (0x0b, 0x10),
+        (0x0c, 0x00),
+        (0x1a, 0x00),
+        (0x0d, 0x18),
+        (0x0e, 0x08),
+        (0x12, 0x02),
+        (0x13, 0x00),
+        (0x14, 0x10),
+    ];
+    channel.write_registers(&capture_regs)?;
+    let addrs: Vec<u8> = capture_regs.iter().map(|&(a, _)| a).collect();
+    let readback = channel.read_registers(&addrs)?;
+    for (i, &(addr, expected)) in capture_regs.iter().enumerate() {
+        let actual = readback[i];
+        if actual != expected {
+            bail!("Register mismatch: r{addr:#04x} wrote {expected:#04x} read {actual:#04x}");
+        }
+    }
+    println!("Capture registers verified.");
+
+    // Start capture
+    println!("Starting capture...");
+    channel.start_sampling()?;
+    channel.write_registers(&[(0x00, 0x01)])?;
+    println!("Capture running! Reading EP2 data for 2 seconds...");
+
+    let mut total_bytes = 0usize;
+    let start = std::time::Instant::now();
+    let mut buf = vec![0u8; 16384];
+    while start.elapsed() < Duration::from_secs(2) {
+        match channel.transport().bulk_transfer_in(0x82, &mut buf) {
+            Ok(n) => {
+                total_bytes += n;
+            }
+            Err(e) => {
+                println!("EP2 read error: {e}");
+                break;
+            }
+        }
+    }
+
+    // Stop capture
+    channel.write_registers(&[(0x00, 0x00)])?;
+    channel.stop_stream()?;
+    println!(
+        "Capture stopped. Read {} bytes ({:.1} KB/s)",
+        total_bytes,
+        total_bytes as f64 / start.elapsed().as_secs_f64() / 1024.0
+    );
+
+    // Power down
+    saleae_driver::adc::power_down(&mut channel).context("ADC power down failed")?;
+    println!("Device powered down.");
+
+    Ok(())
+}
+
 /// Start a digital capture.
 ///
-/// Validates capture configuration and, when hardware is available, runs the
-/// full capture pipeline: configure FPGA, start sampling, stream EP2 data,
-/// parse chunks, disaggregate channels, and stop.
-///
-/// Currently performs a dry-run: validates configuration, prints what would
-/// happen, and exits. Actual hardware streaming is blocked until the device
-/// is recovered (red LED / stuck state).
+/// Performs the full sequence from any device state:
+/// 1. Firmware upload + EP1 init (auto-recovery via ensure_device_ready)
+/// 2. FPGA programming + verify
+/// 3. AD9637 ADC init + DCM lock + calibration
+/// 4. Pre-capture ADC power-on
+/// 5. Write capture parameters (pcap Phase 7 values)
+/// 6. EP2 read loop
+/// 7. Teardown (stop capture, power down ADC)
 pub fn capture_digital(
     sample_rate: u64,
     duration: f64,
     channels: &str,
     output: Option<&str>,
     format: &str,
+    firmware_path: &str,
+    bitstream_path: &str,
 ) -> Result<()> {
     let channel_list = parse_channel_list(channels)?;
 
@@ -496,13 +969,20 @@ pub fn capture_digital(
     let config = saleae_driver::capture::CaptureConfig {
         sample_rate,
         digital_channels: channel_list.clone(),
+        analog_channels: vec![],
         duration_samples,
         voltage_threshold: 1.65,
         stats_enabled: true,
         samples_per_chunk: saleae_driver::capture::DEFAULT_SAMPLES_PER_CHUNK,
+        total_device_channels: 8,
+        board_revision: 1,
+        is_pro: true,
+        base_digital_rate: 500_000_000,
+        base_analog_rate: 100_000_000,
+        usb_speed: saleae_proto::UsbSpeed::Super,
+        fpga_type: saleae_proto::FpgaType::Pro,
     };
 
-    // Validate configuration (catches bad sample rates, channel numbers, etc.)
     config
         .validate()
         .map_err(|e| anyhow::anyhow!("invalid capture config: {e}"))?;
@@ -512,12 +992,8 @@ pub fn capture_digital(
     println!("  Channels:          {:?}", config.digital_channels);
     println!("  Duration samples:  {}", config.duration_samples);
     println!("  Voltage threshold: {} V", config.voltage_threshold);
-    println!("  Stats enabled:     {}", config.stats_enabled);
-    println!("  Samples per chunk: {}", config.samples_per_chunk);
-    println!(
-        "  Sample data bytes: {} bytes/chunk",
-        config.sample_data_bytes_per_chunk()
-    );
+    println!("  Firmware:          {firmware_path}");
+    println!("  Bitstream:         {bitstream_path}");
     println!();
 
     // Export configuration.
@@ -534,7 +1010,6 @@ pub fn capture_digital(
         println!("  Format:     {:?}", export_config.format);
         println!();
 
-        // Validate that the exporter can be created (creates output dir + files).
         let exporter = saleae_proto::DigitalExporter::new(&export_config)
             .context("failed to create digital exporter")?;
         exporter
@@ -547,21 +1022,574 @@ pub fn capture_digital(
         println!();
     }
 
-    bail!(
-        "Hardware capture not yet available.\n\
-         \n\
-         The capture module is implemented (configure, start, stream, stop)\n\
-         but hardware is currently stuck (red LED). Once the device is\n\
-         recovered, this command will:\n\
-         \n\
-         1. Open the device and initialize the command channel\n\
-         2. Write capture parameters to FPGA registers\n\
-         3. Send StartSampling (0x01) to begin data flow on EP2 IN\n\
-         4. Read and parse data chunks (header + samples + stats)\n\
-         5. Disaggregate interleaved channels into per-channel streams\n\
-         6. Export data to --output directory (if specified)\n\
-         7. Send StopDataPath (0x86) + StopStream (0x02) to end capture"
+    if duration <= 0.0 {
+        bail!("Duration must be > 0 for hardware capture (Ctrl-C not yet supported).");
+    }
+
+    // Parse bitstream upfront so we fail fast on bad path.
+    let bitstream = std::fs::read(bitstream_path)
+        .with_context(|| format!("failed to read bitstream: {bitstream_path}"))?;
+
+    // --- Step 1: Firmware + EP1 init (auto-recovery) ---
+    println!("Ensuring device is ready (firmware + EP1)...");
+    let mut channel = ensure_device_ready(firmware_path)?;
+
+    // Re-discover device for profile/speed info.
+    let device =
+        saleae_usb::discovery::find_first_saleae().context("device disappeared after init")?;
+    let profile = device
+        .device_type
+        .profile()
+        .context("no device profile for this device type")?;
+    let usb_speed = device
+        .usb_speed
+        .unwrap_or_else(|| profile.default_forced_usb_speed());
+
+    println!("Device ready: {device}");
+    println!();
+
+    // --- Step 2: FPGA programming ---
+    // program_fpga includes reset + bitstream upload + r0x7F verify.
+    println!("Programming FPGA ({} bytes)...", bitstream.len());
+    saleae_driver::fpga::program_fpga(&mut channel, &bitstream, profile, usb_speed)
+        .context("FPGA programming failed")?;
+    println!("FPGA programmed and verified.");
+    println!();
+
+    // --- Step 3: AD9637 ADC init ---
+    println!("AD9637 ADC init...");
+    let cal_data = channel
+        .read_version(&[0x33, 0x81, 0x10, 0x00, 0x10, 0x00])
+        .context("failed to read EEPROM calibration")?;
+    println!(
+        "  Calibration: {}",
+        cal_data
+            .iter()
+            .map(|b| format!("{b:02x}"))
+            .collect::<Vec<_>>()
+            .join(" ")
     );
+
+    let dcm_result =
+        saleae_driver::adc::init_ad9637(&mut channel, &cal_data).context("AD9637 init failed")?;
+    println!(
+        "  DCM locked: {} (r0x40={:#04x})",
+        dcm_result.locked, dcm_result.status_40
+    );
+    println!();
+
+    // --- Step 4: Re-init EP1 + channel enables ---
+    channel
+        .initialize()
+        .context("EP1 re-initialization failed")?;
+    channel.write_registers(&[(0x0f, 0x00), (0x10, 0x0f), (0x11, 0x00)])?;
+    println!("Channel enables set (r0x0f=0x00, r0x10=0x0f, r0x11=0x00).");
+    println!();
+
+    // --- Step 5: Pre-capture ADC power-on ---
+    println!("Pre-capture ADC power-on...");
+    let capture_dcm = saleae_driver::adc::power_on_for_capture(&mut channel)
+        .context("ADC power-on for capture failed")?;
+    println!(
+        "  DCM locked for capture (r0x40={:#04x})",
+        capture_dcm.status_40
+    );
+    println!();
+
+    // --- Step 6: Capture parameters (pcap Phase 7 values) ---
+    // Values from pcap for default config: all channels, 12.5 MSa/s mixed mode.
+    println!("Writing capture parameters...");
+    let capture_regs: [(u8, u8); 12] = [
+        (0x00, 0x00), // capture off during config
+        (0x08, 0xff), // digital channel mask
+        (0x06, 0xff), // analog channel mask
+        (0x0a, 0x20), // sample config
+        (0x0b, 0x10), // sample config
+        (0x0c, 0x00), // sample config
+        (0x1a, 0x00), // config
+        (0x0d, 0x18), // timing config
+        (0x0e, 0x08), // timing config
+        (0x12, 0x02), // capture config
+        (0x13, 0x00), // capture config
+        (0x14, 0x10), // capture config
+    ];
+    channel.write_registers(&capture_regs)?;
+    for &(addr, val) in &capture_regs {
+        println!("  r{addr:#04x} = {val:#04x}");
+    }
+
+    // Readback verify
+    let addrs: Vec<u8> = capture_regs.iter().map(|&(a, _)| a).collect();
+    let readback = channel.read_registers(&addrs)?;
+    let mut mismatch = false;
+    for (i, &(addr, expected)) in capture_regs.iter().enumerate() {
+        let actual = readback.get(i).copied().unwrap_or(0xFF);
+        if actual != expected {
+            mismatch = true;
+            println!("  MISMATCH r{addr:#04x}: wrote {expected:#04x}, read {actual:#04x}");
+        }
+    }
+    if mismatch {
+        bail!("Register readback mismatch.");
+    }
+    println!("  All registers verified.");
+    println!();
+
+    // --- Step 7: Start capture ---
+    println!("Sending StartSampling (0x01)...");
+    channel.start_sampling()?;
+    println!("StartSampling acknowledged.");
+
+    println!("Writing r0x00=0x01 (trigger capture)...");
+    channel.write_registers(&[(0x00, 0x01)])?;
+    println!("Capture triggered.");
+    println!();
+
+    // --- Step 8: EP2 read loop ---
+    println!("Reading EP2 capture data for {duration:.1}s...");
+    let capture_start = std::time::Instant::now();
+    let capture_duration = Duration::from_secs_f64(duration);
+    let mut total_bytes: u64 = 0;
+    let mut read_count: u64 = 0;
+    let mut first_data: Option<Vec<u8>> = None;
+    let mut buf = vec![0u8; 16 * 1024]; // 16 KiB read buffer
+
+    while capture_start.elapsed() < capture_duration {
+        match channel.transport().bulk_transfer_in(0x82, &mut buf) {
+            Ok(n) if n > 0 => {
+                total_bytes += n as u64;
+                read_count += 1;
+                if first_data.is_none() {
+                    first_data = Some(buf[..n.min(256)].to_vec());
+                }
+                if read_count <= 5 || read_count % 1000 == 0 {
+                    let elapsed = capture_start.elapsed().as_secs_f64();
+                    println!(
+                        "  read #{read_count}: {n} bytes (total: {total_bytes}, {elapsed:.2}s)"
+                    );
+                }
+            }
+            Ok(_) => {
+                println!("  EP2: zero-length read");
+            }
+            Err(e) => {
+                eprintln!("  EP2 read error: {e}");
+                break;
+            }
+        }
+    }
+
+    let elapsed = capture_start.elapsed();
+    println!();
+
+    // --- Step 9: Stop capture + teardown ---
+    println!("Stopping capture...");
+    channel.write_registers(&[(0x00, 0x00)])?;
+    println!("  r0x00=0x00 (capture stopped)");
+
+    channel.stop_stream()?;
+    println!("  StopStream (0x02) sent.");
+
+    // Power down ADC
+    match saleae_driver::adc::power_down(&mut channel) {
+        Ok(()) => println!("  ADC powered down."),
+        Err(e) => println!("  WARNING: ADC power-down failed: {e}"),
+    }
+    println!();
+
+    // --- Summary ---
+    println!("Capture complete:");
+    println!("  Duration:    {:.2}s", elapsed.as_secs_f64());
+    println!("  Total reads: {read_count}");
+    println!("  Total bytes: {total_bytes}");
+    if elapsed.as_secs_f64() > 0.0 {
+        let mbps = (total_bytes as f64 * 8.0) / elapsed.as_secs_f64() / 1_000_000.0;
+        println!("  Throughput:  {mbps:.1} Mbps");
+    }
+
+    if let Some(data) = &first_data {
+        println!();
+        println!("First {} bytes of EP2 data:", data.len());
+        for (i, chunk) in data.chunks(16).enumerate() {
+            print!("  {:04x}:", i * 16);
+            for b in chunk {
+                print!(" {b:02x}");
+            }
+            print!("  ");
+            for b in chunk {
+                let c = if b.is_ascii_graphic() || *b == b' ' {
+                    *b as char
+                } else {
+                    '.'
+                };
+                print!("{c}");
+            }
+            println!();
+        }
+    }
+
+    Ok(())
+}
+
+/// Quick capture: minimal sequence to get EP2 data flowing.
+///
+/// For digital-only (analog_mask=0x00): skips all ADC/DCM init.
+/// For mixed (analog_mask!=0x00): runs ADC init with best-effort DCM lock.
+///
+/// This is the simplest path to seeing EP2 data. When --firmware is provided,
+/// uses ensure_device_ready for auto-recovery. Otherwise assumes firmware is
+/// already running.
+pub fn capture_quick(
+    duration: f64,
+    digital_mask_str: &str,
+    analog_mask_str: &str,
+    bitstream_path: Option<&str>,
+    buf_size: usize,
+    output_path: Option<&str>,
+    firmware_path: Option<&str>,
+) -> Result<()> {
+    // Parse hex masks.
+    let digital_mask = parse_hex_u8(digital_mask_str)
+        .with_context(|| format!("invalid digital mask: {digital_mask_str}"))?;
+    let analog_mask = parse_hex_u8(analog_mask_str)
+        .with_context(|| format!("invalid analog mask: {analog_mask_str}"))?;
+
+    let is_digital_only = analog_mask == 0x00;
+
+    println!("capture-quick configuration:");
+    println!("  Duration:      {duration:.1}s");
+    println!("  Digital mask:  {digital_mask:#04x}");
+    println!("  Analog mask:   {analog_mask:#04x}");
+    println!(
+        "  Mode:          {}",
+        if is_digital_only {
+            "digital-only"
+        } else {
+            "mixed analog+digital"
+        }
+    );
+    println!(
+        "  Bitstream:     {}",
+        bitstream_path.unwrap_or("(skip FPGA programming)")
+    );
+    println!("  EP2 buf size:  {buf_size}");
+    if let Some(p) = output_path {
+        println!("  Output file:   {p}");
+    }
+    if let Some(fw) = firmware_path {
+        println!("  Firmware:      {fw} (auto-recovery enabled)");
+    }
+    println!();
+
+    if duration <= 0.0 {
+        bail!("Duration must be > 0.");
+    }
+
+    // Step 1: Get device ready.
+    let mut channel = if let Some(fw_path) = firmware_path {
+        // Auto-recovery: handles bootloader, dead EP1, etc.
+        println!("Ensuring device is ready (firmware + EP1)...");
+        ensure_device_ready(fw_path)?
+    } else {
+        // Manual mode: device must already have firmware running.
+        let device =
+            saleae_usb::discovery::find_first_saleae().context("failed to find Saleae device")?;
+
+        match device.boot_state {
+            BootState::FirmwareRunning => {}
+            BootState::Bootloader => {
+                bail!("Device in bootloader mode. Upload firmware first, or use --firmware for auto-recovery.");
+            }
+            BootState::Unknown(bcd) => {
+                bail!("Unexpected bcdDevice {bcd:#06x}");
+            }
+        }
+
+        println!("Found device: {device}");
+        if let Some(speed) = device.usb_speed {
+            println!("  USB speed: {speed}");
+        }
+
+        let encryption_mode = if device.device_type.is_pro() {
+            saleae_proto::obfuscation::EncryptionMode::XorAll
+        } else if device.device_type.is_fx3() {
+            saleae_proto::obfuscation::EncryptionMode::XorFirmwareOnly
+        } else {
+            saleae_proto::obfuscation::EncryptionMode::None
+        };
+
+        let usb_device =
+            saleae_usb::discovery::open_first_device().context("failed to open device")?;
+        let transport = saleae_usb::nusb_backend::NusbTransport::open(usb_device)
+            .context("failed to claim USB interface")?;
+        let mut ch =
+            saleae_driver::ep1::Ep1CommandChannel::new(Box::new(transport), encryption_mode);
+
+        println!("Initializing EP1 (reseed + ping)...");
+        ch.initialize().context("EP1 initialization failed")?;
+        println!("EP1 initialized.");
+        ch
+    };
+    println!();
+
+    // Step 3: Optionally program FPGA.
+    if let Some(bs_path) = bitstream_path {
+        let bitstream = std::fs::read(bs_path)
+            .with_context(|| format!("failed to read bitstream: {bs_path}"))?;
+
+        // Re-discover device for profile/speed info.
+        let device = saleae_usb::discovery::find_first_saleae().context("device disappeared")?;
+        let profile = device.device_type.profile().context("no device profile")?;
+        let usb_speed = device
+            .usb_speed
+            .unwrap_or_else(|| profile.default_forced_usb_speed());
+
+        // program_fpga includes reset + bitstream upload + r0x7F verify.
+        println!("Programming FPGA ({} bytes)...", bitstream.len());
+        saleae_driver::fpga::program_fpga(&mut channel, &bitstream, profile, usb_speed)
+            .context("FPGA programming failed")?;
+        println!("FPGA programmed and verified.");
+        println!();
+    } else {
+        // Verify FPGA is already programmed by reading r0x7F.
+        println!("Checking if FPGA is programmed...");
+        channel.write_registers(&[(0x7F, 0xAA)])?;
+        let verify = channel.read_registers(&[0x7F])?;
+        if verify[0] != 0xAA {
+            println!(
+                "WARNING: FPGA may not be programmed (r0x7F readback = {:#04x}).",
+                verify[0]
+            );
+            println!("Consider using --bitstream to program it.");
+            println!();
+        } else {
+            println!("FPGA appears programmed (r0x7F readback = 0xAA).");
+            println!();
+        }
+    }
+
+    // Step 4: ADC init (only for mixed mode).
+    if !is_digital_only {
+        println!("Mixed mode: running ADC init...");
+
+        // Read calibration from EEPROM (offset 0x10, 16 bytes).
+        let cal_data = channel
+            .read_version(&[0x33, 0x81, 0x10, 0x00, 0x10, 0x00])
+            .context("failed to read EEPROM calibration")?;
+        println!(
+            "  Calibration: {}",
+            cal_data
+                .iter()
+                .map(|b| format!("{b:02x}"))
+                .collect::<Vec<_>>()
+                .join(" ")
+        );
+
+        match saleae_driver::adc::init_ad9637(&mut channel, &cal_data) {
+            Ok(dcm_result) => {
+                println!(
+                    "  ADC init OK: DCM locked={}, r0x40={:#04x}",
+                    dcm_result.locked, dcm_result.status_40
+                );
+            }
+            Err(e) => {
+                println!("  WARNING: ADC init failed: {e}");
+                println!("  Continuing anyway (best-effort)...");
+            }
+        }
+
+        // Re-init EP1 after ADC init (the binary does this).
+        channel
+            .initialize()
+            .context("EP1 re-init after ADC failed")?;
+
+        // Channel enables.
+        channel.write_registers(&[(0x0f, 0x00), (0x10, 0x0f), (0x11, 0x00)])?;
+        println!("  Channel enables set.");
+
+        // Pre-capture ADC power on.
+        match saleae_driver::adc::power_on_for_capture(&mut channel) {
+            Ok(dcm_result) => {
+                println!("  ADC power-on OK: r0x40={:#04x}", dcm_result.status_40);
+            }
+            Err(e) => {
+                println!("  WARNING: ADC power-on failed: {e}");
+                println!("  Continuing anyway (best-effort for capture data)...");
+            }
+        }
+        println!();
+    } else {
+        println!("Digital-only mode: skipping ADC/DCM init entirely.");
+        println!();
+    }
+
+    // Step 5: Write capture registers.
+    //
+    // Register values from pcap Phase 7 (Logic Pro 8, mixed capture).
+    // For digital-only, we set r0x06=0x00 (no analog channels).
+    let capture_regs: [(u8, u8); 12] = [
+        (0x00, 0x00),         // capture off during config
+        (0x08, digital_mask), // digital channel enable
+        (0x06, analog_mask),  // analog channel enable
+        (0x0a, 0x04),         // analog decimation (pcap value)
+        (0x0b, 0x00),         // digital divider lo (pcap: 0x00 = max rate)
+        (0x0c, 0x00),         // digital divider hi
+        (0x1a, 0x02),         // ADC config
+        (0x0d, 0x30),         // mix ratio A
+        (0x0e, 0x28),         // mix ratio B
+        (0x12, 0x01),         // capture config
+        (0x13, 0x00),         // capture control
+        (0x14, 0x02),         // decimation factor
+    ];
+
+    println!("Writing capture registers...");
+    channel.write_registers(&capture_regs)?;
+    for &(addr, val) in &capture_regs {
+        println!("  r{addr:#04x} = {val:#04x}");
+    }
+
+    // Readback verify.
+    let addrs: Vec<u8> = capture_regs.iter().map(|&(a, _)| a).collect();
+    let readback = channel.read_registers(&addrs)?;
+    let mut any_mismatch = false;
+    for (i, &(addr, expected)) in capture_regs.iter().enumerate() {
+        let actual = readback.get(i).copied().unwrap_or(0xFF);
+        if actual != expected {
+            any_mismatch = true;
+            println!("  MISMATCH r{addr:#04x}: wrote {expected:#04x}, read {actual:#04x}");
+        }
+    }
+    if any_mismatch {
+        println!("WARNING: Register readback mismatches detected. Continuing anyway.");
+    } else {
+        println!("All registers verified.");
+    }
+    println!();
+
+    // Step 6: StartSampling (0x01).
+    println!("Sending StartSampling (0x01)...");
+    channel.start_sampling()?;
+    println!("StartSampling acknowledged.");
+
+    // Step 7: Trigger capture (r0x00=0x01).
+    println!("Writing r0x00=0x01 (trigger capture)...");
+    channel.write_registers(&[(0x00, 0x01)])?;
+    println!("Capture triggered.");
+    println!();
+
+    // Step 8: Read EP2 data for duration.
+    println!("Reading EP2 capture data for {duration:.1}s...");
+    let capture_start = std::time::Instant::now();
+    let capture_duration = Duration::from_secs_f64(duration);
+    let mut total_bytes: u64 = 0;
+    let mut read_count: u64 = 0;
+    let mut first_data: Option<Vec<u8>> = None;
+    let mut buf = vec![0u8; buf_size];
+    let mut output_file = output_path.map(|p| {
+        std::fs::File::create(p).unwrap_or_else(|e| panic!("failed to create output file {p}: {e}"))
+    });
+
+    while capture_start.elapsed() < capture_duration {
+        match channel.transport().bulk_transfer_in(0x82, &mut buf) {
+            Ok(n) if n > 0 => {
+                total_bytes += n as u64;
+                read_count += 1;
+                if first_data.is_none() {
+                    first_data = Some(buf[..n.min(256)].to_vec());
+                }
+                if let Some(ref mut f) = output_file {
+                    use std::io::Write;
+                    f.write_all(&buf[..n])
+                        .unwrap_or_else(|e| eprintln!("write error: {e}"));
+                }
+                if read_count <= 5 || read_count % 1000 == 0 {
+                    let elapsed = capture_start.elapsed().as_secs_f64();
+                    println!(
+                        "  read #{read_count}: {n} bytes (total: {total_bytes}, {elapsed:.2}s)"
+                    );
+                }
+            }
+            Ok(_) => {
+                println!("  EP2: zero-length read");
+            }
+            Err(e) => {
+                eprintln!("  EP2 read error: {e}");
+                break;
+            }
+        }
+    }
+
+    let elapsed = capture_start.elapsed();
+    println!();
+
+    // Step 9: Stop capture.
+    println!("Stopping capture...");
+    channel.write_registers(&[(0x00, 0x00)])?;
+    println!("  r0x00=0x00 (capture stopped)");
+
+    channel.stop_stream()?;
+    println!("  StopStream (0x02) sent.");
+
+    // Power down ADC if we powered it on.
+    if !is_digital_only {
+        match saleae_driver::adc::power_down(&mut channel) {
+            Ok(()) => println!("  ADC powered down."),
+            Err(e) => println!("  WARNING: ADC power-down failed: {e}"),
+        }
+    }
+    println!();
+
+    // Summary.
+    println!("Capture complete:");
+    println!("  Duration:    {:.2}s", elapsed.as_secs_f64());
+    println!("  Total reads: {read_count}");
+    println!("  Total bytes: {total_bytes}");
+    if elapsed.as_secs_f64() > 0.0 {
+        let mbps = (total_bytes as f64 * 8.0) / elapsed.as_secs_f64() / 1_000_000.0;
+        let kbps = total_bytes as f64 / elapsed.as_secs_f64() / 1024.0;
+        println!("  Throughput:  {mbps:.1} Mbps ({kbps:.0} KB/s)");
+    }
+
+    if let Some(p) = output_path {
+        println!("  Raw data:    {p} ({total_bytes} bytes)");
+    }
+
+    if let Some(data) = &first_data {
+        println!();
+        println!("First {} bytes of EP2 data:", data.len());
+        for (i, chunk) in data.chunks(16).enumerate() {
+            print!("  {:04x}:", i * 16);
+            for b in chunk {
+                print!(" {b:02x}");
+            }
+            // ASCII representation.
+            print!("  ");
+            for b in chunk {
+                let c = if b.is_ascii_graphic() || *b == b' ' {
+                    *b as char
+                } else {
+                    '.'
+                };
+                print!("{c}");
+            }
+            println!();
+        }
+    }
+
+    Ok(())
+}
+
+/// Parse a hex string like "0xff" or "ff" or decimal "255" into a u8.
+fn parse_hex_u8(s: &str) -> Result<u8> {
+    let s = s.trim();
+    if let Some(hex) = s.strip_prefix("0x").or_else(|| s.strip_prefix("0X")) {
+        u8::from_str_radix(hex, 16).with_context(|| format!("invalid hex u8: {s}"))
+    } else {
+        // Try decimal first, then hex.
+        s.parse::<u8>()
+            .or_else(|_| u8::from_str_radix(s, 16).with_context(|| format!("invalid u8: {s}")))
+            .with_context(|| format!("invalid u8: {s}"))
+    }
 }
 
 /// Start an analog capture.

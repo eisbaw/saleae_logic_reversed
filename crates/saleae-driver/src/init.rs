@@ -270,15 +270,15 @@ impl<'a> DeviceSession<'a> {
         info!(device_info = %device_info, "Device info");
 
         // Step 4: ReadVersion (first call -- firmware version)
-        let version_data =
-            self.ep1
-                .read_version(&[0x33, 0x81, 0x08, 0x00, 0x08, 0x00])?;
+        let version_data = self
+            .ep1
+            .read_version(&[0x33, 0x81, 0x08, 0x00, 0x08, 0x00])?;
         debug!(len = version_data.len(), "ReadVersion #1");
 
         // Step 4b: ReadVersion (second call -- hardware revision)
-        let version_string =
-            self.ep1
-                .read_version(&[0x33, 0x81, 0x20, 0x00, 0x06, 0x00])?;
+        let version_string = self
+            .ep1
+            .read_version(&[0x33, 0x81, 0x20, 0x00, 0x06, 0x00])?;
         debug!(len = version_string.len(), "ReadVersion #2");
 
         // Step 5: ResetFpga
@@ -354,34 +354,45 @@ impl<'a> DeviceSession<'a> {
         // 3c: JESD link establishment (first attempt may fail)
         jesd::jesd_power_sequence(self.ep1)?;
         let mut jesd_status = self.ep1.read_register_8(fpga_regs::FEAT_JESD_LINK_STATUS)?;
-        debug!(status = format_args!("{jesd_status:#04x}"), "JESD status (first attempt)");
+        debug!(
+            status = format_args!("{jesd_status:#04x}"),
+            "JESD status (first attempt)"
+        );
 
         if jesd_status != fpga_regs::FEAT_JESD_LINK_ESTABLISHED {
             // Pcap shows first attempt returns 0x00, second succeeds.
             debug!("JESD not ready, retrying power sequence");
             jesd::jesd_power_sequence(self.ep1)?;
             jesd_status = self.ep1.read_register_8(fpga_regs::FEAT_JESD_LINK_STATUS)?;
-            debug!(status = format_args!("{jesd_status:#04x}"), "JESD status (second attempt)");
+            debug!(
+                status = format_args!("{jesd_status:#04x}"),
+                "JESD status (second attempt)"
+            );
         }
 
         // Read status registers
-        let _r4a = self.ep1.read_register_8(fpga_regs::FEAT_JESD_STATUS_DETAIL)?;
+        let _r4a = self
+            .ep1
+            .read_register_8(fpga_regs::FEAT_JESD_STATUS_DETAIL)?;
         let _r19 = self.ep1.read_register_8(fpga_regs::FEAT_STATUS_GENERAL)?;
         let _r40 = self.ep1.read_register_8(fpga_regs::FEAT_JESD_LINK_STATUS)?;
-        let _r4a2 = self.ep1.read_register_8(fpga_regs::FEAT_JESD_STATUS_DETAIL)?;
+        let _r4a2 = self
+            .ep1
+            .read_register_8(fpga_regs::FEAT_JESD_STATUS_DETAIL)?;
 
         // 3d: Post-JESD config
-        self.ep1.write_register_8(fpga_regs::FEAT_CAPTURE_INIT, fpga_regs::JESD_POWER_ALL_ACTIVE)?;
-        self.ep1.write_register_8(fpga_regs::FEAT_CAPTURE_INIT, 0x40)?;
+        self.ep1.write_register_8(
+            fpga_regs::FEAT_CAPTURE_INIT,
+            fpga_regs::JESD_POWER_ALL_ACTIVE,
+        )?;
+        self.ep1
+            .write_register_8(fpga_regs::FEAT_CAPTURE_INIT, 0x40)?;
 
         // ReadVersion for calibration data (16 bytes)
-        let calibration_data =
-            self.ep1
-                .read_version(&[0x33, 0x81, 0x10, 0x00, 0x10, 0x00])?;
-        debug!(
-            len = calibration_data.len(),
-            "ReadVersion calibration data"
-        );
+        let calibration_data = self
+            .ep1
+            .read_version(&[0x33, 0x81, 0x10, 0x00, 0x10, 0x00])?;
+        debug!(len = calibration_data.len(), "ReadVersion calibration data");
 
         // 3e: Write calibration coefficients to r0x17
         // The pcap shows 16 individual writes to r0x17 with specific values.
@@ -397,9 +408,12 @@ impl<'a> DeviceSession<'a> {
         jesd::write_adc_register(self.ep1, 0x08, 0x01)?;
         jesd::jesd_power_sequence(self.ep1)?;
         let _r40 = self.ep1.read_register_8(fpga_regs::FEAT_JESD_LINK_STATUS)?;
-        let _r4a = self.ep1.read_register_8(fpga_regs::FEAT_JESD_STATUS_DETAIL)?;
+        let _r4a = self
+            .ep1
+            .read_register_8(fpga_regs::FEAT_JESD_STATUS_DETAIL)?;
         let _r19 = self.ep1.read_register_8(fpga_regs::FEAT_STATUS_GENERAL)?;
-        self.ep1.write_register_8(fpga_regs::FEAT_CAPTURE_CONFIG_2, 0x04)?;
+        self.ep1
+            .write_register_8(fpga_regs::FEAT_CAPTURE_CONFIG_2, 0x04)?;
 
         self.phase = InitPhase::PostFpgaInit;
         info!("Phase 3 complete: post-FPGA init done");
@@ -554,7 +568,8 @@ impl<'a> DeviceSession<'a> {
         info!("Phase 7: Capture start");
 
         // Step 1: ADC re-initialization
-        self.ep1.write_register_8(fpga_regs::FEAT_BANK_POWER, 0x03)?;
+        self.ep1
+            .write_register_8(fpga_regs::FEAT_BANK_POWER, 0x03)?;
         jesd::write_adc_register(self.ep1, 0x08, 0x00)?;
         jesd::write_adc_register(self.ep1, 0x08, 0x03)?;
         jesd::write_adc_register(self.ep1, 0x08, 0x00)?;
@@ -562,10 +577,14 @@ impl<'a> DeviceSession<'a> {
         // Step 2: JESD re-establishment
         jesd::jesd_power_sequence(self.ep1)?;
         let _r40 = self.ep1.read_register_8(fpga_regs::FEAT_JESD_LINK_STATUS)?;
-        let _r4a = self.ep1.read_register_8(fpga_regs::FEAT_JESD_STATUS_DETAIL)?;
+        let _r4a = self
+            .ep1
+            .read_register_8(fpga_regs::FEAT_JESD_STATUS_DETAIL)?;
         let _r19 = self.ep1.read_register_8(fpga_regs::FEAT_STATUS_GENERAL)?;
         let _r40 = self.ep1.read_register_8(fpga_regs::FEAT_JESD_LINK_STATUS)?;
-        let _r4a = self.ep1.read_register_8(fpga_regs::FEAT_JESD_STATUS_DETAIL)?;
+        let _r4a = self
+            .ep1
+            .read_register_8(fpga_regs::FEAT_JESD_STATUS_DETAIL)?;
 
         // Step 3: Write capture parameters
         // The pcap shows a 12-register batch write, but the register count
@@ -584,7 +603,8 @@ impl<'a> DeviceSession<'a> {
         self.ep1.start_sampling()?;
 
         // Step 6: Trigger capture
-        self.ep1.write_register_8(fpga_regs::FEAT_CAPTURE_INIT, 0x01)?;
+        self.ep1
+            .write_register_8(fpga_regs::FEAT_CAPTURE_INIT, 0x01)?;
 
         self.phase = InitPhase::CaptureStart;
         info!("Phase 7 complete: capture started");
@@ -610,17 +630,23 @@ impl<'a> DeviceSession<'a> {
         info!("Phase 8: Capture teardown");
 
         // Step 1: Stop capture
-        self.ep1.write_register_8(fpga_regs::FEAT_CAPTURE_INIT, fpga_regs::JESD_POWER_ALL_ACTIVE)?;
+        self.ep1.write_register_8(
+            fpga_regs::FEAT_CAPTURE_INIT,
+            fpga_regs::JESD_POWER_ALL_ACTIVE,
+        )?;
 
         // Step 2: StopStream
         self.ep1.stop_stream()?;
 
         // Step 3: Read status
         let _r40 = self.ep1.read_register_8(fpga_regs::FEAT_JESD_LINK_STATUS)?;
-        let _r4a = self.ep1.read_register_8(fpga_regs::FEAT_JESD_STATUS_DETAIL)?;
+        let _r4a = self
+            .ep1
+            .read_register_8(fpga_regs::FEAT_JESD_STATUS_DETAIL)?;
 
         // Step 4: Power down
-        self.ep1.write_register_8(fpga_regs::FEAT_BANK_POWER, 0x00)?;
+        self.ep1
+            .write_register_8(fpga_regs::FEAT_BANK_POWER, 0x00)?;
         jesd::write_adc_register(self.ep1, 0x08, 0x01)?;
 
         // Step 5: JESD power-down sequence
@@ -628,7 +654,9 @@ impl<'a> DeviceSession<'a> {
 
         // Step 6: Final status
         let _r40 = self.ep1.read_register_8(fpga_regs::FEAT_JESD_LINK_STATUS)?;
-        let _r4a = self.ep1.read_register_8(fpga_regs::FEAT_JESD_STATUS_DETAIL)?;
+        let _r4a = self
+            .ep1
+            .read_register_8(fpga_regs::FEAT_JESD_STATUS_DETAIL)?;
 
         self.phase = InitPhase::Teardown;
         info!("Phase 8 complete: capture torn down");
@@ -671,9 +699,7 @@ impl<'a> DeviceSession<'a> {
         let readback = self.ep1.read_register_8(0x7F)?;
         if readback != 0xAA {
             return Err(DriverError::FpgaProgramming {
-                context: format!(
-                    "FPGA ID verification failed: expected 0xAA, got {readback:#04x}"
-                ),
+                context: format!("FPGA ID verification failed: expected 0xAA, got {readback:#04x}"),
             });
         }
         debug!("FPGA ID verification OK (0xAA readback)");
@@ -708,7 +734,8 @@ impl<'a> DeviceSession<'a> {
         }
 
         // Single register writes
-        self.ep1.write_register_8(fpga_regs::FEAT_BANK_POWER, 0x00)?;
+        self.ep1
+            .write_register_8(fpga_regs::FEAT_BANK_POWER, 0x00)?;
         jesd::write_adc_register(self.ep1, 0x08, 0x01)?;
 
         Ok(())
@@ -779,20 +806,14 @@ mod tests {
         // Ping response: 0xAA
         mock.push_bulk_in_response(endpoint::BULK_IN, vec![0xAA]);
         // GetDeviceInfo response
-        mock.push_bulk_in_response(
-            endpoint::BULK_IN,
-            b"Logic Pro Firmware\0".to_vec(),
-        );
+        mock.push_bulk_in_response(endpoint::BULK_IN, b"Logic Pro Firmware\0".to_vec());
         // ReadVersion #1 response (8 bytes)
         mock.push_bulk_in_response(
             endpoint::BULK_IN,
             vec![0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08],
         );
         // ReadVersion #2 response ("REV." + version)
-        mock.push_bulk_in_response(
-            endpoint::BULK_IN,
-            b"REV.1\0".to_vec(),
-        );
+        mock.push_bulk_in_response(endpoint::BULK_IN, b"REV.1\0".to_vec());
         // ResetFpga response
         mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
     }
@@ -857,8 +878,10 @@ mod tests {
         // read_version calibration data -> 16 bytes
         mock.push_bulk_in_response(
             endpoint::BULK_IN,
-            vec![0x46, 0xFF, 0xC6, 0xA6, 0x60, 0xB7, 0xDE, 0x07,
-                 0x67, 0x8B, 0x03, 0x66, 0x11, 0x35, 0x7C, 0x7F],
+            vec![
+                0x46, 0xFF, 0xC6, 0xA6, 0x60, 0xB7, 0xDE, 0x07, 0x67, 0x8B, 0x03, 0x66, 0x11, 0x35,
+                0x7C, 0x7F,
+            ],
         );
 
         // 3e: 16 calibration coefficient writes to r0x17 -> 16 ACKs
@@ -929,7 +952,8 @@ mod tests {
         queue_phase1_responses(&mock);
 
         let mut ep1 = mock_channel_none(&mock);
-        let mut session = DeviceSession::new(&mut ep1, LOGIC_PRO_8_PROFILE.clone(), UsbSpeed::Super);
+        let mut session =
+            DeviceSession::new(&mut ep1, LOGIC_PRO_8_PROFILE.clone(), UsbSpeed::Super);
 
         let result = session.handshake().unwrap();
         assert_eq!(session.phase(), InitPhase::Handshake);
@@ -971,7 +995,8 @@ mod tests {
         queue_phase1_responses(&mock);
 
         let mut ep1 = mock_channel_none(&mock);
-        let mut session = DeviceSession::new(&mut ep1, LOGIC_PRO_8_PROFILE.clone(), UsbSpeed::Super);
+        let mut session =
+            DeviceSession::new(&mut ep1, LOGIC_PRO_8_PROFILE.clone(), UsbSpeed::Super);
 
         session.handshake().unwrap();
         let err = session.handshake().unwrap_err();
@@ -986,7 +1011,8 @@ mod tests {
     fn upload_fpga_requires_handshake() {
         let mock = std::sync::Arc::new(MockTransport::new());
         let mut ep1 = mock_channel_none(&mock);
-        let mut session = DeviceSession::new(&mut ep1, LOGIC_PRO_8_PROFILE.clone(), UsbSpeed::Super);
+        let mut session =
+            DeviceSession::new(&mut ep1, LOGIC_PRO_8_PROFILE.clone(), UsbSpeed::Super);
 
         let err = session.upload_fpga(&[0xFF; 100]).unwrap_err();
         assert!(err.to_string().contains("Handshake"));
@@ -1000,7 +1026,8 @@ mod tests {
         queue_phase2_responses(&mock, 1);
 
         let mut ep1 = mock_channel_none(&mock);
-        let mut session = DeviceSession::new(&mut ep1, LOGIC_PRO_8_PROFILE.clone(), UsbSpeed::Super);
+        let mut session =
+            DeviceSession::new(&mut ep1, LOGIC_PRO_8_PROFILE.clone(), UsbSpeed::Super);
 
         session.handshake().unwrap();
         session.upload_fpga(&[0xFF; 100]).unwrap();
@@ -1015,7 +1042,8 @@ mod tests {
     fn configure_channels_requires_post_fpga_init() {
         let mock = std::sync::Arc::new(MockTransport::new());
         let mut ep1 = mock_channel_none(&mock);
-        let mut session = DeviceSession::new(&mut ep1, LOGIC_PRO_8_PROFILE.clone(), UsbSpeed::Super);
+        let mut session =
+            DeviceSession::new(&mut ep1, LOGIC_PRO_8_PROFILE.clone(), UsbSpeed::Super);
 
         let config = ChannelConfig::default();
         let err = session.configure_channels(&config).unwrap_err();
@@ -1030,7 +1058,8 @@ mod tests {
     fn start_capture_requires_channel_config() {
         let mock = std::sync::Arc::new(MockTransport::new());
         let mut ep1 = mock_channel_none(&mock);
-        let mut session = DeviceSession::new(&mut ep1, LOGIC_PRO_8_PROFILE.clone(), UsbSpeed::Super);
+        let mut session =
+            DeviceSession::new(&mut ep1, LOGIC_PRO_8_PROFILE.clone(), UsbSpeed::Super);
 
         let params = CaptureParams::default();
         let err = session.start_capture(&params).unwrap_err();
@@ -1045,7 +1074,8 @@ mod tests {
     fn stop_capture_requires_capture_start() {
         let mock = std::sync::Arc::new(MockTransport::new());
         let mut ep1 = mock_channel_none(&mock);
-        let mut session = DeviceSession::new(&mut ep1, LOGIC_PRO_8_PROFILE.clone(), UsbSpeed::Super);
+        let mut session =
+            DeviceSession::new(&mut ep1, LOGIC_PRO_8_PROFILE.clone(), UsbSpeed::Super);
 
         let err = session.stop_capture().unwrap_err();
         assert!(err.to_string().contains("Capture Start"));
@@ -1073,7 +1103,8 @@ mod tests {
         queue_channel_config_responses(&mock);
 
         let mut ep1 = mock_channel_none(&mock);
-        let mut session = DeviceSession::new(&mut ep1, LOGIC_PRO_8_PROFILE.clone(), UsbSpeed::Super);
+        let mut session =
+            DeviceSession::new(&mut ep1, LOGIC_PRO_8_PROFILE.clone(), UsbSpeed::Super);
 
         session.handshake().unwrap();
         session.upload_fpga(&[0xFF; 100]).unwrap();
@@ -1110,7 +1141,10 @@ mod tests {
         // Phase 1: 1 ping (after reseed #1)
         // Phase 4: 1 ping (after reseed #2)
         // Phase 5: 1 ping (after reseed #3)
-        assert_eq!(ping_count, 3, "expected 3 pings (one per reseed in Phases 1, 4, 5)");
+        assert_eq!(
+            ping_count, 3,
+            "expected 3 pings (one per reseed in Phases 1, 4, 5)"
+        );
     }
 
     // -------------------------------------------------------------------

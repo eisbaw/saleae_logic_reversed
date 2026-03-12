@@ -140,3 +140,32 @@ pub fn wait_for_device(timeout: Duration, poll_interval: Duration) -> UsbResult<
         std::thread::sleep(poll_interval);
     }
 }
+
+/// Wait for a Saleae device to appear on the USB bus in bootloader mode.
+///
+/// Polls `list_devices()` every `poll_interval` until a device with
+/// `BootState::Bootloader` is found or `timeout` expires.
+///
+/// This is used after sending ResetAndReEnumerate to wait for the device
+/// to reboot into the B2 bootloader.
+pub fn wait_for_bootloader(timeout: Duration, poll_interval: Duration) -> UsbResult<SaleaeDevice> {
+    let start = Instant::now();
+
+    loop {
+        if let Ok(devices) = list_devices() {
+            for device in devices {
+                if device.boot_state == BootState::Bootloader {
+                    return Ok(device);
+                }
+            }
+        }
+
+        if start.elapsed() >= timeout {
+            return Err(UsbError::Timeout {
+                timeout_ms: timeout.as_millis() as u64,
+            });
+        }
+
+        std::thread::sleep(poll_interval);
+    }
+}

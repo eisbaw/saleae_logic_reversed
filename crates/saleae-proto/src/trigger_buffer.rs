@@ -516,21 +516,11 @@ mod tests {
 
         // Trigger on sample 10 (rising edge).
         let s = cap.process_sample(10, &[true]);
-        assert_eq!(
-            s,
-            TriggerCaptureState::Triggered {
-                trigger_sample: 10
-            }
-        );
+        assert_eq!(s, TriggerCaptureState::Triggered { trigger_sample: 10 });
 
         // Collect 2 more post-trigger samples.
         let s = cap.process_sample(11, &[true]);
-        assert_eq!(
-            s,
-            TriggerCaptureState::Triggered {
-                trigger_sample: 10
-            }
-        );
+        assert_eq!(s, TriggerCaptureState::Triggered { trigger_sample: 10 });
 
         let s = cap.process_sample(12, &[false]);
         assert_eq!(s, TriggerCaptureState::Complete);
@@ -599,22 +589,12 @@ mod tests {
 
         cap.process_sample(0, &[false]);
         let s = cap.process_sample(1, &[true]); // trigger fires
-        assert_eq!(
-            s,
-            TriggerCaptureState::Triggered {
-                trigger_sample: 1
-            }
-        );
+        assert_eq!(s, TriggerCaptureState::Triggered { trigger_sample: 1 });
 
         // Collect 4 more (trigger sample was #1 of 5).
         for i in 2..5 {
             let s = cap.process_sample(i, &[true]);
-            assert_eq!(
-                s,
-                TriggerCaptureState::Triggered {
-                    trigger_sample: 1
-                }
-            );
+            assert_eq!(s, TriggerCaptureState::Triggered { trigger_sample: 1 });
         }
         let s = cap.process_sample(5, &[false]);
         assert_eq!(s, TriggerCaptureState::Complete);
@@ -647,12 +627,7 @@ mod tests {
 
         cap.process_sample(0, &[false]);
         let s = cap.process_sample(1, &[true]); // trigger
-        assert_eq!(
-            s,
-            TriggerCaptureState::Triggered {
-                trigger_sample: 1
-            }
-        );
+        assert_eq!(s, TriggerCaptureState::Triggered { trigger_sample: 1 });
 
         let s = cap.process_sample(2, &[false]);
         assert_eq!(s, TriggerCaptureState::Complete);
@@ -735,12 +710,7 @@ mod tests {
         cap.process_sample(1, &[true, false]);
         // ch0=true, ch1=true -- ch1 rising edge, trigger!
         let s = cap.process_sample(2, &[true, true]);
-        assert_eq!(
-            s,
-            TriggerCaptureState::Triggered {
-                trigger_sample: 2
-            }
-        );
+        assert_eq!(s, TriggerCaptureState::Triggered { trigger_sample: 2 });
 
         let s = cap.process_sample(3, &[false, false]);
         assert_eq!(s, TriggerCaptureState::Complete);
@@ -812,12 +782,7 @@ mod tests {
 
         cap.process_sample(0, &[false]);
         let s = cap.process_sample(1, &[true]);
-        assert_eq!(
-            s,
-            TriggerCaptureState::Triggered {
-                trigger_sample: 1
-            }
-        );
+        assert_eq!(s, TriggerCaptureState::Triggered { trigger_sample: 1 });
 
         let s = cap.process_sample(2, &[false]);
         assert_eq!(s, TriggerCaptureState::Complete);
@@ -893,12 +858,7 @@ mod tests {
         cap.process_sample(1, &[true]);
         // Falling edge at sample 2.
         let s = cap.process_sample(2, &[false]);
-        assert_eq!(
-            s,
-            TriggerCaptureState::Triggered {
-                trigger_sample: 2
-            }
-        );
+        assert_eq!(s, TriggerCaptureState::Triggered { trigger_sample: 2 });
 
         let s = cap.process_sample(3, &[false]);
         assert_eq!(s, TriggerCaptureState::Complete);

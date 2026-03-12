@@ -215,7 +215,12 @@ pub fn eeprom_read_register_poll(
         }
 
         let status = response[0];
-        debug!(attempt, status = format_args!("{status:#04x}"), response_len = response.len(), "EEPROM poll");
+        debug!(
+            attempt,
+            status = format_args!("{status:#04x}"),
+            response_len = response.len(),
+            "EEPROM poll"
+        );
 
         match status {
             EEPROM_STATUS_NOT_READY => {
@@ -239,8 +244,7 @@ pub fn eeprom_read_register_poll(
                 // for the caller to interpret.
                 warn!(
                     status = format_args!("{other:#04x}"),
-                    attempt,
-                    "EEPROM polled read: unexpected status byte, returning full response"
+                    attempt, "EEPROM polled read: unexpected status byte, returning full response"
                 );
                 return Ok(response);
             }
@@ -262,7 +266,10 @@ pub fn eeprom_read_register_poll(
 ///
 /// Observed values from pcap: `[0x02, 0x04, 0x11, 0x33, 0x43]`
 pub fn eeprom_read_device_id(channel: &mut Ep1CommandChannel) -> DriverResult<Vec<u8>> {
-    info!("Reading EEPROM device ID from I2C addr {:#04x}", EEPROM_I2C_ADDR);
+    info!(
+        "Reading EEPROM device ID from I2C addr {:#04x}",
+        EEPROM_I2C_ADDR
+    );
 
     let data = eeprom_read_register(channel, EEPROM_I2C_ADDR, EEPROM_REG_DEVICE_ID, 0)?;
 
@@ -311,7 +318,12 @@ pub fn eeprom_read_calibration_block(
     );
 
     // Step 1: Issue the read command.
-    eeprom_write_register(channel, EEPROM_I2C_ADDR, EEPROM_REG_READ_CMD, block_cmd_data)?;
+    eeprom_write_register(
+        channel,
+        EEPROM_I2C_ADDR,
+        EEPROM_REG_READ_CMD,
+        block_cmd_data,
+    )?;
 
     // Step 2: Poll for the response data.
     let data = eeprom_read_register_poll(channel, EEPROM_I2C_ADDR, response_reg)?;
@@ -400,11 +412,8 @@ pub fn eeprom_read_full_calibration(
     let _write_resp = eeprom_write_calibration_params(channel, cal_params)?;
 
     // Step 5: Read response from 35-byte register (may contain updated data).
-    let _block_35_updated = eeprom_read_register_poll(
-        channel,
-        EEPROM_I2C_ADDR,
-        EEPROM_REG_READ_BLOCK_35,
-    )?;
+    let _block_35_updated =
+        eeprom_read_register_poll(channel, EEPROM_I2C_ADDR, EEPROM_REG_READ_BLOCK_35)?;
 
     // Step 6: Acknowledge.
     eeprom_write_register(channel, EEPROM_I2C_ADDR, EEPROM_REG_ACK, &[])?;
@@ -440,6 +449,182 @@ pub fn eeprom_read_full_calibration(
     );
 
     Ok(calibration)
+}
+
+// ---------------------------------------------------------------------------
+// EEPROM Self-Test (decompiled from LogicProfessionalDevice::TestEeprom)
+// ---------------------------------------------------------------------------
+
+/// EEPROM size in bytes for FX3-based Pro devices.
+///
+/// Decompiled from `LogicProfessionalDevice::TestEeprom` (ELF VA 0x1c44010):
+/// the test writes/reads 0x1000 bytes total. ReadEeprom reads 16 chunks
+/// of 0x100 bytes each.
+pub const FX3_EEPROM_SIZE: usize = 0x1000; // 4096 bytes
+
+/// Start offset for the self-test write pattern.
+///
+/// The first 8 bytes (CY bootloader header + VID/PID) are preserved.
+/// The test pattern starts at byte 8.
+pub const EEPROM_TEST_START_OFFSET: u16 = 8;
+
+/// Chunk size for EEPROM read/write operations.
+///
+/// Both ReadEeprom and WriteEeprom operate in 256-byte chunks.
+pub const EEPROM_CHUNK_SIZE: usize = 0x100; // 256 bytes
+
+/// Result of the EEPROM self-test.
+#[derive(Debug, Clone)]
+pub struct EepromTestResult {
+    /// Whether the test passed.
+    pub passed: bool,
+    /// Number of bytes tested.
+    pub bytes_tested: usize,
+    /// Index of first mismatch (if any), relative to EEPROM start.
+    pub first_mismatch_offset: Option<usize>,
+    /// Expected byte at the mismatch position.
+    pub expected: Option<u8>,
+    /// Actual byte at the mismatch position.
+    pub actual: Option<u8>,
+}
+
+/// Read the entire FX3 EEPROM using ReadVersion I2C tunnel.
+///
+/// Decompiled from `FUN_01d43660` (Ghidra 01d43660, ELF 0x1c43660):
+/// reads 16 chunks of 256 bytes at offsets 0x0000..0x0F00, concatenating
+/// into a single 4096-byte vector.
+///
+/// Uses `Ep1CommandChannel::read_eeprom` which sends opcode 0x07 with
+/// params `[0x33, 0x81, addr_lo, addr_hi, count_lo, count_hi]`.
+pub fn eeprom_read_all(channel: &mut Ep1CommandChannel) -> DriverResult<Vec<u8>> {
+    info!("Reading entire EEPROM ({FX3_EEPROM_SIZE} bytes)");
+
+    let mut data = Vec::with_capacity(FX3_EEPROM_SIZE);
+
+    for chunk_idx in 0..16 {
+        let offset = (chunk_idx * EEPROM_CHUNK_SIZE) as u16;
+        let chunk = channel.read_eeprom(offset, EEPROM_CHUNK_SIZE as u16)?;
+        debug!(
+            offset = format_args!("{offset:#06x}"),
+            chunk_len = chunk.len(),
+            "EEPROM chunk read"
+        );
+        data.extend_from_slice(&chunk);
+    }
+
+    info!(total_len = data.len(), "EEPROM read complete");
+    Ok(data)
+}
+
+/// Run the EEPROM self-test.
+///
+/// Decompiled from `LogicProfessionalDevice::TestEeprom` (ELF VA 0x1c44010,
+/// source: `LogicProfessionalDevice.cpp` line 84).
+///
+/// ## Algorithm
+///
+/// 1. **Write phase**: Writes an incrementing byte pattern (0x00, 0x01,
+///    0x02, ..., wrapping at 256) to EEPROM addresses 0x0008..0x0FFF.
+///    The first 8 bytes (CY bootloader header + VID/PID) are preserved.
+///
+/// 2. **Read phase**: Reads back the entire EEPROM (0x0000..0x0FFF).
+///
+/// 3. **Verify phase**: Compares each byte from offset 8 onward against
+///    the expected incrementing pattern. On mismatch, the original code
+///    asserts with "EEprom error detected!".
+///
+/// ## Warning
+///
+/// **This test is DESTRUCTIVE.** It overwrites all EEPROM data from byte 8
+/// onward, including:
+/// - Device serial/ID (0x0008..0x000F)
+/// - Calibration coefficients (0x0010..0x001F)
+/// - Hardware revision (0x0020..0x0025)
+/// - All remaining EEPROM space
+///
+/// After running this test, the device will need re-calibration and
+/// EEPROM data restoration. This is a **manufacturing/diagnostic** test,
+/// not intended for production use.
+pub fn eeprom_self_test(channel: &mut Ep1CommandChannel) -> DriverResult<EepromTestResult> {
+    warn!("Starting DESTRUCTIVE EEPROM self-test -- all data from offset 8 onward will be overwritten");
+
+    // -----------------------------------------------------------------------
+    // Phase 1: Write incrementing pattern to addresses 8..0x0FFF
+    // -----------------------------------------------------------------------
+    let mut counter: u8 = 0;
+    let mut address = EEPROM_TEST_START_OFFSET;
+
+    while (address as usize) < FX3_EEPROM_SIZE {
+        let remaining = FX3_EEPROM_SIZE - address as usize;
+        let chunk_size = remaining.min(EEPROM_CHUNK_SIZE);
+
+        // Fill chunk with incrementing pattern.
+        let mut chunk = vec![0u8; chunk_size];
+        for byte in chunk.iter_mut() {
+            *byte = counter;
+            counter = counter.wrapping_add(1);
+        }
+
+        debug!(
+            address = format_args!("{address:#06x}"),
+            chunk_size, "Writing EEPROM test pattern"
+        );
+        channel.write_eeprom(address, &chunk)?;
+        address += chunk_size as u16;
+    }
+
+    info!("EEPROM write phase complete");
+
+    // -----------------------------------------------------------------------
+    // Phase 2: Read back entire EEPROM
+    // -----------------------------------------------------------------------
+    let readback = eeprom_read_all(channel)?;
+
+    // -----------------------------------------------------------------------
+    // Phase 3: Verify pattern starting at offset 8
+    // -----------------------------------------------------------------------
+    let test_start = EEPROM_TEST_START_OFFSET as usize;
+
+    if readback.len() < test_start + 1 {
+        warn!("EEPROM readback too short for verification");
+        return Ok(EepromTestResult {
+            passed: false,
+            bytes_tested: 0,
+            first_mismatch_offset: None,
+            expected: None,
+            actual: None,
+        });
+    }
+
+    let bytes_to_test = readback.len() - test_start;
+    for i in 0..bytes_to_test {
+        let expected = i as u8;
+        let actual = readback[test_start + i];
+        if expected != actual {
+            warn!(
+                offset = test_start + i,
+                expected = format_args!("{expected:#04x}"),
+                actual = format_args!("{actual:#04x}"),
+                "EEPROM self-test FAILED: byte mismatch"
+            );
+            return Ok(EepromTestResult {
+                passed: false,
+                bytes_tested: i,
+                first_mismatch_offset: Some(test_start + i),
+                expected: Some(expected),
+                actual: Some(actual),
+            });
+        }
+    }
+
+    info!(bytes_tested = bytes_to_test, "EEPROM self-test PASSED");
+    Ok(EepromTestResult {
+        passed: true,
+        bytes_tested: bytes_to_test,
+        first_mismatch_offset: None,
+        expected: None,
+        actual: None,
+    })
 }
 
 // ---------------------------------------------------------------------------
@@ -505,10 +690,7 @@ mod tests {
         let mock = std::sync::Arc::new(MockTransport::new());
 
         // ReadI2C response: 5 bytes
-        mock.push_bulk_in_response(
-            endpoint::BULK_IN,
-            vec![0x02, 0x04, 0x11, 0x33, 0x43],
-        );
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x02, 0x04, 0x11, 0x33, 0x43]);
 
         let mut channel = mock_channel(&mock);
         let id = eeprom_read_device_id(&mut channel).unwrap();
@@ -544,12 +726,9 @@ mod tests {
         );
 
         let mut channel = mock_channel(&mock);
-        let data = eeprom_read_register_poll(
-            &mut channel,
-            EEPROM_I2C_ADDR,
-            EEPROM_REG_READ_BLOCK_35,
-        )
-        .unwrap();
+        let data =
+            eeprom_read_register_poll(&mut channel, EEPROM_I2C_ADDR, EEPROM_REG_READ_BLOCK_35)
+                .unwrap();
 
         assert_eq!(data, vec![0xAA, 0xBB, 0xCC]);
     }
@@ -559,18 +738,12 @@ mod tests {
         let mock = std::sync::Arc::new(MockTransport::new());
 
         // Immediately ready.
-        mock.push_bulk_in_response(
-            endpoint::BULK_IN,
-            vec![EEPROM_STATUS_READY, 0x42, 0xFF],
-        );
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![EEPROM_STATUS_READY, 0x42, 0xFF]);
 
         let mut channel = mock_channel(&mock);
-        let data = eeprom_read_register_poll(
-            &mut channel,
-            EEPROM_I2C_ADDR,
-            EEPROM_REG_READ_BLOCK_35,
-        )
-        .unwrap();
+        let data =
+            eeprom_read_register_poll(&mut channel, EEPROM_I2C_ADDR, EEPROM_REG_READ_BLOCK_35)
+                .unwrap();
 
         assert_eq!(data, vec![0x42, 0xFF]);
     }
@@ -583,18 +756,12 @@ mod tests {
         for _ in 0..5 {
             mock.push_bulk_in_response(endpoint::BULK_IN, vec![EEPROM_STATUS_NOT_READY]);
         }
-        mock.push_bulk_in_response(
-            endpoint::BULK_IN,
-            vec![EEPROM_STATUS_READY, 0x01, 0x02],
-        );
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![EEPROM_STATUS_READY, 0x01, 0x02]);
 
         let mut channel = mock_channel(&mock);
-        let data = eeprom_read_register_poll(
-            &mut channel,
-            EEPROM_I2C_ADDR,
-            EEPROM_REG_READ_BLOCK_67,
-        )
-        .unwrap();
+        let data =
+            eeprom_read_register_poll(&mut channel, EEPROM_I2C_ADDR, EEPROM_REG_READ_BLOCK_67)
+                .unwrap();
 
         assert_eq!(data, vec![0x01, 0x02]);
     }
@@ -604,18 +771,12 @@ mod tests {
         let mock = std::sync::Arc::new(MockTransport::new());
 
         // Unexpected status byte 0x03.
-        mock.push_bulk_in_response(
-            endpoint::BULK_IN,
-            vec![0x03, 0xDE, 0xAD],
-        );
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x03, 0xDE, 0xAD]);
 
         let mut channel = mock_channel(&mock);
-        let data = eeprom_read_register_poll(
-            &mut channel,
-            EEPROM_I2C_ADDR,
-            EEPROM_REG_READ_BLOCK_35,
-        )
-        .unwrap();
+        let data =
+            eeprom_read_register_poll(&mut channel, EEPROM_I2C_ADDR, EEPROM_REG_READ_BLOCK_35)
+                .unwrap();
 
         // Returns the full response including the status byte.
         assert_eq!(data, vec![0x03, 0xDE, 0xAD]);
@@ -642,12 +803,8 @@ mod tests {
         mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
 
         let mut channel = mock_channel(&mock);
-        let data = eeprom_read_calibration_block(
-            &mut channel,
-            &[],
-            EEPROM_REG_READ_BLOCK_35,
-        )
-        .unwrap();
+        let data =
+            eeprom_read_calibration_block(&mut channel, &[], EEPROM_REG_READ_BLOCK_35).unwrap();
 
         assert_eq!(data, vec![0x10, 0x20, 0x30]);
     }
@@ -695,10 +852,7 @@ mod tests {
         let mock = std::sync::Arc::new(MockTransport::new());
 
         // Step 1: Read device ID (ReadI2C response).
-        mock.push_bulk_in_response(
-            endpoint::BULK_IN,
-            vec![0x02, 0x04, 0x11, 0x33, 0x43],
-        );
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x02, 0x04, 0x11, 0x33, 0x43]);
 
         // Step 2: Read 35-byte calibration block.
         //   2a: WriteI2C to 0x08 (issue read command).
@@ -712,28 +866,19 @@ mod tests {
         mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
 
         // Step 3: Read device ID again.
-        mock.push_bulk_in_response(
-            endpoint::BULK_IN,
-            vec![0x02, 0x04, 0x11, 0x33, 0x43],
-        );
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x02, 0x04, 0x11, 0x33, 0x43]);
 
         // Step 4: Write calibration params (WriteI2C response).
         mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
 
         // Step 5: Polled read (response from 0x23 after write).
-        mock.push_bulk_in_response(
-            endpoint::BULK_IN,
-            vec![EEPROM_STATUS_READY, 0xDD, 0xEE],
-        );
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![EEPROM_STATUS_READY, 0xDD, 0xEE]);
 
         // Step 6: Acknowledge.
         mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
 
         // Step 7: Read device ID again.
-        mock.push_bulk_in_response(
-            endpoint::BULK_IN,
-            vec![0x02, 0x04, 0x11, 0x33, 0x43],
-        );
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x02, 0x04, 0x11, 0x33, 0x43]);
 
         // Step 8: Read 67-byte calibration block.
         //   8a: WriteI2C to 0x08 (issue read command).
@@ -763,49 +908,31 @@ mod tests {
         let mock = std::sync::Arc::new(MockTransport::new());
 
         // Step 1: Read device ID.
-        mock.push_bulk_in_response(
-            endpoint::BULK_IN,
-            vec![0x02, 0x04, 0x11, 0x33, 0x43],
-        );
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x02, 0x04, 0x11, 0x33, 0x43]);
 
         // Step 2: 35-byte block (immediate ready).
         mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]); // write cmd
-        mock.push_bulk_in_response(
-            endpoint::BULK_IN,
-            vec![EEPROM_STATUS_READY, 0xAA],
-        );
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![EEPROM_STATUS_READY, 0xAA]);
         mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]); // ack
 
         // Step 3: Device ID differs!
-        mock.push_bulk_in_response(
-            endpoint::BULK_IN,
-            vec![0xFF, 0xFF, 0xFF, 0xFF, 0xFF],
-        );
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0xFF, 0xFF, 0xFF, 0xFF, 0xFF]);
 
         // Step 4: Write cal params.
         mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
 
         // Step 5: Polled read.
-        mock.push_bulk_in_response(
-            endpoint::BULK_IN,
-            vec![EEPROM_STATUS_READY, 0x42],
-        );
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![EEPROM_STATUS_READY, 0x42]);
 
         // Step 6: Acknowledge.
         mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
 
         // Step 7: Device ID (matches original again).
-        mock.push_bulk_in_response(
-            endpoint::BULK_IN,
-            vec![0x02, 0x04, 0x11, 0x33, 0x43],
-        );
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x02, 0x04, 0x11, 0x33, 0x43]);
 
         // Step 8: 67-byte block (immediate ready).
         mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]); // write cmd
-        mock.push_bulk_in_response(
-            endpoint::BULK_IN,
-            vec![EEPROM_STATUS_READY, 0xBB],
-        );
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![EEPROM_STATUS_READY, 0xBB]);
         mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]); // ack
 
         let mut channel = mock_channel(&mock);
@@ -828,13 +955,8 @@ mod tests {
         mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
 
         let mut channel = mock_channel(&mock);
-        let resp = eeprom_write_register(
-            &mut channel,
-            EEPROM_I2C_ADDR,
-            EEPROM_REG_ACK,
-            &[],
-        )
-        .unwrap();
+        let resp =
+            eeprom_write_register(&mut channel, EEPROM_I2C_ADDR, EEPROM_REG_ACK, &[]).unwrap();
 
         assert_eq!(resp, vec![0x00]);
 
@@ -869,5 +991,126 @@ mod tests {
         assert_eq!(EEPROM_REG_READ_BLOCK_67, 0x43);
         assert_eq!(EEPROM_STATUS_NOT_READY, 0x01);
         assert_eq!(EEPROM_STATUS_READY, 0x02);
+    }
+
+    #[test]
+    fn self_test_constants_match_decompilation() {
+        assert_eq!(FX3_EEPROM_SIZE, 0x1000);
+        assert_eq!(EEPROM_TEST_START_OFFSET, 8);
+        assert_eq!(EEPROM_CHUNK_SIZE, 0x100);
+    }
+
+    // -------------------------------------------------------------------
+    // eeprom_read_all tests
+    // -------------------------------------------------------------------
+
+    #[test]
+    fn read_all_returns_4096_bytes() {
+        let mock = std::sync::Arc::new(MockTransport::new());
+
+        // 16 read chunks of 256 bytes each. Each read_eeprom call
+        // does send_command + recv_response, so push 16 responses.
+        for chunk_idx in 0..16u8 {
+            let chunk: Vec<u8> = (0u8..=255).map(|b| b.wrapping_add(chunk_idx)).collect();
+            mock.push_bulk_in_response(endpoint::BULK_IN, chunk);
+        }
+
+        let mut channel = mock_channel(&mock);
+        let data = eeprom_read_all(&mut channel).unwrap();
+
+        assert_eq!(data.len(), FX3_EEPROM_SIZE);
+        // First chunk starts with 0, 1, 2, ...
+        assert_eq!(data[0], 0);
+        assert_eq!(data[1], 1);
+        // Second chunk starts with 1, 2, 3, ...
+        assert_eq!(data[256], 1);
+        assert_eq!(data[257], 2);
+    }
+
+    // -------------------------------------------------------------------
+    // eeprom_self_test tests
+    // -------------------------------------------------------------------
+
+    #[test]
+    fn self_test_passes_with_correct_pattern() {
+        let mock = std::sync::Arc::new(MockTransport::new());
+
+        // Phase 1: Write responses. Writes start at offset 8.
+        // First chunk: 256 - 8 = 248 bytes (offset 8..256), but the algorithm
+        // writes in full 256-byte chunks starting at address 8.
+        // The write loop: address starts at 8, increments by 256.
+        // Addresses: 8, 264, 520, ..., 3848
+        // That's ceil((4096 - 8) / 256) = 16 chunks.
+        // Each write_eeprom does 2 send+recv pairs (header + data).
+        let num_write_chunks =
+            (FX3_EEPROM_SIZE - EEPROM_TEST_START_OFFSET as usize + EEPROM_CHUNK_SIZE - 1)
+                / EEPROM_CHUNK_SIZE;
+        for _ in 0..num_write_chunks {
+            // Header response
+            mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
+            // Data response
+            mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
+        }
+
+        // Phase 2: Read responses (16 chunks).
+        // Build the expected EEPROM content:
+        // Bytes 0..7: preserved (random/original data, we'll use 0xFF).
+        // Bytes 8..4095: incrementing pattern 0, 1, 2, ..., wrapping.
+        let mut eeprom = vec![0xFFu8; FX3_EEPROM_SIZE];
+        for i in 0..(FX3_EEPROM_SIZE - EEPROM_TEST_START_OFFSET as usize) {
+            eeprom[EEPROM_TEST_START_OFFSET as usize + i] = i as u8;
+        }
+
+        for chunk_idx in 0..16 {
+            let start = chunk_idx * EEPROM_CHUNK_SIZE;
+            let end = start + EEPROM_CHUNK_SIZE;
+            mock.push_bulk_in_response(endpoint::BULK_IN, eeprom[start..end].to_vec());
+        }
+
+        let mut channel = mock_channel(&mock);
+        let result = eeprom_self_test(&mut channel).unwrap();
+
+        assert!(result.passed, "self-test should pass");
+        assert_eq!(
+            result.bytes_tested,
+            FX3_EEPROM_SIZE - EEPROM_TEST_START_OFFSET as usize
+        );
+        assert!(result.first_mismatch_offset.is_none());
+    }
+
+    #[test]
+    fn self_test_detects_mismatch() {
+        let mock = std::sync::Arc::new(MockTransport::new());
+
+        // Write responses (16 chunks, 2 responses each).
+        let num_write_chunks =
+            (FX3_EEPROM_SIZE - EEPROM_TEST_START_OFFSET as usize + EEPROM_CHUNK_SIZE - 1)
+                / EEPROM_CHUNK_SIZE;
+        for _ in 0..num_write_chunks {
+            mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
+            mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
+        }
+
+        // Read responses with a corrupted byte at offset 10.
+        let mut eeprom = vec![0xFFu8; FX3_EEPROM_SIZE];
+        for i in 0..(FX3_EEPROM_SIZE - EEPROM_TEST_START_OFFSET as usize) {
+            eeprom[EEPROM_TEST_START_OFFSET as usize + i] = i as u8;
+        }
+        // Corrupt byte at offset 10 (which is pattern index 2).
+        eeprom[10] = 0xDE; // Expected 0x02, got 0xDE.
+
+        for chunk_idx in 0..16 {
+            let start = chunk_idx * EEPROM_CHUNK_SIZE;
+            let end = start + EEPROM_CHUNK_SIZE;
+            mock.push_bulk_in_response(endpoint::BULK_IN, eeprom[start..end].to_vec());
+        }
+
+        let mut channel = mock_channel(&mock);
+        let result = eeprom_self_test(&mut channel).unwrap();
+
+        assert!(!result.passed, "self-test should fail on mismatch");
+        assert_eq!(result.first_mismatch_offset, Some(10));
+        assert_eq!(result.expected, Some(0x02));
+        assert_eq!(result.actual, Some(0xDE));
     }
 }

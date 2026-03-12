@@ -229,13 +229,16 @@ pub const REG_DIGITAL_THRESHOLD: u16 = 0x0104;
 ///
 /// Each register has the same format as DIGITAL_CH_CONFIG:
 ///   bits [19:0] = PulseWidth, bit 20 = Enabled.
+///
+/// Verified by decompilation of two inlined variants of
+/// `Saleae::FpgaRegisters::CalculateDigitalConfigurationAddress_SmartCable(int, int)`
+/// at ELF VAs 0x2d61da0 and 0x2d66380 (source: mso_fpga.cpp).
+/// Assertion: `address < DigitalConfiguration_SmartCable_END` (0x50).
 pub const REG_SMART_CABLE_BASE: u16 = 0x0120;
 
 /// Base address for per-channel digital config (DigitalDerived).
 ///
 /// Address formula: 0x0170 + channel_index * 4 (channels 0..3).
-/// Confirmed from decompiled CalculateDigitalConfigurationAddress_DigitalDerived
-/// (ELF VA 0x2d66870).
 ///
 /// Per-channel bit layout (from InternalSetDigitalConfiguration):
 ///   bits [19:0]  = PulseWidth (glitch filter width)
@@ -246,6 +249,11 @@ pub const REG_SMART_CABLE_BASE: u16 = 0x0120;
 ///   PulseWidth >= 5 (MinGlitchFilterLength)
 ///   PulseWidth <= ~250000 (MaxGlitchFilterLength)
 ///   PulseWidth == 5 || (PulseWidth % 10) == 0
+///
+/// Verified by decompilation of two inlined variants of
+/// `Saleae::FpgaRegisters::CalculateDigitalConfigurationAddress_DigitalDerived(int)`
+/// at ELF VAs 0x2d61e10 and 0x2d66870 (source: mso_fpga.cpp).
+/// Assertion: `address < DigitalConfiguration_DigitalDerived_END` (channel < 4).
 pub const REG_DIGITAL_CH_CONFIG_BASE: u16 = 0x0170;
 
 /// Scope channel configuration register.
@@ -414,7 +422,8 @@ pub const fn needs_wide_path(addr: u16) -> bool {
 
 /// Compute per-channel digital config register address (DigitalDerived).
 ///
-/// Formula: `0x0170 + channel_index * 4` (confirmed from decompilation).
+/// Formula: `0x0170 + channel_index * 4` (decompilation-verified, see
+/// `REG_DIGITAL_CH_CONFIG_BASE` doc comment for details).
 ///
 /// # Panics
 ///
@@ -426,9 +435,8 @@ pub const fn digital_ch_config_addr(channel: u8) -> u16 {
 
 /// Compute smart cable digital config register address.
 ///
-/// Formula: `0x0120 + port * 16 + sub_channel * 4` (confirmed from
-/// decompiled CalculateDigitalConfigurationAddress_SmartCable,
-/// ELF VA 0x2d66380).
+/// Formula: `0x0120 + port * 16 + sub_channel * 4` (decompilation-verified,
+/// see `REG_SMART_CABLE_BASE` doc comment for details).
 ///
 /// Constraint: `port * 16 + sub_channel * 4 < 0x50` (80 bytes max).
 ///
@@ -445,8 +453,10 @@ pub const fn smart_cable_config_addr(port: u8, sub_channel: u8) -> u16 {
 // FpgaDeviceFeatures registers (8-bit address, 8-bit value)
 // ===========================================================================
 // Used by Logic 4/8 and Logic Pro 8/16 via EP1 opcode 0x80 (write) / 0x81
-// (read). Max 31 register pairs per batch write, 63 per batch read.
-// Source: Logic2FpgaDevice::SetCaptureParameters decompilation.
+// (read). Max 31 register pairs per batch write, 62 per batch read.
+// Source: FpgaDeviceFeatures::WriteRegisters (ELF VA 0x1c535f0, assertion
+// num_registers < 32) and ReadRegisters (ELF VA 0x1c53af0, assertion
+// (count-1) <= 0x3D).
 
 /// Capture init register (written as 0 at start of SetCaptureParameters).
 pub const FEAT_CAPTURE_INIT: u8 = 0x00;
@@ -827,10 +837,7 @@ mod tests {
         assert_eq!(JESD_POWER_ALL_ACTIVE, 0x00);
 
         // The array must match the exact ordering.
-        assert_eq!(
-            JESD_POWER_SEQUENCE,
-            [0x1E, 0x1C, 0x18, 0x08, 0x00]
-        );
+        assert_eq!(JESD_POWER_SEQUENCE, [0x1E, 0x1C, 0x18, 0x08, 0x00]);
     }
 
     #[test]

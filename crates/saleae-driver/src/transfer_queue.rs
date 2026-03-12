@@ -4,7 +4,9 @@
 //! during capture. The sizing formula matches the original Saleae software's
 //! `ComputeTransferSize` (vtable slot 11) and `AdjustTransferSize` functions.
 //!
-//! See `re/notes/transfer-queue-sizing.md` for the full RE analysis.
+//! See `re/notes/transfer-queue-sizing.md` for the full RE analysis and
+//! `re/notes/streaming-thread-decompilation.md` for the decompiled streaming
+//! thread architecture.
 //!
 //! # Formula
 //!
@@ -19,6 +21,38 @@
 //! The divisor 240 means each transfer carries ~1/240th of a second of data.
 //! At 240 USB completions per second, this keeps the pipe saturated while
 //! maintaining reasonable latency.
+//!
+//! # Streaming architecture (from decompilation)
+//!
+//! The original uses a two-thread model:
+//! - Thread 1 ("BulkReadStream_Read"): processes completed transfers via
+//!   `libusb_handle_events_timeout_completed`, delivers data to callbacks.
+//! - Thread 2 ("ReadStream_QueueBuffersThread"): allocates buffers from a
+//!   MemoryPool and submits transfers via `libusb_submit_transfer`.
+//!
+//! Our nusb-based approach uses `nusb::transfer::Queue` which handles
+//! the submit/complete cycle internally. The key parameters (transfer_size,
+//! queue_depth, timeout) are identical.
+//!
+//! # Buffer management (MemoryPool equivalence)
+//!
+//! The original uses `Saleae::MemoryPool` (memory_pool.cpp) -- a thread-safe
+//! free-list pool that allocates fixed-size byte buffers (`operator new`,
+//! not mmap) and recycles them via `shared_ptr` custom deleters. The pool
+//! blocks submission when exhausted (`HasAvailable()` returns false).
+//!
+//! nusb eliminates the need for a separate pool: `RequestBuffer::reuse`
+//! recycles the completed transfer's `Vec<u8>` allocation directly. The
+//! caller controls queue depth by tracking `queue.pending()`. See
+//! `doc/memory-pool.md` for the full decompiled architecture.
+//!
+//! # Original constants (confirmed by decompilation)
+//!
+//! - `timeout_ms = 1000` (per-event-loop-iteration, not per-transfer)
+//! - `max_transfer_bytes = 5_000_000_000` (5 GB, effectively unlimited)
+//! - `queue_depth = min(128, max_transfer_bytes / transfer_size)` = always 128
+//! - Per-transfer libusb timeout = 0 (no timeout, handled at event loop level)
+//! - Condition variable poll interval = 200ms
 
 use saleae_proto::device::UsbSpeed;
 

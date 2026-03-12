@@ -1,0 +1,275 @@
+Loaded 935 EP1 frames from re/captures/usbmon4-ep1.txt
+
+ Seq  Frame         Time  Dir   Len  Decrypted
+--------------------------------------------------------------------------------------------------------------
+   1     82    31.831657  OUT     5  RESEED #1 -> 0x5d54caef
+   2     84    31.831705  OUT     3  Ping test=0x55
+   3     87    31.831882   IN     1    -> 0xaa (OK)
+   4     88    31.832054  OUT     2  GetDeviceInfo
+   5     91    31.832222   IN   128    -> "Logic Pro Firmware Compiled Oct 25 2022  16:42:00"
+   6     92    31.832240  OUT     8  ReadVersion params=[0x33,0x81,0x08,0x00,0x08,0x00]
+   7     95    31.834862   IN     8    -> f1d9d41bb5514076
+   8     96    31.834892  OUT     8  ReadVersion params=[0x33,0x81,0x20,0x00,0x06,0x00]
+   9     99    31.837615   IN     6    -> 524556012e02
+  10    100    31.837638  OUT     2  ResetFpga
+  11    103    31.838304   IN     1    -> 0x00 (ACK)
+  12    104-1436            OUT       WriteConfigData: 334 chunks, 340604B bitstream
+  13   1440    33.554452  OUT     5  WriteRegisters count=1 [r0x7f=0xaa]
+  14   1443    33.554609   IN     1    -> 0x00 (ACK)
+  15   1444    33.554621  OUT     5  WriteRegisters count=1 [r0x7f=0xaa]
+  16   1447    33.554809   IN     1    -> 0x00 (ACK)
+  17   1448    33.554819  OUT     4  ReadRegisters count=1 addrs=[0x7f]
+  18   1451    33.555053   IN     1    -> [0xaa]
+  19   1452    33.555073  OUT    11  WriteRegisters count=4 [r0x03=0x08, r0x16=0x00, r0x04=0x03, r0x05=0x00]
+  20   1455    33.555321   IN     1    -> 0x00 (ACK)
+  21   1456    33.555331  OUT    11  WriteRegisters count=4 [r0x03=0x08, r0x16=0x00, r0x04=0x00, r0x05=0x00]
+  22   1459    33.555579   IN     1    -> 0x00 (ACK)
+  23   1460    33.565682  OUT    11  WriteRegisters count=4 [r0x03=0x0d, r0x16=0x00, r0x04=0x00, r0x05=0x00]
+  24   1463    33.565963   IN     1    -> 0x00 (ACK)
+  25   1464    33.566185  OUT    11  WriteRegisters count=4 [r0x03=0x15, r0x16=0x00, r0x04=0x21, r0x05=0x00]
+  26   1467    33.566416   IN     1    -> 0x00 (ACK)
+  27   1468    33.566426  OUT    11  WriteRegisters count=4 [r0x03=0x21, r0x16=0x00, r0x04=0xc2, r0x05=0x00]
+  28   1471    33.566674   IN     1    -> 0x00 (ACK)
+  29   1472    33.566684  OUT    11  WriteRegisters count=4 [r0x03=0x05, r0x16=0x00, r0x04=0x0f, r0x05=0x00]
+  30   1475    33.566932   IN     1    -> 0x00 (ACK)
+  31   1476    33.566941  OUT    11  WriteRegisters count=4 [r0x03=0x04, r0x16=0x00, r0x04=0x0f, r0x05=0x00]
+  32   1479    33.567187   IN     1    -> 0x00 (ACK)
+  33   1480    33.567197  OUT    11  WriteRegisters count=4 [r0x03=0x10, r0x16=0x00, r0x04=0x00, r0x05=0x00]
+  34   1483    33.567463   IN     1    -> 0x00 (ACK)
+  35   1484    33.567472  OUT    11  WriteRegisters count=4 [r0x03=0x18, r0x16=0x00, r0x04=0x04, r0x05=0x00]
+  36   1487    33.567725   IN     1    -> 0x00 (ACK)
+  37   1488    33.567741  OUT     5  WriteRegisters count=1 [r0x15=0x00]
+  38   1491    33.567924   IN     1    -> 0x00 (ACK)
+  39   1492    33.567934  OUT    11  WriteRegisters count=4 [r0x03=0x08, r0x16=0x00, r0x04=0x01, r0x05=0x00]
+  40   1495    33.568182   IN     1    -> 0x00 (ACK)
+  41   1496    33.568196  OUT     5  WriteRegisters count=1 [r0x00=0x1e]
+  42   1499    33.568361   IN     1    -> 0x00 (ACK)
+  43   1500    33.568392  OUT     5  WriteRegisters count=1 [r0x00=0x1c]
+  44   1503    33.568580   IN     1    -> 0x00 (ACK)
+  45   1504    33.568590  OUT     5  WriteRegisters count=1 [r0x00=0x18]
+  46   1507    33.568820   IN     1    -> 0x00 (ACK)
+  47   1508    33.568830  OUT     5  WriteRegisters count=1 [r0x00=0x08]
+  48   1511    33.569003   IN     1    -> 0x00 (ACK)
+  49   1512    33.569016  OUT     5  WriteRegisters count=1 [r0x00=0x00]
+  50   1515    33.569188   IN     1    -> 0x00 (ACK)
+  51   1516    33.569199  OUT     4  ReadRegisters count=1 addrs=[0x40]
+  52   1519    33.569372   IN     1    -> [0x00]
+  53   1520    33.569382  OUT     4  ReadRegisters count=1 addrs=[0x4a]
+  54   1523    33.569557   IN     1    -> [0x02]
+  55   1524    33.569568  OUT    11  WriteRegisters count=4 [r0x03=0x08, r0x16=0x00, r0x04=0x00, r0x05=0x00]
+  56   1527    33.569877   IN     1    -> 0x00 (ACK)
+  57   1528    33.570963  OUT    11  WriteRegisters count=4 [r0x03=0x08, r0x16=0x00, r0x04=0x03, r0x05=0x00]
+  58   1531    33.571226   IN     1    -> 0x00 (ACK)
+  59   1532    33.571236  OUT    11  WriteRegisters count=4 [r0x03=0x08, r0x16=0x00, r0x04=0x00, r0x05=0x00]
+  60   1535    33.571484   IN     1    -> 0x00 (ACK)
+  61   1536    33.621577  OUT     5  WriteRegisters count=1 [r0x00=0x1e]
+  62   1539    33.621769   IN     1    -> 0x00 (ACK)
+  63   1540    33.621785  OUT     5  WriteRegisters count=1 [r0x00=0x1c]
+  64   1543    33.621943   IN     1    -> 0x00 (ACK)
+  65   1544    33.621959  OUT     5  WriteRegisters count=1 [r0x00=0x18]
+  66   1547    33.622126   IN     1    -> 0x00 (ACK)
+  67   1548    33.622141  OUT     5  WriteRegisters count=1 [r0x00=0x08]
+  68   1551    33.622340   IN     1    -> 0x00 (ACK)
+  69   1552    33.622354  OUT     5  WriteRegisters count=1 [r0x00=0x00]
+  70   1555    33.622568   IN     1    -> 0x00 (ACK)
+  71   1556    33.622582  OUT     4  ReadRegisters count=1 addrs=[0x40]
+  72   1559    33.622758   IN     1    -> [0xe0]
+  73   1560    33.622772  OUT     4  ReadRegisters count=1 addrs=[0x4a]
+  74   1563    33.622948   IN     1    -> [0x02]
+  75   1564    33.622961  OUT     4  ReadRegisters count=1 addrs=[0x19]
+  76   1567    33.623137   IN     1    -> [0x00]
+  77   1568    33.623152  OUT     4  ReadRegisters count=1 addrs=[0x40]
+  78   1571    33.623376   IN     1    -> [0xe0]
+  79   1572    33.623390  OUT     4  ReadRegisters count=1 addrs=[0x4a]
+  80   1575    33.623567   IN     1    -> [0x00]
+  81   1576    33.623580  OUT     5  WriteRegisters count=1 [r0x00=0x00]
+  82   1579    33.623754   IN     1    -> 0x00 (ACK)
+  83   1580    33.623766  OUT     5  WriteRegisters count=1 [r0x00=0x40]
+  84   1583    33.623935   IN     1    -> 0x00 (ACK)
+  85   1584    33.625002  OUT     8  ReadVersion params=[0x33,0x81,0x10,0x00,0x10,0x00]
+  86   1587    33.628768   IN    16    -> 46ffc6a660b7de07678b036611357c7f
+  87   1588    33.628790  OUT     5  WriteRegisters count=1 [r0x17=0x46]
+  88   1591    33.628963   IN     1    -> 0x00 (ACK)
+  89   1592    33.628978  OUT     5  WriteRegisters count=1 [r0x17=0xff]
+  90   1595    33.629151   IN     1    -> 0x00 (ACK)
+  91   1596    33.629165  OUT     5  WriteRegisters count=1 [r0x17=0xc6]
+  92   1599    33.629392   IN     1    -> 0x00 (ACK)
+  93   1600    33.629405  OUT     5  WriteRegisters count=1 [r0x17=0xa6]
+  94   1603    33.629578   IN     1    -> 0x00 (ACK)
+  95   1604    33.629592  OUT     5  WriteRegisters count=1 [r0x17=0x60]
+  96   1607    33.629766   IN     1    -> 0x00 (ACK)
+  97   1608    33.629780  OUT     5  WriteRegisters count=1 [r0x17=0xb7]
+  98   1611    33.629953   IN     1    -> 0x00 (ACK)
+  99   1612    33.629967  OUT     5  WriteRegisters count=1 [r0x17=0xde]
+ 100   1615    33.630138   IN     1    -> 0x00 (ACK)
+ 101   1616    33.630151  OUT     5  WriteRegisters count=1 [r0x17=0x07]
+ 102   1619    33.630382   IN     1    -> 0x00 (ACK)
+ 103   1620    33.630396  OUT     5  WriteRegisters count=1 [r0x17=0x67]
+ 104   1623    33.630553   IN     1    -> 0x00 (ACK)
+ 105   1624    33.630566  OUT     5  WriteRegisters count=1 [r0x17=0x8b]
+ 106   1627    33.630737   IN     1    -> 0x00 (ACK)
+ 107   1628    33.630750  OUT     5  WriteRegisters count=1 [r0x17=0x03]
+ 108   1631    33.630920   IN     1    -> 0x00 (ACK)
+ 109   1632    33.630933  OUT     5  WriteRegisters count=1 [r0x17=0x66]
+ 110   1635    33.631135   IN     1    -> 0x00 (ACK)
+ 111   1636    33.631151  OUT     5  WriteRegisters count=1 [r0x17=0x11]
+ 112   1639    33.631366   IN     1    -> 0x00 (ACK)
+ 113   1640    33.631381  OUT     5  WriteRegisters count=1 [r0x17=0x35]
+ 114   1643    33.631556   IN     1    -> 0x00 (ACK)
+ 115   1644    33.631570  OUT     5  WriteRegisters count=1 [r0x17=0x7c]
+ 116   1647    33.631729   IN     1    -> 0x00 (ACK)
+ 117   1648    33.631743  OUT     5  WriteRegisters count=1 [r0x17=0x7f]
+ 118   1651    33.631932   IN     1    -> 0x00 (ACK)
+ 119   1652    33.631946  OUT    11  WriteRegisters count=4 [r0x03=0x08, r0x16=0x00, r0x04=0x01, r0x05=0x00]
+ 120   1655    33.632251   IN     1    -> 0x00 (ACK)
+ 121   1656    33.632266  OUT     5  WriteRegisters count=1 [r0x00=0x1e]
+ 122   1659    33.632437   IN     1    -> 0x00 (ACK)
+ 123   1660    33.632451  OUT     5  WriteRegisters count=1 [r0x00=0x1c]
+ 124   1663    33.632620   IN     1    -> 0x00 (ACK)
+ 125   1664    33.632635  OUT     5  WriteRegisters count=1 [r0x00=0x18]
+ 126   1667    33.632806   IN     1    -> 0x00 (ACK)
+ 127   1668    33.632821  OUT     5  WriteRegisters count=1 [r0x00=0x08]
+ 128   1671    33.632976   IN     1    -> 0x00 (ACK)
+ 129   1672    33.632995  OUT     5  WriteRegisters count=1 [r0x00=0x00]
+ 130   1675    33.633233   IN     1    -> 0x00 (ACK)
+ 131   1676    33.633248  OUT     4  ReadRegisters count=1 addrs=[0x40]
+ 132   1679    33.633409   IN     1    -> [0x00]
+ 133   1680    33.633423  OUT     4  ReadRegisters count=1 addrs=[0x4a]
+ 134   1683    33.633611   IN     1    -> [0x00]
+ 135   1684    33.633624  OUT     4  ReadRegisters count=1 addrs=[0x19]
+ 136   1687    33.633796   IN     1    -> [0x00]
+ 137   1688    33.633810  OUT     5  WriteRegisters count=1 [r0x12=0x04]
+ 138   1691    33.633979   IN     1    -> 0x00 (ACK)
+ 139   1694    33.634656  OUT     5  RESEED #2 -> 0xa2d3fd0d
+ 140   1696    33.634706  OUT     3  Ping test=0x55
+ 141   1699    33.634882   IN     1    -> 0xaa (OK)
+ 142   1700    33.634896  OUT     9  WriteRegisters count=3 [r0x0f=0x00, r0x10=0x0f, r0x11=0x00]
+ 143   1703    33.635160   IN     1    -> 0x00 (ACK)
+ 144   1706    42.662278  OUT     5  RESEED #3 -> 0xdc146cd1
+ 145   1708    42.662305  OUT     3  Ping test=0x55
+ 146   1711    42.662489   IN     1    -> 0xaa (OK)
+ 147   1712    42.662507  OUT     2  Device2_1
+ 148   1715    42.662803   IN     1    -> 0x00 (ACK)
+ 149   1716    42.662817  OUT     6  WriteI2C c0010002
+ 150   1719    42.663116   IN     1    -> 01
+ 151   1720    42.663131  OUT     2  Device2_1
+ 152   1723    42.663426   IN     1    -> 0x00 (ACK)
+ 153   1724    42.663435  OUT     6  WriteI2C c0010002
+ 154   1727    42.663786   IN     1    -> 02
+ 155   1728    42.663811  OUT     2  Device2_1
+ 156   1731    42.664103   IN     1    -> 0x00 (ACK)
+ 157   1732    42.664118  OUT    33  WriteI2C c01c00031b160000007af7d45d4fd86b1b401f90e9923f04097f7b8f21fc6d
+ 158   1735    42.666887   IN     1    -> 02
+ 159   1736    42.672007  OUT     2  Device2_1
+ 160   1739    42.672309   IN     1    -> 0x00 (ACK)
+ 161   1740    42.672322  OUT     5  ReadI2C c02300
+ 162   1743    42.674577   IN    36    -> 010000000000000000000000000000000000000000000000000000000000000000000000
+ 163   1744    42.679661  OUT     2  Device2_1
+ 164   1747    42.680000   IN     1    -> 0x00 (ACK)
+ 165   1748    42.680014  OUT     5  ReadI2C c02300
+ 166   1751    42.681412   IN    36    -> 010000000000000000000000000000000000000000000000000000000000000000000000
+ 167   1752    42.686513  OUT     2  Device2_1
+ 168   1755    42.686825   IN     1    -> 0x00 (ACK)
+ 169   1756    42.686842  OUT     5  ReadI2C c02300
+ 170   1759    42.688252   IN    36    -> 010000000000000000000000000000000000000000000000000000000000000000000000
+ 171   1760    42.693332  OUT     2  Device2_1
+ 172   1763    42.693643   IN     1    -> 0x00 (ACK)
+ 173   1764    42.693654  OUT     5  ReadI2C c02300
+ 174   1767    42.698178   IN    36    -> 0223feda7409451d4ab768e576fbace234a40ff6f3584472c83217d7fac60fe129d4e3f6
+ 175   1768    42.698195  OUT     6  WriteI2C c0010002
+ 176   1771    42.698525   IN     1    -> 02
+ 177   1772    42.698556  OUT     2  Device2_1
+ 178   1775    42.698897   IN     1    -> 0x00 (ACK)
+ 179   1776    42.698913  OUT    13  WriteI2C c008000307418000002805
+ 180   1779    42.699886   IN     1    -> 02
+ 181   1780    42.704963  OUT     2  Device2_1
+ 182   1783    42.705258   IN     1    -> 0x00 (ACK)
+ 183   1784    42.705273  OUT     5  ReadI2C c04300
+ 184   1787    42.706794   IN    68    -> 01000000000000000000000000000000000000000000000000000000000000000000000000000000... (68B)
+ 185   1788    42.711873  OUT     2  Device2_1
+ 186   1791    42.712188   IN     1    -> 0x00 (ACK)
+ 187   1792    42.712204  OUT     5  ReadI2C c04300
+ 188   1795    42.713630   IN    68    -> 01000000000000000000000000000000000000000000000000000000000000000000000000000000... (68B)
+ 189   1796    42.718730  OUT     2  Device2_1
+ 190   1799    42.719043   IN     1    -> 0x00 (ACK)
+ 191   1800    42.719065  OUT     5  ReadI2C c04300
+ 192   1803    42.720473   IN    68    -> 01000000000000000000000000000000000000000000000000000000000000000000000000000000... (68B)
+ 193   1804    42.725533  OUT     2  Device2_1
+ 194   1807    42.725848   IN     1    -> 0x00 (ACK)
+ 195   1808    42.725868  OUT     5  ReadI2C c04300
+ 196   1811    42.727322   IN    68    -> 01000000000000000000000000000000000000000000000000000000000000000000000000000000... (68B)
+ 197   1812    42.732418  OUT     2  Device2_1
+ 198   1815    42.732719   IN     1    -> 0x00 (ACK)
+ 199   1816    42.732731  OUT     5  ReadI2C c04300
+ 200   1819    42.734158   IN    68    -> 01000000000000000000000000000000000000000000000000000000000000000000000000000000... (68B)
+ 201   1820    42.739236  OUT     2  Device2_1
+ 202   1823    42.739533   IN     1    -> 0x00 (ACK)
+ 203   1824    42.739547  OUT     5  ReadI2C c04300
+ 204   1827    42.746939   IN    68    -> 02433c5d22358cf270b733055a6ee9da9f39b0d3567dfa4f0def1688f83bcf820d93ca7f130520dc... (68B)
+ 205   1828    42.746973  OUT     6  WriteI2C c0010002
+ 206   1831    42.747333   IN     1    -> 02
+ 207   1832    42.747639  OUT     5  WriteRegisters count=1 [r0x15=0x03]
+ 208   1835    42.747858   IN     1    -> 0x00 (ACK)
+ 209   1836    42.747869  OUT    11  WriteRegisters count=4 [r0x03=0x08, r0x16=0x00, r0x04=0x00, r0x05=0x00]
+ 210   1839    42.748114   IN     1    -> 0x00 (ACK)
+ 211   1840    42.749187  OUT    11  WriteRegisters count=4 [r0x03=0x08, r0x16=0x00, r0x04=0x03, r0x05=0x00]
+ 212   1843    42.749448   IN     1    -> 0x00 (ACK)
+ 213   1844    42.749459  OUT    11  WriteRegisters count=4 [r0x03=0x08, r0x16=0x00, r0x04=0x00, r0x05=0x00]
+ 214   1847    42.749747   IN     1    -> 0x00 (ACK)
+ 215   1848    42.799857  OUT     5  WriteRegisters count=1 [r0x00=0x1e]
+ 216   1851    42.800052   IN     1    -> 0x00 (ACK)
+ 217   1852    42.800065  OUT     5  WriteRegisters count=1 [r0x00=0x1c]
+ 218   1855    42.800237   IN     1    -> 0x00 (ACK)
+ 219   1856    42.800254  OUT     5  WriteRegisters count=1 [r0x00=0x18]
+ 220   1859    42.800467   IN     1    -> 0x00 (ACK)
+ 221   1860    42.800485  OUT     5  WriteRegisters count=1 [r0x00=0x08]
+ 222   1863    42.800654   IN     1    -> 0x00 (ACK)
+ 223   1864    42.800667  OUT     5  WriteRegisters count=1 [r0x00=0x00]
+ 224   1867    42.800853   IN     1    -> 0x00 (ACK)
+ 225   1868    42.800871  OUT     4  ReadRegisters count=1 addrs=[0x40]
+ 226   1871    42.801032   IN     1    -> [0xe0]
+ 227   1872    42.801043  OUT     4  ReadRegisters count=1 addrs=[0x4a]
+ 228   1875    42.801224   IN     1    -> [0x02]
+ 229   1876    42.801243  OUT     4  ReadRegisters count=1 addrs=[0x19]
+ 230   1879    42.801473   IN     1    -> [0x00]
+ 231   1880    42.801493  OUT     4  ReadRegisters count=1 addrs=[0x40]
+ 232   1883    42.801670   IN     1    -> [0xe0]
+ 233   1884    42.801683  OUT     4  ReadRegisters count=1 addrs=[0x4a]
+ 234   1887    42.801853   IN     1    -> [0x00]
+ 235   1888    42.801873  OUT    27  WriteRegisters count=12 [r0x00=0x00, r0x08=0xff, r0x06=0xff, r0x0a=0x04, r0x0b=0x00, r0x0c=0x00, r0x1a=0x02, r0x0d=0x30, r0x0e=0x28, r0x12=0x01, r0x13=0x00, r0x14=0x02]
+ 236   1891    42.802314   IN     1    -> 0x00 (ACK)
+ 237   1892    42.802325  OUT    15  ReadRegisters count=12 addrs=[0x00, 0x08, 0x06, 0x0a, 0x0b, 0x0c, 0x1a, 0x0d, 0x0e, 0x12, 0x13, 0x14]
+ 238   1895    42.802869   IN    12    -> [0x00, 0xff, 0xff, 0x04, 0x00, 0x00, 0x02, 0x30, 0x28, 0x01, 0x00, 0x02]
+ 239   1896    42.802888  OUT     2  StartSampling 
+ 240   1899    42.803082   IN     2    -> 0700
+ 241   1912    42.806612  OUT     5  WriteRegisters count=1 [r0x00=0x01]
+ 242   1915    42.806789   IN     1    -> 0x00 (ACK)
+ 243   4889    51.666547  OUT     5  WriteRegisters count=1 [r0x00=0x00]
+ 244   4892    51.666724   IN     1    -> 0x00 (ACK)
+ 245   4893    51.666733  OUT     2  StopStream
+ 246   4896    51.667032   IN     2    -> 0700
+ 247   4897    51.667042  OUT     4  ReadRegisters count=1 addrs=[0x40]
+ 248   4900    51.667218   IN     1    -> [0xe0]
+ 249   4901    51.667237  OUT     4  ReadRegisters count=1 addrs=[0x4a]
+ 250   4904    51.667410   IN     1    -> [0x00]
+ 251   4905    51.667416  OUT     5  WriteRegisters count=1 [r0x15=0x00]
+ 252   4908    51.667593   IN     1    -> 0x00 (ACK)
+ 253   4909    51.667600  OUT    11  WriteRegisters count=4 [r0x03=0x08, r0x16=0x00, r0x04=0x01, r0x05=0x00]
+ 254   4912    51.667851   IN     1    -> 0x00 (ACK)
+ 255   4913    51.667876  OUT     5  WriteRegisters count=1 [r0x00=0x1e]
+ 256   4916    51.668089   IN     1    -> 0x00 (ACK)
+ 257   4917    51.668099  OUT     5  WriteRegisters count=1 [r0x00=0x1c]
+ 258   4920    51.668271   IN     1    -> 0x00 (ACK)
+ 259   4921    51.668293  OUT     5  WriteRegisters count=1 [r0x00=0x18]
+ 260   4924    51.668462   IN     1    -> 0x00 (ACK)
+ 261   4925    51.668473  OUT     5  WriteRegisters count=1 [r0x00=0x08]
+ 262   4928    51.668648   IN     1    -> 0x00 (ACK)
+ 263   4929    51.668656  OUT     5  WriteRegisters count=1 [r0x00=0x00]
+ 264   4932    51.668816   IN     1    -> 0x00 (ACK)
+ 265   4933    51.668825  OUT     4  ReadRegisters count=1 addrs=[0x40]
+ 266   4936    51.669062   IN     1    -> [0x00]
+ 267   4937    51.669071  OUT     4  ReadRegisters count=1 addrs=[0x4a]
+ 268   4940    51.669263   IN     1    -> [0x00]
+
+Total: 268 operations, 3 reseeds
+Final seed: 0x8671a937

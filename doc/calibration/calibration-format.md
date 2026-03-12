@@ -299,16 +299,63 @@ linearly with sample rate.
 **Confidence: Confirmed** -- Validated against real .cal file
 
 
-### SIMD Implementation
+### SIMD Implementation (Decompiled)
 
-The binary contains SIMD-optimized IIR filter implementations:
-- `SimdIirFilterPrototype` (RTTI type name)
-- `SimdPrototype_Static2By3IirFilter` (RTTI type name)
+The binary contains SIMD-optimized IIR filter implementations that convert
+the DF1 SOS biquad coefficients into a companion matrix (state-space)
+representation for parallel sample processing.
 
-These suggest SSE/AVX-optimized biquad processing, likely processing
-multiple samples per cycle.
+**Key classes** (RTTI type names):
+- `SimdIirFilterPrototype` -- SSE path, 0x380 bytes, 4 samples/iteration
+- `SimdPrototype_Static2By3IirFilter` -- AVX/FMA path, 0x6e0 bytes, 8 samples/iteration
 
-**Confidence: High** -- RTTI type names in binary
+**Filter type selection** (`FUN_01bd8970`, uses CPUID):
+- Case 0: No filter (identity, coefficients all zero)
+- Case 1: `SimdIirFilterPrototype` -- SSE4.1 only
+- Case 2: `Static2By3IirFilter` -- SSE (no FMA)
+- Case 3: `Static2By3IirFilter` -- FMA3
+- Case 4: `Static2By3IirFilter` -- AVX2
+
+**Companion matrix conversion** (`FUN_01bd8e50`, 2260 bytes):
+
+The function transforms the 5 SOS biquad sections into a state-transition
+matrix. Instead of processing each biquad stage sequentially (which creates
+data dependencies between stages), it pre-computes a single matrix that
+represents the entire 5-section cascade. This allows processing multiple
+input samples through the whole filter in one pass.
+
+The matrix entries are stored as `float` (cast from the `double` calibration
+coefficients) for SIMD register efficiency.
+
+**Processing** (`FUN_01bd7ed0` for SSE path):
+- Input: `int16_t[]` (raw ADC samples, packed 4 per 8 bytes)
+- Unpacks 4x int16 to 4x float using `punpcklwd`/`punpckhwd` + shift
+- Multiplies state vector by coefficient matrix (16 taps per output)
+- Updates state variables (3 sets of 4 floats each)
+- Converts output to int32 via truncation, then packs to int16 via `packssdw`
+- Output: `int16_t[]` (filtered ADC samples)
+
+The ADC-to-voltage transform is applied in a separate graph node, NOT
+in this filter.
+
+**Confidence: Confirmed** -- Full decompilation of all filter paths.
+See `re/ghidra/decompiled-calibration-filter.txt`.
+
+### No Runtime Coefficient Computation
+
+The biquad coefficients are **pre-computed in the .cal file** and used
+as-is. The binary does NOT compute coefficients from raw calibration
+measurements at runtime. The only runtime transformation is converting
+the DF1 SOS coefficients into companion matrix form for SIMD processing,
+which is a purely mechanical linear algebra operation (not signal processing
+design).
+
+**Confidence: Confirmed** -- Decompiled `SetCalibration` handler
+(`FUN_01bd3660`) stores coefficients directly; `OnSamplingConfig`
+(`FUN_01bd2aa0`) copies 0xD8 bytes (216 bytes = 27 doubles, which is
+5 sections x 5 coefficients + group_delay + impulse_length) from
+the stored calibration into the active filter, then passes them to
+the companion matrix constructor.
 
 
 ## ADC-to-Voltage Transform

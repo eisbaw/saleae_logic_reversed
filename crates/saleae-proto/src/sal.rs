@@ -1,4 +1,4 @@
-//! `.sal` file writer for Saleae Logic 2 compatible capture archives.
+//! `.sal` file reader and writer for Saleae Logic 2 compatible capture archives.
 //!
 //! A `.sal` file is a standard ZIP archive (zlib compression level 1)
 //! containing:
@@ -55,10 +55,10 @@
 //! - `re/notes/sal-file-format.md` -- RE'd format specification
 //! - `re/notes/waveform-persistence.md` -- binary data format details
 
-use std::io::{self, Cursor, Write};
+use std::io::{self, Cursor, Read, Write};
 use std::path::Path;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -186,23 +186,20 @@ impl SalWriter {
         let meta = self.build_meta_json();
         let meta_bytes = serde_json::to_vec_pretty(&meta)
             .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
-        zip.start_file("meta.json", options)
-            .map_err(zip_to_io)?;
+        zip.start_file("meta.json", options).map_err(zip_to_io)?;
         zip.write_all(&meta_bytes)?;
 
         // 2. Write digital channel .bin files
         for ch in &self.digital_channels {
             let filename = format!("digital-{}.bin", ch.channel);
-            zip.start_file(&filename, options)
-                .map_err(zip_to_io)?;
+            zip.start_file(&filename, options).map_err(zip_to_io)?;
             write_digital_bin(&mut zip, ch)?;
         }
 
         // 3. Write analog channel .bin files
         for ch in &self.analog_channels {
             let filename = format!("analog-{}.bin", ch.channel);
-            zip.start_file(&filename, options)
-                .map_err(zip_to_io)?;
+            zip.start_file(&filename, options).map_err(zip_to_io)?;
             write_analog_bin(&mut zip, ch)?;
         }
 
@@ -451,7 +448,368 @@ fn write_analog_bin<W: Write>(writer: &mut W, channel: &SalAnalogChannel) -> io:
 }
 
 // ---------------------------------------------------------------------------
-// meta.json serde types
+// SAL Reader
+// ---------------------------------------------------------------------------
+
+/// Parsed metadata from a `.sal` file's `meta.json`.
+#[derive(Debug, Clone)]
+pub struct SalMeta {
+    /// Format version (current: 16).
+    pub version: u32,
+    /// Capture name.
+    pub name: String,
+    /// Digital channel indices present in the archive.
+    pub digital_channels: Vec<u32>,
+    /// Analog channel indices present in the archive.
+    pub analog_channels: Vec<u32>,
+    /// Digital sample rates (Hz).
+    pub digital_sample_rates: Vec<u64>,
+    /// Analog sample rates (Hz).
+    pub analog_sample_rates: Vec<u64>,
+    /// Start time (nanoseconds).
+    pub start_time: u64,
+    /// End time (nanoseconds).
+    pub end_time: u64,
+    /// Device type string (e.g., "LogicPro8").
+    pub device_type: String,
+}
+
+/// Reader for Saleae Logic 2 `.sal` capture archives.
+///
+/// Reads the ZIP archive, parses `meta.json`, and extracts channel data
+/// from the binary `.bin` files.
+///
+/// # Limitations
+///
+/// - Digital channels: reads our simplified transition-encoded format
+///   (u64 count + N * u64 timestamps). Does NOT parse the real Saleae
+///   cereal archive format with lookup tables and initial-state metadata.
+///   To compare against real Saleae captures, the Saleae Logic 2 CSV
+///   export should be used instead.
+///
+/// - Analog channels: reads our simplified f32 format. Does NOT parse
+///   the real Saleae int16_t cereal archive format.
+///
+/// Both limitations are acceptable for the E2E comparison use case where
+/// we compare our own output (which uses our simplified format) against
+/// Saleae's CSV exports.
+pub struct SalReader {
+    meta: SalMeta,
+    archive_data: Vec<u8>,
+}
+
+impl SalReader {
+    /// Open a `.sal` file and parse its metadata.
+    pub fn open(path: impl AsRef<Path>) -> io::Result<Self> {
+        let data = std::fs::read(path.as_ref())?;
+        Self::from_bytes(data)
+    }
+
+    /// Parse a `.sal` archive from an in-memory byte buffer.
+    pub fn from_bytes(data: Vec<u8>) -> io::Result<Self> {
+        let cursor = Cursor::new(&data);
+        let mut archive = zip::ZipArchive::new(cursor).map_err(zip_to_io)?;
+
+        // Read and parse meta.json.
+        let mut meta_file = archive.by_name("meta.json").map_err(zip_to_io)?;
+        let mut meta_str = String::new();
+        meta_file.read_to_string(&mut meta_str)?;
+        drop(meta_file);
+
+        let meta_json: SalMetaJsonRead = serde_json::from_str(&meta_str)
+            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+
+        let meta = SalMeta {
+            version: meta_json.version,
+            name: meta_json.data.name,
+            digital_channels: meta_json.data.digital_channels,
+            analog_channels: meta_json.data.analog_channels,
+            digital_sample_rates: meta_json.data.digital_sample_rates,
+            analog_sample_rates: meta_json.data.analog_sample_rates,
+            start_time: meta_json.data.start_time,
+            end_time: meta_json.data.end_time,
+            device_type: meta_json
+                .data
+                .capture_settings
+                .and_then(|cs| cs.connected_device)
+                .map(|cd| cd.device_type)
+                .unwrap_or_default(),
+        };
+
+        Ok(Self {
+            meta,
+            archive_data: data,
+        })
+    }
+
+    /// Get the parsed metadata.
+    pub fn meta(&self) -> &SalMeta {
+        &self.meta
+    }
+
+    /// Read a digital channel's transition data.
+    ///
+    /// Returns the transition timestamps (sample indices where signal toggles).
+    /// Initial state is assumed low (0).
+    ///
+    /// This reads our simplified format: u64 count + N * u64 timestamps.
+    /// Will return an error for real Saleae cereal archives.
+    pub fn read_digital_transitions(&self, channel: u32) -> io::Result<Vec<u64>> {
+        let filename = format!("digital-{channel}.bin");
+        let bin_data = self.read_zip_entry(&filename)?;
+
+        if bin_data.len() < 8 {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!("{filename}: too short for transition count header"),
+            ));
+        }
+
+        let count = u64::from_le_bytes(bin_data[0..8].try_into().unwrap()) as usize;
+        let expected_len = 8 + count * 8;
+
+        if bin_data.len() < expected_len {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!(
+                    "{filename}: expected {expected_len} bytes for {count} transitions, got {}",
+                    bin_data.len()
+                ),
+            ));
+        }
+
+        let mut transitions = Vec::with_capacity(count);
+        for i in 0..count {
+            let offset = 8 + i * 8;
+            let t = u64::from_le_bytes(bin_data[offset..offset + 8].try_into().unwrap());
+            transitions.push(t);
+        }
+
+        Ok(transitions)
+    }
+
+    /// Read a digital channel and expand transitions into boolean samples.
+    ///
+    /// `total_samples` is the number of samples to expand to. If 0, uses
+    /// the last transition index + 1.
+    pub fn read_digital_samples(&self, channel: u32, total_samples: u64) -> io::Result<Vec<bool>> {
+        let transitions = self.read_digital_transitions(channel)?;
+        Ok(crate::compare::expand_transitions(
+            &transitions,
+            total_samples,
+        ))
+    }
+
+    /// Read an analog channel's voltage samples.
+    ///
+    /// This reads our simplified format: single chunk with f32 voltages.
+    /// Returns voltages as f64 for comparison precision.
+    pub fn read_analog_voltages(&self, channel: u32) -> io::Result<Vec<f64>> {
+        let filename = format!("analog-{channel}.bin");
+        let bin_data = self.read_zip_entry(&filename)?;
+
+        if bin_data.len() < 8 {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!("{filename}: too short"),
+            ));
+        }
+
+        let chunk_count = u64::from_le_bytes(bin_data[0..8].try_into().unwrap());
+        if chunk_count == 0 {
+            return Ok(Vec::new());
+        }
+
+        // Skip: chunk_count(8) + sample_start(8) + sample_end(8) + header(101)
+        let data_count_offset = 8 + 8 + 8 + 101;
+        if bin_data.len() < data_count_offset + 8 {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!("{filename}: too short for analog header"),
+            ));
+        }
+
+        let sample_count = u64::from_le_bytes(
+            bin_data[data_count_offset..data_count_offset + 8]
+                .try_into()
+                .unwrap(),
+        ) as usize;
+
+        let samples_start = data_count_offset + 8;
+        let samples_end = samples_start + sample_count * 4;
+
+        if bin_data.len() < samples_end {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!(
+                    "{filename}: expected {} bytes for {sample_count} f32 samples, have {}",
+                    samples_end,
+                    bin_data.len()
+                ),
+            ));
+        }
+
+        let mut voltages = Vec::with_capacity(sample_count);
+        for i in 0..sample_count {
+            let offset = samples_start + i * 4;
+            let v = f32::from_le_bytes(bin_data[offset..offset + 4].try_into().unwrap());
+            voltages.push(v as f64);
+        }
+
+        Ok(voltages)
+    }
+
+    /// List all files in the archive.
+    pub fn list_files(&self) -> io::Result<Vec<String>> {
+        let cursor = Cursor::new(&self.archive_data);
+        let mut archive = zip::ZipArchive::new(cursor).map_err(zip_to_io)?;
+        let mut names = Vec::with_capacity(archive.len());
+        for i in 0..archive.len() {
+            let file = archive.by_index(i).map_err(zip_to_io)?;
+            names.push(file.name().to_string());
+        }
+        Ok(names)
+    }
+
+    fn read_zip_entry(&self, name: &str) -> io::Result<Vec<u8>> {
+        let cursor = Cursor::new(&self.archive_data);
+        let mut archive = zip::ZipArchive::new(cursor).map_err(zip_to_io)?;
+        let mut file = archive.by_name(name).map_err(zip_to_io)?;
+        let mut data = Vec::new();
+        file.read_to_end(&mut data)?;
+        Ok(data)
+    }
+}
+
+// Deserialization types for reading meta.json (permissive, only fields we need).
+
+#[derive(Deserialize)]
+struct SalMetaJsonRead {
+    version: u32,
+    data: SalMetaDataRead,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct SalMetaDataRead {
+    name: String,
+    start_time: u64,
+    end_time: u64,
+    #[serde(default)]
+    digital_channels: Vec<u32>,
+    #[serde(default)]
+    analog_channels: Vec<u32>,
+    #[serde(default)]
+    digital_sample_rates: Vec<u64>,
+    #[serde(default)]
+    analog_sample_rates: Vec<u64>,
+    #[serde(default)]
+    capture_settings: Option<SalCaptureSettingsRead>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct SalCaptureSettingsRead {
+    connected_device: Option<SalConnectedDeviceRead>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct SalConnectedDeviceRead {
+    device_type: String,
+}
+
+// ---------------------------------------------------------------------------
+// CSV readers for comparison
+// ---------------------------------------------------------------------------
+
+/// Read digital samples from a CSV file (Saleae Logic 2 or our export format).
+///
+/// Expected format:
+/// ```text
+/// timestamp,Channel 0,Channel 1,...
+/// 0.000000000,1,0,...
+/// ```
+///
+/// Returns per-channel boolean samples. The channel order matches the CSV
+/// column order (not the channel number in the header).
+pub fn read_digital_csv(path: impl AsRef<Path>) -> io::Result<Vec<Vec<bool>>> {
+    let content = std::fs::read_to_string(path.as_ref())?;
+    let mut lines = content.lines();
+
+    let header = lines
+        .next()
+        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "empty CSV file"))?;
+
+    let num_channels = header.split(',').count() - 1; // subtract timestamp column
+    if num_channels == 0 {
+        return Ok(Vec::new());
+    }
+
+    let mut channels: Vec<Vec<bool>> = vec![Vec::new(); num_channels];
+
+    for line in lines {
+        if line.is_empty() {
+            continue;
+        }
+        let fields: Vec<&str> = line.split(',').collect();
+        if fields.len() < num_channels + 1 {
+            continue;
+        }
+        for (ch, field) in fields[1..=num_channels].iter().enumerate() {
+            let val = field.trim() == "1";
+            channels[ch].push(val);
+        }
+    }
+
+    Ok(channels)
+}
+
+/// Read analog samples from a CSV file (Saleae Logic 2 or our export format).
+///
+/// Expected format:
+/// ```text
+/// timestamp,Channel 0,Channel 1,...
+/// 0.000000000,1.234567,7.654321,...
+/// ```
+///
+/// Returns per-channel f64 voltage samples.
+pub fn read_analog_csv(path: impl AsRef<Path>) -> io::Result<Vec<Vec<f64>>> {
+    let content = std::fs::read_to_string(path.as_ref())?;
+    let mut lines = content.lines();
+
+    let header = lines
+        .next()
+        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "empty CSV file"))?;
+
+    let num_channels = header.split(',').count() - 1;
+    if num_channels == 0 {
+        return Ok(Vec::new());
+    }
+
+    let mut channels: Vec<Vec<f64>> = vec![Vec::new(); num_channels];
+
+    for line in lines {
+        if line.is_empty() {
+            continue;
+        }
+        let fields: Vec<&str> = line.split(',').collect();
+        if fields.len() < num_channels + 1 {
+            continue;
+        }
+        for (ch, field) in fields[1..=num_channels].iter().enumerate() {
+            let val: f64 = field.trim().parse().map_err(|e| {
+                io::Error::new(io::ErrorKind::InvalidData, format!("bad float: {e}"))
+            })?;
+            channels[ch].push(val);
+        }
+    }
+
+    Ok(channels)
+}
+
+// ---------------------------------------------------------------------------
+// meta.json serde types (write)
 // ---------------------------------------------------------------------------
 
 #[derive(Serialize)]
@@ -1022,5 +1380,171 @@ mod tests {
         assert_eq!(meta["data"]["startTime"], 0);
         // 2.5 seconds = 2_500_000_000 nanoseconds
         assert_eq!(meta["data"]["endTime"], 2_500_000_000u64);
+    }
+
+    // -------------------------------------------------------------------
+    // SalReader tests
+    // -------------------------------------------------------------------
+
+    #[test]
+    fn sal_reader_metadata() {
+        let mut writer = SalWriter::new(test_capture_info());
+        writer.add_digital_channel(SalDigitalChannel {
+            channel: 0,
+            transitions: vec![10, 20],
+        });
+        writer.add_analog_channel(SalAnalogChannel {
+            channel: 1,
+            voltages: vec![1.0, 2.0],
+        });
+
+        let data = writer.write_to_vec().unwrap();
+        let reader = SalReader::from_bytes(data).unwrap();
+        let meta = reader.meta();
+
+        assert_eq!(meta.version, 16);
+        assert_eq!(meta.name, "Test Capture");
+        assert_eq!(meta.digital_channels, vec![0]);
+        assert_eq!(meta.analog_channels, vec![1]);
+        assert_eq!(meta.digital_sample_rates, vec![25_000_000]);
+        assert_eq!(meta.analog_sample_rates, vec![6_250_000]);
+        assert_eq!(meta.device_type, "LogicPro8");
+    }
+
+    #[test]
+    fn sal_reader_digital_transitions_roundtrip() {
+        let transitions = vec![10, 50, 100, 200, 500];
+        let mut writer = SalWriter::new(test_capture_info());
+        writer.add_digital_channel(SalDigitalChannel {
+            channel: 2,
+            transitions: transitions.clone(),
+        });
+
+        let data = writer.write_to_vec().unwrap();
+        let reader = SalReader::from_bytes(data).unwrap();
+        let read_transitions = reader.read_digital_transitions(2).unwrap();
+        assert_eq!(read_transitions, transitions);
+    }
+
+    #[test]
+    fn sal_reader_digital_samples_roundtrip() {
+        let transitions = vec![3, 7];
+        let mut writer = SalWriter::new(test_capture_info());
+        writer.add_digital_channel(SalDigitalChannel {
+            channel: 0,
+            transitions: transitions.clone(),
+        });
+
+        let data = writer.write_to_vec().unwrap();
+        let reader = SalReader::from_bytes(data).unwrap();
+        let samples = reader.read_digital_samples(0, 10).unwrap();
+
+        // Low[0..3], High[3..7], Low[7..10]
+        assert_eq!(
+            samples,
+            vec![false, false, false, true, true, true, true, false, false, false]
+        );
+    }
+
+    #[test]
+    fn sal_reader_analog_roundtrip() {
+        let voltages: Vec<f32> = vec![1.5, -0.25, 0.0, 3.3];
+        let mut writer = SalWriter::new(test_capture_info());
+        writer.add_analog_channel(SalAnalogChannel {
+            channel: 0,
+            voltages: voltages.clone(),
+        });
+
+        let data = writer.write_to_vec().unwrap();
+        let reader = SalReader::from_bytes(data).unwrap();
+        let read_voltages = reader.read_analog_voltages(0).unwrap();
+
+        assert_eq!(read_voltages.len(), voltages.len());
+        for (read, expected) in read_voltages.iter().zip(voltages.iter()) {
+            assert!(
+                (*read - *expected as f64).abs() < 1e-6,
+                "expected {expected}, got {read}"
+            );
+        }
+    }
+
+    #[test]
+    fn sal_reader_list_files() {
+        let mut writer = SalWriter::new(test_capture_info());
+        writer.add_digital_channel(SalDigitalChannel {
+            channel: 0,
+            transitions: vec![],
+        });
+        writer.add_analog_channel(SalAnalogChannel {
+            channel: 1,
+            voltages: vec![],
+        });
+
+        let data = writer.write_to_vec().unwrap();
+        let reader = SalReader::from_bytes(data).unwrap();
+        let files = reader.list_files().unwrap();
+
+        assert!(files.contains(&"meta.json".to_string()));
+        assert!(files.contains(&"digital-0.bin".to_string()));
+        assert!(files.contains(&"analog-1.bin".to_string()));
+    }
+
+    #[test]
+    fn sal_reader_missing_channel_returns_error() {
+        let writer = SalWriter::new(test_capture_info());
+        let data = writer.write_to_vec().unwrap();
+        let reader = SalReader::from_bytes(data).unwrap();
+
+        assert!(reader.read_digital_transitions(0).is_err());
+        assert!(reader.read_analog_voltages(0).is_err());
+    }
+
+    // -------------------------------------------------------------------
+    // CSV reader tests
+    // -------------------------------------------------------------------
+
+    #[test]
+    fn read_digital_csv_basic() {
+        let dir = std::env::temp_dir().join(format!("sal_csv_dig_{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("digital.csv");
+        std::fs::write(
+            &path,
+            "timestamp,Channel 0,Channel 1\n\
+             0.000000000,1,0\n\
+             0.000001000,0,1\n\
+             0.000002000,1,1\n",
+        )
+        .unwrap();
+
+        let channels = read_digital_csv(&path).unwrap();
+        assert_eq!(channels.len(), 2);
+        assert_eq!(channels[0], vec![true, false, true]);
+        assert_eq!(channels[1], vec![false, true, true]);
+
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn read_analog_csv_basic() {
+        let dir = std::env::temp_dir().join(format!("sal_csv_ana_{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("analog.csv");
+        std::fs::write(
+            &path,
+            "timestamp,Channel 0,Channel 2\n\
+             0.000000000,1.234567,7.654321\n\
+             0.000001000,-0.500000,0.000000\n",
+        )
+        .unwrap();
+
+        let channels = read_analog_csv(&path).unwrap();
+        assert_eq!(channels.len(), 2);
+        assert!((channels[0][0] - 1.234567).abs() < 1e-6);
+        assert!((channels[0][1] - (-0.5)).abs() < 1e-6);
+        assert!((channels[1][0] - 7.654321).abs() < 1e-6);
+        assert!((channels[1][1] - 0.0).abs() < 1e-6);
+
+        std::fs::remove_dir_all(&dir).unwrap();
     }
 }

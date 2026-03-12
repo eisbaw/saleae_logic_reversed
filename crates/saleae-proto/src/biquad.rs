@@ -10,6 +10,26 @@
 //! The cascade feeds the output of one section into the input of the next.
 //! Section 0 is typically first-order (b2=0, a2=0) but is processed
 //! identically since the zero terms are harmless.
+//!
+//! ## Binary implementation notes
+//!
+//! The Saleae binary (`libgraph_server_shared.so`) uses SIMD-optimized
+//! implementations that convert the DF1 SOS coefficients into a companion
+//! matrix (state-space) form. This allows processing multiple samples per
+//! iteration without data dependencies between biquad stages.
+//!
+//! Two implementations exist:
+//! - `SimdIirFilterPrototype`: SSE4.1, processes 4 samples per iteration
+//! - `SimdPrototype_Static2By3IirFilter`: AVX/FMA, processes 8 samples
+//!
+//! Both use `float` (f32) precision internally. Our scalar implementation
+//! uses `f64` for better accuracy and is mathematically equivalent.
+//!
+//! The binary operates on raw `i16` ADC samples: converts to float,
+//! applies the filter matrix, converts back to `i32` via `cvttss2si`
+//! (truncation toward zero), then packs to `i16` via `packssdw` (which
+//! saturates rather than wraps). The ADC-to-voltage transform is applied
+//! in a separate graph node, not in the filter.
 
 use crate::calibration::BiquadSection;
 
@@ -102,6 +122,27 @@ impl BiquadFilter {
     /// Return the number of sections in the cascade.
     pub fn num_sections(&self) -> usize {
         self.sections.len()
+    }
+
+    /// Process a block of raw ADC samples (i16), applying the filter in-place.
+    ///
+    /// This mirrors the binary's processing pipeline:
+    /// 1. Convert i16 -> f64 (binary uses f32, we use f64 for accuracy)
+    /// 2. Apply biquad cascade
+    /// 3. Convert f64 -> i32 via truncation toward zero (matching SSE cvttss2si)
+    /// 4. Saturate i32 -> i16 via clamping (matching SSE packssdw)
+    ///
+    /// The binary uses `cvttss2si` for float-to-int (truncation, not rounding)
+    /// and `packssdw` for the i32-to-i16 pack (saturates to i16 range rather
+    /// than wrapping).
+    pub fn process_block_i16(&mut self, samples: &mut [i16]) {
+        for sample in samples.iter_mut() {
+            let x = *sample as f64;
+            let y = self.process_sample(x);
+            // Truncate toward zero (matching cvttss2si), then saturate to i16
+            let yi = y as i32; // Rust `as i32` truncates toward zero, like cvttss2si
+            *sample = yi.clamp(i16::MIN as i32, i16::MAX as i32) as i16;
+        }
     }
 }
 
@@ -325,6 +366,102 @@ mod tests {
             "DC response has not converged: {} vs {}",
             last,
             prev
+        );
+    }
+
+    #[test]
+    fn process_block_i16_identity() {
+        let sections = [identity_section()];
+        let mut filter = BiquadFilter::new(&sections);
+
+        let mut samples: Vec<i16> = vec![0, 100, -100, 1000, -1000, i16::MAX, i16::MIN];
+        let original = samples.clone();
+        filter.process_block_i16(&mut samples);
+
+        for (i, (&orig, &got)) in original.iter().zip(samples.iter()).enumerate() {
+            assert_eq!(orig, got, "sample {}: expected {}, got {}", i, orig, got);
+        }
+    }
+
+    #[test]
+    fn process_block_i16_saturation() {
+        // A filter with gain > 1 should saturate rather than wrap
+        let sections = [BiquadSection {
+            b0: 2.0,
+            b1: 0.0,
+            b2: 0.0,
+            a1: 0.0,
+            a2: 0.0,
+        }];
+        let mut filter = BiquadFilter::new(&sections);
+
+        let mut samples: Vec<i16> = vec![i16::MAX, i16::MIN];
+        filter.process_block_i16(&mut samples);
+
+        // 32767 * 2 = 65534, saturated to 32767
+        assert_eq!(samples[0], i16::MAX);
+        // -32768 * 2 = -65536, saturated to -32768
+        assert_eq!(samples[1], i16::MIN);
+    }
+
+    #[test]
+    fn process_block_i16_truncates_toward_zero() {
+        // The binary uses cvttss2si which truncates toward zero, NOT round-to-nearest.
+        // A gain of 1.7 applied to input 1 should produce 1 (truncated from 1.7),
+        // not 2 (rounded from 1.7).
+        let sections = [BiquadSection {
+            b0: 1.7,
+            b1: 0.0,
+            b2: 0.0,
+            a1: 0.0,
+            a2: 0.0,
+        }];
+        let mut filter = BiquadFilter::new(&sections);
+
+        let mut samples: Vec<i16> = vec![1, -1, 10, -10];
+        filter.process_block_i16(&mut samples);
+
+        // 1 * 1.7 = 1.7 -> truncated to 1 (not rounded to 2)
+        assert_eq!(samples[0], 1, "positive should truncate toward zero");
+        // -1 * 1.7 = -1.7 -> truncated to -1 (not rounded to -2)
+        assert_eq!(samples[1], -1, "negative should truncate toward zero");
+        // 10 * 1.7 = 17.0 -> exactly 17
+        assert_eq!(samples[2], 17);
+        // -10 * 1.7 = -17.0 -> exactly -17
+        assert_eq!(samples[3], -17);
+    }
+
+    #[test]
+    fn process_block_i16_real_calibration() {
+        // Process a DC signal through real calibration filter
+        let cal_path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .unwrap()
+            .parent()
+            .unwrap()
+            .join("re")
+            .join("calibration-764051b51bd4d9f1.cal");
+
+        let data = std::fs::read(&cal_path).expect("read cal file");
+        let cal = crate::calibration::parse_calibration(&data).expect("parse cal");
+        let set = cal.find_set(0, 50_000_000).expect("ch0 @ 50MHz");
+
+        let mut filter = BiquadFilter::new(&set.sections);
+
+        // Feed 1000 samples of ADC mid-scale (0) followed by some non-zero
+        let mut samples = vec![0i16; 1000];
+        filter.process_block_i16(&mut samples);
+        // DC=0 through any linear filter should stay 0
+        assert_eq!(samples[999], 0, "DC=0 should remain 0 after filtering");
+
+        // Now feed some non-zero values and verify output is non-zero
+        filter.reset();
+        let mut samples = vec![1000i16; 1000];
+        filter.process_block_i16(&mut samples);
+        // After settling, output should be non-zero (filter has gain near 1)
+        assert!(
+            samples[999] != 0,
+            "DC=1000 should produce non-zero output after settling"
         );
     }
 }

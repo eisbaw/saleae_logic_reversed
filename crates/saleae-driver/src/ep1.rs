@@ -23,9 +23,13 @@ use crate::error::{DriverError, DriverResult};
 /// The actual chunk size depends on device type and USB speed. See
 /// [`DeviceProfile::fpga_chunk_size`](saleae_proto::device::DeviceProfile::fpga_chunk_size).
 ///
-/// - Non-Pro: 62 bytes (regardless of USB speed)
-/// - Pro USB 2.0: 508 bytes
-/// - Pro USB 3.0: 1020 bytes
+/// Firmware maximums (decompiled from ELF VA 0x1c544b0):
+/// - Non-Pro: 62 bytes (assertion: `data_size <= 0x3E`)
+/// - Pro USB 2.0: 509 bytes (we use 508, conservative by 1)
+/// - Pro USB 3.0: 1021 bytes (we use 1020, conservative by 1)
+///
+/// The maximums are calculated so opcode + header + data fills exactly
+/// one USB max packet size (64 / 512 / 1024 bytes respectively).
 pub const DEFAULT_CONFIG_CHUNK_SIZE: usize = 1020;
 
 /// EP1 command channel for a Saleae device.
@@ -246,8 +250,13 @@ impl Ep1CommandChannel {
     ///
     /// # Panics
     ///
-    /// Panics if `pairs` is empty or has more than 31 entries (firmware
-    /// assertion: `num_registers < 32`).
+    /// Panics if `pairs` is empty or has more than 31 entries.
+    ///
+    /// The firmware assertion is `num_registers < 32`, so the valid range
+    /// is 1..=31. Pro devices return a 1-byte ACK that must be 0x00;
+    /// non-Pro devices are fire-and-forget (no response read).
+    ///
+    /// Decompiled from ELF VA 0x1c535f0 (non-Pro) and 0x1c549d0 (Pro).
     pub fn write_registers(&mut self, pairs: &[(u8, u8)]) -> DriverResult<()> {
         assert!(
             !pairs.is_empty() && pairs.len() < 32,
@@ -264,10 +273,9 @@ impl Ep1CommandChannel {
 
         self.send_command(0x80, &payload)?;
 
-        // Pro devices send a 1-byte ACK. We read it regardless --
-        // if the device doesn't send one, the read will time out,
-        // which is acceptable for non-Pro devices. But since our
-        // target is Pro 8, we always expect the ACK.
+        // Pro devices read a 1-byte response and throw if non-zero.
+        // Non-Pro devices skip the response read entirely.
+        // Since our target is Pro 8, we always expect the ACK.
         let mut ack = [0u8; 64];
         let n = self.recv_response(&mut ack)?;
         debug!(
@@ -280,6 +288,13 @@ impl Ep1CommandChannel {
             "WriteRegisters ACK"
         );
 
+        if n >= 1 && ack[0] != 0x00 {
+            return Err(DriverError::CommandFailed {
+                command: "WriteRegisters",
+                detail: format!("expected 0x00 ack, got {:#04x}", ack[0]),
+            });
+        }
+
         Ok(())
     }
 
@@ -289,11 +304,14 @@ impl Ep1CommandChannel {
     ///
     /// # Panics
     ///
-    /// Panics if `addrs` is empty or has more than 63 entries.
+    /// Panics if `addrs` is empty or has more than 62 entries.
+    ///
+    /// The firmware assertion is `(count - 1) <= 0x3D`, so the valid range
+    /// is 1..=62 (decompiled from ELF VA 0x1c53af0).
     pub fn read_registers(&mut self, addrs: &[u8]) -> DriverResult<Vec<u8>> {
         assert!(
-            !addrs.is_empty() && addrs.len() <= 63,
-            "register count must be 1..63, got {}",
+            !addrs.is_empty() && addrs.len() <= 62,
+            "register count must be 1..62, got {}",
             addrs.len()
         );
 
@@ -699,6 +717,51 @@ impl Ep1CommandChannel {
         }
     }
 
+    /// Write a single bit in an 8-bit FPGA register (read-modify-write).
+    ///
+    /// This is the Rust equivalent of `FpgaDeviceFeatures::WriteRegisterBit`
+    /// (decompiled from ELF VA 0x1c53e30).
+    ///
+    /// # Arguments
+    ///
+    /// - `addr`: 8-bit register address.
+    /// - `bit_value`: `true` to set the bit, `false` to clear it.
+    /// - `bit_position`: Which bit to modify (0..7).
+    ///
+    /// # Panics
+    ///
+    /// Panics if `bit_position >= 8`.
+    pub fn write_register_bit(
+        &mut self,
+        addr: u8,
+        bit_value: bool,
+        bit_position: u8,
+    ) -> DriverResult<()> {
+        assert!(
+            bit_position < 8,
+            "bit_position must be 0..7, got {bit_position}"
+        );
+
+        let current = self.read_register_8(addr)?;
+        let mask = 1u8 << bit_position;
+        let new_val = if bit_value {
+            current | mask
+        } else {
+            current & !mask
+        };
+
+        debug!(
+            addr = format_args!("{addr:#04x}"),
+            bit = bit_position,
+            set = bit_value,
+            old = format_args!("{current:#04x}"),
+            new = format_args!("{new_val:#04x}"),
+            "WriteRegisterBit"
+        );
+
+        self.write_register_8(addr, new_val)
+    }
+
     // -----------------------------------------------------------------------
     // EEPROM / I2C tunnel
     // -----------------------------------------------------------------------
@@ -788,8 +851,8 @@ impl Ep1CommandChannel {
     /// - `[0x33, 0x81, 0x20, 0x00, 0x06, 0x00]` -- returns "REV." + version
     /// - `[0x33, 0x81, 0x10, 0x00, 0x10, 0x00]` -- returns 16 bytes (calibration?)
     ///
-    /// The parameter format appears to be: `[type, sub_cmd, offset_lo,
-    /// offset_hi, length_lo, length_hi]`.
+    /// The parameter format is: `[0x33, 0x81, offset_lo, offset_hi,
+    /// length_lo, length_hi]`. This is the FX3 I2C EEPROM read tunnel.
     pub fn read_version(&mut self, params: &[u8]) -> DriverResult<Vec<u8>> {
         self.send_command(0x07, params)?;
 
@@ -798,6 +861,83 @@ impl Ep1CommandChannel {
 
         debug!(len = n, "ReadVersion response");
         Ok(buf[..n].to_vec())
+    }
+
+    /// Read a block from the FX3 on-board EEPROM.
+    ///
+    /// Uses the ReadVersion (opcode 0x07) I2C tunnel with params
+    /// `[0x33, 0x81, addr_lo, addr_hi, count_lo, count_hi]`.
+    ///
+    /// Decompiled from `Fx3DeviceFeatures::ReadEeprom` (ELF VA 0x1c52460).
+    /// The firmware uses the same opcode for both version reads and EEPROM
+    /// reads -- the `0x33, 0x81` prefix selects the I2C EEPROM path.
+    ///
+    /// # Arguments
+    ///
+    /// - `address`: EEPROM byte offset (0x0000..0x0FFF for 4K EEPROM).
+    /// - `count`: Number of bytes to read (max 256 per call).
+    pub fn read_eeprom(&mut self, address: u16, count: u16) -> DriverResult<Vec<u8>> {
+        let params = [
+            0x33,
+            0x81,
+            (address & 0xFF) as u8,
+            (address >> 8) as u8,
+            (count & 0xFF) as u8,
+            (count >> 8) as u8,
+        ];
+        debug!(
+            address = format_args!("{address:#06x}"),
+            count, "ReadEeprom"
+        );
+        self.read_version(&params)
+    }
+
+    /// Write a block to the FX3 on-board EEPROM.
+    ///
+    /// Uses the ReadVersion (opcode 0x07) I2C tunnel. The write is a
+    /// two-step EP1 transaction:
+    ///
+    /// 1. Send command: opcode 0x07, params `[0x33, 0x81, addr_lo, count]`
+    /// 2. Send data: opcode 0x07, params = data bytes
+    ///
+    /// Decompiled from `Fx3DeviceFeatures::WriteEeprom` (ELF VA 0x1c50d80).
+    /// The original retries up to 3 times on exception.
+    ///
+    /// # Arguments
+    ///
+    /// - `address`: EEPROM byte offset (low byte used -- chunks of 256).
+    /// - `data`: Bytes to write (max 256 bytes per call).
+    ///
+    /// # Warning
+    ///
+    /// **Destructive** -- writes to device EEPROM. Incorrect data can
+    /// brick the device. The first 8 bytes (CY header + VID/PID) should
+    /// not be overwritten unless you know what you're doing.
+    pub fn write_eeprom(&mut self, address: u16, data: &[u8]) -> DriverResult<()> {
+        let count = data.len();
+        if count > 256 {
+            return Err(DriverError::CommandFailed {
+                command: "WriteEeprom",
+                detail: format!("data too large: {count} bytes (max 256)"),
+            });
+        }
+        debug!(
+            address = format_args!("{address:#06x}"),
+            count, "WriteEeprom"
+        );
+
+        // Step 1: Send the address/count header via ReadVersion command.
+        let header = [0x33, 0x81, (address & 0xFF) as u8, count as u8];
+        self.send_command(0x07, &header)?;
+        let mut buf = [0u8; 256];
+        let _n = self.recv_response(&mut buf)?;
+
+        // Step 2: Send the data payload via a second ReadVersion command.
+        // The firmware expects the data as a follow-up to the address header.
+        self.send_command(0x07, data)?;
+        let _n = self.recv_response(&mut buf)?;
+
+        Ok(())
     }
 
     /// Device2_1 command (opcode 0x89).
@@ -1150,7 +1290,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "register count must be 1..63")]
+    #[should_panic(expected = "register count must be 1..62")]
     fn read_registers_panics_on_empty() {
         let mock = std::sync::Arc::new(MockTransport::new());
         let mut channel = mock_channel_with_seed(&mock, 0);
@@ -1255,6 +1395,82 @@ mod tests {
         let mut channel = mock_channel_with_seed(&mock, seed);
         let val = channel.read_register_8(0x20).unwrap();
         assert_eq!(val, 0x42);
+    }
+
+    #[test]
+    fn write_register_bit_sets_bit() {
+        let mock = std::sync::Arc::new(MockTransport::new());
+        let seed = 0u32;
+
+        // Queue response for read_register_8 (current value 0b0000_0100 = 0x04)
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x04]);
+        // Queue ACK for write_register_8
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
+
+        let mut channel = mock_channel_with_seed(&mock, seed);
+        // Set bit 1 -> 0x04 | 0x02 = 0x06
+        channel.write_register_bit(0x13, true, 1).unwrap();
+
+        let ops = mock.operations();
+        // Op 0: read (BulkOut for ReadRegisters)
+        // Op 1: read response (BulkIn)
+        // Op 2: write (BulkOut for WriteRegisters)
+        // Op 3: write ACK (BulkIn)
+        // Find the final write command
+        let write_data = ops
+            .iter()
+            .filter_map(|op| {
+                if let UsbOperation::BulkOut { data, .. } = op {
+                    Some(data.clone())
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>();
+        // Second BulkOut should be the write with value 0x06
+        assert_eq!(write_data.len(), 2);
+        // The write payload (after control byte) is: 0x80, 0x01, 0x13, 0x06
+        assert_eq!(write_data[1][1], 0x80); // opcode
+        assert_eq!(write_data[1][2], 0x01); // count
+        assert_eq!(write_data[1][3], 0x13); // addr
+        assert_eq!(write_data[1][4], 0x06); // value (0x04 | 0x02)
+    }
+
+    #[test]
+    fn write_register_bit_clears_bit() {
+        let mock = std::sync::Arc::new(MockTransport::new());
+        let seed = 0u32;
+
+        // Queue response for read_register_8 (current value 0b0000_0110 = 0x06)
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x06]);
+        // Queue ACK for write_register_8
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
+
+        let mut channel = mock_channel_with_seed(&mock, seed);
+        // Clear bit 1 -> 0x06 & ~0x02 = 0x04
+        channel.write_register_bit(0x13, false, 1).unwrap();
+
+        let ops = mock.operations();
+        let write_data = ops
+            .iter()
+            .filter_map(|op| {
+                if let UsbOperation::BulkOut { data, .. } = op {
+                    Some(data.clone())
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(write_data.len(), 2);
+        assert_eq!(write_data[1][4], 0x04); // value (0x06 & !0x02)
+    }
+
+    #[test]
+    #[should_panic(expected = "bit_position must be 0..7")]
+    fn write_register_bit_panics_on_invalid_position() {
+        let mock = std::sync::Arc::new(MockTransport::new());
+        let mut channel = mock_channel_with_seed(&mock, 0);
+        channel.write_register_bit(0x13, true, 8).unwrap();
     }
 
     #[test]

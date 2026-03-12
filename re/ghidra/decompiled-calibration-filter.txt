@@ -1,0 +1,2086 @@
+Module manifest file error on line 2 of file: /home/mpedersen/.config/ghidra/ghidra_11.3.2_NIX/Extensions/GhidraMCP/Module.manifest
+	-> Invalid line encountered: GHIDRA_MODULE_NAME=GhidraMCP
+Module manifest file error on line 3 of file: /home/mpedersen/.config/ghidra/ghidra_11.3.2_NIX/Extensions/GhidraMCP/Module.manifest
+	-> Invalid line encountered: GHIDRA_MODULE_DESC=An HTTP server plugin for Ghidra
+Module manifest file error on line 2 of file: /home/mpedersen/.config/ghidra/ghidra_11.3.2_NIX/Extensions/GhidraMCP/Module.manifest
+	-> Invalid line encountered: GHIDRA_MODULE_NAME=GhidraMCP
+Module manifest file error on line 3 of file: /home/mpedersen/.config/ghidra/ghidra_11.3.2_NIX/Extensions/GhidraMCP/Module.manifest
+	-> Invalid line encountered: GHIDRA_MODULE_DESC=An HTTP server plugin for Ghidra
+INFO  Using log config file: jar:file:/nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Framework/Generic/lib/Generic.jar!/generic.log4j.xml (LoggingInitialization)  
+INFO  Using log file: /home/mpedersen/.config/ghidra/ghidra_11.3.2_NIX/application.log (LoggingInitialization)  
+INFO  Loading user preferences: /home/mpedersen/.config/ghidra/ghidra_11.3.2_NIX/preferences (Preferences)  
+INFO  Searching for classes... (ClassSearcher)  
+INFO  Class search complete (1103 ms) (ClassSearcher)  
+INFO  Initializing SSL Context (SSLContextInitializer)  
+INFO  Initializing Random Number Generator... (SecureRandomFactory)  
+INFO  Random Number Generator initialization complete: NativePRNGNonBlocking (SecureRandomFactory)  
+INFO  Trust manager disabled, cacerts have not been set (ApplicationTrustManagerFactory)  
+INFO  Headless startup complete (2631 ms) (AnalyzeHeadless)  
+INFO  Class searcher loaded 57 extension points (18 false positives) (ClassSearcher)  
+INFO  HEADLESS Script Paths:
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Processors/DATA/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/Jython/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/MicrosoftCodeAnalyzer/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Processors/PIC/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Debug/Debugger/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/SwiftDemangler/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/Base/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/PyGhidra/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/FunctionID/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Debug/Debugger-rmi-trace/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/DecompilerDependent/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/BSim/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/BytePatterns/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/Decompiler/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/WildcardAssembler/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/GnuDemangler/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/PDB/ghidra_scripts
+    /home/mpedersen/nvidia/saleae_reverse/re/ghidra/scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Processors/Atmel/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/FileFormats/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/SystemEmulation/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Processors/JVM/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Processors/8051/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/VersionTracking/ghidra_scripts (HeadlessAnalyzer)  
+INFO  HEADLESS: execution starts (HeadlessAnalyzer)  
+INFO  Opening existing project: /home/mpedersen/nvidia/saleae_reverse/ghidra_proj2/sal_rev2 (HeadlessAnalyzer)  
+INFO  Opening project: /home/mpedersen/nvidia/saleae_reverse/ghidra_proj2/sal_rev2 (HeadlessProject)  
+INFO  REPORT: Processing project file: /libgraph_server_shared.so (HeadlessAnalyzer)  
+INFO  SCRIPT: /home/mpedersen/nvidia/saleae_reverse/re/ghidra/scripts/DecompileCalibFilter4.java (HeadlessAnalyzer)  
+INFO  DecompileCalibFilter4.java> EXISTS: FUN_01bd8490 @ 01bd8490 (GhidraScript)  
+INFO  DecompileCalibFilter4.java> EXISTS: FUN_01bd5530 @ 01bd5530 (GhidraScript)  
+INFO  DecompileCalibFilter4.java> EXISTS: FUN_01bd3790 @ 01bd3790 (GhidraScript)  
+INFO  DecompileCalibFilter4.java> 
+=== FUN_01bd8490 @ 01bd8490 (runFilter) === (GhidraScript)  
+INFO  DecompileCalibFilter4.java> Size: 100 bytes (GhidraScript)  
+INFO  DecompileCalibFilter4.java> 
+undefined8 FUN_01bd8490(undefined4 *param_1,undefined8 param_2,undefined8 param_3,ulong param_4)
+
+{
+  undefined8 uVar1;
+  
+  if ((param_4 & 7) != 0) {
+    return 0;
+  }
+  uVar1 = 0;
+  switch(*param_1) {
+  case 0:
+    goto switchD_01bd84b3_caseD_0;
+  case 1:
+    FUN_01bd7ed0(*(undefined8 *)(param_1 + 2),param_2,param_3,param_4 >> 2);
+    break;
+  case 2:
+    FUN_01bda550(*(undefined8 *)(param_1 + 4),param_2,param_3,param_4 >> 3);
+    break;
+  case 3:
+    FUN_01bda8f0(*(undefined8 *)(param_1 + 4),param_2,param_3,param_4 >> 3);
+    break;
+  case 4:
+    FUN_01bdac00(*(undefined8 *)(param_1 + 4),param_2,param_3,param_4 >> 3);
+  }
+  uVar1 = 1;
+switchD_01bd84b3_caseD_0:
+  return uVar1;
+}
+
+ (GhidraScript)  
+INFO  DecompileCalibFilter4.java> 
+=== FUN_01bd5530 @ 01bd5530 (SetupCalibrationFromJson) === (GhidraScript)  
+INFO  DecompileCalibFilter4.java> Size: 194 bytes (GhidraScript)  
+INFO  DecompileCalibFilter4.java> 
+void FUN_01bd5530(string *param_1,string *param_2)
+
+{
+  undefined8 uVar1;
+  void *__dest;
+  size_t __n;
+  ulong uVar2;
+  
+  std::string::string(param_1,param_2);
+  *(undefined8 *)(param_1 + 0x18) = 0;
+  *(undefined8 *)(param_1 + 0x20) = 0;
+  *(undefined8 *)(param_1 + 0x28) = 0;
+  uVar2 = *(long *)(param_2 + 0x20) - *(long *)(param_2 + 0x18);
+  if (uVar2 != 0) {
+    if ((long)uVar2 < 0) {
+                    /* try { // try from 01bd55ea to 01bd55f1 has its CatchHandler @ 01bd5603 */
+                    /* WARNING: Subroutine does not return */
+      std::__vector_base_common<true>::__throw_length_error();
+    }
+                    /* try { // try from 01bd5570 to 01bd5574 has its CatchHandler @ 01bd5603 */
+    __dest = operator_new(uVar2);
+    *(void **)(param_1 + 0x20) = __dest;
+    *(void **)(param_1 + 0x18) = __dest;
+    *(void **)(param_1 + 0x28) = (void *)(((long)uVar2 >> 4) * 0x10 + (long)__dest);
+    __n = *(long *)(param_2 + 0x20) - (long)*(void **)(param_2 + 0x18);
+    if (0 < (long)__n) {
+      memcpy(__dest,*(void **)(param_2 + 0x18),__n);
+      __dest = (void *)((long)__dest + __n);
+    }
+    *(void **)(param_1 + 0x20) = __dest;
+  }
+  *(undefined8 *)(param_1 + 0x38) = 0;
+  *(undefined8 *)(param_1 + 0x40) = 0;
+  *(string **)(param_1 + 0x30) = param_1 + 0x38;
+                    /* try { // try from 01bd55c9 to 01bd55d0 has its CatchHandler @ 01bd55f2 */
+  FUN_01bd5640(param_1 + 0x30,*(undefined8 *)(param_2 + 0x30),param_2 + 0x38);
+  uVar1 = *(undefined8 *)(param_2 + 0x50);
+  *(undefined8 *)(param_1 + 0x48) = *(undefined8 *)(param_2 + 0x48);
+  *(undefined8 *)(param_1 + 0x50) = uVar1;
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileCalibFilter4.java> 
+=== FUN_01bd3790 @ 01bd3790 (ProduceOutputSamples) === (GhidraScript)  
+INFO  DecompileCalibFilter4.java> Size: 334 bytes (GhidraScript)  
+INFO  DecompileCalibFilter4.java> 
+long * FUN_01bd3790(long *param_1,long param_2,long *param_3)
+
+{
+  long lVar1;
+  undefined8 *puVar2;
+  size_t __n;
+  ulong uVar3;
+  void *__src;
+  ulong uVar4;
+  long lVar5;
+  void *local_48;
+  
+  lVar1 = *(long *)(param_2 + 0x278);
+  uVar3 = lVar1 - *(long *)(param_2 + 0x280);
+  if (uVar3 == 0) {
+    *param_1 = *param_3;
+    param_1[1] = param_3[1];
+    *param_3 = 0;
+    param_3[1] = 0;
+  }
+  else {
+    param_3 = (long *)*param_3;
+    uVar4 = param_3[1] - *param_3 >> 1;
+    if (uVar3 < uVar4) {
+      puVar2 = (undefined8 *)operator_new(0x30);
+      puVar2[1] = 0;
+      puVar2[2] = 0;
+      *puVar2 = &PTR_FUN_02f385f8;
+      puVar2[3] = 0;
+      puVar2[4] = 0;
+      puVar2[5] = 0;
+      lVar5 = uVar4 - uVar3;
+      if (lVar5 == 0) {
+        local_48 = (void *)0x0;
+      }
+      else {
+        if (lVar5 < 0) {
+                    /* try { // try from 01bd38d4 to 01bd38dd has its CatchHandler @ 01bd38de */
+                    /* WARNING: Subroutine does not return */
+          std::__vector_base_common<true>::__throw_length_error();
+        }
+        uVar4 = lVar5 * 2;
+                    /* try { // try from 01bd383a to 01bd3843 has its CatchHandler @ 01bd38de */
+        local_48 = operator_new(uVar4);
+        puVar2[3] = local_48;
+        puVar2[5] = (void *)((long)local_48 + lVar5 * 2);
+        memset(local_48,0,uVar4);
+        puVar2[4] = (void *)((long)local_48 + uVar4);
+      }
+      *param_1 = (long)(puVar2 + 3);
+      param_1[1] = (long)puVar2;
+      __src = (void *)(uVar3 * 2 + *param_3);
+      __n = param_3[1] - (long)__src;
+      if (__n != 0) {
+        memmove(local_48,__src,__n);
+      }
+      *(long *)(param_2 + 0x280) = lVar1;
+    }
+    else {
+      *(ulong *)(param_2 + 0x280) = uVar4 + *(long *)(param_2 + 0x280);
+      *param_1 = 0;
+      param_1[1] = 0;
+    }
+  }
+  return param_1;
+}
+
+ (GhidraScript)  
+INFO  REPORT: Save succeeded for processed file: /libgraph_server_shared.so (HeadlessAnalyzer)  
+Module manifest file error on line 2 of file: /home/mpedersen/.config/ghidra/ghidra_11.3.2_NIX/Extensions/GhidraMCP/Module.manifest
+	-> Invalid line encountered: GHIDRA_MODULE_NAME=GhidraMCP
+Module manifest file error on line 3 of file: /home/mpedersen/.config/ghidra/ghidra_11.3.2_NIX/Extensions/GhidraMCP/Module.manifest
+	-> Invalid line encountered: GHIDRA_MODULE_DESC=An HTTP server plugin for Ghidra
+Module manifest file error on line 2 of file: /home/mpedersen/.config/ghidra/ghidra_11.3.2_NIX/Extensions/GhidraMCP/Module.manifest
+	-> Invalid line encountered: GHIDRA_MODULE_NAME=GhidraMCP
+Module manifest file error on line 3 of file: /home/mpedersen/.config/ghidra/ghidra_11.3.2_NIX/Extensions/GhidraMCP/Module.manifest
+	-> Invalid line encountered: GHIDRA_MODULE_DESC=An HTTP server plugin for Ghidra
+INFO  Using log config file: jar:file:/nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Framework/Generic/lib/Generic.jar!/generic.log4j.xml (LoggingInitialization)  
+INFO  Using log file: /home/mpedersen/.config/ghidra/ghidra_11.3.2_NIX/application.log (LoggingInitialization)  
+INFO  Loading user preferences: /home/mpedersen/.config/ghidra/ghidra_11.3.2_NIX/preferences (Preferences)  
+INFO  Searching for classes... (ClassSearcher)  
+INFO  Class search complete (1211 ms) (ClassSearcher)  
+INFO  Initializing SSL Context (SSLContextInitializer)  
+INFO  Initializing Random Number Generator... (SecureRandomFactory)  
+INFO  Random Number Generator initialization complete: NativePRNGNonBlocking (SecureRandomFactory)  
+INFO  Trust manager disabled, cacerts have not been set (ApplicationTrustManagerFactory)  
+INFO  Headless startup complete (2654 ms) (AnalyzeHeadless)  
+INFO  Class searcher loaded 57 extension points (18 false positives) (ClassSearcher)  
+INFO  HEADLESS Script Paths:
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Processors/DATA/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/Jython/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/MicrosoftCodeAnalyzer/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Processors/PIC/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Debug/Debugger/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/SwiftDemangler/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/Base/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/PyGhidra/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/FunctionID/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Debug/Debugger-rmi-trace/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/DecompilerDependent/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/BSim/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/BytePatterns/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/Decompiler/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/WildcardAssembler/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/GnuDemangler/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/PDB/ghidra_scripts
+    /home/mpedersen/nvidia/saleae_reverse/re/ghidra/scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Processors/Atmel/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/FileFormats/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/SystemEmulation/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Processors/JVM/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Processors/8051/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/VersionTracking/ghidra_scripts (HeadlessAnalyzer)  
+INFO  HEADLESS: execution starts (HeadlessAnalyzer)  
+INFO  Opening existing project: /home/mpedersen/nvidia/saleae_reverse/ghidra_proj2/sal_rev2 (HeadlessAnalyzer)  
+INFO  Opening project: /home/mpedersen/nvidia/saleae_reverse/ghidra_proj2/sal_rev2 (HeadlessProject)  
+INFO  REPORT: Processing project file: /libgraph_server_shared.so (HeadlessAnalyzer)  
+INFO  SCRIPT: /home/mpedersen/nvidia/saleae_reverse/re/ghidra/scripts/DecompileCalibFilter5.java (HeadlessAnalyzer)  
+INFO  DecompileCalibFilter5.java> EXISTS: FUN_01bd7ed0 @ 01bd7ed0 (GhidraScript)  
+INFO  DecompileCalibFilter5.java> EXISTS: FUN_01bda550 @ 01bda550 (GhidraScript)  
+INFO  DecompileCalibFilter5.java> EXISTS: FUN_01bda8f0 @ 01bda8f0 (GhidraScript)  
+INFO  DecompileCalibFilter5.java> EXISTS: FUN_01bdac00 @ 01bdac00 (GhidraScript)  
+INFO  DecompileCalibFilter5.java> 
+=== FUN_01bd7ed0 @ 01bd7ed0 (SimdIirFilter_process_SSE) === (GhidraScript)  
+INFO  DecompileCalibFilter5.java> Size: 880 bytes (GhidraScript)  
+INFO  DecompileCalibFilter5.java> 
+void FUN_01bd7ed0(long param_1,long param_2,long param_3,long param_4)
+
+{
+  float fVar1;
+  float fVar2;
+  float fVar3;
+  ulong uVar4;
+  float fVar5;
+  float fVar6;
+  float fVar7;
+  float fVar8;
+  float fVar9;
+  undefined1 auVar10 [12];
+  long lVar11;
+  float fVar12;
+  float fVar14;
+  float fVar15;
+  float fVar16;
+  undefined1 auVar13 [16];
+  undefined1 auVar17 [16];
+  float fVar21;
+  float fVar22;
+  float fVar23;
+  float fVar24;
+  float fVar25;
+  float fVar26;
+  float fVar27;
+  float fVar28;
+  undefined1 auVar18 [16];
+  undefined1 auVar19 [16];
+  undefined2 uVar20;
+  
+  if (param_4 != 0) {
+    lVar11 = 0;
+    fVar12 = *(float *)(param_1 + 0x35c);
+    fVar14 = *(float *)(param_1 + 0x358);
+    fVar15 = *(float *)(param_1 + 0x354);
+    fVar16 = *(float *)(param_1 + 0x350);
+    do {
+      uVar4 = *(ulong *)(param_2 + lVar11 * 8);
+      uVar20 = (undefined2)(uVar4 >> 0x30);
+      auVar19._8_4_ = 0;
+      auVar19._0_8_ = uVar4;
+      auVar19._12_2_ = uVar20;
+      auVar19._14_2_ = uVar20;
+      uVar20 = (undefined2)(uVar4 >> 0x20);
+      auVar18._12_4_ = auVar19._12_4_;
+      auVar18._8_2_ = 0;
+      auVar18._0_8_ = uVar4;
+      auVar18._10_2_ = uVar20;
+      auVar17._10_6_ = auVar18._10_6_;
+      auVar17._8_2_ = uVar20;
+      auVar17._0_8_ = uVar4;
+      uVar20 = (undefined2)(uVar4 >> 0x10);
+      auVar10._4_8_ = auVar17._8_8_;
+      auVar10._2_2_ = uVar20;
+      auVar10._0_2_ = uVar20;
+      fVar21 = (float)(int)(short)uVar4;
+      fVar22 = (float)(auVar10._0_4_ >> 0x10);
+      fVar23 = (float)(auVar17._8_4_ >> 0x10);
+      fVar24 = (float)(auVar18._12_4_ >> 0x10);
+      fVar25 = *(float *)(param_1 + 0x180) * fVar12 + *(float *)(param_1 + 0x170) * fVar14 +
+               *(float *)(param_1 + 0x160) * fVar15 + *(float *)(param_1 + 0x150) * fVar16 +
+               *(float *)(param_1 + 0x140) * fVar24 + *(float *)(param_1 + 0x130) * fVar23 +
+               *(float *)(param_1 + 0x120) * fVar22 + *(float *)(param_1 + 0x110) * fVar21;
+      fVar26 = *(float *)(param_1 + 0x184) * fVar12 + *(float *)(param_1 + 0x174) * fVar14 +
+               *(float *)(param_1 + 0x164) * fVar15 + *(float *)(param_1 + 0x154) * fVar16 +
+               *(float *)(param_1 + 0x144) * fVar24 + *(float *)(param_1 + 0x134) * fVar23 +
+               *(float *)(param_1 + 0x124) * fVar22 + *(float *)(param_1 + 0x114) * fVar21;
+      fVar27 = *(float *)(param_1 + 0x188) * fVar12 + *(float *)(param_1 + 0x178) * fVar14 +
+               *(float *)(param_1 + 0x168) * fVar15 + *(float *)(param_1 + 0x158) * fVar16 +
+               *(float *)(param_1 + 0x148) * fVar24 + *(float *)(param_1 + 0x138) * fVar23 +
+               *(float *)(param_1 + 0x128) * fVar22 + *(float *)(param_1 + 0x118) * fVar21;
+      fVar28 = *(float *)(param_1 + 0x18c) * fVar12 + *(float *)(param_1 + 0x17c) * fVar14 +
+               *(float *)(param_1 + 0x16c) * fVar15 + *(float *)(param_1 + 0x15c) * fVar16 +
+               *(float *)(param_1 + 0x14c) * fVar24 + *(float *)(param_1 + 0x13c) * fVar23 +
+               *(float *)(param_1 + 300) * fVar22 + *(float *)(param_1 + 0x11c) * fVar21;
+      fVar5 = *(float *)(param_1 + 0x360);
+      fVar6 = *(float *)(param_1 + 0x364);
+      fVar7 = *(float *)(param_1 + 0x368);
+      fVar8 = *(float *)(param_1 + 0x36c);
+      fVar9 = *(float *)(param_1 + 0x370);
+      fVar1 = *(float *)(param_1 + 0x374);
+      fVar2 = *(float *)(param_1 + 0x378);
+      fVar3 = *(float *)(param_1 + 0x37c);
+      *(float *)(param_1 + 0x350) = fVar25;
+      *(float *)(param_1 + 0x354) = fVar26;
+      *(float *)(param_1 + 0x358) = fVar27;
+      *(float *)(param_1 + 0x35c) = fVar28;
+      *(float *)(param_1 + 0x360) =
+           *(float *)(param_1 + 0x240) * fVar8 + *(float *)(param_1 + 0x230) * fVar7 +
+           *(float *)(param_1 + 0x220) * fVar6 + *(float *)(param_1 + 0x210) * fVar5 +
+           *(float *)(param_1 + 0x200) * fVar12 + *(float *)(param_1 + 0x1f0) * fVar14 +
+           *(float *)(param_1 + 0x1e0) * fVar15 + *(float *)(param_1 + 0x1d0) * fVar16 +
+           *(float *)(param_1 + 0x1c0) * fVar24 + *(float *)(param_1 + 0x1b0) * fVar23 +
+           *(float *)(param_1 + 0x1a0) * fVar22 + *(float *)(param_1 + 400) * fVar21;
+      *(float *)(param_1 + 0x364) =
+           *(float *)(param_1 + 0x244) * fVar8 + *(float *)(param_1 + 0x234) * fVar7 +
+           *(float *)(param_1 + 0x224) * fVar6 + *(float *)(param_1 + 0x214) * fVar5 +
+           *(float *)(param_1 + 0x204) * fVar12 + *(float *)(param_1 + 500) * fVar14 +
+           *(float *)(param_1 + 0x1e4) * fVar15 + *(float *)(param_1 + 0x1d4) * fVar16 +
+           *(float *)(param_1 + 0x1c4) * fVar24 + *(float *)(param_1 + 0x1b4) * fVar23 +
+           *(float *)(param_1 + 0x1a4) * fVar22 + *(float *)(param_1 + 0x194) * fVar21;
+      *(float *)(param_1 + 0x368) =
+           *(float *)(param_1 + 0x248) * fVar8 + *(float *)(param_1 + 0x238) * fVar7 +
+           *(float *)(param_1 + 0x228) * fVar6 + *(float *)(param_1 + 0x218) * fVar5 +
+           *(float *)(param_1 + 0x208) * fVar12 + *(float *)(param_1 + 0x1f8) * fVar14 +
+           *(float *)(param_1 + 0x1e8) * fVar15 + *(float *)(param_1 + 0x1d8) * fVar16 +
+           *(float *)(param_1 + 0x1c8) * fVar24 + *(float *)(param_1 + 0x1b8) * fVar23 +
+           *(float *)(param_1 + 0x1a8) * fVar22 + *(float *)(param_1 + 0x198) * fVar21;
+      *(float *)(param_1 + 0x36c) =
+           *(float *)(param_1 + 0x24c) * fVar8 + *(float *)(param_1 + 0x23c) * fVar7 +
+           *(float *)(param_1 + 0x22c) * fVar6 + *(float *)(param_1 + 0x21c) * fVar5 +
+           *(float *)(param_1 + 0x20c) * fVar12 + *(float *)(param_1 + 0x1fc) * fVar14 +
+           *(float *)(param_1 + 0x1ec) * fVar15 + *(float *)(param_1 + 0x1dc) * fVar16 +
+           *(float *)(param_1 + 0x1cc) * fVar24 + *(float *)(param_1 + 0x1bc) * fVar23 +
+           *(float *)(param_1 + 0x1ac) * fVar22 + *(float *)(param_1 + 0x19c) * fVar21;
+      *(float *)(param_1 + 0x370) =
+           fVar3 * *(float *)(param_1 + 0x340) + fVar2 * *(float *)(param_1 + 0x330) +
+           fVar1 * *(float *)(param_1 + 800) + fVar9 * *(float *)(param_1 + 0x310) +
+           fVar8 * *(float *)(param_1 + 0x300) + fVar7 * *(float *)(param_1 + 0x2f0) +
+           fVar6 * *(float *)(param_1 + 0x2e0) + fVar5 * *(float *)(param_1 + 0x2d0) +
+           fVar12 * *(float *)(param_1 + 0x2c0) + fVar14 * *(float *)(param_1 + 0x2b0) +
+           fVar15 * *(float *)(param_1 + 0x2a0) + fVar16 * *(float *)(param_1 + 0x290) +
+           fVar24 * *(float *)(param_1 + 0x280) + fVar23 * *(float *)(param_1 + 0x270) +
+           fVar22 * *(float *)(param_1 + 0x260) + fVar21 * *(float *)(param_1 + 0x250);
+      *(float *)(param_1 + 0x374) =
+           fVar3 * *(float *)(param_1 + 0x344) + fVar2 * *(float *)(param_1 + 0x334) +
+           fVar1 * *(float *)(param_1 + 0x324) + fVar9 * *(float *)(param_1 + 0x314) +
+           fVar8 * *(float *)(param_1 + 0x304) + fVar7 * *(float *)(param_1 + 0x2f4) +
+           fVar6 * *(float *)(param_1 + 0x2e4) + fVar5 * *(float *)(param_1 + 0x2d4) +
+           fVar12 * *(float *)(param_1 + 0x2c4) + fVar14 * *(float *)(param_1 + 0x2b4) +
+           fVar15 * *(float *)(param_1 + 0x2a4) + fVar16 * *(float *)(param_1 + 0x294) +
+           fVar24 * *(float *)(param_1 + 0x284) + fVar23 * *(float *)(param_1 + 0x274) +
+           fVar22 * *(float *)(param_1 + 0x264) + fVar21 * *(float *)(param_1 + 0x254);
+      *(float *)(param_1 + 0x378) =
+           fVar3 * *(float *)(param_1 + 0x348) + fVar2 * *(float *)(param_1 + 0x338) +
+           fVar1 * *(float *)(param_1 + 0x328) + fVar9 * *(float *)(param_1 + 0x318) +
+           fVar8 * *(float *)(param_1 + 0x308) + fVar7 * *(float *)(param_1 + 0x2f8) +
+           fVar6 * *(float *)(param_1 + 0x2e8) + fVar5 * *(float *)(param_1 + 0x2d8) +
+           fVar12 * *(float *)(param_1 + 0x2c8) + fVar14 * *(float *)(param_1 + 0x2b8) +
+           fVar15 * *(float *)(param_1 + 0x2a8) + fVar16 * *(float *)(param_1 + 0x298) +
+           fVar24 * *(float *)(param_1 + 0x288) + fVar23 * *(float *)(param_1 + 0x278) +
+           fVar22 * *(float *)(param_1 + 0x268) + fVar21 * *(float *)(param_1 + 600);
+      *(float *)(param_1 + 0x37c) =
+           fVar3 * *(float *)(param_1 + 0x34c) + fVar2 * *(float *)(param_1 + 0x33c) +
+           fVar1 * *(float *)(param_1 + 0x32c) + fVar9 * *(float *)(param_1 + 0x31c) +
+           fVar8 * *(float *)(param_1 + 0x30c) + fVar7 * *(float *)(param_1 + 0x2fc) +
+           fVar6 * *(float *)(param_1 + 0x2ec) + fVar5 * *(float *)(param_1 + 0x2dc) +
+           fVar12 * *(float *)(param_1 + 0x2cc) + fVar14 * *(float *)(param_1 + 700) +
+           fVar15 * *(float *)(param_1 + 0x2ac) + fVar16 * *(float *)(param_1 + 0x29c) +
+           fVar24 * *(float *)(param_1 + 0x28c) + fVar23 * *(float *)(param_1 + 0x27c) +
+           fVar22 * *(float *)(param_1 + 0x26c) + fVar21 * *(float *)(param_1 + 0x25c);
+      auVar13._0_4_ =
+           (int)(*(float *)(param_1 + 0x100) * fVar3 + *(float *)(param_1 + 0xf0) * fVar2 +
+                 *(float *)(param_1 + 0xe0) * fVar1 + *(float *)(param_1 + 0xd0) * fVar9 +
+                 *(float *)(param_1 + 0xc0) * fVar8 + *(float *)(param_1 + 0xb0) * fVar7 +
+                 *(float *)(param_1 + 0xa0) * fVar6 + *(float *)(param_1 + 0x90) * fVar5 +
+                *(float *)(param_1 + 0x80) * fVar12 + *(float *)(param_1 + 0x70) * fVar14 +
+                *(float *)(param_1 + 0x60) * fVar15 + *(float *)(param_1 + 0x50) * fVar16 +
+                *(float *)(param_1 + 0x40) * fVar24 + *(float *)(param_1 + 0x30) * fVar23 +
+                *(float *)(param_1 + 0x20) * fVar22 + *(float *)(param_1 + 0x10) * fVar21);
+      auVar13._4_4_ =
+           (int)(*(float *)(param_1 + 0x104) * fVar3 + *(float *)(param_1 + 0xf4) * fVar2 +
+                 *(float *)(param_1 + 0xe4) * fVar1 + *(float *)(param_1 + 0xd4) * fVar9 +
+                 *(float *)(param_1 + 0xc4) * fVar8 + *(float *)(param_1 + 0xb4) * fVar7 +
+                 *(float *)(param_1 + 0xa4) * fVar6 + *(float *)(param_1 + 0x94) * fVar5 +
+                *(float *)(param_1 + 0x84) * fVar12 + *(float *)(param_1 + 0x74) * fVar14 +
+                *(float *)(param_1 + 100) * fVar15 + *(float *)(param_1 + 0x54) * fVar16 +
+                *(float *)(param_1 + 0x44) * fVar24 + *(float *)(param_1 + 0x34) * fVar23 +
+                *(float *)(param_1 + 0x24) * fVar22 + *(float *)(param_1 + 0x14) * fVar21);
+      auVar13._8_4_ =
+           (int)(*(float *)(param_1 + 0x108) * fVar3 + *(float *)(param_1 + 0xf8) * fVar2 +
+                 *(float *)(param_1 + 0xe8) * fVar1 + *(float *)(param_1 + 0xd8) * fVar9 +
+                 *(float *)(param_1 + 200) * fVar8 + *(float *)(param_1 + 0xb8) * fVar7 +
+                 *(float *)(param_1 + 0xa8) * fVar6 + *(float *)(param_1 + 0x98) * fVar5 +
+                *(float *)(param_1 + 0x88) * fVar12 + *(float *)(param_1 + 0x78) * fVar14 +
+                *(float *)(param_1 + 0x68) * fVar15 + *(float *)(param_1 + 0x58) * fVar16 +
+                *(float *)(param_1 + 0x48) * fVar24 + *(float *)(param_1 + 0x38) * fVar23 +
+                *(float *)(param_1 + 0x28) * fVar22 + *(float *)(param_1 + 0x18) * fVar21);
+      auVar13._12_4_ =
+           (int)(*(float *)(param_1 + 0x10c) * fVar3 + *(float *)(param_1 + 0xfc) * fVar2 +
+                 *(float *)(param_1 + 0xec) * fVar1 + *(float *)(param_1 + 0xdc) * fVar9 +
+                 *(float *)(param_1 + 0xcc) * fVar8 + *(float *)(param_1 + 0xbc) * fVar7 +
+                 *(float *)(param_1 + 0xac) * fVar6 + *(float *)(param_1 + 0x9c) * fVar5 +
+                *(float *)(param_1 + 0x8c) * fVar12 + *(float *)(param_1 + 0x7c) * fVar14 +
+                *(float *)(param_1 + 0x6c) * fVar15 + *(float *)(param_1 + 0x5c) * fVar16 +
+                *(float *)(param_1 + 0x4c) * fVar24 + *(float *)(param_1 + 0x3c) * fVar23 +
+                *(float *)(param_1 + 0x2c) * fVar22 + *(float *)(param_1 + 0x1c) * fVar21);
+      auVar13 = packssdw(auVar13,auVar13);
+      *(long *)(param_3 + lVar11 * 8) = auVar13._0_8_;
+      lVar11 = lVar11 + 1;
+      fVar12 = fVar28;
+      fVar14 = fVar27;
+      fVar15 = fVar26;
+      fVar16 = fVar25;
+    } while (param_4 != lVar11);
+  }
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileCalibFilter5.java> 
+=== FUN_01bda550 @ 01bda550 (Static2By3_process_SSE) === (GhidraScript)  
+INFO  DecompileCalibFilter5.java> Size: 914 bytes (GhidraScript)  
+INFO  DecompileCalibFilter5.java> 
+void FUN_01bda550(long param_1,long param_2,long param_3,long param_4)
+
+{
+  float fVar1;
+  float fVar2;
+  float fVar3;
+  float fVar4;
+  float fVar5;
+  float fVar6;
+  float fVar7;
+  float fVar8;
+  float fVar9;
+  undefined1 auVar10 [16];
+  undefined1 auVar11 [32];
+  undefined1 auVar12 [16];
+  float fVar13;
+  long lVar14;
+  undefined1 auVar15 [32];
+  float fVar16;
+  float fVar17;
+  float fVar18;
+  float fVar20;
+  undefined1 auVar19 [32];
+  float fVar21;
+  float fVar22;
+  float fVar23;
+  float fVar24;
+  float fVar25;
+  float fVar26;
+  float fVar27;
+  float fVar28;
+  float fVar29;
+  float fVar30;
+  float fVar31;
+  float fVar32;
+  float fVar33;
+  float fVar34;
+  float fVar35;
+  float fVar36;
+  float fVar37;
+  float fVar38;
+  float fVar39;
+  float fVar40;
+  float fVar42;
+  float fVar43;
+  undefined1 auVar41 [16];
+  float fVar44;
+  float fVar45;
+  float fVar46;
+  float fVar47;
+  float fVar48;
+  float in_register_0000141c;
+  float fVar49;
+  float in_register_0000145c;
+  float fVar50;
+  float in_register_0000149c;
+  float fVar51;
+  float fVar52;
+  float fVar53;
+  float in_register_000014dc;
+  float in_register_0000151c;
+  float fVar54;
+  float fVar55;
+  float in_register_0000155c;
+  float in_register_0000159c;
+  
+  if (param_4 != 0) {
+    lVar14 = 0;
+    do {
+      auVar10 = *(undefined1 (*) [16])(param_2 + lVar14);
+      auVar12 = vpunpcklwd_avx(auVar10,auVar10);
+      auVar10 = vpunpckhwd_avx(auVar10,auVar10);
+      auVar15._0_16_ = ZEXT116(0) * auVar10 + ZEXT116(1) * auVar12;
+      auVar15._16_16_ = ZEXT116(1) * auVar10;
+      auVar15 = vpsrad_avx2(auVar15,0x10);
+      auVar15 = vcvtdq2ps_avx(auVar15);
+      fVar39 = auVar15._0_4_;
+      auVar41 = auVar15._0_16_;
+      auVar10 = vmovshdup_avx(auVar41);
+      auVar12 = vpermilps_avx(auVar41,0xaa);
+      auVar41 = vpermilps_avx(auVar41,0xff);
+      fVar21 = auVar15._16_4_;
+      auVar11 = vmovshdup_avx(auVar15);
+      auVar19 = vpermpd_avx2(auVar11,0xaa);
+      auVar11 = vpermilps_avx(auVar15,0xaa);
+      auVar11 = vpermpd_avx2(auVar11,0xaa);
+      auVar15 = vpermilps_avx(auVar15,0xff);
+      auVar15 = vpermpd_avx2(auVar15,0xaa);
+      fVar16 = auVar10._0_4_;
+      fVar17 = auVar10._4_4_;
+      fVar18 = auVar12._0_4_;
+      fVar20 = auVar12._4_4_;
+      fVar22 = auVar41._0_4_;
+      fVar23 = auVar41._4_4_;
+      fVar24 = auVar19._0_4_;
+      fVar25 = auVar19._4_4_;
+      fVar26 = auVar19._8_4_;
+      fVar27 = auVar19._12_4_;
+      fVar28 = auVar19._16_4_;
+      fVar29 = auVar19._20_4_;
+      fVar30 = auVar19._24_4_;
+      fVar31 = auVar11._0_4_;
+      fVar32 = auVar11._4_4_;
+      fVar33 = auVar11._8_4_;
+      fVar34 = auVar11._12_4_;
+      fVar35 = auVar11._16_4_;
+      fVar36 = auVar11._20_4_;
+      fVar37 = auVar11._24_4_;
+      fVar40 = auVar15._0_4_;
+      fVar42 = auVar15._4_4_;
+      fVar43 = auVar15._8_4_;
+      fVar44 = auVar15._12_4_;
+      fVar45 = auVar15._16_4_;
+      fVar46 = auVar15._20_4_;
+      fVar47 = auVar15._24_4_;
+      fVar51 = in_register_0000149c + in_register_000014dc;
+      fVar49 = in_register_0000141c + in_register_0000145c +
+               in_register_0000149c + in_register_0000145c +
+               in_register_0000149c + in_register_000014dc + fVar51;
+      fVar50 = fVar51 + in_register_000014dc;
+      fVar51 = fVar51 + in_register_000014dc;
+      fVar52 = fVar51 + in_register_000014dc + in_register_0000151c + in_register_0000155c;
+      fVar1 = *(float *)(param_1 + 0x6a0);
+      fVar2 = *(float *)(param_1 + 0x6a4);
+      fVar3 = *(float *)(param_1 + 0x6a8);
+      fVar4 = *(float *)(param_1 + 0x6ac);
+      fVar13 = auVar15._28_4_;
+      fVar38 = auVar11._28_4_ + fVar13;
+      fVar48 = fVar49 + fVar13;
+      fVar5 = *(float *)(param_1 + 0x6c0);
+      fVar6 = *(float *)(param_1 + 0x6c4);
+      fVar7 = *(float *)(param_1 + 0x6c8);
+      fVar8 = *(float *)(param_1 + 0x6cc);
+      fVar9 = *(float *)(param_1 + 0x6d0);
+      in_register_0000141c = *(float *)(param_1 + 0x6d4);
+      in_register_0000145c = *(float *)(param_1 + 0x6d8);
+      in_register_000014dc = *(float *)(param_1 + 0x6dc);
+      fVar53 = fVar52 + in_register_0000151c;
+      fVar54 = in_register_0000151c + in_register_0000155c;
+      fVar55 = fVar54 + in_register_0000155c;
+      in_register_0000155c = in_register_0000159c + in_register_0000155c;
+      in_register_0000151c = fVar55 + in_register_0000155c;
+      in_register_0000149c = fVar53 + fVar54 + in_register_0000151c;
+      auVar19._0_4_ =
+           fVar5 * *(float *)(param_1 + 0x1a0) + fVar6 * *(float *)(param_1 + 0x1c0) +
+           fVar7 * *(float *)(param_1 + 0x1e0) + fVar8 * *(float *)(param_1 + 0x200) +
+           fVar9 * *(float *)(param_1 + 0x220) + in_register_0000141c * *(float *)(param_1 + 0x240)
+           + in_register_0000145c * *(float *)(param_1 + 0x260) +
+             in_register_000014dc * *(float *)(param_1 + 0x280) +
+           fVar39 * *(float *)(param_1 + 0x20) + fVar16 * *(float *)(param_1 + 0x40) +
+           fVar18 * *(float *)(param_1 + 0x60) + fVar22 * *(float *)(param_1 + 0x80) +
+           fVar21 * *(float *)(param_1 + 0xa0) + fVar24 * *(float *)(param_1 + 0xc0) +
+           fVar31 * *(float *)(param_1 + 0xe0) + fVar40 * *(float *)(param_1 + 0x100) +
+           fVar1 * *(float *)(param_1 + 0x120) + fVar2 * *(float *)(param_1 + 0x140) +
+           fVar3 * *(float *)(param_1 + 0x160) + fVar4 * *(float *)(param_1 + 0x180);
+      auVar19._4_4_ =
+           fVar5 * *(float *)(param_1 + 0x1a4) + fVar6 * *(float *)(param_1 + 0x1c4) +
+           fVar7 * *(float *)(param_1 + 0x1e4) + fVar8 * *(float *)(param_1 + 0x204) +
+           fVar9 * *(float *)(param_1 + 0x224) + in_register_0000141c * *(float *)(param_1 + 0x244)
+           + in_register_0000145c * *(float *)(param_1 + 0x264) +
+             in_register_000014dc * *(float *)(param_1 + 0x284) +
+           fVar39 * *(float *)(param_1 + 0x24) + fVar17 * *(float *)(param_1 + 0x44) +
+           fVar20 * *(float *)(param_1 + 100) + fVar23 * *(float *)(param_1 + 0x84) +
+           fVar21 * *(float *)(param_1 + 0xa4) + fVar25 * *(float *)(param_1 + 0xc4) +
+           fVar32 * *(float *)(param_1 + 0xe4) + fVar42 * *(float *)(param_1 + 0x104) +
+           fVar1 * *(float *)(param_1 + 0x124) + fVar2 * *(float *)(param_1 + 0x144) +
+           fVar3 * *(float *)(param_1 + 0x164) + fVar4 * *(float *)(param_1 + 0x184);
+      auVar19._8_4_ =
+           fVar5 * *(float *)(param_1 + 0x1a8) + fVar6 * *(float *)(param_1 + 0x1c8) +
+           fVar7 * *(float *)(param_1 + 0x1e8) + fVar8 * *(float *)(param_1 + 0x208) +
+           fVar9 * *(float *)(param_1 + 0x228) + in_register_0000141c * *(float *)(param_1 + 0x248)
+           + in_register_0000145c * *(float *)(param_1 + 0x268) +
+             in_register_000014dc * *(float *)(param_1 + 0x288) +
+           fVar39 * *(float *)(param_1 + 0x28) + fVar16 * *(float *)(param_1 + 0x48) +
+           fVar18 * *(float *)(param_1 + 0x68) + fVar22 * *(float *)(param_1 + 0x88) +
+           fVar21 * *(float *)(param_1 + 0xa8) + fVar26 * *(float *)(param_1 + 200) +
+           fVar33 * *(float *)(param_1 + 0xe8) + fVar43 * *(float *)(param_1 + 0x108) +
+           fVar1 * *(float *)(param_1 + 0x128) + fVar2 * *(float *)(param_1 + 0x148) +
+           fVar3 * *(float *)(param_1 + 0x168) + fVar4 * *(float *)(param_1 + 0x188);
+      auVar19._12_4_ =
+           fVar5 * *(float *)(param_1 + 0x1ac) + fVar6 * *(float *)(param_1 + 0x1cc) +
+           fVar7 * *(float *)(param_1 + 0x1ec) + fVar8 * *(float *)(param_1 + 0x20c) +
+           fVar9 * *(float *)(param_1 + 0x22c) + in_register_0000141c * *(float *)(param_1 + 0x24c)
+           + in_register_0000145c * *(float *)(param_1 + 0x26c) +
+             in_register_000014dc * *(float *)(param_1 + 0x28c) +
+           fVar39 * *(float *)(param_1 + 0x2c) + fVar17 * *(float *)(param_1 + 0x4c) +
+           fVar20 * *(float *)(param_1 + 0x6c) + fVar23 * *(float *)(param_1 + 0x8c) +
+           fVar21 * *(float *)(param_1 + 0xac) + fVar27 * *(float *)(param_1 + 0xcc) +
+           fVar34 * *(float *)(param_1 + 0xec) + fVar44 * *(float *)(param_1 + 0x10c) +
+           fVar1 * *(float *)(param_1 + 300) + fVar2 * *(float *)(param_1 + 0x14c) +
+           fVar3 * *(float *)(param_1 + 0x16c) + fVar4 * *(float *)(param_1 + 0x18c);
+      auVar19._16_4_ =
+           fVar5 * *(float *)(param_1 + 0x1b0) + fVar6 * *(float *)(param_1 + 0x1d0) +
+           fVar7 * *(float *)(param_1 + 0x1f0) + fVar8 * *(float *)(param_1 + 0x210) +
+           fVar9 * *(float *)(param_1 + 0x230) + in_register_0000141c * *(float *)(param_1 + 0x250)
+           + in_register_0000145c * *(float *)(param_1 + 0x270) +
+             in_register_000014dc * *(float *)(param_1 + 0x290) +
+           fVar39 * *(float *)(param_1 + 0x30) + fVar16 * *(float *)(param_1 + 0x50) +
+           fVar18 * *(float *)(param_1 + 0x70) + fVar22 * *(float *)(param_1 + 0x90) +
+           fVar21 * *(float *)(param_1 + 0xb0) + fVar28 * *(float *)(param_1 + 0xd0) +
+           fVar35 * *(float *)(param_1 + 0xf0) + fVar45 * *(float *)(param_1 + 0x110) +
+           fVar1 * *(float *)(param_1 + 0x130) + fVar2 * *(float *)(param_1 + 0x150) +
+           fVar3 * *(float *)(param_1 + 0x170) + fVar4 * *(float *)(param_1 + 400);
+      auVar19._20_4_ =
+           fVar5 * *(float *)(param_1 + 0x1b4) + fVar6 * *(float *)(param_1 + 0x1d4) +
+           fVar7 * *(float *)(param_1 + 500) + fVar8 * *(float *)(param_1 + 0x214) +
+           fVar9 * *(float *)(param_1 + 0x234) + in_register_0000141c * *(float *)(param_1 + 0x254)
+           + in_register_0000145c * *(float *)(param_1 + 0x274) +
+             in_register_000014dc * *(float *)(param_1 + 0x294) +
+           fVar39 * *(float *)(param_1 + 0x34) + fVar17 * *(float *)(param_1 + 0x54) +
+           fVar20 * *(float *)(param_1 + 0x74) + fVar23 * *(float *)(param_1 + 0x94) +
+           fVar21 * *(float *)(param_1 + 0xb4) + fVar29 * *(float *)(param_1 + 0xd4) +
+           fVar36 * *(float *)(param_1 + 0xf4) + fVar46 * *(float *)(param_1 + 0x114) +
+           fVar1 * *(float *)(param_1 + 0x134) + fVar2 * *(float *)(param_1 + 0x154) +
+           fVar3 * *(float *)(param_1 + 0x174) + fVar4 * *(float *)(param_1 + 0x194);
+      auVar19._24_4_ =
+           fVar5 * *(float *)(param_1 + 0x1b8) + fVar6 * *(float *)(param_1 + 0x1d8) +
+           fVar7 * *(float *)(param_1 + 0x1f8) + fVar8 * *(float *)(param_1 + 0x218) +
+           fVar9 * *(float *)(param_1 + 0x238) + in_register_0000141c * *(float *)(param_1 + 600) +
+           in_register_0000145c * *(float *)(param_1 + 0x278) +
+           in_register_000014dc * *(float *)(param_1 + 0x298) +
+           fVar39 * *(float *)(param_1 + 0x38) + fVar16 * *(float *)(param_1 + 0x58) +
+           fVar18 * *(float *)(param_1 + 0x78) + fVar22 * *(float *)(param_1 + 0x98) +
+           fVar21 * *(float *)(param_1 + 0xb8) + fVar30 * *(float *)(param_1 + 0xd8) +
+           fVar37 * *(float *)(param_1 + 0xf8) + fVar47 * *(float *)(param_1 + 0x118) +
+           fVar1 * *(float *)(param_1 + 0x138) + fVar2 * *(float *)(param_1 + 0x158) +
+           fVar3 * *(float *)(param_1 + 0x178) + fVar4 * *(float *)(param_1 + 0x198);
+      auVar19._28_4_ = in_register_0000149c + fVar49 + fVar20 + fVar21 + auVar11._28_4_ + fVar38;
+      *(float *)(param_1 + 0x6a0) =
+           fVar39 * *(float *)(param_1 + 0x2a0) + fVar16 * *(float *)(param_1 + 0x2c0) +
+           fVar18 * *(float *)(param_1 + 0x2e0) + fVar22 * *(float *)(param_1 + 0x300) +
+           fVar21 * *(float *)(param_1 + 800) + fVar24 * *(float *)(param_1 + 0x340) +
+           fVar31 * *(float *)(param_1 + 0x360) + fVar40 * *(float *)(param_1 + 0x380) +
+           fVar1 * *(float *)(param_1 + 0x3a0) + fVar2 * *(float *)(param_1 + 0x3c0) +
+           fVar4 * *(float *)(param_1 + 0x400) + fVar3 * *(float *)(param_1 + 0x3e0);
+      *(float *)(param_1 + 0x6a4) =
+           fVar39 * *(float *)(param_1 + 0x2a4) + fVar17 * *(float *)(param_1 + 0x2c4) +
+           fVar20 * *(float *)(param_1 + 0x2e4) + fVar23 * *(float *)(param_1 + 0x304) +
+           fVar21 * *(float *)(param_1 + 0x324) + fVar25 * *(float *)(param_1 + 0x344) +
+           fVar32 * *(float *)(param_1 + 0x364) + fVar42 * *(float *)(param_1 + 900) +
+           fVar1 * *(float *)(param_1 + 0x3a4) + fVar2 * *(float *)(param_1 + 0x3c4) +
+           fVar4 * *(float *)(param_1 + 0x404) + fVar3 * *(float *)(param_1 + 0x3e4);
+      *(float *)(param_1 + 0x6a8) =
+           fVar39 * *(float *)(param_1 + 0x2a8) + fVar16 * *(float *)(param_1 + 0x2c8) +
+           fVar18 * *(float *)(param_1 + 0x2e8) + fVar22 * *(float *)(param_1 + 0x308) +
+           fVar21 * *(float *)(param_1 + 0x328) + fVar26 * *(float *)(param_1 + 0x348) +
+           fVar33 * *(float *)(param_1 + 0x368) + fVar43 * *(float *)(param_1 + 0x388) +
+           fVar1 * *(float *)(param_1 + 0x3a8) + fVar2 * *(float *)(param_1 + 0x3c8) +
+           fVar4 * *(float *)(param_1 + 0x408) + fVar3 * *(float *)(param_1 + 1000);
+      *(float *)(param_1 + 0x6ac) =
+           fVar39 * *(float *)(param_1 + 0x2ac) + fVar17 * *(float *)(param_1 + 0x2cc) +
+           fVar20 * *(float *)(param_1 + 0x2ec) + fVar23 * *(float *)(param_1 + 0x30c) +
+           fVar21 * *(float *)(param_1 + 0x32c) + fVar27 * *(float *)(param_1 + 0x34c) +
+           fVar34 * *(float *)(param_1 + 0x36c) + fVar44 * *(float *)(param_1 + 0x38c) +
+           fVar1 * *(float *)(param_1 + 0x3ac) + fVar2 * *(float *)(param_1 + 0x3cc) +
+           fVar4 * *(float *)(param_1 + 0x40c) + fVar3 * *(float *)(param_1 + 0x3ec);
+      *(float *)(param_1 + 0x6b0) =
+           fVar39 * *(float *)(param_1 + 0x2b0) + fVar16 * *(float *)(param_1 + 0x2d0) +
+           fVar18 * *(float *)(param_1 + 0x2f0) + fVar22 * *(float *)(param_1 + 0x310) +
+           fVar21 * *(float *)(param_1 + 0x330) + fVar28 * *(float *)(param_1 + 0x350) +
+           fVar35 * *(float *)(param_1 + 0x370) + fVar45 * *(float *)(param_1 + 0x390) +
+           fVar1 * *(float *)(param_1 + 0x3b0) + fVar2 * *(float *)(param_1 + 0x3d0) +
+           fVar4 * *(float *)(param_1 + 0x410) + fVar3 * *(float *)(param_1 + 0x3f0);
+      *(float *)(param_1 + 0x6b4) =
+           fVar39 * *(float *)(param_1 + 0x2b4) + fVar17 * *(float *)(param_1 + 0x2d4) +
+           fVar20 * *(float *)(param_1 + 0x2f4) + fVar23 * *(float *)(param_1 + 0x314) +
+           fVar21 * *(float *)(param_1 + 0x334) + fVar29 * *(float *)(param_1 + 0x354) +
+           fVar36 * *(float *)(param_1 + 0x374) + fVar46 * *(float *)(param_1 + 0x394) +
+           fVar1 * *(float *)(param_1 + 0x3b4) + fVar2 * *(float *)(param_1 + 0x3d4) +
+           fVar4 * *(float *)(param_1 + 0x414) + fVar3 * *(float *)(param_1 + 0x3f4);
+      *(float *)(param_1 + 0x6b8) =
+           fVar39 * *(float *)(param_1 + 0x2b8) + fVar16 * *(float *)(param_1 + 0x2d8) +
+           fVar18 * *(float *)(param_1 + 0x2f8) + fVar22 * *(float *)(param_1 + 0x318) +
+           fVar21 * *(float *)(param_1 + 0x338) + fVar30 * *(float *)(param_1 + 0x358) +
+           fVar37 * *(float *)(param_1 + 0x378) + fVar47 * *(float *)(param_1 + 0x398) +
+           fVar1 * *(float *)(param_1 + 0x3b8) + fVar2 * *(float *)(param_1 + 0x3d8) +
+           fVar4 * *(float *)(param_1 + 0x418) + fVar3 * *(float *)(param_1 + 0x3f8);
+      *(float *)(param_1 + 0x6bc) = fVar50 + fVar51 + fVar52 + fVar38 + fVar13 + fVar48;
+      *(float *)(param_1 + 0x6c0) =
+           fVar39 * *(float *)(param_1 + 0x420) + fVar16 * *(float *)(param_1 + 0x440) +
+           fVar18 * *(float *)(param_1 + 0x460) + fVar22 * *(float *)(param_1 + 0x480) +
+           fVar21 * *(float *)(param_1 + 0x4a0) + fVar24 * *(float *)(param_1 + 0x4c0) +
+           fVar31 * *(float *)(param_1 + 0x4e0) + fVar40 * *(float *)(param_1 + 0x500) +
+           fVar1 * *(float *)(param_1 + 0x520) + fVar2 * *(float *)(param_1 + 0x540) +
+           fVar3 * *(float *)(param_1 + 0x560) + fVar4 * *(float *)(param_1 + 0x580) +
+           fVar5 * *(float *)(param_1 + 0x5a0) + fVar6 * *(float *)(param_1 + 0x5c0) +
+           fVar7 * *(float *)(param_1 + 0x5e0) + fVar8 * *(float *)(param_1 + 0x600) +
+           fVar9 * *(float *)(param_1 + 0x620) + in_register_0000141c * *(float *)(param_1 + 0x640)
+           + in_register_0000145c * *(float *)(param_1 + 0x660) +
+             in_register_000014dc * *(float *)(param_1 + 0x680);
+      *(float *)(param_1 + 0x6c4) =
+           fVar39 * *(float *)(param_1 + 0x424) + fVar17 * *(float *)(param_1 + 0x444) +
+           fVar20 * *(float *)(param_1 + 0x464) + fVar23 * *(float *)(param_1 + 0x484) +
+           fVar21 * *(float *)(param_1 + 0x4a4) + fVar25 * *(float *)(param_1 + 0x4c4) +
+           fVar32 * *(float *)(param_1 + 0x4e4) + fVar42 * *(float *)(param_1 + 0x504) +
+           fVar1 * *(float *)(param_1 + 0x524) + fVar2 * *(float *)(param_1 + 0x544) +
+           fVar3 * *(float *)(param_1 + 0x564) + fVar4 * *(float *)(param_1 + 0x584) +
+           fVar5 * *(float *)(param_1 + 0x5a4) + fVar6 * *(float *)(param_1 + 0x5c4) +
+           fVar7 * *(float *)(param_1 + 0x5e4) + fVar8 * *(float *)(param_1 + 0x604) +
+           fVar9 * *(float *)(param_1 + 0x624) + in_register_0000141c * *(float *)(param_1 + 0x644)
+           + in_register_0000145c * *(float *)(param_1 + 0x664) +
+             in_register_000014dc * *(float *)(param_1 + 0x684);
+      *(float *)(param_1 + 0x6c8) =
+           fVar39 * *(float *)(param_1 + 0x428) + fVar16 * *(float *)(param_1 + 0x448) +
+           fVar18 * *(float *)(param_1 + 0x468) + fVar22 * *(float *)(param_1 + 0x488) +
+           fVar21 * *(float *)(param_1 + 0x4a8) + fVar26 * *(float *)(param_1 + 0x4c8) +
+           fVar33 * *(float *)(param_1 + 0x4e8) + fVar43 * *(float *)(param_1 + 0x508) +
+           fVar1 * *(float *)(param_1 + 0x528) + fVar2 * *(float *)(param_1 + 0x548) +
+           fVar3 * *(float *)(param_1 + 0x568) + fVar4 * *(float *)(param_1 + 0x588) +
+           fVar5 * *(float *)(param_1 + 0x5a8) + fVar6 * *(float *)(param_1 + 0x5c8) +
+           fVar7 * *(float *)(param_1 + 0x5e8) + fVar8 * *(float *)(param_1 + 0x608) +
+           fVar9 * *(float *)(param_1 + 0x628) + in_register_0000141c * *(float *)(param_1 + 0x648)
+           + in_register_0000145c * *(float *)(param_1 + 0x668) +
+             in_register_000014dc * *(float *)(param_1 + 0x688);
+      *(float *)(param_1 + 0x6cc) =
+           fVar39 * *(float *)(param_1 + 0x42c) + fVar17 * *(float *)(param_1 + 0x44c) +
+           fVar20 * *(float *)(param_1 + 0x46c) + fVar23 * *(float *)(param_1 + 0x48c) +
+           fVar21 * *(float *)(param_1 + 0x4ac) + fVar27 * *(float *)(param_1 + 0x4cc) +
+           fVar34 * *(float *)(param_1 + 0x4ec) + fVar44 * *(float *)(param_1 + 0x50c) +
+           fVar1 * *(float *)(param_1 + 0x52c) + fVar2 * *(float *)(param_1 + 0x54c) +
+           fVar3 * *(float *)(param_1 + 0x56c) + fVar4 * *(float *)(param_1 + 0x58c) +
+           fVar5 * *(float *)(param_1 + 0x5ac) + fVar6 * *(float *)(param_1 + 0x5cc) +
+           fVar7 * *(float *)(param_1 + 0x5ec) + fVar8 * *(float *)(param_1 + 0x60c) +
+           fVar9 * *(float *)(param_1 + 0x62c) + in_register_0000141c * *(float *)(param_1 + 0x64c)
+           + in_register_0000145c * *(float *)(param_1 + 0x66c) +
+             in_register_000014dc * *(float *)(param_1 + 0x68c);
+      *(float *)(param_1 + 0x6d0) =
+           fVar39 * *(float *)(param_1 + 0x430) + fVar16 * *(float *)(param_1 + 0x450) +
+           fVar18 * *(float *)(param_1 + 0x470) + fVar22 * *(float *)(param_1 + 0x490) +
+           fVar21 * *(float *)(param_1 + 0x4b0) + fVar28 * *(float *)(param_1 + 0x4d0) +
+           fVar35 * *(float *)(param_1 + 0x4f0) + fVar45 * *(float *)(param_1 + 0x510) +
+           fVar1 * *(float *)(param_1 + 0x530) + fVar2 * *(float *)(param_1 + 0x550) +
+           fVar3 * *(float *)(param_1 + 0x570) + fVar4 * *(float *)(param_1 + 0x590) +
+           fVar5 * *(float *)(param_1 + 0x5b0) + fVar6 * *(float *)(param_1 + 0x5d0) +
+           fVar7 * *(float *)(param_1 + 0x5f0) + fVar8 * *(float *)(param_1 + 0x610) +
+           fVar9 * *(float *)(param_1 + 0x630) + in_register_0000141c * *(float *)(param_1 + 0x650)
+           + in_register_0000145c * *(float *)(param_1 + 0x670) +
+             in_register_000014dc * *(float *)(param_1 + 0x690);
+      *(float *)(param_1 + 0x6d4) =
+           fVar39 * *(float *)(param_1 + 0x434) + fVar17 * *(float *)(param_1 + 0x454) +
+           fVar20 * *(float *)(param_1 + 0x474) + fVar23 * *(float *)(param_1 + 0x494) +
+           fVar21 * *(float *)(param_1 + 0x4b4) + fVar29 * *(float *)(param_1 + 0x4d4) +
+           fVar36 * *(float *)(param_1 + 0x4f4) + fVar46 * *(float *)(param_1 + 0x514) +
+           fVar1 * *(float *)(param_1 + 0x534) + fVar2 * *(float *)(param_1 + 0x554) +
+           fVar3 * *(float *)(param_1 + 0x574) + fVar4 * *(float *)(param_1 + 0x594) +
+           fVar5 * *(float *)(param_1 + 0x5b4) + fVar6 * *(float *)(param_1 + 0x5d4) +
+           fVar7 * *(float *)(param_1 + 0x5f4) + fVar8 * *(float *)(param_1 + 0x614) +
+           fVar9 * *(float *)(param_1 + 0x634) + in_register_0000141c * *(float *)(param_1 + 0x654)
+           + in_register_0000145c * *(float *)(param_1 + 0x674) +
+             in_register_000014dc * *(float *)(param_1 + 0x694);
+      *(float *)(param_1 + 0x6d8) =
+           fVar39 * *(float *)(param_1 + 0x438) + fVar16 * *(float *)(param_1 + 0x458) +
+           fVar18 * *(float *)(param_1 + 0x478) + fVar22 * *(float *)(param_1 + 0x498) +
+           fVar21 * *(float *)(param_1 + 0x4b8) + fVar30 * *(float *)(param_1 + 0x4d8) +
+           fVar37 * *(float *)(param_1 + 0x4f8) + fVar47 * *(float *)(param_1 + 0x518) +
+           fVar1 * *(float *)(param_1 + 0x538) + fVar2 * *(float *)(param_1 + 0x558) +
+           fVar3 * *(float *)(param_1 + 0x578) + fVar4 * *(float *)(param_1 + 0x598) +
+           fVar5 * *(float *)(param_1 + 0x5b8) + fVar6 * *(float *)(param_1 + 0x5d8) +
+           fVar7 * *(float *)(param_1 + 0x5f8) + fVar8 * *(float *)(param_1 + 0x618) +
+           fVar9 * *(float *)(param_1 + 0x638) + in_register_0000141c * *(float *)(param_1 + 0x658)
+           + in_register_0000145c * *(float *)(param_1 + 0x678) +
+             in_register_000014dc * *(float *)(param_1 + 0x698);
+      *(float *)(param_1 + 0x6dc) =
+           fVar39 + fVar17 + fVar20 + fVar23 + fVar20 + fVar20 + fVar23 + fVar20 + fVar21 +
+           fVar48 + fVar2 + fVar3 + fVar4 +
+           fVar5 + fVar6 + fVar6 + fVar7 + fVar6 + fVar7 + fVar7 + fVar8 + fVar7;
+      auVar15 = vcvtps2dq_avx(auVar19);
+      auVar15 = vpackssdw_avx2(auVar15,auVar15);
+      auVar10 = vpunpcklqdq_avx(auVar15._0_16_,auVar15._16_16_);
+      *(undefined1 (*) [16])(param_3 + lVar14) = auVar10;
+      lVar14 = lVar14 + 0x10;
+      param_4 = param_4 + -1;
+    } while (param_4 != 0);
+  }
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileCalibFilter5.java> 
+=== FUN_01bda8f0 @ 01bda8f0 (Static2By3_process_FMA) === (GhidraScript)  
+INFO  DecompileCalibFilter5.java> Size: 778 bytes (GhidraScript)  
+INFO  DecompileCalibFilter5.java> 
+void FUN_01bda8f0(long param_1,long param_2,long param_3,long param_4)
+
+{
+  undefined4 uVar1;
+  undefined4 uVar2;
+  undefined1 auVar3 [16];
+  undefined1 auVar4 [32];
+  undefined1 auVar5 [16];
+  undefined1 auVar6 [32];
+  undefined1 auVar7 [32];
+  undefined1 auVar8 [16];
+  undefined1 auVar9 [16];
+  undefined1 auVar10 [16];
+  undefined1 auVar11 [16];
+  undefined1 auVar12 [16];
+  undefined1 auVar13 [16];
+  undefined1 auVar14 [16];
+  undefined1 auVar15 [16];
+  undefined1 auVar16 [32];
+  undefined1 auVar17 [32];
+  undefined1 auVar18 [32];
+  long lVar19;
+  float fVar20;
+  undefined1 auVar21 [16];
+  undefined1 auVar22 [32];
+  undefined1 auVar23 [32];
+  undefined1 auVar24 [32];
+  undefined1 auVar25 [32];
+  undefined1 auVar26 [32];
+  undefined1 auVar27 [32];
+  undefined1 auVar28 [32];
+  float fVar29;
+  undefined1 auVar30 [32];
+  undefined1 auVar31 [32];
+  undefined1 auVar32 [32];
+  undefined1 auVar33 [32];
+  undefined1 auVar34 [32];
+  undefined1 auVar35 [32];
+  undefined1 auVar36 [32];
+  undefined1 auVar37 [32];
+  undefined1 in_ZMM9 [64];
+  undefined1 auVar38 [64];
+  undefined1 auVar40 [32];
+  float fVar39;
+  float fVar42;
+  float fVar43;
+  float fVar44;
+  undefined1 in_ZMM10 [64];
+  undefined1 auVar41 [64];
+  undefined1 in_ZMM11 [64];
+  undefined1 auVar45 [64];
+  undefined1 auVar46 [32];
+  
+  if (param_4 != 0) {
+    lVar19 = 0;
+    do {
+      auVar3 = *(undefined1 (*) [16])(param_2 + lVar19);
+      auVar5 = vpunpcklwd_avx(auVar3,auVar3);
+      auVar3 = vpunpckhwd_avx(auVar3,auVar3);
+      auVar22._0_16_ = ZEXT116(0) * auVar3 + ZEXT116(1) * auVar5;
+      auVar22._16_16_ = ZEXT116(1) * auVar3;
+      auVar23 = vpsrad_avx2(auVar22,0x10);
+      auVar23 = vcvtdq2ps_avx(auVar23);
+      fVar20 = auVar23._0_4_;
+      auVar21 = auVar23._0_16_;
+      auVar3 = vmovshdup_avx(auVar21);
+      auVar25._0_8_ = auVar3._0_8_;
+      auVar25._8_8_ = auVar25._0_8_;
+      auVar25._16_8_ = auVar25._0_8_;
+      auVar25._24_8_ = auVar25._0_8_;
+      auVar5 = vpermilps_avx(auVar21,0xaa);
+      auVar26._0_8_ = auVar5._0_8_;
+      auVar26._8_8_ = auVar26._0_8_;
+      auVar26._16_8_ = auVar26._0_8_;
+      auVar26._24_8_ = auVar26._0_8_;
+      auVar5 = vpermilps_avx(auVar21,0xff);
+      auVar27._0_8_ = auVar5._0_8_;
+      auVar27._8_8_ = auVar27._0_8_;
+      auVar27._16_8_ = auVar27._0_8_;
+      auVar27._24_8_ = auVar27._0_8_;
+      fVar29 = auVar23._16_4_;
+      auVar4 = vmovshdup_avx(auVar23);
+      auVar6 = vpermpd_avx2(auVar4,0xaa);
+      auVar4 = vpermilps_avx(auVar23,0xaa);
+      auVar4 = vpermpd_avx2(auVar4,0xaa);
+      auVar23 = vpermilps_avx(auVar23,0xff);
+      auVar7 = vpermpd_avx2(auVar23,0xaa);
+      auVar16._4_4_ = fVar20 * *(float *)(param_1 + 0x24);
+      auVar16._0_4_ = fVar20 * *(float *)(param_1 + 0x20);
+      auVar16._8_4_ = fVar20 * *(float *)(param_1 + 0x28);
+      auVar16._12_4_ = fVar20 * *(float *)(param_1 + 0x2c);
+      auVar16._16_4_ = fVar20 * *(float *)(param_1 + 0x30);
+      auVar16._20_4_ = fVar20 * *(float *)(param_1 + 0x34);
+      auVar16._24_4_ = fVar20 * *(float *)(param_1 + 0x38);
+      auVar16._28_4_ = auVar23._28_4_;
+      auVar5 = vfmadd231ps_fma(auVar16,auVar25,*(undefined1 (*) [32])(param_1 + 0x40));
+      auVar5 = vfmadd231ps_fma(ZEXT1632(auVar5),auVar26,*(undefined1 (*) [32])(param_1 + 0x60));
+      auVar5 = vfmadd231ps_fma(ZEXT1632(auVar5),auVar27,*(undefined1 (*) [32])(param_1 + 0x80));
+      auVar38._0_4_ = fVar29 * *(float *)(param_1 + 0xa0);
+      auVar38._4_4_ = fVar29 * *(float *)(param_1 + 0xa4);
+      auVar38._8_4_ = fVar29 * *(float *)(param_1 + 0xa8);
+      auVar38._12_4_ = fVar29 * *(float *)(param_1 + 0xac);
+      auVar38._16_4_ = fVar29 * *(float *)(param_1 + 0xb0);
+      auVar38._20_4_ = fVar29 * *(float *)(param_1 + 0xb4);
+      auVar38._28_36_ = in_ZMM9._28_36_;
+      auVar38._24_4_ = fVar29 * *(float *)(param_1 + 0xb8);
+      auVar21 = vfmadd231ps_fma(auVar38._0_32_,auVar6,*(undefined1 (*) [32])(param_1 + 0xc0));
+      auVar21 = vfmadd231ps_fma(ZEXT1632(auVar21),auVar4,*(undefined1 (*) [32])(param_1 + 0xe0));
+      auVar21 = vfmadd231ps_fma(ZEXT1632(auVar21),auVar7,*(undefined1 (*) [32])(param_1 + 0x100));
+      auVar36._0_4_ = fVar20 * *(float *)(param_1 + 0x2a0);
+      auVar36._4_4_ = fVar20 * *(float *)(param_1 + 0x2a4);
+      auVar36._8_4_ = fVar20 * *(float *)(param_1 + 0x2a8);
+      auVar36._12_4_ = fVar20 * *(float *)(param_1 + 0x2ac);
+      auVar36._16_4_ = fVar20 * *(float *)(param_1 + 0x2b0);
+      auVar36._20_4_ = fVar20 * *(float *)(param_1 + 0x2b4);
+      auVar36._24_4_ = fVar20 * *(float *)(param_1 + 0x2b8);
+      auVar36._28_4_ = 0;
+      auVar8 = vfmadd231ps_fma(auVar36,auVar25,*(undefined1 (*) [32])(param_1 + 0x2c0));
+      auVar8 = vfmadd231ps_fma(ZEXT1632(auVar8),auVar26,*(undefined1 (*) [32])(param_1 + 0x2e0));
+      auVar8 = vfmadd231ps_fma(ZEXT1632(auVar8),auVar27,*(undefined1 (*) [32])(param_1 + 0x300));
+      auVar41._0_4_ = fVar29 * *(float *)(param_1 + 800);
+      auVar41._4_4_ = fVar29 * *(float *)(param_1 + 0x324);
+      auVar41._8_4_ = fVar29 * *(float *)(param_1 + 0x328);
+      auVar41._12_4_ = fVar29 * *(float *)(param_1 + 0x32c);
+      auVar41._16_4_ = fVar29 * *(float *)(param_1 + 0x330);
+      auVar41._20_4_ = fVar29 * *(float *)(param_1 + 0x334);
+      auVar41._28_36_ = in_ZMM10._28_36_;
+      auVar41._24_4_ = fVar29 * *(float *)(param_1 + 0x338);
+      auVar9 = vfmadd231ps_fma(auVar41._0_32_,auVar6,*(undefined1 (*) [32])(param_1 + 0x340));
+      auVar9 = vfmadd231ps_fma(ZEXT1632(auVar9),auVar4,*(undefined1 (*) [32])(param_1 + 0x360));
+      auVar9 = vfmadd231ps_fma(ZEXT1632(auVar9),auVar7,*(undefined1 (*) [32])(param_1 + 0x380));
+      auVar23._4_4_ = fVar20 * *(float *)(param_1 + 0x424);
+      auVar23._0_4_ = fVar20 * *(float *)(param_1 + 0x420);
+      auVar23._8_4_ = fVar20 * *(float *)(param_1 + 0x428);
+      auVar23._12_4_ = fVar20 * *(float *)(param_1 + 0x42c);
+      auVar23._16_4_ = fVar20 * *(float *)(param_1 + 0x430);
+      auVar23._20_4_ = fVar20 * *(float *)(param_1 + 0x434);
+      auVar23._24_4_ = fVar20 * *(float *)(param_1 + 0x438);
+      auVar23._28_4_ = fVar20;
+      auVar10 = vfmadd231ps_fma(auVar23,auVar25,*(undefined1 (*) [32])(param_1 + 0x440));
+      auVar10 = vfmadd231ps_fma(ZEXT1632(auVar10),auVar26,*(undefined1 (*) [32])(param_1 + 0x460));
+      auVar10 = vfmadd231ps_fma(ZEXT1632(auVar10),auVar27,*(undefined1 (*) [32])(param_1 + 0x480));
+      auVar17._4_4_ = fVar29 * *(float *)(param_1 + 0x4a4);
+      auVar17._0_4_ = fVar29 * *(float *)(param_1 + 0x4a0);
+      auVar17._8_4_ = fVar29 * *(float *)(param_1 + 0x4a8);
+      auVar17._12_4_ = fVar29 * *(float *)(param_1 + 0x4ac);
+      auVar17._16_4_ = fVar29 * *(float *)(param_1 + 0x4b0);
+      auVar17._20_4_ = fVar29 * *(float *)(param_1 + 0x4b4);
+      auVar17._24_4_ = fVar29 * *(float *)(param_1 + 0x4b8);
+      auVar17._28_4_ = auVar3._4_4_;
+      auVar3 = vfmadd231ps_fma(auVar17,auVar6,*(undefined1 (*) [32])(param_1 + 0x4c0));
+      auVar3 = vfmadd231ps_fma(ZEXT1632(auVar3),auVar4,*(undefined1 (*) [32])(param_1 + 0x4e0));
+      auVar3 = vfmadd231ps_fma(ZEXT1632(auVar3),auVar7,*(undefined1 (*) [32])(param_1 + 0x500));
+      fVar20 = *(float *)(param_1 + 0x6a0);
+      uVar1 = *(undefined4 *)(param_1 + 0x6a4);
+      auVar30._4_4_ = uVar1;
+      auVar30._0_4_ = uVar1;
+      auVar30._8_4_ = uVar1;
+      auVar30._12_4_ = uVar1;
+      auVar30._16_4_ = uVar1;
+      auVar30._20_4_ = uVar1;
+      auVar30._24_4_ = uVar1;
+      auVar30._28_4_ = uVar1;
+      uVar1 = *(undefined4 *)(param_1 + 0x6a8);
+      auVar32._4_4_ = uVar1;
+      auVar32._0_4_ = uVar1;
+      auVar32._8_4_ = uVar1;
+      auVar32._12_4_ = uVar1;
+      auVar32._16_4_ = uVar1;
+      auVar32._20_4_ = uVar1;
+      auVar32._24_4_ = uVar1;
+      auVar32._28_4_ = uVar1;
+      uVar1 = *(undefined4 *)(param_1 + 0x6ac);
+      auVar34._4_4_ = uVar1;
+      auVar34._0_4_ = uVar1;
+      auVar34._8_4_ = uVar1;
+      auVar34._12_4_ = uVar1;
+      auVar34._16_4_ = uVar1;
+      auVar34._20_4_ = uVar1;
+      auVar34._24_4_ = uVar1;
+      auVar34._28_4_ = uVar1;
+      auVar24._0_4_ = fVar20 * *(float *)(param_1 + 0x120);
+      auVar24._4_4_ = fVar20 * *(float *)(param_1 + 0x124);
+      auVar24._8_4_ = fVar20 * *(float *)(param_1 + 0x128);
+      auVar24._12_4_ = fVar20 * *(float *)(param_1 + 300);
+      auVar24._16_4_ = fVar20 * *(float *)(param_1 + 0x130);
+      auVar24._20_4_ = fVar20 * *(float *)(param_1 + 0x134);
+      auVar24._24_4_ = fVar20 * *(float *)(param_1 + 0x138);
+      auVar24._28_4_ = 0;
+      auVar11 = vfmadd231ps_fma(auVar24,auVar30,*(undefined1 (*) [32])(param_1 + 0x140));
+      auVar11 = vfmadd231ps_fma(ZEXT1632(auVar11),auVar32,*(undefined1 (*) [32])(param_1 + 0x160));
+      auVar11 = vfmadd231ps_fma(ZEXT1632(auVar11),auVar34,*(undefined1 (*) [32])(param_1 + 0x180));
+      auVar4._4_4_ = fVar20 * *(float *)(param_1 + 0x3a4);
+      auVar4._0_4_ = fVar20 * *(float *)(param_1 + 0x3a0);
+      auVar4._8_4_ = fVar20 * *(float *)(param_1 + 0x3a8);
+      auVar4._12_4_ = fVar20 * *(float *)(param_1 + 0x3ac);
+      auVar4._16_4_ = fVar20 * *(float *)(param_1 + 0x3b0);
+      auVar4._20_4_ = fVar20 * *(float *)(param_1 + 0x3b4);
+      auVar4._24_4_ = fVar20 * *(float *)(param_1 + 0x3b8);
+      auVar4._28_4_ = auVar7._28_4_;
+      auVar12 = vfmadd231ps_fma(auVar4,auVar30,*(undefined1 (*) [32])(param_1 + 0x3c0));
+      auVar12 = vfmadd231ps_fma(ZEXT1632(auVar12),auVar32,*(undefined1 (*) [32])(param_1 + 0x3e0));
+      auVar12 = vfmadd231ps_fma(ZEXT1632(auVar12),auVar34,*(undefined1 (*) [32])(param_1 + 0x400));
+      auVar6._4_4_ = fVar20 * *(float *)(param_1 + 0x524);
+      auVar6._0_4_ = fVar20 * *(float *)(param_1 + 0x520);
+      auVar6._8_4_ = fVar20 * *(float *)(param_1 + 0x528);
+      auVar6._12_4_ = fVar20 * *(float *)(param_1 + 0x52c);
+      auVar6._16_4_ = fVar20 * *(float *)(param_1 + 0x530);
+      auVar6._20_4_ = fVar20 * *(float *)(param_1 + 0x534);
+      auVar6._24_4_ = fVar20 * *(float *)(param_1 + 0x538);
+      auVar6._28_4_ = 0;
+      auVar13 = vfmadd231ps_fma(auVar6,auVar30,*(undefined1 (*) [32])(param_1 + 0x540));
+      auVar13 = vfmadd231ps_fma(ZEXT1632(auVar13),auVar32,*(undefined1 (*) [32])(param_1 + 0x560));
+      auVar13 = vfmadd231ps_fma(ZEXT1632(auVar13),auVar34,*(undefined1 (*) [32])(param_1 + 0x580));
+      fVar20 = *(float *)(param_1 + 0x6c0);
+      uVar1 = *(undefined4 *)(param_1 + 0x6c4);
+      auVar28._4_4_ = uVar1;
+      auVar28._0_4_ = uVar1;
+      auVar28._8_4_ = uVar1;
+      auVar28._12_4_ = uVar1;
+      auVar28._16_4_ = uVar1;
+      auVar28._20_4_ = uVar1;
+      auVar28._24_4_ = uVar1;
+      auVar28._28_4_ = uVar1;
+      uVar2 = *(undefined4 *)(param_1 + 0x6c8);
+      auVar31._4_4_ = uVar2;
+      auVar31._0_4_ = uVar2;
+      auVar31._8_4_ = uVar2;
+      auVar31._12_4_ = uVar2;
+      auVar31._16_4_ = uVar2;
+      auVar31._20_4_ = uVar2;
+      auVar31._24_4_ = uVar2;
+      auVar31._28_4_ = uVar2;
+      uVar2 = *(undefined4 *)(param_1 + 0x6cc);
+      auVar33._4_4_ = uVar2;
+      auVar33._0_4_ = uVar2;
+      auVar33._8_4_ = uVar2;
+      auVar33._12_4_ = uVar2;
+      auVar33._16_4_ = uVar2;
+      auVar33._20_4_ = uVar2;
+      auVar33._24_4_ = uVar2;
+      auVar33._28_4_ = uVar2;
+      fVar29 = *(float *)(param_1 + 0x6d0);
+      uVar2 = *(undefined4 *)(param_1 + 0x6d4);
+      auVar35._4_4_ = uVar2;
+      auVar35._0_4_ = uVar2;
+      auVar35._8_4_ = uVar2;
+      auVar35._12_4_ = uVar2;
+      auVar35._16_4_ = uVar2;
+      auVar35._20_4_ = uVar2;
+      auVar35._24_4_ = uVar2;
+      auVar35._28_4_ = uVar2;
+      uVar2 = *(undefined4 *)(param_1 + 0x6d8);
+      auVar37._4_4_ = uVar2;
+      auVar37._0_4_ = uVar2;
+      auVar37._8_4_ = uVar2;
+      auVar37._12_4_ = uVar2;
+      auVar37._16_4_ = uVar2;
+      auVar37._20_4_ = uVar2;
+      auVar37._24_4_ = uVar2;
+      auVar37._28_4_ = uVar2;
+      in_ZMM9 = ZEXT3264(auVar37);
+      auVar40._0_4_ = fVar20 * *(float *)(param_1 + 0x1a0);
+      auVar40._4_4_ = fVar20 * *(float *)(param_1 + 0x1a4);
+      auVar40._8_4_ = fVar20 * *(float *)(param_1 + 0x1a8);
+      auVar40._12_4_ = fVar20 * *(float *)(param_1 + 0x1ac);
+      auVar40._16_4_ = fVar20 * *(float *)(param_1 + 0x1b0);
+      auVar40._20_4_ = fVar20 * *(float *)(param_1 + 0x1b4);
+      auVar40._24_4_ = fVar20 * *(float *)(param_1 + 0x1b8);
+      auVar40._28_4_ = 0;
+      auVar14 = vfmadd231ps_fma(auVar40,auVar28,*(undefined1 (*) [32])(param_1 + 0x1c0));
+      auVar14 = vfmadd231ps_fma(ZEXT1632(auVar14),auVar31,*(undefined1 (*) [32])(param_1 + 0x1e0));
+      auVar14 = vfmadd231ps_fma(ZEXT1632(auVar14),auVar33,*(undefined1 (*) [32])(param_1 + 0x200));
+      auVar45._0_4_ = fVar29 * *(float *)(param_1 + 0x220);
+      auVar45._4_4_ = fVar29 * *(float *)(param_1 + 0x224);
+      auVar45._8_4_ = fVar29 * *(float *)(param_1 + 0x228);
+      auVar45._12_4_ = fVar29 * *(float *)(param_1 + 0x22c);
+      auVar45._16_4_ = fVar29 * *(float *)(param_1 + 0x230);
+      auVar45._20_4_ = fVar29 * *(float *)(param_1 + 0x234);
+      auVar45._28_36_ = in_ZMM11._28_36_;
+      auVar45._24_4_ = fVar29 * *(float *)(param_1 + 0x238);
+      auVar15 = vfmadd231ps_fma(auVar45._0_32_,auVar35,*(undefined1 (*) [32])(param_1 + 0x240));
+      auVar15 = vfmadd231ps_fma(ZEXT1632(auVar15),auVar37,*(undefined1 (*) [32])(param_1 + 0x260));
+      uVar2 = *(undefined4 *)(param_1 + 0x6dc);
+      auVar46._4_4_ = uVar2;
+      auVar46._0_4_ = uVar2;
+      auVar46._8_4_ = uVar2;
+      auVar46._12_4_ = uVar2;
+      auVar46._16_4_ = uVar2;
+      auVar46._20_4_ = uVar2;
+      auVar46._24_4_ = uVar2;
+      auVar46._28_4_ = uVar2;
+      auVar15 = vfmadd231ps_fma(ZEXT1632(auVar15),auVar46,*(undefined1 (*) [32])(param_1 + 0x280));
+      in_ZMM11 = ZEXT1664(auVar15);
+      fVar39 = auVar14._0_4_ + auVar15._0_4_;
+      fVar42 = auVar14._4_4_ + auVar15._4_4_;
+      fVar43 = auVar14._8_4_ + auVar15._8_4_;
+      fVar44 = auVar14._12_4_ + auVar15._12_4_;
+      in_ZMM10 = ZEXT1664(CONCAT412(fVar44,CONCAT48(fVar43,CONCAT44(fVar42,fVar39))));
+      auVar7._4_4_ = fVar20 * *(float *)(param_1 + 0x5a4);
+      auVar7._0_4_ = fVar20 * *(float *)(param_1 + 0x5a0);
+      auVar7._8_4_ = fVar20 * *(float *)(param_1 + 0x5a8);
+      auVar7._12_4_ = fVar20 * *(float *)(param_1 + 0x5ac);
+      auVar7._16_4_ = fVar20 * *(float *)(param_1 + 0x5b0);
+      auVar7._20_4_ = fVar20 * *(float *)(param_1 + 0x5b4);
+      auVar7._24_4_ = fVar20 * *(float *)(param_1 + 0x5b8);
+      auVar7._28_4_ = fVar20;
+      auVar14 = vfmadd231ps_fma(auVar7,auVar28,*(undefined1 (*) [32])(param_1 + 0x5c0));
+      auVar14 = vfmadd231ps_fma(ZEXT1632(auVar14),auVar31,*(undefined1 (*) [32])(param_1 + 0x5e0));
+      auVar14 = vfmadd231ps_fma(ZEXT1632(auVar14),auVar33,*(undefined1 (*) [32])(param_1 + 0x600));
+      auVar18._4_4_ = fVar29 * *(float *)(param_1 + 0x624);
+      auVar18._0_4_ = fVar29 * *(float *)(param_1 + 0x620);
+      auVar18._8_4_ = fVar29 * *(float *)(param_1 + 0x628);
+      auVar18._12_4_ = fVar29 * *(float *)(param_1 + 0x62c);
+      auVar18._16_4_ = fVar29 * *(float *)(param_1 + 0x630);
+      auVar18._20_4_ = fVar29 * *(float *)(param_1 + 0x634);
+      auVar18._24_4_ = fVar29 * *(float *)(param_1 + 0x638);
+      auVar18._28_4_ = uVar1;
+      auVar15 = vfmadd231ps_fma(auVar18,auVar35,*(undefined1 (*) [32])(param_1 + 0x640));
+      auVar15 = vfmadd231ps_fma(ZEXT1632(auVar15),auVar37,*(undefined1 (*) [32])(param_1 + 0x660));
+      auVar15 = vfmadd231ps_fma(ZEXT1632(auVar15),auVar46,*(undefined1 (*) [32])(param_1 + 0x680));
+      *(undefined1 (*) [32])(param_1 + 0x6a0) =
+           ZEXT1632(CONCAT412(auVar12._12_4_ + auVar8._12_4_ + auVar9._12_4_,
+                              CONCAT48(auVar12._8_4_ + auVar8._8_4_ + auVar9._8_4_,
+                                       CONCAT44(auVar12._4_4_ + auVar8._4_4_ + auVar9._4_4_,
+                                                auVar12._0_4_ + auVar8._0_4_ + auVar9._0_4_))));
+      *(undefined1 (*) [32])(param_1 + 0x6c0) =
+           ZEXT1632(CONCAT412(auVar10._12_4_ + auVar3._12_4_ + auVar13._12_4_ +
+                              auVar14._12_4_ + auVar15._12_4_,
+                              CONCAT48(auVar10._8_4_ + auVar3._8_4_ + auVar13._8_4_ +
+                                       auVar14._8_4_ + auVar15._8_4_,
+                                       CONCAT44(auVar10._4_4_ + auVar3._4_4_ + auVar13._4_4_ +
+                                                auVar14._4_4_ + auVar15._4_4_,
+                                                auVar10._0_4_ + auVar3._0_4_ + auVar13._0_4_ +
+                                                auVar14._0_4_ + auVar15._0_4_))));
+      auVar23 = vcvtps2dq_avx(ZEXT1632(CONCAT412(fVar44 + auVar21._12_4_ + auVar5._12_4_ +
+                                                          auVar11._12_4_,
+                                                 CONCAT48(fVar43 + auVar21._8_4_ + auVar5._8_4_ +
+                                                                   auVar11._8_4_,
+                                                          CONCAT44(fVar42 + auVar21._4_4_ +
+                                                                            auVar5._4_4_ +
+                                                                            auVar11._4_4_,
+                                                                   fVar39 + auVar21._0_4_ +
+                                                                            auVar5._0_4_ +
+                                                                            auVar11._0_4_)))));
+      auVar23 = vpackssdw_avx2(auVar23,auVar23);
+      auVar3 = vpunpcklqdq_avx(auVar23._0_16_,auVar23._16_16_);
+      *(undefined1 (*) [16])(param_3 + lVar19) = auVar3;
+      lVar19 = lVar19 + 0x10;
+      param_4 = param_4 + -1;
+    } while (param_4 != 0);
+  }
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileCalibFilter5.java> 
+=== FUN_01bdac00 @ 01bdac00 (Static2By3_process_AVX) === (GhidraScript)  
+INFO  DecompileCalibFilter5.java> Size: 134 bytes (GhidraScript)  
+WARN  Decompiling 01bdac00, pcode error at 01bdac82: Unable to resolve constructor at 01bdac82 (DecompileCallback)  
+INFO  DecompileCalibFilter5.java> 
+/* WARNING: Control flow encountered bad instruction data */
+
+void FUN_01bdac00(undefined8 param_1,undefined1 (*param_2) [16],undefined8 param_3,long param_4)
+
+{
+  undefined1 auVar1 [32];
+  undefined1 auVar2 [16];
+  undefined1 auVar3 [32];
+  undefined1 auVar4 [16];
+  
+  if (param_4 == 0) {
+    return;
+  }
+  auVar4 = *param_2;
+  auVar2 = vpunpcklwd_avx(auVar4,auVar4);
+  auVar4 = vpunpckhwd_avx(auVar4,auVar4);
+  auVar3._0_16_ = ZEXT116(0) * auVar4 + ZEXT116(1) * auVar2;
+  auVar3._16_16_ = ZEXT116(1) * auVar4;
+  auVar3 = vpsrad_avx2(auVar3,0x10);
+  auVar3 = vcvtdq2ps_avx(auVar3);
+  auVar4 = auVar3._0_16_;
+  vmovshdup_avx(auVar4);
+  vpermilps_avx(auVar4,0xaa);
+  vpermilps_avx(auVar4,0xff);
+  auVar1 = vmovshdup_avx(auVar3);
+  vpermpd_avx2(auVar1,0xaa);
+  auVar1 = vpermilps_avx(auVar3,0xaa);
+  vpermpd_avx2(auVar1,0xaa);
+  auVar3 = vpermilps_avx(auVar3,0xff);
+  vpermpd_avx2(auVar3,0xaa);
+                    /* WARNING: Bad instruction - Truncating control flow here */
+  halt_baddata();
+}
+
+ (GhidraScript)  
+INFO  REPORT: Save succeeded for processed file: /libgraph_server_shared.so (HeadlessAnalyzer)  
+Module manifest file error on line 2 of file: /home/mpedersen/.config/ghidra/ghidra_11.3.2_NIX/Extensions/GhidraMCP/Module.manifest
+	-> Invalid line encountered: GHIDRA_MODULE_NAME=GhidraMCP
+Module manifest file error on line 3 of file: /home/mpedersen/.config/ghidra/ghidra_11.3.2_NIX/Extensions/GhidraMCP/Module.manifest
+	-> Invalid line encountered: GHIDRA_MODULE_DESC=An HTTP server plugin for Ghidra
+Module manifest file error on line 2 of file: /home/mpedersen/.config/ghidra/ghidra_11.3.2_NIX/Extensions/GhidraMCP/Module.manifest
+	-> Invalid line encountered: GHIDRA_MODULE_NAME=GhidraMCP
+Module manifest file error on line 3 of file: /home/mpedersen/.config/ghidra/ghidra_11.3.2_NIX/Extensions/GhidraMCP/Module.manifest
+	-> Invalid line encountered: GHIDRA_MODULE_DESC=An HTTP server plugin for Ghidra
+INFO  Using log config file: jar:file:/nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Framework/Generic/lib/Generic.jar!/generic.log4j.xml (LoggingInitialization)  
+INFO  Using log file: /home/mpedersen/.config/ghidra/ghidra_11.3.2_NIX/application.log (LoggingInitialization)  
+INFO  Loading user preferences: /home/mpedersen/.config/ghidra/ghidra_11.3.2_NIX/preferences (Preferences)  
+INFO  Searching for classes... (ClassSearcher)  
+INFO  Class search complete (1324 ms) (ClassSearcher)  
+INFO  Initializing SSL Context (SSLContextInitializer)  
+INFO  Initializing Random Number Generator... (SecureRandomFactory)  
+INFO  Random Number Generator initialization complete: NativePRNGNonBlocking (SecureRandomFactory)  
+INFO  Trust manager disabled, cacerts have not been set (ApplicationTrustManagerFactory)  
+INFO  Headless startup complete (2693 ms) (AnalyzeHeadless)  
+INFO  Class searcher loaded 57 extension points (18 false positives) (ClassSearcher)  
+INFO  HEADLESS Script Paths:
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Processors/DATA/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/Jython/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/MicrosoftCodeAnalyzer/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Processors/PIC/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Debug/Debugger/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/SwiftDemangler/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/Base/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/PyGhidra/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/FunctionID/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Debug/Debugger-rmi-trace/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/DecompilerDependent/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/BSim/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/BytePatterns/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/Decompiler/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/WildcardAssembler/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/GnuDemangler/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/PDB/ghidra_scripts
+    /home/mpedersen/nvidia/saleae_reverse/re/ghidra/scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Processors/Atmel/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/FileFormats/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/SystemEmulation/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Processors/JVM/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Processors/8051/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/VersionTracking/ghidra_scripts (HeadlessAnalyzer)  
+INFO  HEADLESS: execution starts (HeadlessAnalyzer)  
+INFO  Opening existing project: /home/mpedersen/nvidia/saleae_reverse/ghidra_proj2/sal_rev2 (HeadlessAnalyzer)  
+INFO  Opening project: /home/mpedersen/nvidia/saleae_reverse/ghidra_proj2/sal_rev2 (HeadlessProject)  
+INFO  REPORT: Processing project file: /libgraph_server_shared.so (HeadlessAnalyzer)  
+INFO  SCRIPT: /home/mpedersen/nvidia/saleae_reverse/re/ghidra/scripts/DecompileCalibFilter3.java (HeadlessAnalyzer)  
+INFO  DecompileCalibFilter3.java> EXISTS: FUN_01bd6790 @ 01bd6790 (GhidraScript)  
+INFO  DecompileCalibFilter3.java> EXISTS: FUN_01bd8e50 @ 01bd8e50 (GhidraScript)  
+INFO  DecompileCalibFilter3.java> EXISTS: FUN_01bd2ed0 @ 01bd2ed0 (GhidraScript)  
+INFO  DecompileCalibFilter3.java> EXISTS: FUN_01bd3660 @ 01bd3660 (GhidraScript)  
+INFO  DecompileCalibFilter3.java> EXISTS: FUN_01bd3700 @ 01bd3700 (GhidraScript)  
+INFO  DecompileCalibFilter3.java> EXISTS: FUN_01bd8a40 @ 01bd8a40 (GhidraScript)  
+INFO  DecompileCalibFilter3.java> EXISTS: FUN_01bd8d50 @ 01bd8d50 (GhidraScript)  
+INFO  DecompileCalibFilter3.java> 
+=== FUN_01bd6790 @ 01bd6790 (CoeffTransform_5sections) === (GhidraScript)  
+INFO  DecompileCalibFilter3.java> Size: 143 bytes (GhidraScript)  
+INFO  DecompileCalibFilter3.java> 
+void FUN_01bd6790(undefined8 *param_1,long param_2,void *param_3)
+
+{
+  ulong __n;
+  void *__dest;
+  
+  *param_1 = &PTR_FUN_02f39398;
+  param_1[1] = param_2;
+  param_1[2] = 0;
+  param_1[3] = 0;
+  param_1[4] = 0;
+  __n = param_2 * 0x28;
+  if (__n != 0) {
+    if ((long)__n < 0) {
+                    /* try { // try from 01bd6817 to 01bd681e has its CatchHandler @ 01bd681f */
+                    /* WARNING: Subroutine does not return */
+      std::__vector_base_common<true>::__throw_length_error();
+    }
+                    /* try { // try from 01bd67d8 to 01bd67df has its CatchHandler @ 01bd681f */
+    __dest = operator_new(__n);
+    param_1[3] = __dest;
+    param_1[2] = __dest;
+    param_1[4] = (void *)((long)__dest + ((long)__n >> 3) * 8);
+    memcpy(__dest,param_3,__n);
+    param_1[3] = (void *)((long)__dest + __n);
+  }
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileCalibFilter3.java> 
+=== FUN_01bd8e50 @ 01bd8e50 (SplitCoefficients) === (GhidraScript)  
+INFO  DecompileCalibFilter3.java> Size: 2260 bytes (GhidraScript)  
+INFO  DecompileCalibFilter3.java> 
+/* WARNING: Globals starting with '_' overlap smaller symbols at the same address */
+
+ulong FUN_01bd8e50(ulong *param_1,long *param_2,long *param_3,int param_4)
+
+{
+  undefined8 *puVar1;
+  long lVar2;
+  long lVar3;
+  long *plVar4;
+  double dVar5;
+  void *pvVar6;
+  void *pvVar7;
+  void *pvVar8;
+  void *pvVar9;
+  long lVar10;
+  ulong uVar11;
+  ulong uVar12;
+  ulong uVar13;
+  ulong uVar14;
+  ulong *puVar15;
+  char *__format;
+  long *plVar16;
+  long lVar17;
+  bool bVar18;
+  float fVar19;
+  void *local_f8;
+  void *local_d8;
+  void *pvStack_d0;
+  undefined8 local_c8;
+  ulong local_b8;
+  ulong *local_b0;
+  ulong local_a8;
+  ulong local_a0;
+  void *local_98;
+  void *pvStack_90;
+  void *local_88;
+  ulong local_78;
+  int local_6c;
+  long *local_68;
+  long *local_60;
+  ulong local_58;
+  long local_50;
+  undefined1 local_48 [16];
+  undefined8 local_38;
+  
+  uVar12 = param_1[2];
+  bVar18 = true;
+  local_6c = param_4;
+  local_60 = param_2;
+  if (uVar12 != 0) {
+    lVar10 = 8;
+    uVar11 = 0;
+    do {
+      if ((*(double *)(param_1[4] + lVar10) == DAT_0044e268) &&
+         (!NAN(*(double *)(param_1[4] + lVar10)) && !NAN(DAT_0044e268))) {
+        bVar18 = false;
+        printf("Internal state %u does not appear to be mapped\n",uVar11 & 0xffffffff);
+        uVar12 = param_1[2];
+      }
+      uVar11 = uVar11 + 1;
+      lVar10 = lVar10 + 0x10;
+    } while (uVar11 < uVar12);
+  }
+  if (param_1[3] != 0) {
+    uVar12 = 0;
+    do {
+      lVar10 = *(long *)(param_1[7] + uVar12 * 8) * 0x10;
+      __format = "Actual state %u does not have a canonical internal state mapped\n";
+      if (uVar12 == *(ulong *)(param_1[4] + lVar10)) {
+        dVar5 = *(double *)(param_1[4] + 8 + lVar10);
+        __format = "Actual state %u has a non-unity scale on its canonical internal state mapping\n"
+        ;
+        if ((dVar5 != DAT_0044dab8) || (NAN(dVar5) || NAN(DAT_0044dab8))) goto LAB_01bd8f00;
+      }
+      else {
+LAB_01bd8f00:
+        bVar18 = false;
+        printf(__format,uVar12 & 0xffffffff);
+      }
+      uVar12 = uVar12 + 1;
+    } while (uVar12 < param_1[3]);
+  }
+  plVar16 = local_60;
+  if (bVar18) {
+    uVar12 = *param_1;
+    lVar10 = local_60[1] - *local_60 >> 3;
+    bVar18 = uVar12 < (ulong)(lVar10 * -0x5555555555555555);
+    if (bVar18 || uVar12 + lVar10 * 0x5555555555555555 == 0) {
+      if (bVar18) {
+        lVar10 = *local_60 + uVar12 * 0x18;
+        lVar17 = local_60[1];
+        while (lVar2 = lVar17, lVar2 != lVar10) {
+          pvVar9 = *(void **)(lVar2 + -0x18);
+          lVar17 = lVar2 + -0x18;
+          if (pvVar9 != (void *)0x0) {
+            *(void **)(lVar2 + -0x10) = pvVar9;
+            operator_delete(pvVar9);
+          }
+        }
+        plVar16[1] = lVar10;
+      }
+    }
+    else {
+      FUN_01bd9b00(local_60);
+    }
+    uVar12 = param_1[3];
+    lVar10 = param_3[1] - *param_3 >> 3;
+    bVar18 = uVar12 < (ulong)(lVar10 * -0x5555555555555555);
+    if (bVar18 || uVar12 + lVar10 * 0x5555555555555555 == 0) {
+      if (bVar18) {
+        lVar10 = *param_3 + uVar12 * 0x18;
+        lVar17 = param_3[1];
+        while (lVar2 = lVar17, lVar2 != lVar10) {
+          pvVar9 = *(void **)(lVar2 + -0x18);
+          lVar17 = lVar2 + -0x18;
+          if (pvVar9 != (void *)0x0) {
+            *(void **)(lVar2 + -0x10) = pvVar9;
+            operator_delete(pvVar9);
+          }
+        }
+        param_3[1] = lVar10;
+      }
+    }
+    else {
+      FUN_01bd9b00(param_3);
+    }
+    local_b8 = param_1[3] + *param_1;
+    local_d8 = (void *)0x0;
+    pvStack_d0 = (void *)0x0;
+    local_c8 = 0;
+    local_b0 = param_1;
+    local_68 = param_3;
+                    /* try { // try from 01bd9053 to 01bd905c has its CatchHandler @ 01bd979f */
+    if ((param_1[2] == 0) || (FUN_01bd9b00(&local_d8), puVar15 = local_b0, param_1[2] == 0)) {
+      uVar12 = *param_1;
+      puVar15 = param_1;
+    }
+    else if (local_b8 == 0) {
+      lVar17 = 8;
+      lVar10 = 0;
+      uVar11 = 0;
+      do {
+        pvVar6 = local_d8;
+        uVar13 = puVar15[4];
+        pvVar9 = *(void **)((long)local_d8 + lVar10);
+        if (pvVar9 != (void *)0x0) {
+          *(void **)((long)local_d8 + lVar10 + 8) = pvVar9;
+          operator_delete(pvVar9);
+          *(undefined1 (*) [16])((long)pvVar6 + lVar10) = (undefined1  [16])0x0;
+          *(undefined8 *)((long)pvVar6 + lVar10 + 0x10) = 0;
+        }
+        *(undefined8 *)((long)pvVar6 + lVar10) = 0;
+        ((undefined8 *)((long)pvVar6 + lVar10))[1] = 0;
+        *(undefined8 *)((long)pvVar6 + lVar10 + 0x10) = 0;
+        uVar12 = *puVar15;
+        plVar4 = (long *)((uVar13 - 8) + lVar17);
+        uVar11 = uVar11 + 1;
+        plVar16 = (long *)((long)local_d8 + lVar10);
+        lVar10 = lVar10 + 0x18;
+        puVar1 = (undefined8 *)(uVar13 + lVar17);
+        lVar17 = lVar17 + 0x10;
+        uVar13 = puVar15[2];
+        *(undefined8 *)(*plVar16 + (*plVar4 + uVar12) * 8) = *puVar1;
+      } while (uVar11 < uVar13);
+    }
+    else {
+      local_a0 = local_b8 * 8;
+      local_78 = (local_b8 * 8 - 8 >> 3) + 1;
+      lVar17 = 8;
+      lVar10 = 0;
+      local_50 = local_78 * 8;
+      local_58 = local_78 & 0x1fffffffffffffff;
+      uVar11 = 0;
+      do {
+        uVar13 = local_a0;
+        uVar12 = local_b0[4];
+        if (0x1fffffffffffffff < local_b8) {
+                    /* try { // try from 01bd9797 to 01bd979e has its CatchHandler @ 01bd97a3 */
+                    /* WARNING: Subroutine does not return */
+          std::__vector_base_common<true>::__throw_length_error();
+        }
+                    /* try { // try from 01bd91a1 to 01bd91a8 has its CatchHandler @ 01bd97a1 */
+        pvVar9 = operator_new(local_a0);
+        lVar2 = local_b8 * 8;
+        local_a8 = uVar12;
+        memset(pvVar9,0,uVar13);
+        lVar3 = local_78 * 8;
+        if (0 < local_50) {
+          memset(pvVar9,0,((local_58 - 1) + (ulong)(local_58 == 0)) * 8 + 8);
+        }
+        pvVar8 = local_d8;
+        pvVar6 = *(void **)((long)local_d8 + lVar10);
+        if (pvVar6 != (void *)0x0) {
+          *(void **)((long)local_d8 + lVar10 + 8) = pvVar6;
+          operator_delete(pvVar6);
+          *(undefined8 *)((long)pvVar8 + lVar10) = 0;
+          ((undefined8 *)((long)pvVar8 + lVar10))[1] = 0;
+          *(undefined8 *)((long)pvVar8 + lVar10 + 0x10) = 0;
+        }
+        *(undefined8 *)((long)pvVar8 + lVar10) = pvVar9;
+        ((undefined8 *)((long)pvVar8 + lVar10))[1] = (void *)(lVar3 + (long)pvVar9);
+        *(void **)((long)pvVar8 + lVar10 + 0x10) = (void *)(lVar2 + (long)pvVar9);
+        uVar12 = *local_b0;
+        plVar4 = (long *)((local_a8 - 8) + lVar17);
+        uVar11 = uVar11 + 1;
+        plVar16 = (long *)((long)local_d8 + lVar10);
+        lVar10 = lVar10 + 0x18;
+        puVar1 = (undefined8 *)(local_a8 + lVar17);
+        lVar17 = lVar17 + 0x10;
+        uVar13 = local_b0[2];
+        *(undefined8 *)(*plVar16 + (*plVar4 + uVar12) * 8) = *puVar1;
+        puVar15 = local_b0;
+      } while (uVar11 < uVar13);
+    }
+    plVar16 = local_68;
+    uVar11 = local_b8;
+    if (uVar12 != 0) {
+      uVar12 = local_b8 * 8;
+      local_78 = (local_b8 * 8 - 8 >> 3) + 1;
+      lVar10 = 0;
+      local_a8 = 0;
+      local_a0 = uVar12;
+      do {
+        local_f8 = (void *)0x0;
+        if (uVar11 == 0) {
+          pvVar9 = (void *)0x0;
+        }
+        else {
+          if (0x1fffffffffffffff < uVar11) {
+                    /* try { // try from 01bd9785 to 01bd978c has its CatchHandler @ 01bd97ab */
+                    /* WARNING: Subroutine does not return */
+            std::__vector_base_common<true>::__throw_length_error();
+          }
+                    /* try { // try from 01bd92ec to 01bd92f3 has its CatchHandler @ 01bd97a9 */
+          local_f8 = operator_new(uVar12);
+          memset(local_f8,0,uVar12);
+          pvVar9 = (void *)((long)local_f8 + local_78 * 8);
+          if (0 < (long)pvVar9 - (long)local_f8) {
+            uVar12 = (ulong)((long)pvVar9 - (long)local_f8) >> 3;
+            memset(local_f8,0,((uVar12 - 1) + (ulong)(uVar12 == 0)) * 8 + 8);
+          }
+        }
+        *(undefined8 *)((long)local_f8 + local_a8 * 8) = 0x3ff0000000000000;
+        plVar16 = (long *)local_b0[1];
+        local_98 = (void *)0x0;
+        pvStack_90 = (void *)0x0;
+        local_88 = (void *)0x0;
+        uVar12 = (long)pvVar9 - (long)local_f8;
+        if (uVar12 != 0) {
+          if ((long)uVar12 < 0) {
+                    /* try { // try from 01bd978d to 01bd9796 has its CatchHandler @ 01bd97a7 */
+                    /* WARNING: Subroutine does not return */
+            std::__vector_base_common<true>::__throw_length_error();
+          }
+                    /* try { // try from 01bd938f to 01bd9396 has its CatchHandler @ 01bd97a5 */
+          pvVar9 = operator_new(uVar12);
+          local_88 = (void *)((long)pvVar9 + ((long)uVar12 >> 3) * 8);
+          local_98 = pvVar9;
+          memcpy(pvVar9,local_f8,uVar12);
+          pvStack_90 = (void *)((long)pvVar9 + uVar12);
+        }
+                    /* try { // try from 01bd93c1 to 01bd93d8 has its CatchHandler @ 01bd97bf */
+        (**(code **)(*plVar16 + 0x18))(local_48,plVar16,&local_98,&local_d8);
+        plVar16 = local_68;
+        puVar15 = local_b0;
+        uVar11 = local_b8;
+        lVar17 = *local_60;
+        pvVar9 = *(void **)(lVar17 + lVar10);
+        if (pvVar9 != (void *)0x0) {
+          *(void **)(lVar17 + 8 + lVar10) = pvVar9;
+          operator_delete(pvVar9);
+          *(undefined1 (*) [16])(lVar17 + lVar10) = (undefined1  [16])0x0;
+          *(undefined8 *)(lVar17 + 0x10 + lVar10) = 0;
+        }
+        *(undefined8 *)(lVar17 + lVar10) = local_48._0_8_;
+        ((undefined8 *)(lVar17 + lVar10))[1] = local_48._8_8_;
+        *(undefined8 *)(lVar17 + 0x10 + lVar10) = local_38;
+        local_48 = (undefined1  [16])0x0;
+        local_38 = 0;
+        if (local_98 != (void *)0x0) {
+          pvStack_90 = local_98;
+          operator_delete(local_98);
+        }
+        uVar12 = local_a0;
+        if (local_f8 != (void *)0x0) {
+          operator_delete(local_f8);
+        }
+        local_a8 = local_a8 + 1;
+        lVar10 = lVar10 + 0x18;
+      } while (local_a8 < *puVar15);
+    }
+    uVar12 = puVar15[3];
+    if (uVar12 != 0) {
+      lVar10 = 0;
+      uVar13 = 0;
+      do {
+        lVar17 = *(long *)(puVar15[7] + uVar13 * 8);
+        puVar1 = (undefined8 *)((long)local_d8 + lVar17 * 0x18);
+        if ((undefined8 *)(*plVar16 + lVar10) != puVar1) {
+                    /* try { // try from 01bd94f6 to 01bd94fa has its CatchHandler @ 01bd97b0 */
+          FUN_01bd8800((undefined8 *)(*plVar16 + lVar10),*puVar1,
+                       *(undefined8 *)((long)local_d8 + lVar17 * 0x18 + 8));
+          uVar12 = puVar15[3];
+        }
+        uVar13 = uVar13 + 1;
+        lVar10 = lVar10 + 0x18;
+      } while (uVar13 < uVar12);
+    }
+    fVar19 = powf(DAT_0044d4d4,(float)local_6c / _DAT_0044d4ac);
+    if ((puVar15[2] != 0) && (uVar11 != 0)) {
+      uVar12 = 0;
+      do {
+        uVar13 = *(ulong *)(puVar15[7] + *(long *)(puVar15[4] + uVar12 * 0x10) * 8);
+        if (uVar13 != uVar12) {
+          uVar14 = 0;
+          do {
+            if ((double)fVar19 <
+                (double)((ulong)(*(double *)(*(long *)((long)local_d8 + uVar12 * 0x18) + uVar14 * 8)
+                                - *(double *)
+                                   (*(long *)((long)local_d8 + uVar13 * 0x18) + uVar14 * 8) *
+                                  *(double *)(puVar15[4] + 8 + uVar12 * 0x10)) & _DAT_0044a5a0)) {
+              printf("ERROR: Mapped state %u != %u * %lf\n");
+              uVar12 = 0;
+              pvVar9 = local_d8;
+              goto joined_r0x01bd9670;
+            }
+            uVar14 = uVar14 + 1;
+          } while (uVar11 != uVar14);
+        }
+        uVar12 = uVar12 + 1;
+      } while (uVar12 < puVar15[2]);
+    }
+    uVar13 = puVar15[3];
+    uVar12 = CONCAT71((int7)(uVar11 >> 8),1);
+    pvVar9 = local_d8;
+    if (uVar13 != 0) {
+      uVar11 = 0;
+      do {
+        uVar14 = *(ulong *)(puVar15[10] + uVar11 * 8);
+        if (uVar14 < uVar13) {
+          do {
+            if ((double)fVar19 <
+                (double)(*(ulong *)(*puVar15 * 8 + *(long *)(*plVar16 + uVar11 * 0x18) + uVar14 * 8)
+                        & _DAT_0044a5a0)) {
+              uVar12 = 0;
+              printf("ERROR: Actual state %u depends on state %u\n");
+              pvVar9 = local_d8;
+              goto joined_r0x01bd9670;
+            }
+            uVar14 = uVar14 + 1;
+          } while (uVar13 != uVar14);
+        }
+        uVar11 = uVar11 + 1;
+      } while (uVar11 < uVar13);
+    }
+joined_r0x01bd9670:
+    local_d8 = pvVar9;
+    pvVar6 = pvStack_d0;
+    if (pvVar9 != (void *)0x0) {
+      while (pvVar8 = pvVar6, pvVar8 != pvVar9) {
+        pvVar7 = *(void **)((long)pvVar8 + -0x18);
+        pvVar6 = (void *)((long)pvVar8 + -0x18);
+        if (pvVar7 != (void *)0x0) {
+          *(void **)((long)pvVar8 + -0x10) = pvVar7;
+          operator_delete(pvVar7);
+        }
+      }
+      pvStack_d0 = pvVar9;
+      operator_delete(local_d8);
+    }
+  }
+  else {
+    uVar12 = 0;
+  }
+  return uVar12 & 0xffffffff;
+}
+
+ (GhidraScript)  
+INFO  DecompileCalibFilter3.java> 
+=== FUN_01bd2ed0 @ 01bd2ed0 (AnalogCalibrationFilter_OnVectorData) === (GhidraScript)  
+INFO  DecompileCalibFilter3.java> Size: 1351 bytes (GhidraScript)  
+INFO  DecompileCalibFilter3.java> 
+void FUN_01bd2ed0(long param_1,undefined8 param_2,undefined8 param_3,long *param_4)
+
+{
+  __shared_weak_count *p_Var1;
+  __shared_weak_count *p_Var2;
+  __shared_weak_count *this;
+  int iVar3;
+  ulong __n;
+  long *plVar4;
+  char cVar5;
+  __shared_weak_count *p_Var6;
+  void *__s;
+  __shared_weak_count *p_Var7;
+  undefined8 uVar8;
+  runtime_error *prVar9;
+  undefined8 *puVar10;
+  uint uVar11;
+  long lVar12;
+  long lVar13;
+  uint uVar14;
+  int iVar15;
+  ulong __n_00;
+  uint uVar16;
+  __shared_weak_count *p_Var17;
+  long *local_b8;
+  __shared_weak_count *p_Stack_b0;
+  undefined8 local_a8;
+  __shared_weak_count *local_a0;
+  void *local_98;
+  __shared_weak_count *local_90;
+  __shared_weak_count *local_88;
+  __shared_weak_count *local_80;
+  __shared_weak_count *local_78;
+  long local_70;
+  __shared_weak_count *local_68;
+  long local_60;
+  long *local_58;
+  long *local_50;
+  string local_48 [24];
+  
+  if (*(char *)(param_1 + 0x138) == '\0') {
+    prVar9 = (runtime_error *)__cxa_allocate_exception(0x10);
+                    /* try { // try from 01bd3363 to 01bd3371 has its CatchHandler @ 01bd3551 */
+    std::runtime_error::runtime_error
+              (prVar9,"SamplingConfigurationData is required prior to VectorData<AnalogSample>");
+                    /* WARNING: Subroutine does not return */
+    __cxa_throw(prVar9,PTR_typeinfo_02fe8e78,PTR__runtime_error_02fe8e80);
+  }
+  if (*(char *)(param_1 + 0x198) == '\0') {
+    local_70 = *param_4;
+    local_68 = (__shared_weak_count *)param_4[1];
+    if (local_68 != (__shared_weak_count *)0x0) {
+      LOCK();
+      *(long *)(local_68 + 8) = *(long *)(local_68 + 8) + 1;
+      UNLOCK();
+    }
+                    /* try { // try from 01bd2fe8 to 01bd3000 has its CatchHandler @ 01bd3525 */
+    FUN_02d911c0(param_1,&DAT_00462db2,3,&local_70);
+    this = local_68;
+    goto joined_r0x01bd3009;
+  }
+  local_50 = *(long **)(*param_4 + 0x18);
+  this = *(__shared_weak_count **)(*param_4 + 0x20);
+  if (this != (__shared_weak_count *)0x0) {
+    LOCK();
+    *(long *)(this + 8) = *(long *)(this + 8) + 1;
+    UNLOCK();
+  }
+  local_b8 = (long *)(param_1 + 0x290);
+  lVar12 = *local_50;
+  lVar13 = local_50[1];
+  local_98 = *(void **)(param_1 + 0x290);
+  __n_00 = *(long *)(param_1 + 0x298) - (long)local_98;
+  iVar15 = (int)(__n_00 >> 1);
+  iVar3 = (int)((ulong)(lVar13 - lVar12) >> 1);
+  uVar11 = iVar15 + iVar3 + 7;
+  uVar16 = iVar15 + iVar3;
+  uVar14 = uVar16;
+  if ((int)uVar16 < 0) {
+    uVar14 = uVar11;
+  }
+  if (uVar11 < 0xf) {
+    if (lVar12 != lVar13) {
+      do {
+                    /* try { // try from 01bd2f80 to 01bd2f8a has its CatchHandler @ 01bd3616 */
+        FUN_01bd3d50(&local_b8,lVar12);
+        lVar12 = lVar12 + 2;
+      } while (lVar13 != lVar12);
+    }
+                    /* try { // try from 01bd2f94 to 01bd2f9d has its CatchHandler @ 01bd35b5 */
+    p_Var6 = (__shared_weak_count *)operator_new(0x30);
+    *(undefined8 *)(p_Var6 + 8) = 0;
+    *(undefined8 *)(p_Var6 + 0x10) = 0;
+    *(undefined ***)p_Var6 = &PTR_FUN_02f385f8;
+    *(undefined8 *)(p_Var6 + 0x18) = 0;
+    *(undefined8 *)(p_Var6 + 0x20) = 0;
+    *(undefined8 *)(p_Var6 + 0x28) = 0;
+    local_80 = p_Var6 + 0x18;
+  }
+  else {
+    local_58 = local_b8;
+                    /* try { // try from 01bd3014 to 01bd3022 has its CatchHandler @ 01bd35b5 */
+    p_Var6 = (__shared_weak_count *)operator_new(0x30);
+    *(undefined8 *)(p_Var6 + 8) = 0;
+    *(undefined8 *)(p_Var6 + 0x10) = 0;
+    *(undefined ***)p_Var6 = &PTR_FUN_02f385f8;
+    local_a0 = p_Var6 + 0x18;
+    *(undefined8 *)(p_Var6 + 0x18) = 0;
+    *(undefined8 *)(p_Var6 + 0x20) = 0;
+    *(undefined8 *)(p_Var6 + 0x28) = 0;
+    if ((int)uVar16 < -7) {
+                    /* try { // try from 01bd340d to 01bd3416 has its CatchHandler @ 01bd35b7 */
+                    /* WARNING: Subroutine does not return */
+      std::__vector_base_common<true>::__throw_length_error();
+    }
+    uVar14 = uVar14 & 0xfffffff8;
+    __n = (long)(int)uVar14 * 2;
+    local_60 = param_1;
+                    /* try { // try from 01bd3069 to 01bd3070 has its CatchHandler @ 01bd35b7 */
+    __s = operator_new(__n);
+    *(void **)(p_Var6 + 0x18) = __s;
+    *(void **)(p_Var6 + 0x28) = (void *)((long)__s + (long)(int)uVar14 * 2);
+    memset(__s,0,__n);
+    *(void **)(p_Var6 + 0x20) = (void *)(__n + (long)__s);
+    if (__n_00 != 0) {
+      memmove(__s,local_98,__n_00);
+    }
+    plVar4 = local_50;
+    param_1 = local_60;
+    iVar15 = uVar14 - (int)((long)__n_00 >> 1);
+    if (iVar15 != 0) {
+      memmove((void *)((long)__s + ((long)__n_00 >> 1) * 2),(void *)*local_50,(long)iVar15 * 2);
+    }
+    *(void **)(param_1 + 0x298) = local_98;
+    lVar13 = (long)iVar15 * 2 + *plVar4;
+    lVar12 = plVar4[1];
+    local_b8 = local_58;
+    local_80 = local_a0;
+    if (lVar13 != lVar12) {
+      do {
+                    /* try { // try from 01bd3110 to 01bd311a has its CatchHandler @ 01bd35ea */
+        FUN_01bd3d50(&local_b8,lVar13);
+        lVar13 = lVar13 + 2;
+        local_80 = local_a0;
+      } while (lVar12 != lVar13);
+    }
+  }
+  lVar12 = *(long *)local_80;
+                    /* try { // try from 01bd3140 to 01bd3147 has its CatchHandler @ 01bd359b */
+  cVar5 = FUN_01bd8490(*(undefined8 *)(param_1 + 0x288),lVar12,lVar12,
+                       *(long *)(local_80 + 8) - lVar12 >> 1);
+  if (cVar5 == '\0') {
+    prVar9 = (runtime_error *)__cxa_allocate_exception(0x10);
+                    /* try { // try from 01bd33a3 to 01bd33af has its CatchHandler @ 01bd3518 */
+    std::to_string((ulong)local_48);
+                    /* try { // try from 01bd33b0 to 01bd33c5 has its CatchHandler @ 01bd344f */
+    puVar10 = (undefined8 *)
+              std::string::insert(local_48,0,"runFilter failed. the sample data size was ");
+    local_a8 = puVar10[2];
+    local_b8 = (long *)*puVar10;
+    p_Stack_b0 = (__shared_weak_count *)puVar10[1];
+    *puVar10 = 0;
+    puVar10[1] = 0;
+    puVar10[2] = 0;
+                    /* try { // try from 01bd33e8 to 01bd340c has its CatchHandler @ 01bd3417 */
+    std::runtime_error::runtime_error(prVar9,(string *)&local_b8);
+                    /* WARNING: Subroutine does not return */
+    __cxa_throw(prVar9,PTR_typeinfo_02fe8e78,PTR__runtime_error_02fe8e80);
+  }
+  LOCK();
+  *(long *)(p_Var6 + 8) = *(long *)(p_Var6 + 8) + 1;
+  UNLOCK();
+                    /* try { // try from 01bd3160 to 01bd3171 has its CatchHandler @ 01bd3564 */
+  local_78 = p_Var6;
+  FUN_01bd3790(&local_b8,param_1,&local_80);
+  p_Var2 = local_78;
+  plVar4 = local_b8;
+  if (local_78 != (__shared_weak_count *)0x0) {
+    LOCK();
+    p_Var7 = local_78 + 8;
+    lVar12 = *(long *)p_Var7;
+    *(long *)p_Var7 = *(long *)p_Var7 + -1;
+    UNLOCK();
+    if (lVar12 == 0) {
+      (**(code **)(*(long *)local_78 + 0x10))(local_78);
+      std::__shared_weak_count::__release_weak(p_Var2);
+      plVar4 = local_b8;
+    }
+  }
+  local_b8 = plVar4;
+  if ((plVar4 != (long *)0x0) && (plVar4[1] != *plVar4)) {
+                    /* try { // try from 01bd31ae to 01bd31bb has its CatchHandler @ 01bd350e */
+    p_Var7 = (__shared_weak_count *)operator_new(0x40);
+    p_Var2 = p_Stack_b0;
+    *(undefined8 *)(p_Var7 + 8) = 0;
+    *(undefined8 *)(p_Var7 + 0x10) = 0;
+    *(undefined ***)p_Var7 = &PTR_FUN_02f39278;
+    local_90 = p_Var7 + 0x18;
+    if (p_Stack_b0 != (__shared_weak_count *)0x0) {
+      LOCK();
+      *(long *)(p_Stack_b0 + 8) = *(long *)(p_Stack_b0 + 8) + 1;
+      UNLOCK();
+    }
+    uVar8 = FUN_02db5490();
+                    /* try { // try from 01bd31eb to 01bd31f5 has its CatchHandler @ 01bd34d0 */
+    FUN_02db0660(local_90,uVar8);
+    p_Var17 = p_Var7 + 8;
+    *(undefined ***)(p_Var7 + 0x18) = &PTR_FUN_02f385d0;
+    *(long **)(p_Var7 + 0x30) = plVar4;
+    *(__shared_weak_count **)(p_Var7 + 0x38) = p_Var2;
+    LOCK();
+    *(long *)(p_Var7 + 8) = *(long *)(p_Var7 + 8) + 1;
+    UNLOCK();
+                    /* try { // try from 01bd3224 to 01bd323c has its CatchHandler @ 01bd347a */
+    local_88 = p_Var7;
+    FUN_02d911c0(param_1,&DAT_00462db2,3,&local_90);
+    p_Var2 = local_88;
+    if (local_88 != (__shared_weak_count *)0x0) {
+      LOCK();
+      p_Var1 = local_88 + 8;
+      lVar12 = *(long *)p_Var1;
+      *(long *)p_Var1 = *(long *)p_Var1 + -1;
+      UNLOCK();
+      if (lVar12 == 0) {
+        (**(code **)(*(long *)local_88 + 0x10))(local_88);
+        std::__shared_weak_count::__release_weak(p_Var2);
+      }
+    }
+    LOCK();
+    lVar12 = *(long *)p_Var17;
+    *(long *)p_Var17 = *(long *)p_Var17 + -1;
+    UNLOCK();
+    if (lVar12 == 0) {
+      (**(code **)(*(long *)p_Var7 + 0x10))(p_Var7);
+      std::__shared_weak_count::__release_weak(p_Var7);
+    }
+  }
+  if (p_Stack_b0 == (__shared_weak_count *)0x0) {
+LAB_01bd32ce:
+    LOCK();
+    p_Var2 = p_Var6 + 8;
+    lVar12 = *(long *)p_Var2;
+    *(long *)p_Var2 = *(long *)p_Var2 + -1;
+    UNLOCK();
+  }
+  else {
+    LOCK();
+    p_Var2 = p_Stack_b0 + 8;
+    lVar12 = *(long *)p_Var2;
+    *(long *)p_Var2 = *(long *)p_Var2 + -1;
+    UNLOCK();
+    if (lVar12 != 0) goto LAB_01bd32ce;
+    (**(code **)(*(long *)p_Stack_b0 + 0x10))(p_Stack_b0);
+    std::__shared_weak_count::__release_weak(p_Stack_b0);
+    LOCK();
+    p_Var2 = p_Var6 + 8;
+    lVar12 = *(long *)p_Var2;
+    *(long *)p_Var2 = *(long *)p_Var2 + -1;
+    UNLOCK();
+  }
+  if (lVar12 == 0) {
+    (**(code **)(*(long *)p_Var6 + 0x10))(p_Var6);
+    std::__shared_weak_count::__release_weak(p_Var6);
+  }
+joined_r0x01bd3009:
+  if (this != (__shared_weak_count *)0x0) {
+    LOCK();
+    p_Var6 = this + 8;
+    lVar12 = *(long *)p_Var6;
+    *(long *)p_Var6 = *(long *)p_Var6 + -1;
+    UNLOCK();
+    if (lVar12 == 0) {
+      (**(code **)(*(long *)this + 0x10))(this);
+      std::__shared_weak_count::__release_weak(this);
+    }
+  }
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileCalibFilter3.java> 
+=== FUN_01bd3660 @ 01bd3660 (SetCalibration_handler) === (GhidraScript)  
+INFO  DecompileCalibFilter3.java> Size: 150 bytes (GhidraScript)  
+INFO  DecompileCalibFilter3.java> 
+void FUN_01bd3660(long param_1,long param_2)
+
+{
+  string *psVar1;
+  string *this;
+  
+  psVar1 = (string *)(param_2 + 0x18);
+  this = (string *)(param_1 + 0x140);
+  if (*(char *)(param_1 + 0x198) == '\0') {
+    FUN_01bd5530(this,psVar1);
+    *(undefined1 *)(param_1 + 0x198) = 1;
+  }
+  else {
+    std::string::operator=(this,psVar1);
+    if (this != psVar1) {
+      FUN_01bd4ce0(param_1 + 0x158,*(undefined8 *)(param_2 + 0x30),*(undefined8 *)(param_2 + 0x38));
+      FUN_01bd4e30(param_1 + 0x170,*(undefined8 *)(param_2 + 0x48),param_2 + 0x50);
+    }
+    *(undefined1 *)(param_1 + 400) = *(undefined1 *)(param_2 + 0x68);
+    *(undefined8 *)(param_1 + 0x188) = *(undefined8 *)(param_2 + 0x60);
+  }
+  FUN_02d91580(param_1);
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileCalibFilter3.java> 
+=== FUN_01bd3700 @ 01bd3700 (SetChannel_handler) === (GhidraScript)  
+INFO  DecompileCalibFilter3.java> Size: 16 bytes (GhidraScript)  
+INFO  DecompileCalibFilter3.java> 
+void FUN_01bd3700(long param_1,long param_2)
+
+{
+  *(long *)(param_1 + 0x1a0) = (long)*(int *)(param_2 + 0x18);
+  FUN_02d91580();
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileCalibFilter3.java> 
+=== FUN_01bd8a40 @ 01bd8a40 (InitFilterLayout) === (GhidraScript)  
+INFO  DecompileCalibFilter3.java> Size: 65 bytes (GhidraScript)  
+INFO  DecompileCalibFilter3.java> 
+void FUN_01bd8a40(undefined8 *param_1,undefined8 param_2,long *param_3)
+
+{
+  *param_1 = param_2;
+  param_1[1] = param_3;
+  param_1[2] = 0;
+  param_1[3] = 0;
+  param_1[4] = 0;
+  param_1[5] = 0;
+  param_1[6] = 0;
+  param_1[7] = 0;
+  param_1[8] = 0;
+  param_1[9] = 0;
+  param_1[10] = 0;
+  param_1[0xb] = 0;
+  param_1[0xc] = 0;
+                    /* try { // try from 01bd8a70 to 01bd8a78 has its CatchHandler @ 01bd8a81 */
+  (**(code **)(*param_3 + 0x10))(param_3,param_1);
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompileCalibFilter3.java> 
+=== FUN_01bd8d50 @ 01bd8d50 (SetFilterStage) === (GhidraScript)  
+INFO  DecompileCalibFilter3.java> Size: 9 bytes (GhidraScript)  
+INFO  DecompileCalibFilter3.java> 
+void FUN_01bd8d50(long param_1,long param_2,undefined8 param_3)
+
+{
+  *(undefined8 *)(*(long *)(param_1 + 0x50) + param_2 * 8) = param_3;
+  return;
+}
+
+ (GhidraScript)  
+INFO  REPORT: Save succeeded for processed file: /libgraph_server_shared.so (HeadlessAnalyzer)  

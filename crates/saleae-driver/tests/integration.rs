@@ -313,7 +313,10 @@ fn fpga_programming_sends_reset_data_verify() {
     mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
     // 2. WriteConfigurationData ACK (one chunk)
     mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
-    // 3. ReadRegisters response: 0xAA (success)
+    // 3-4. WriteRegisters ACKs (write 0xAA to r0x7F, twice)
+    mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
+    mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
+    // 5. ReadRegisters response: 0xAA (success)
     mock.push_bulk_in_response(endpoint::BULK_IN, vec![0xAA]);
 
     program_fpga(
@@ -329,8 +332,8 @@ fn fpga_programming_sends_reset_data_verify() {
 
     assert_eq!(
         out_data.len(),
-        3,
-        "expected 3 OUT transfers: reset + data + verify"
+        5,
+        "expected 5 OUT transfers: reset + data + 2x write + read"
     );
 
     // With EncryptionMode::None, wire bytes are raw [opcode, payload...].
@@ -343,8 +346,15 @@ fn fpga_programming_sends_reset_data_verify() {
         "second command: WriteConfigData opcode"
     );
 
-    // Op 2: ReadRegisters (0x81) to verify readback
-    assert_eq!(out_data[2][0], 0x81, "third command: ReadRegisters opcode");
+    // Ops 2-3: WriteRegisters (0x80) writing 0xAA to r0x7F
+    assert_eq!(out_data[2][0], 0x80, "third command: WriteRegisters opcode");
+    assert_eq!(
+        out_data[3][0], 0x80,
+        "fourth command: WriteRegisters opcode"
+    );
+
+    // Op 4: ReadRegisters (0x81) to verify readback
+    assert_eq!(out_data[4][0], 0x81, "fifth command: ReadRegisters opcode");
 }
 
 #[test]
@@ -352,9 +362,11 @@ fn fpga_programming_fails_on_wrong_readback() {
     let mock = Arc::new(MockTransport::new());
     let mut channel = make_initialized_channel(&mock);
 
-    // Queue: reset ACK, config ACK, wrong readback
+    // Queue: reset ACK, config ACK, 2x write ACK, wrong readback
     mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
     mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
+    mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]); // WriteRegisters ACK #1
+    mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]); // WriteRegisters ACK #2
     mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x55]); // wrong! expected 0xAA
 
     let err = program_fpga(
@@ -423,9 +435,11 @@ fn fpga_full_programming_and_post_init_sequence() {
 
     let bitstream = vec![0xAB; 100];
 
-    // FPGA programming: reset + data + verify
+    // FPGA programming: reset + data + 2x write + verify
     mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]); // reset ACK
     mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]); // config data ACK
+    mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]); // WriteRegisters ACK #1
+    mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]); // WriteRegisters ACK #2
     mock.push_bulk_in_response(endpoint::BULK_IN, vec![0xAA]); // readback OK
 
     program_fpga(
@@ -443,9 +457,9 @@ fn fpga_full_programming_and_post_init_sequence() {
 
     fpga_post_init(&mut channel, false).unwrap();
 
-    // Total: 3 (programming) + 5 (post-init) = 8 OUT transfers
+    // Total: 5 (programming) + 5 (post-init) = 10 OUT transfers
     let ops = mock.operations();
-    assert_eq!(count_bulk_out(&ops), 8, "programming + post-init total");
+    assert_eq!(count_bulk_out(&ops), 10, "programming + post-init total");
 }
 
 // ===========================================================================
@@ -579,21 +593,16 @@ fn capture_lifecycle_start_stream_stop() {
         voltage_threshold: 1.65,
         stats_enabled: false,
         samples_per_chunk: 256,
+        ..CaptureConfig::default()
     };
 
     // --- Phase 1: Start capture ---
     // configure_capture writes:
-    //   1. Threshold register (1 write + 1 ACK)
-    //   2. Channel config registers (2 channels -> 2 writes + 2 ACKs)
-    //   3. Config data blob via 0x7F (1 write + 1 ACK)
-    //   4. Commit register (1 write + 1 ACK)
+    //   1. WriteRegisters (opcode 0x80): 1 OUT + 1 IN (ACK)
+    //   2. ReadRegisters (opcode 0x81): 1 OUT + 1 IN (readback)
     // Then start_sampling (1 write + 1 response)
-    // Total: 5 config + 1 start = 6 OUTs, 6 INs
-    for _ in 0..5 {
-        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
-    }
-    // StartSampling response (2 bytes)
-    mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00, 0x00]);
+    // Total: 2 config + 1 start = 3 OUTs, 3 INs
+    queue_capture_start_responses(&mock, &config);
 
     let mut stream = saleae_driver::capture::start_digital_capture(&mut channel, &config).unwrap();
 
@@ -660,19 +669,19 @@ fn capture_lifecycle_start_stream_stop() {
     assert_eq!(last_two[1][0], 0x86, "second-to-last: StopDataPath (0x86)");
 }
 
-/// Helper: queue mock responses for start_digital_capture with the given
-/// number of channel config writes. Returns the expected number of OUTs.
-fn queue_capture_start_responses(mock: &MockTransport, num_channel_writes: usize) {
-    // Threshold write ACK
+/// Helper: queue mock responses for start_digital_capture.
+///
+/// configure_capture does:
+/// 1. WriteRegisters (0x80): 1 OUT + 1 IN (1-byte ACK)
+/// 2. ReadRegisters (0x81): 1 OUT + 1 IN (N-byte readback matching written values)
+/// Then start_sampling: 1 OUT + 1 IN (2-byte response)
+fn queue_capture_start_responses(mock: &MockTransport, config: &CaptureConfig) {
+    // WriteRegisters ACK
     mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
-    // Channel config ACKs
-    for _ in 0..num_channel_writes {
-        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
-    }
-    // WriteConfigurationData ACK
-    mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
-    // Commit control ACK
-    mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
+    // ReadRegisters readback: return the written values so verification passes
+    let pairs = saleae_driver::capture::build_capture_register_pairs(config);
+    let readback: Vec<u8> = pairs.iter().map(|&(_, v)| v).collect();
+    mock.push_bulk_in_response(endpoint::BULK_IN, readback);
     // StartSampling response
     mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00, 0x00]);
 }
@@ -689,7 +698,7 @@ fn capture_stream_returns_none_after_stop() {
     };
 
     // Start capture.
-    queue_capture_start_responses(&mock, 2);
+    queue_capture_start_responses(&mock, &config);
     let mut stream = saleae_driver::capture::start_digital_capture(&mut channel, &config).unwrap();
 
     // Stop the stream.
@@ -714,7 +723,7 @@ fn capture_stop_is_idempotent() {
     };
 
     // Start capture.
-    queue_capture_start_responses(&mock, 2);
+    queue_capture_start_responses(&mock, &config);
     let mut stream = saleae_driver::capture::start_digital_capture(&mut channel, &config).unwrap();
 
     // First stop.
@@ -749,7 +758,7 @@ fn capture_stream_read_handles_usb_error() {
     };
 
     // Start capture.
-    queue_capture_start_responses(&mock, 2);
+    queue_capture_start_responses(&mock, &config);
     let mut stream = saleae_driver::capture::start_digital_capture(&mut channel, &config).unwrap();
 
     // Inject a USB error on EP2 IN (simulating disconnect).
@@ -827,26 +836,93 @@ fn fpga_programming_handles_usb_error_during_bitstream() {
 // Test 6: CommonDeviceInit (EEPROM device ID read)
 // ===========================================================================
 
+/// Queue mock responses for the Xilinx (non-Lattice) common_device_init path.
+///
+/// Returns the expected device ID.
+fn queue_xilinx_common_device_init(mock: &MockTransport) -> u64 {
+    let device_id: u64 = 0x764051b51bd4d9f1;
+
+    // Helper: queue one dcm_cascade (5-step JESD: 5 write ACKs + r0x40 read + r0x4a read).
+    let queue_one_cascade = |mock: &MockTransport, r40: u8| {
+        // 5 writes: JESD power sequence (0x1E, 0x1C, 0x18, 0x08, 0x00)
+        for _ in 0..5 {
+            mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
+        }
+        // 2 reads: r0x40, r0x4a
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![r40]);
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]); // r0x4a
+    };
+
+    // Helper: queue reset_main_dcm (5-step JESD cascade, no SERDES retry).
+    let queue_reset_main_dcm = |mock: &MockTransport, r40: u8| {
+        queue_one_cascade(mock, r40);
+    };
+
+    // Calibration EEPROM read (ReadVersion) -> 16 bytes
+    let cal_data = vec![
+        0x46, 0xFF, 0xC6, 0xA6, 0x60, 0xB7, 0xDE, 0x07, 0x67, 0x8B, 0x03, 0x66, 0x11, 0x35, 0x7C,
+        0x7F,
+    ];
+    mock.push_bulk_in_response(endpoint::BULK_IN, cal_data);
+
+    // configure_ad9637: 9 ACKs (2 reset proxy + 7 config proxy)
+    for _ in 0..9 {
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
+    }
+
+    // r0x15=0x00 (ADC power off): 1 ACK
+    mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
+
+    // set_ad9637_enabled_false: 1 proxy ACK + single dcm_cascade (not retried)
+    mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
+    queue_one_cascade(mock, 0x00);
+
+    // set_ad9637_enabled_true: 3 proxy ACKs + reset_main_dcm (5-step JESD, r0x40=0xE0) + 3 reads
+    for _ in 0..3 {
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
+    }
+    queue_reset_main_dcm(mock, 0xE0);
+    mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]); // r0x19
+    mock.push_bulk_in_response(endpoint::BULK_IN, vec![0xE0]); // r0x40
+    mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]); // r0x4a
+
+    // write_calibration_and_cascade: 2 direct + 16 cal + set_enabled_false + 1 read + 1 write
+    mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]); // r0x00=0x00
+    mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]); // r0x00=0x40
+    for _ in 0..16 {
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]); // cal coeff writes
+    }
+    mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]); // SPI transfer proxy ACK
+    queue_one_cascade(mock, 0x00); // dcm_cascade (5-step JESD), r0x40=0x00 expected post-cal
+    mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]); // r0x40 post-cal
+    mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]); // r0x12 write ACK
+
+    // Device ID EEPROM read
+    mock.push_bulk_in_response(endpoint::BULK_IN, device_id.to_le_bytes().to_vec());
+
+    device_id
+}
+
 #[test]
 fn common_device_init_non_lattice_reads_eeprom() {
     let mock = Arc::new(MockTransport::new());
     let mut channel = make_initialized_channel(&mock);
 
-    let device_id: u64 = 0x764051b51bd4d9f1;
-    let id_bytes = device_id.to_le_bytes();
-    mock.push_bulk_in_response(endpoint::BULK_IN, id_bytes.to_vec());
+    let expected_id = queue_xilinx_common_device_init(&mock);
 
     let result = common_device_init(&mut channel, false).unwrap();
 
-    assert_eq!(result.device_id, device_id);
+    assert_eq!(result.device_id, expected_id);
     assert!(!result.jesd_locked, "non-Lattice: no JESD");
     assert!(!result.ddr_ready, "non-Lattice: no DDR check");
+    assert!(result.dcm_locked, "Xilinx: DCM should be locked");
 
-    // Verify opcode 0x88 was sent.
+    // Verify the EEPROM device ID read opcode (0x88) was sent.
+    // It's the last OUT transfer in the sequence.
     let ops = mock.operations();
     let out_data = extract_bulk_out_data(&ops);
-    assert_eq!(out_data.len(), 1, "only EEPROM read command");
-    assert_eq!(out_data[0][0], 0x88, "EEPROM read should use opcode 0x88");
+    let last = out_data.last().unwrap();
+    assert_eq!(last[0], 0x88, "last command should be EEPROM read (0x88)");
 }
 
 // ===========================================================================
@@ -885,6 +961,8 @@ fn full_device_lifecycle_firmware_to_eeprom() {
     let bitstream = vec![0xAB; 100];
     device_mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]); // reset
     device_mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]); // config data
+    device_mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]); // WriteRegisters ACK #1
+    device_mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]); // WriteRegisters ACK #2
     device_mock.push_bulk_in_response(endpoint::BULK_IN, vec![0xAA]); // readback OK
     program_fpga(
         &mut channel,
@@ -900,23 +978,26 @@ fn full_device_lifecycle_firmware_to_eeprom() {
     }
     fpga_post_init(&mut channel, false).unwrap();
 
-    // --- Step 5: CommonDeviceInit ---
-    let device_id: u64 = 0x764051b51bd4d9f1;
-    device_mock.push_bulk_in_response(endpoint::BULK_IN, device_id.to_le_bytes().to_vec());
+    // --- Step 5: CommonDeviceInit (Xilinx path with AD9637 init) ---
+    let expected_id = queue_xilinx_common_device_init(&device_mock);
     let result = common_device_init(&mut channel, false).unwrap();
 
-    assert_eq!(result.device_id, device_id);
+    assert_eq!(result.device_id, expected_id);
     assert_eq!(
         format!("{:x}", result.device_id),
         "764051b51bd4d9f1",
         "device ID hex should match expected calibration filename"
     );
+    assert!(result.dcm_locked, "DCM should be locked after AD9637 init");
 
     // Verify total operation count is reasonable.
-    // After clear(): 3 (FPGA) + 5 (post-init) + 1 (EEPROM) = 9 OUTs
+    // After clear(): 5 (FPGA) + 5 (post-init) + many (AD9637 init) + 1 (EEPROM)
     let ops = device_mock.operations();
     let total_outs = count_bulk_out(&ops);
-    assert_eq!(total_outs, 9, "total EP1 OUTs after init");
+    assert!(
+        total_outs > 11,
+        "total EP1 OUTs should include AD9637 init commands"
+    );
 }
 
 // ===========================================================================

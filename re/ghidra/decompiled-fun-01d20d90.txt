@@ -1,0 +1,102 @@
+EXISTS: FUN_01d20d90 @ 01d20d90
+=== FUN_01d20d90 @ 01d20d90 (expected: FUN_01d20d90_ADC_interface_init) ===
+
+void FUN_01d20d90(undefined8 param_1,ulong param_2,undefined1 param_3)
+
+{
+  undefined *local_28;
+  
+  FUN_01d208f0(param_1,8,3);
+  FUN_01d208f0(param_1,8,0);
+  local_28 = &DAT_00989680;
+  std::this_thread::sleep_for((duration *)&local_28);
+  FUN_01d208f0(param_1,0xd,param_3);
+  FUN_01d208f0(param_1,0x15,(uint)param_2 & 0xff | (uint)(param_2 >> 0x1c) & 0xf0);
+  FUN_01d208f0(param_1,0x21,0xc2);
+  FUN_01d208f0(param_1,5,0xf);
+  FUN_01d208f0(param_1,4,0xf);
+  FUN_01d208f0(param_1,0x10,0);
+  FUN_01d208f0(param_1,0x18,4);
+  return;
+}
+
+
+
+
+=== CALLED FUNCTIONS (auto-discovered) ===
+
+--- FUN_01d208f0 @ 01d208f0 ---
+
+/* WARNING: Globals starting with '_' overlap smaller symbols at the same address */
+
+void FUN_01d208f0(long param_1,int param_2,uint param_3)
+
+{
+  ushort *puVar1;
+  ushort *puVar2;
+  undefined4 *puVar3;
+  undefined1 auVar4 [16];
+  undefined1 local_58 [16];
+  ushort *local_48;
+  char *local_38;
+  undefined8 uStack_30;
+  
+  if (param_3 < 0x100) {
+    local_58 = (undefined1  [16])0x0;
+    local_48 = (ushort *)0x0;
+                    /* try { // try from 01d20923 to 01d2092c has its CatchHandler @ 01d20a78 */
+    puVar1 = (ushort *)operator_new(2);
+    local_48 = puVar1 + 1;
+    *puVar1 = (ushort)(param_2 << 8) | 3;
+    local_58._0_8_ = puVar1;
+    local_58._8_8_ = local_48;
+                    /* try { // try from 01d20950 to 01d20959 has its CatchHandler @ 01d20a76 */
+    puVar2 = (ushort *)operator_new(4);
+    puVar2[1] = (ushort)param_2 & 0x1f00 | 0x16;
+    auVar4._8_4_ = (int)puVar2;
+    auVar4._0_8_ = puVar2;
+    auVar4._12_4_ = (int)((ulong)puVar2 >> 0x20);
+    local_58._8_8_ = (long)puVar2 + _DAT_0044bbf0;
+    local_48 = (ushort *)(auVar4._8_8_ + _UNK_0044bbf8);
+    *puVar2 = *puVar1;
+    local_58._0_8_ = puVar2;
+    operator_delete(puVar1);
+                    /* try { // try from 01d20997 to 01d209a0 has its CatchHandler @ 01d20a74 */
+    puVar3 = (undefined4 *)operator_new(8);
+    *(ushort *)(puVar3 + 1) = (ushort)(param_3 << 8) | 4;
+    *puVar3 = *(undefined4 *)puVar2;
+    local_58._8_8_ = (long)puVar3 + 6;
+    local_58._0_8_ = puVar3;
+    local_48 = (ushort *)(puVar3 + 2);
+    operator_delete(puVar2);
+    *(ushort *)((long)puVar3 + 6) = (ushort)param_3 & 0xff00 | 5;
+    local_58._8_8_ = puVar3 + 2;
+                    /* try { // try from 01d209f7 to 01d20a00 has its CatchHandler @ 01d20a72 */
+    (**(code **)(**(long **)(param_1 + 0x180) + 0x18))(*(long **)(param_1 + 0x180),local_58,0);
+    if ((void *)local_58._0_8_ != (void *)0x0) {
+      local_58._8_8_ = local_58._0_8_;
+      operator_delete((void *)local_58._0_8_);
+    }
+    return;
+  }
+  local_38 = "invalid ADC data, exceedes 8 bits.";
+  uStack_30 = 0x22;
+                    /* WARNING: Subroutine does not return */
+  FUN_02eca300("false",5,"void Logic2FpgaDevice::WriteAd9637Register(U16, U16)",0x34,
+               "/workspace/monorepo/graph-io/devices/logic_interface/src/Logic2FpgaDevice.cpp",0x4d,
+               0xe3,"invalid ADC data, exceedes 8 bits.",0x22);
+}
+
+
+
+--- sleep_for @ 02f0b440 ---
+
+void std::this_thread::sleep_for(duration *param_1)
+
+{
+  (*(code *)PTR_sleep_for_03066400)();
+  return;
+}
+
+
+

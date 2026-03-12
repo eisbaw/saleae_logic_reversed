@@ -19,6 +19,14 @@ struct Cli {
     #[arg(short, long, action = clap::ArgAction::Count, global = true)]
     verbose: u8,
 
+    /// Path to FX3 firmware image for auto-recovery.
+    ///
+    /// When specified, commands that need EP1 will automatically detect
+    /// a dead command thread and recover by resetting the device to
+    /// bootloader mode, re-uploading firmware, and re-initializing.
+    #[arg(long, global = true)]
+    firmware: Option<String>,
+
     #[command(subcommand)]
     command: Command,
 }
@@ -36,6 +44,9 @@ enum Command {
     },
 
     /// Start a digital capture.
+    ///
+    /// Performs the full sequence: firmware upload (auto-recovery),
+    /// FPGA programming, ADC init, capture, and teardown.
     CaptureDigital {
         /// Sample rate in Hz.
         #[arg(long, default_value = "1000000")]
@@ -56,6 +67,14 @@ enum Command {
         /// Export format: "csv" (default), "binary", or "sal".
         #[arg(long, default_value = "csv")]
         format: String,
+
+        /// Path to FX3 firmware image (overrides global --firmware).
+        #[arg(long)]
+        firmware: Option<String>,
+
+        /// Path to FPGA bitstream file.
+        #[arg(long)]
+        bitstream: Option<String>,
     },
 
     /// Ping the device (ReseedDevice + Ping handshake).
@@ -110,6 +129,35 @@ enum Command {
     /// responsive at all. Used for debugging.
     Ep1Test,
 
+    /// Reset and re-enumerate the device (returns to bootloader).
+    ///
+    /// Sends ResetAndReEnumerate (opcode 0x82) via EP1.
+    /// After this, the device should appear in bootloader mode (bcdDevice=1.00)
+    /// and firmware can be re-uploaded.
+    ResetDevice,
+
+    /// Full init with auto-recovery: firmware upload + FPGA + ADC + capture.
+    ///
+    /// Works from any device state (bootloader, firmware running, dead EP1).
+    /// Uses --firmware (global) or auto-detects firmware path.
+    /// Does the complete sequence:
+    /// 1. Ensure firmware is running (auto-recovery if EP1 thread is dead)
+    /// 2. FPGA program + verify + ADC init + DCM lock
+    /// 3. Digital capture
+    FullInit {
+        /// Path to FX3 firmware image (overrides global --firmware).
+        #[arg(long)]
+        firmware: Option<String>,
+
+        /// Path to FPGA bitstream.
+        #[arg(long, default_value = "firmware/bitstream-spartan6-slx9-03.bin")]
+        bitstream: String,
+
+        /// Auto-detect the correct bitstream by trying all SLX9 variants.
+        #[arg(long, default_value = "false")]
+        auto_bitstream: bool,
+    },
+
     /// Start an analog capture (Pro devices only).
     CaptureAnalog {
         /// Sample rate in Hz.
@@ -131,6 +179,42 @@ enum Command {
         /// Export format: "csv" (default), "binary", or "sal".
         #[arg(long, default_value = "csv")]
         format: String,
+    },
+
+    /// Quick capture: minimal sequence to get EP2 data flowing.
+    ///
+    /// Assumes firmware is already running (unless --firmware given).
+    /// Optionally programs FPGA.
+    /// For digital-only capture, skips all ADC/DCM init entirely.
+    /// For mixed (analog+digital), does ADC init with best-effort DCM lock.
+    CaptureQuick {
+        /// Duration in seconds.
+        #[arg(long, default_value = "2.0")]
+        duration: f64,
+
+        /// Digital channels to enable (bitmask 0x00-0xFF, e.g. "0xff" for all 8).
+        #[arg(long, default_value = "0xff")]
+        digital_mask: String,
+
+        /// Analog channels to enable (bitmask 0x00-0xFF, 0x00 = digital-only).
+        #[arg(long, default_value = "0x00")]
+        analog_mask: String,
+
+        /// Path to FPGA bitstream (optional; skips FPGA programming if omitted).
+        #[arg(long)]
+        bitstream: Option<String>,
+
+        /// EP2 read buffer size in bytes.
+        #[arg(long, default_value = "16384")]
+        buf_size: usize,
+
+        /// Save raw EP2 data to this file.
+        #[arg(long)]
+        output: Option<String>,
+
+        /// Path to FX3 firmware image (enables auto-recovery).
+        #[arg(long)]
+        firmware: Option<String>,
     },
 }
 
@@ -171,8 +255,33 @@ fn main() -> anyhow::Result<()> {
             channels,
             output,
             format,
+            firmware,
+            bitstream,
         } => {
-            commands::capture_digital(sample_rate, duration, &channels, output.as_deref(), &format)?
+            let fw_path = firmware
+                .or(cli.firmware.clone())
+                .unwrap_or_else(|| commands::DEFAULT_FIRMWARE_PATH.to_string());
+            let bs_path = bitstream.unwrap_or_else(|| commands::DEFAULT_BITSTREAM_PATH.to_string());
+            commands::capture_digital(
+                sample_rate,
+                duration,
+                &channels,
+                output.as_deref(),
+                &format,
+                &fw_path,
+                &bs_path,
+            )?
+        }
+        Command::ResetDevice => commands::reset_device()?,
+        Command::FullInit {
+            firmware,
+            bitstream,
+            auto_bitstream,
+        } => {
+            let fw_path = firmware
+                .or(cli.firmware.clone())
+                .unwrap_or_else(|| commands::DEFAULT_FIRMWARE_PATH.to_string());
+            commands::full_init(&fw_path, &bitstream, auto_bitstream)?
         }
         Command::CaptureAnalog {
             sample_rate,
@@ -182,6 +291,26 @@ fn main() -> anyhow::Result<()> {
             format,
         } => {
             commands::capture_analog(sample_rate, duration, &channels, output.as_deref(), &format)?
+        }
+        Command::CaptureQuick {
+            duration,
+            digital_mask,
+            analog_mask,
+            bitstream,
+            buf_size,
+            output,
+            firmware,
+        } => {
+            let fw_path = firmware.or(cli.firmware.clone());
+            commands::capture_quick(
+                duration,
+                &digital_mask,
+                &analog_mask,
+                bitstream.as_deref(),
+                buf_size,
+                output.as_deref(),
+                fw_path.as_deref(),
+            )?
         }
     }
 

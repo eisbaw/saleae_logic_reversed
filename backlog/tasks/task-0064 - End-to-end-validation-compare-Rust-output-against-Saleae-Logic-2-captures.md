@@ -1,9 +1,10 @@
 ---
 id: TASK-0064
 title: 'End-to-end validation: compare Rust output against Saleae Logic 2 captures'
-status: To Do
+status: In Progress
 assignee: []
 created_date: '2026-03-09 11:22'
+updated_date: '2026-03-12 09:37'
 labels:
   - validation
   - hardware-testing

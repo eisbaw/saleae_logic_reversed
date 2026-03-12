@@ -11,6 +11,7 @@
 //! All USB operations go through the [`UsbTransport`] trait, making the
 //! driver testable with mock transports.
 
+pub mod adc;
 pub mod autoscale;
 pub mod calibration;
 pub mod capture;
@@ -21,6 +22,8 @@ pub mod ep1;
 pub mod error;
 pub mod firmware;
 pub mod fpga;
+pub mod framed;
+pub mod hmcad;
 pub mod init;
 pub mod jesd;
 pub mod transfer_queue;

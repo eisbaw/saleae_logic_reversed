@@ -173,13 +173,7 @@ impl TrackedDevice {
 
 impl std::fmt::Display for TrackedDevice {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{} at {} [{}]",
-            self.device_type,
-            self.key(),
-            self.state,
-        )?;
+        write!(f, "{} at {} [{}]", self.device_type, self.key(), self.state,)?;
         if let Some(serial) = &self.serial {
             write!(f, " serial={serial}")?;
         }
@@ -214,7 +208,10 @@ impl std::fmt::Display for DeviceEvent {
                 address,
                 serial,
             } => {
-                write!(f, "Connected: {device_type} at bus {bus:03} addr {address:03}")?;
+                write!(
+                    f,
+                    "Connected: {device_type} at bus {bus:03} addr {address:03}"
+                )?;
                 if let Some(s) = serial {
                     write!(f, " serial={s}")?;
                 }
@@ -271,9 +268,9 @@ impl<E: DeviceEnumerator> DeviceManager<E> {
         // Collect indices to remove (in reverse order to avoid index shifting).
         let mut to_remove = Vec::new();
         for (i, tracked) in self.devices.iter().enumerate() {
-            let still_present = current.iter().any(|dev| {
-                dev.bus == tracked.bus && dev.address == tracked.address
-            });
+            let still_present = current
+                .iter()
+                .any(|dev| dev.bus == tracked.bus && dev.address == tracked.address);
             if !still_present {
                 events.push(DeviceEvent::Disconnected {
                     bus: tracked.bus,
@@ -290,9 +287,10 @@ impl<E: DeviceEnumerator> DeviceManager<E> {
 
         // Detect new devices: in current scan but not in tracked set.
         for dev in &current {
-            let already_tracked = self.devices.iter().any(|tracked| {
-                tracked.bus == dev.bus && tracked.address == dev.address
-            });
+            let already_tracked = self
+                .devices
+                .iter()
+                .any(|tracked| tracked.bus == dev.bus && tracked.address == dev.address);
             if !already_tracked {
                 events.push(DeviceEvent::Connected {
                     device_type: dev.device_type,
@@ -321,7 +319,8 @@ impl<E: DeviceEnumerator> DeviceManager<E> {
     /// Returns `true` if the device was found and removed.
     pub fn remove_device(&mut self, bus: u8, address: u8) -> bool {
         let before = self.devices.len();
-        self.devices.retain(|d| !(d.bus == bus && d.address == address));
+        self.devices
+            .retain(|d| !(d.bus == bus && d.address == address));
         self.devices.len() < before
     }
 
@@ -329,7 +328,11 @@ impl<E: DeviceEnumerator> DeviceManager<E> {
     ///
     /// Returns `true` if the device was found and updated.
     pub fn set_device_state(&mut self, bus: u8, address: u8, state: TrackedDeviceState) -> bool {
-        if let Some(dev) = self.devices.iter_mut().find(|d| d.bus == bus && d.address == address) {
+        if let Some(dev) = self
+            .devices
+            .iter_mut()
+            .find(|d| d.bus == bus && d.address == address)
+        {
             dev.state = state;
             true
         } else {
@@ -339,7 +342,9 @@ impl<E: DeviceEnumerator> DeviceManager<E> {
 
     /// Find a tracked device by bus and address.
     pub fn find_device(&self, bus: u8, address: u8) -> Option<&TrackedDevice> {
-        self.devices.iter().find(|d| d.bus == bus && d.address == address)
+        self.devices
+            .iter()
+            .find(|d| d.bus == bus && d.address == address)
     }
 }
 
@@ -440,7 +445,10 @@ mod tests {
 
         // Device is now tracked.
         assert_eq!(manager.known_devices().len(), 1);
-        assert_eq!(manager.known_devices()[0].device_type, DeviceType::LogicPro8);
+        assert_eq!(
+            manager.known_devices()[0].device_type,
+            DeviceType::LogicPro8
+        );
         assert_eq!(manager.known_devices()[0].bus, 2);
         assert_eq!(manager.known_devices()[0].address, 5);
         assert_eq!(
@@ -464,13 +472,7 @@ mod tests {
         manager.enumerator.set_devices(vec![]);
         let events = manager.poll().unwrap();
         assert_eq!(events.len(), 1);
-        assert_eq!(
-            events[0],
-            DeviceEvent::Disconnected {
-                bus: 2,
-                address: 5,
-            }
-        );
+        assert_eq!(events[0], DeviceEvent::Disconnected { bus: 2, address: 5 });
 
         // No longer tracked.
         assert!(manager.known_devices().is_empty());
@@ -512,7 +514,9 @@ mod tests {
 
         let dev1 = make_device(DeviceType::LogicPro8, 1, 3);
         let dev2 = make_device(DeviceType::Logic8, 2, 7);
-        manager.enumerator.set_devices(vec![dev1.clone(), dev2.clone()]);
+        manager
+            .enumerator
+            .set_devices(vec![dev1.clone(), dev2.clone()]);
 
         let events = manager.poll().unwrap();
         assert_eq!(events.len(), 2);
@@ -522,15 +526,12 @@ mod tests {
         manager.enumerator.set_devices(vec![dev1.clone()]);
         let events = manager.poll().unwrap();
         assert_eq!(events.len(), 1);
-        assert_eq!(
-            events[0],
-            DeviceEvent::Disconnected {
-                bus: 2,
-                address: 7,
-            }
-        );
+        assert_eq!(events[0], DeviceEvent::Disconnected { bus: 2, address: 7 });
         assert_eq!(manager.known_devices().len(), 1);
-        assert_eq!(manager.known_devices()[0].device_type, DeviceType::LogicPro8);
+        assert_eq!(
+            manager.known_devices()[0].device_type,
+            DeviceType::LogicPro8
+        );
     }
 
     #[test]
@@ -551,17 +552,18 @@ mod tests {
         assert_eq!(events.len(), 2);
 
         // Should have disconnect for A and connect for B.
-        let disconnect = events.iter().find(|e| matches!(e, DeviceEvent::Disconnected { .. }));
-        let connect = events.iter().find(|e| matches!(e, DeviceEvent::Connected { .. }));
+        let disconnect = events
+            .iter()
+            .find(|e| matches!(e, DeviceEvent::Disconnected { .. }));
+        let connect = events
+            .iter()
+            .find(|e| matches!(e, DeviceEvent::Connected { .. }));
         assert!(disconnect.is_some());
         assert!(connect.is_some());
 
         assert_eq!(
             *disconnect.unwrap(),
-            DeviceEvent::Disconnected {
-                bus: 1,
-                address: 3,
-            }
+            DeviceEvent::Disconnected { bus: 1, address: 3 }
         );
         assert_eq!(
             *connect.unwrap(),
@@ -640,10 +642,7 @@ mod tests {
         );
 
         assert!(manager.set_device_state(2, 5, TrackedDeviceState::Ready));
-        assert_eq!(
-            manager.known_devices()[0].state,
-            TrackedDeviceState::Ready
-        );
+        assert_eq!(manager.known_devices()[0].state, TrackedDeviceState::Ready);
 
         // Nonexistent device returns false.
         assert!(!manager.set_device_state(99, 99, TrackedDeviceState::Lost));
@@ -691,13 +690,7 @@ mod tests {
         let events = manager.poll().unwrap();
         assert_eq!(events.len(), 2);
 
-        assert_eq!(
-            events[0],
-            DeviceEvent::Disconnected {
-                bus: 2,
-                address: 5,
-            }
-        );
+        assert_eq!(events[0], DeviceEvent::Disconnected { bus: 2, address: 5 });
         assert_eq!(
             events[1],
             DeviceEvent::Connected {
@@ -726,10 +719,7 @@ mod tests {
         assert!(s.contains("LogicPro8"));
         assert!(s.contains("SERNUM"));
 
-        let disconnected = DeviceEvent::Disconnected {
-            bus: 2,
-            address: 5,
-        };
+        let disconnected = DeviceEvent::Disconnected { bus: 2, address: 5 };
         let s = disconnected.to_string();
         assert!(s.contains("Disconnected"));
     }

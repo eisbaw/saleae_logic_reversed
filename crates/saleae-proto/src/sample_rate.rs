@@ -16,7 +16,7 @@
 //! Source: `DeviceSettings.cpp`, `LogicStudentDevice.cpp`,
 //! `LogicGraduateDevice.cpp`, `LogicProfessionalDevice.cpp`.
 
-use crate::device::DeviceType;
+use crate::device::{DeviceType, UsbSpeed};
 use crate::error::{ProtoError, ProtoResult};
 
 // ---------------------------------------------------------------------------
@@ -53,16 +53,76 @@ impl std::fmt::Display for PerformanceTier {
 }
 
 // ---------------------------------------------------------------------------
+// USB bandwidth constants
+// ---------------------------------------------------------------------------
+
+/// Maximum effective USB bit rates per speed, from the binary's lookup table
+/// at ELF VA 0x4748f0 (Ghidra 0x5748f0).
+///
+/// These are the *effective* data rates after USB protocol overhead, not the
+/// raw line rates. The binary uses these to compute bandwidth budgets for
+/// sample rate selection.
+///
+/// Index 0 = Full Speed, 1 = High Speed, 2 = SuperSpeed.
+pub const USB_MAX_BITRATE_FULL: u64 = 6_000_000; // 6 Mbps
+pub const USB_MAX_BITRATE_HIGH: u64 = 300_000_000; // 300 Mbps
+pub const USB_MAX_BITRATE_SUPER: u64 = 3_000_000_000; // 3 Gbps
+
+/// Return the effective USB data bit rate for bandwidth calculations.
+///
+/// From the binary's `GetInterfaceMaximumBitRate()` lookup table.
+/// Low Speed and SuperSpeed+ are not used by any Saleae device but are
+/// included for completeness.
+pub fn max_usb_bitrate(speed: UsbSpeed) -> u64 {
+    match speed {
+        UsbSpeed::Low => USB_MAX_BITRATE_FULL, // not used, conservative fallback
+        UsbSpeed::Full => USB_MAX_BITRATE_FULL,
+        UsbSpeed::High => USB_MAX_BITRATE_HIGH,
+        UsbSpeed::Super | UsbSpeed::SuperPlus => USB_MAX_BITRATE_SUPER,
+    }
+}
+
+/// Number of bandwidth tiers for AnalogAdvanced performance options.
+///
+/// The binary generates 5 groups at 100%, 80%, 60%, 40%, 20% of the maximum
+/// USB bandwidth. Each group contains rate combinations that fit within that
+/// bandwidth budget.
+pub const BANDWIDTH_TIER_COUNT: usize = 5;
+
+/// Bandwidth tier percentages (as numerator/10).
+/// Tier 0 = 100%, Tier 1 = 80%, ..., Tier 4 = 20%.
+const BANDWIDTH_TIER_NUMERATORS: [u64; BANDWIDTH_TIER_COUNT] = [10, 8, 6, 4, 2];
+
+/// Compute the bandwidth budget for a given tier and USB speed.
+///
+/// Returns the maximum bit rate allowed for that tier.
+pub fn bandwidth_tier_budget(tier_index: usize, speed: UsbSpeed) -> u64 {
+    let max = max_usb_bitrate(speed);
+    (max * BANDWIDTH_TIER_NUMERATORS[tier_index]) / 10
+}
+
+// ---------------------------------------------------------------------------
 // SampleRateOption
 // ---------------------------------------------------------------------------
 
 /// A valid sample rate configuration for a device.
 ///
-/// Maps to the 24-byte `SampleRateOption` struct in the binary (see
-/// `re/notes/sample-rate-options.md` for field layout). We simplify the
-/// representation here: the binary has separate `hasDigital`/`hasAnalog`
-/// booleans and separate physical/output analog rates, but for the Rust
-/// driver we use 0 to indicate "not applicable" and track the tier.
+/// Maps to the 24-byte `SampleRateOption` struct in the binary:
+///
+/// | Offset | Size | Field                |
+/// |--------|------|----------------------|
+/// | 0x00   | 4    | digital_rate (u32)   |
+/// | 0x04   | 1    | has_digital (bool)   |
+/// | 0x08   | 4    | analog_rate (u32)    |
+/// | 0x0c   | 1    | has_analog (bool)    |
+/// | 0x0d   | 1    | is_set (bool)        |
+/// | 0x0e   | 1    | has_decimation (bool)|
+/// | 0x10   | 4    | analog_physical (u32)|
+/// | 0x14   | 4    | bandwidth_tier (u32) |
+///
+/// We use 0 to indicate "not applicable" for rates and omit `is_set`.
+///
+/// Source: `DeviceSettings.cpp` at `/workspace/monorepo/graph-io/devices/logic_interface/src/`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct SampleRateOption {
     /// Digital sample rate in Hz. 0 if this option is analog-only.
@@ -71,6 +131,16 @@ pub struct SampleRateOption {
     /// Analog sample rate in Hz (output rate after decimation).
     /// 0 if this option is digital-only.
     pub analog_rate: u64,
+
+    /// Analog physical ADC sample rate in Hz.
+    /// Equal to `analog_rate` when no decimation is needed.
+    /// 0 if this option is digital-only.
+    pub analog_physical_rate: u64,
+
+    /// Bandwidth tier index (0-4) for AnalogAdvanced options.
+    /// 0 = 100% bandwidth, 4 = 20% bandwidth.
+    /// Always 0 for DigitalOnly and AnalogBasic tiers.
+    pub bandwidth_tier: u8,
 
     /// Which performance tier generated this option.
     pub tier: PerformanceTier,
@@ -82,6 +152,8 @@ impl SampleRateOption {
         Self {
             digital_rate: rate,
             analog_rate: 0,
+            analog_physical_rate: 0,
+            bandwidth_tier: 0,
             tier: PerformanceTier::DigitalOnly,
         }
     }
@@ -91,6 +163,8 @@ impl SampleRateOption {
         Self {
             digital_rate: 0,
             analog_rate: rate,
+            analog_physical_rate: rate,
+            bandwidth_tier: 0,
             tier,
         }
     }
@@ -100,7 +174,28 @@ impl SampleRateOption {
         Self {
             digital_rate: digital,
             analog_rate: analog,
+            analog_physical_rate: analog,
+            bandwidth_tier: 0,
             tier,
+        }
+    }
+
+    /// Create a combined option with explicit physical rate and bandwidth tier.
+    ///
+    /// Used by the AnalogAdvanced bandwidth allocation algorithm where the
+    /// physical ADC rate may differ from the output rate (host-side decimation).
+    pub const fn advanced(
+        digital: u64,
+        analog_output: u64,
+        analog_physical: u64,
+        bandwidth_tier: u8,
+    ) -> Self {
+        Self {
+            digital_rate: digital,
+            analog_rate: analog_output,
+            analog_physical_rate: analog_physical,
+            bandwidth_tier,
+            tier: PerformanceTier::AnalogAdvanced,
         }
     }
 
@@ -112,6 +207,16 @@ impl SampleRateOption {
     /// Whether this option includes an analog rate.
     pub const fn has_analog(&self) -> bool {
         self.analog_rate > 0
+    }
+
+    /// Whether the analog output rate differs from the physical ADC rate.
+    ///
+    /// When true, host-side decimation is applied to reduce the effective
+    /// analog sample rate below the physical ADC rate.
+    pub const fn has_decimation(&self) -> bool {
+        self.analog_physical_rate != 0
+            && self.analog_rate != 0
+            && self.analog_physical_rate != self.analog_rate
     }
 }
 
@@ -247,21 +352,29 @@ pub static LOGIC4_OPTIONS: &[SampleRateOption] = &[
     SampleRateOption {
         digital_rate: 12_000_000,
         analog_rate: 0,
+        analog_physical_rate: 0,
+        bandwidth_tier: 0,
         tier: PerformanceTier::AnalogBasic,
     },
     SampleRateOption {
         digital_rate: 6_000_000,
         analog_rate: 0,
+        analog_physical_rate: 0,
+        bandwidth_tier: 0,
         tier: PerformanceTier::AnalogBasic,
     },
     SampleRateOption {
         digital_rate: 3_000_000,
         analog_rate: 0,
+        analog_physical_rate: 0,
+        bandwidth_tier: 0,
         tier: PerformanceTier::AnalogBasic,
     },
     SampleRateOption {
         digital_rate: 1_000_000,
         analog_rate: 0,
+        analog_physical_rate: 0,
+        bandwidth_tier: 0,
         tier: PerformanceTier::AnalogBasic,
     },
 ];
@@ -318,8 +431,8 @@ pub fn analog_rates(device_type: DeviceType) -> &'static [u64] {
 /// For Logic 8 and Pro devices, this builds options from the rate arrays
 /// (digital-only + analog-only combinations). The full bandwidth-allocated
 /// combinations for AnalogAdvanced require channel count and USB speed
-/// context that this function does not have -- use the rate arrays directly
-/// for that.
+/// context that this function does not have -- use
+/// [`compute_digital_only_options`] or [`compute_advanced_options`] for that.
 pub fn available_rates(device_type: DeviceType) -> Vec<SampleRateOption> {
     match device_type {
         DeviceType::LogicOriginal | DeviceType::Logic16 => Vec::new(),
@@ -336,6 +449,8 @@ pub fn available_rates(device_type: DeviceType) -> Vec<SampleRateOption> {
                 options.push(SampleRateOption {
                     digital_rate: rate,
                     analog_rate: 0,
+                    analog_physical_rate: 0,
+                    bandwidth_tier: 0,
                     tier,
                 });
             }
@@ -345,6 +460,8 @@ pub fn available_rates(device_type: DeviceType) -> Vec<SampleRateOption> {
                 options.push(SampleRateOption {
                     digital_rate: 0,
                     analog_rate: rate,
+                    analog_physical_rate: rate,
+                    bandwidth_tier: 0,
                     tier,
                 });
             }
@@ -352,6 +469,155 @@ pub fn available_rates(device_type: DeviceType) -> Vec<SampleRateOption> {
             options
         }
     }
+}
+
+// ---------------------------------------------------------------------------
+// Bandwidth-aware rate computation
+// ---------------------------------------------------------------------------
+
+/// Compute digital-only performance options filtered by USB bandwidth.
+///
+/// Implements `GetDigitalOnlyPerformanceOptions()` from `DeviceSettings.cpp`.
+/// Returns only digital rates where `rate * active_digital_channels` fits
+/// within the USB bandwidth budget.
+///
+/// # Arguments
+///
+/// * `device_type` - The device model.
+/// * `speed` - Negotiated USB speed.
+/// * `digital_channel_count` - Number of active digital channels.
+pub fn compute_digital_only_options(
+    device_type: DeviceType,
+    speed: UsbSpeed,
+    digital_channel_count: u32,
+) -> Vec<SampleRateOption> {
+    let max_bitrate = max_usb_bitrate(speed);
+    let drates = digital_rates(device_type);
+    let mut options = Vec::new();
+
+    for &rate in drates {
+        let bandwidth = rate * digital_channel_count as u64;
+        if bandwidth <= max_bitrate {
+            options.push(SampleRateOption {
+                digital_rate: rate,
+                analog_rate: 0,
+                analog_physical_rate: 0,
+                bandwidth_tier: 0,
+                tier: PerformanceTier::DigitalOnly,
+            });
+        }
+    }
+
+    options
+}
+
+/// Compute AnalogAdvanced performance options with bandwidth allocation.
+///
+/// Implements `GetAnalogAdvancedPerformanceOptions()` from `DeviceSettings.cpp`.
+/// Generates rate combinations across 5 bandwidth tiers (100%, 80%, 60%,
+/// 40%, 20% of max USB bandwidth).
+///
+/// The bandwidth formula is:
+/// ```text
+/// bandwidth = bits_per_sample * analog_physical_rate * analog_channels
+///           + digital_rate * digital_channels
+/// ```
+///
+/// For each tier, the function iterates over analog rates (outer) and digital
+/// rates (inner), emitting the first valid combination per analog rate.
+///
+/// # Arguments
+///
+/// * `device_type` - Must be a Pro device (LogicPro8 or LogicPro16).
+/// * `speed` - Negotiated USB speed.
+/// * `digital_channel_count` - Number of active digital channels.
+/// * `analog_channel_count` - Number of active analog channels.
+/// * `bits_per_sample` - ADC bits per sample (typically 12 for Pro devices).
+///
+/// # Special cases
+///
+/// - If only digital channels are active: returns a single group with
+///   bandwidth-filtered digital-only rates (same as DigitalOnly).
+/// - If only analog channels are active: returns a single group with
+///   bandwidth-filtered analog-only rates.
+/// - If both are active: returns 5 groups, one per bandwidth tier.
+pub fn compute_advanced_options(
+    device_type: DeviceType,
+    speed: UsbSpeed,
+    digital_channel_count: u32,
+    analog_channel_count: u32,
+    bits_per_sample: u32,
+) -> Vec<Vec<SampleRateOption>> {
+    let max_bitrate = max_usb_bitrate(speed);
+    let drates = digital_rates(device_type);
+    let arates = analog_rates(device_type);
+
+    if analog_channel_count == 0 {
+        // Digital-only case: single group
+        let mut options = Vec::new();
+        for &rate in drates {
+            let bw = rate * digital_channel_count as u64;
+            if bw <= max_bitrate {
+                options.push(SampleRateOption {
+                    digital_rate: rate,
+                    analog_rate: 0,
+                    analog_physical_rate: 0,
+                    bandwidth_tier: 0,
+                    tier: PerformanceTier::AnalogAdvanced,
+                });
+            }
+        }
+        return vec![options];
+    }
+
+    if digital_channel_count == 0 {
+        // Analog-only case: single group
+        let mut options = Vec::new();
+        for &rate in arates {
+            let bw = bits_per_sample as u64 * rate * analog_channel_count as u64;
+            if bw <= max_bitrate {
+                options.push(SampleRateOption {
+                    digital_rate: 0,
+                    analog_rate: rate,
+                    analog_physical_rate: rate,
+                    bandwidth_tier: 0,
+                    tier: PerformanceTier::AnalogAdvanced,
+                });
+            }
+        }
+        return vec![options];
+    }
+
+    // Both digital and analog active: 5 bandwidth tiers
+    let mut groups = Vec::with_capacity(BANDWIDTH_TIER_COUNT);
+
+    for tier_idx in 0..BANDWIDTH_TIER_COUNT {
+        let budget = bandwidth_tier_budget(tier_idx, speed);
+        let mut tier_options = Vec::new();
+
+        // For each analog rate, find the first digital rate that fits
+        for &analog_rate in arates {
+            for &digital_rate in drates {
+                let analog_bw = bits_per_sample as u64 * analog_rate * analog_channel_count as u64;
+                let digital_bw = digital_rate * digital_channel_count as u64;
+                let total_bw = analog_bw + digital_bw;
+
+                if total_bw <= budget {
+                    tier_options.push(SampleRateOption::advanced(
+                        digital_rate,
+                        analog_rate,
+                        analog_rate,
+                        tier_idx as u8,
+                    ));
+                    break; // Take first valid digital rate per analog rate
+                }
+            }
+        }
+
+        groups.push(tier_options);
+    }
+
+    groups
 }
 
 // ---------------------------------------------------------------------------
@@ -475,6 +741,8 @@ pub fn validate_rate(
     Ok(SampleRateOption {
         digital_rate,
         analog_rate,
+        analog_physical_rate: analog_rate,
+        bandwidth_tier: 0,
         tier,
     })
 }
@@ -880,5 +1148,207 @@ mod tests {
             PerformanceTier::AnalogAdvanced.to_string(),
             "AnalogAdvanced"
         );
+    }
+
+    // -----------------------------------------------------------------------
+    // USB bandwidth constants
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn usb_max_bitrate_values() {
+        // From binary lookup table at ELF VA 0x4748f0
+        assert_eq!(max_usb_bitrate(UsbSpeed::Full), 6_000_000);
+        assert_eq!(max_usb_bitrate(UsbSpeed::High), 300_000_000);
+        assert_eq!(max_usb_bitrate(UsbSpeed::Super), 3_000_000_000);
+        assert_eq!(max_usb_bitrate(UsbSpeed::SuperPlus), 3_000_000_000);
+    }
+
+    #[test]
+    fn bandwidth_tier_budgets_usb3() {
+        assert_eq!(bandwidth_tier_budget(0, UsbSpeed::Super), 3_000_000_000);
+        assert_eq!(bandwidth_tier_budget(1, UsbSpeed::Super), 2_400_000_000);
+        assert_eq!(bandwidth_tier_budget(2, UsbSpeed::Super), 1_800_000_000);
+        assert_eq!(bandwidth_tier_budget(3, UsbSpeed::Super), 1_200_000_000);
+        assert_eq!(bandwidth_tier_budget(4, UsbSpeed::Super), 600_000_000);
+    }
+
+    #[test]
+    fn bandwidth_tier_budgets_usb2() {
+        assert_eq!(bandwidth_tier_budget(0, UsbSpeed::High), 300_000_000);
+        assert_eq!(bandwidth_tier_budget(1, UsbSpeed::High), 240_000_000);
+        assert_eq!(bandwidth_tier_budget(4, UsbSpeed::High), 60_000_000);
+    }
+
+    // -----------------------------------------------------------------------
+    // SampleRateOption new fields
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn sample_rate_option_advanced_ctor() {
+        let opt = SampleRateOption::advanced(100_000_000, 50_000_000, 100_000_000, 2);
+        assert_eq!(opt.digital_rate, 100_000_000);
+        assert_eq!(opt.analog_rate, 50_000_000);
+        assert_eq!(opt.analog_physical_rate, 100_000_000);
+        assert_eq!(opt.bandwidth_tier, 2);
+        assert_eq!(opt.tier, PerformanceTier::AnalogAdvanced);
+        assert!(opt.has_decimation());
+    }
+
+    #[test]
+    fn sample_rate_option_no_decimation() {
+        let opt =
+            SampleRateOption::combined(100_000_000, 50_000_000, PerformanceTier::AnalogAdvanced);
+        // combined() sets analog_physical_rate = analog_rate => no decimation
+        assert!(!opt.has_decimation());
+    }
+
+    #[test]
+    fn sample_rate_option_digital_only_no_decimation() {
+        let opt = SampleRateOption::digital_only(500_000_000);
+        assert!(!opt.has_decimation());
+        assert_eq!(opt.analog_physical_rate, 0);
+        assert_eq!(opt.bandwidth_tier, 0);
+    }
+
+    // -----------------------------------------------------------------------
+    // compute_digital_only_options tests
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn digital_only_options_usb3_pro8_all_channels() {
+        // Pro 8 at USB 3.0 with 8 digital channels
+        let opts = compute_digital_only_options(DeviceType::LogicPro8, UsbSpeed::Super, 8);
+        // Budget = 3 Gbps. Max rate where rate*8 <= 3 Gbps: 375 MHz -> 250 MHz fits
+        assert!(!opts.is_empty());
+        // First option should be the highest rate that fits
+        assert!(opts[0].digital_rate <= 3_000_000_000 / 8);
+        // All options must be digital-only
+        for opt in &opts {
+            assert!(opt.has_digital());
+            assert!(!opt.has_analog());
+            assert_eq!(opt.tier, PerformanceTier::DigitalOnly);
+        }
+    }
+
+    #[test]
+    fn digital_only_options_usb2_pro8_filters_high_rates() {
+        // Pro 8 at USB 2.0 with 8 digital channels
+        let opts_usb2 = compute_digital_only_options(DeviceType::LogicPro8, UsbSpeed::High, 8);
+        let opts_usb3 = compute_digital_only_options(DeviceType::LogicPro8, UsbSpeed::Super, 8);
+        // USB 2.0 should have fewer valid options than USB 3.0
+        assert!(opts_usb2.len() < opts_usb3.len());
+    }
+
+    #[test]
+    fn digital_only_options_single_channel_all_rates() {
+        // With 1 channel, all rates should fit at USB 3.0
+        let opts = compute_digital_only_options(DeviceType::LogicPro8, UsbSpeed::Super, 1);
+        assert_eq!(opts.len(), PRO_DIGITAL_RATES.len());
+    }
+
+    // -----------------------------------------------------------------------
+    // compute_advanced_options tests
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn advanced_options_digital_only_returns_single_group() {
+        let groups = compute_advanced_options(
+            DeviceType::LogicPro8,
+            UsbSpeed::Super,
+            4, // 4 digital channels
+            0, // no analog
+            12,
+        );
+        assert_eq!(groups.len(), 1);
+        assert!(!groups[0].is_empty());
+        for opt in &groups[0] {
+            assert!(opt.has_digital());
+            assert!(!opt.has_analog());
+        }
+    }
+
+    #[test]
+    fn advanced_options_analog_only_returns_single_group() {
+        let groups = compute_advanced_options(
+            DeviceType::LogicPro8,
+            UsbSpeed::Super,
+            0,  // no digital
+            4,  // 4 analog channels
+            12, // 12-bit ADC
+        );
+        assert_eq!(groups.len(), 1);
+        assert!(!groups[0].is_empty());
+        for opt in &groups[0] {
+            assert!(!opt.has_digital());
+            assert!(opt.has_analog());
+        }
+    }
+
+    #[test]
+    fn advanced_options_combined_returns_5_groups() {
+        let groups = compute_advanced_options(
+            DeviceType::LogicPro8,
+            UsbSpeed::Super,
+            4,  // 4 digital channels
+            4,  // 4 analog channels
+            12, // 12-bit ADC
+        );
+        assert_eq!(groups.len(), BANDWIDTH_TIER_COUNT);
+        // Tier 0 (100% bandwidth) should have the most options
+        // Tier 4 (20% bandwidth) should have fewer
+        assert!(
+            groups[0].len() >= groups[4].len(),
+            "tier 0 ({}) should have >= options than tier 4 ({})",
+            groups[0].len(),
+            groups[4].len()
+        );
+    }
+
+    #[test]
+    fn advanced_options_bandwidth_constraint() {
+        // With 4 digital + 4 analog at 12 bits, check that bandwidth is respected
+        let groups = compute_advanced_options(DeviceType::LogicPro8, UsbSpeed::Super, 4, 4, 12);
+        for (tier_idx, group) in groups.iter().enumerate() {
+            let budget = bandwidth_tier_budget(tier_idx, UsbSpeed::Super);
+            for opt in group {
+                let analog_bw = 12 * opt.analog_physical_rate * 4;
+                let digital_bw = opt.digital_rate * 4;
+                let total_bw = analog_bw + digital_bw;
+                assert!(
+                    total_bw <= budget,
+                    "tier {tier_idx}: {total_bw} > {budget} \
+                     (digital={}, analog_phys={})",
+                    opt.digital_rate,
+                    opt.analog_physical_rate
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn advanced_options_usb2_fewer_than_usb3() {
+        let groups_usb2 = compute_advanced_options(DeviceType::LogicPro8, UsbSpeed::High, 4, 4, 12);
+        let groups_usb3 =
+            compute_advanced_options(DeviceType::LogicPro8, UsbSpeed::Super, 4, 4, 12);
+        let total_usb2: usize = groups_usb2.iter().map(|g| g.len()).sum();
+        let total_usb3: usize = groups_usb3.iter().map(|g| g.len()).sum();
+        assert!(
+            total_usb2 <= total_usb3,
+            "USB 2.0 ({total_usb2} options) should have <= USB 3.0 ({total_usb3} options)"
+        );
+    }
+
+    #[test]
+    fn pro_digital_rates_divide_500mhz() {
+        // Self-test from LogicProfessionalDevice::GetDeviceSettings()
+        // base clock at DAT_0044d9d0 = 500 MHz
+        for &rate in PRO_DIGITAL_RATES {
+            assert_eq!(
+                500_000_000 % rate,
+                0,
+                "{} Hz does not divide 500 MHz evenly",
+                rate
+            );
+        }
     }
 }

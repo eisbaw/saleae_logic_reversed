@@ -1,9 +1,10 @@
 ---
 id: TASK-0065
 title: Power-cycle Saleae device and re-test EP1 ping with fresh firmware
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-03-09 13:06'
+updated_date: '2026-03-11 19:46'
 labels:
   - hardware-testing
   - blocking
@@ -32,3 +33,9 @@ This requires physical access to the USB cable on nvdk-msdlab-09. If the lab is 
 
 If ping succeeds after fresh firmware upload, the TASK-0058 code is correct. If it still fails, investigate the FX3 DMA channel configuration and firmware command loop architecture.
 <!-- SECTION:DESCRIPTION:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+EP1 ping fixed and hardware-validated. Root cause: Ep1CommandChannel::new() used seed 0 instead of 0x354b248e. Fixed in commits 07d5c09 + 34b72d0. Device is no longer stuck -- firmware upload + ping works on local machine.
+<!-- SECTION:FINAL_SUMMARY:END -->

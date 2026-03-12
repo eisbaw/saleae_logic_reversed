@@ -1,9 +1,10 @@
 ---
 id: TASK-0121
 title: Implement bandwidth validation at capture configuration time
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-03-11 07:55'
+updated_date: '2026-03-12 08:46'
 labels:
   - rust
   - saleae-driver
@@ -39,3 +40,9 @@ Implementation:
 
 Reference: re/notes/digital-compression.md (actually documents bandwidth, not compression)
 <!-- SECTION:DESCRIPTION:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Already implemented in capture.rs. CaptureConfig::validate_bandwidth() checks USB 2.0 (37.5 MB/s) and USB 3.0 (375 MB/s) limits, FPGA packet size constraints (Xilinx 256-7680, Altera 64-6016), and rejects Low/Full speed. Called from configure_capture() before EP1 register writes. 13+ unit tests covering all edge cases. 454 workspace tests pass.
+<!-- SECTION:FINAL_SUMMARY:END -->

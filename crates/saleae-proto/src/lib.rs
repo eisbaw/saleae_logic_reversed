@@ -8,16 +8,17 @@ pub mod analog;
 pub mod biquad;
 pub mod calibration;
 pub mod capture_data;
+pub mod compare;
 pub mod device;
 pub mod disaggregator;
 pub mod error;
 pub mod export;
 pub mod firmware;
-pub mod sal;
 pub mod fpga_regs;
 pub mod gpif;
 pub mod graph_time;
 pub mod obfuscation;
+pub mod sal;
 pub mod sample_rate;
 pub mod trigger;
 pub mod trigger_buffer;
@@ -27,6 +28,10 @@ pub use analog::AnalogProcessor;
 pub use biquad::BiquadFilter;
 pub use calibration::{
     BiquadSection, CalibrationData, CalibrationSet, VoltageRange, VoltageTransform,
+};
+pub use compare::{
+    compare_analog, compare_digital, compare_digital_transitions, AnalogCompareResult,
+    CompareReport, DigitalCompareResult,
 };
 pub use device::{
     BootState, DeviceProfile, DeviceType, FpgaType, SaleaeDevice, UsbId, UsbSpeed, LOGIC_4_PROFILE,
@@ -39,15 +44,13 @@ pub use export::{
     DigitalExporter, ExportConfig, ExportFormat,
 };
 pub use firmware::fx3::{Fx3Image, Fx3Section};
-pub use sal::{SalAnalogChannel, SalCaptureInfo, SalDigitalChannel, SalWriter};
 pub use gpif::{GpifBusWidth, GpifConfig};
 pub use graph_time::GraphTime;
 pub use obfuscation::{EncryptionMode, SimpleEncryption};
+pub use sal::{SalAnalogChannel, SalCaptureInfo, SalDigitalChannel, SalMeta, SalReader, SalWriter};
 pub use sample_rate::{PerformanceTier, SampleRateOption};
 pub use trigger::{
     EdgeDetector, EdgeType, PulseDetector, PulsePolarity, TriggerCondition, TriggerConfig,
     TriggerEngine,
 };
-pub use trigger_buffer::{
-    RingBuffer, TriggerCapture, TriggerCaptureResult, TriggerCaptureState,
-};
+pub use trigger_buffer::{RingBuffer, TriggerCapture, TriggerCaptureResult, TriggerCaptureState};

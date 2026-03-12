@@ -4,7 +4,7 @@ title: Fix encrypt_reseed to use initial seed instead of rolling seed
 status: Done
 assignee: []
 created_date: '2026-03-11 02:03'
-updated_date: '2026-03-11 02:09'
+updated_date: '2026-03-11 19:46'
 labels:
   - bug
   - encryption
@@ -31,5 +31,5 @@ See: re/notes/init-sequence-pcap.md for full analysis.
 ## Final Summary
 
 <!-- SECTION:FINAL_SUMMARY:BEGIN -->
-Added `initial_seed: u32` field to SimpleEncryption struct. `encrypt_reseed()` now uses initial_seed (fixed at construction time) instead of the rolling `self.seed`. This matches pcap evidence: all 4 reseeds in the capture use the same initial key 0x354b248e. Added 2 tests validating multi-reseed correctness. All 353 workspace tests pass.
+Fixed in commit 07d5c09. encrypt_reseed now stores initial_seed separately and always uses it for reseed encryption, regardless of rolling LFSR state. DEFAULT_INITIAL_SEED constant added in 34b72d0 with doc references.
 <!-- SECTION:FINAL_SUMMARY:END -->

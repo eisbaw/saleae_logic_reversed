@@ -29,10 +29,107 @@ use std::time::{Duration, Instant};
 
 use saleae_proto::device::{DeviceProfile, UsbSpeed};
 use saleae_proto::fpga_regs;
-use tracing::{debug, info};
+use tracing::{debug, info, warn};
 
 use crate::ep1::Ep1CommandChannel;
 use crate::error::{DriverError, DriverResult};
+
+// ---------------------------------------------------------------------------
+// Hardware revision parsing
+// ---------------------------------------------------------------------------
+
+/// Parsed hardware revision from the EEPROM at offset 0x20.
+///
+/// The EEPROM stores 6 bytes: "REV" (3 bytes) + major (1 byte) + '.' (1 byte)
+/// \+ minor (1 byte). The major version determines the FPGA chip type and ADC
+/// type.
+///
+/// Source: `ParseBoardRevision` at ELF VA 0x1c23bc0 in libgraph_server_shared.so.
+/// See `re/notes/eeprom-layout.md` for the full mapping table.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct HwRevision {
+    /// Major hardware revision (determines FPGA and ADC type).
+    pub major: u8,
+    /// Minor hardware revision.
+    pub minor: u8,
+}
+
+impl HwRevision {
+    /// EEPROM read parameters for ReadVersion to fetch hw revision.
+    ///
+    /// ReadVersion opcode 0x07 with I2C params:
+    /// `[0x33, 0x81, addr_lo, addr_hi, count_lo, count_hi]`
+    /// Address 0x0020, count 6.
+    pub const EEPROM_READ_PARAMS: [u8; 6] = [0x33, 0x81, 0x20, 0x00, 0x06, 0x00];
+
+    /// Parse hardware revision from raw EEPROM bytes (6 bytes from offset 0x20).
+    ///
+    /// Expected format: `[0x52, 0x45, 0x56, major, 0x2E, minor]` = "REV" + major + "." + minor.
+    ///
+    /// Returns `None` if the data doesn't start with "REV" or is too short.
+    pub fn parse(data: &[u8]) -> Option<Self> {
+        if data.len() < 6 {
+            warn!(
+                len = data.len(),
+                "HwRevision: data too short (need 6 bytes)"
+            );
+            return None;
+        }
+        if &data[0..3] != b"REV" {
+            warn!(
+                header = format_args!("{:02x?}", &data[0..3]),
+                "HwRevision: expected 'REV' header"
+            );
+            return None;
+        }
+        Some(Self {
+            major: data[3],
+            minor: data[5],
+        })
+    }
+
+    /// Whether this hardware revision uses a Lattice ECP5 FPGA.
+    ///
+    /// From `ParseBoardRevision` switch statement:
+    /// - Major 0, 1, 7 = Xilinx Spartan-6 (FpgaType 0 or 1)
+    /// - Major 3, 4, 5, 6, 8, 9, 10, 11 = Lattice ECP5 (FpgaType 2)
+    /// - Major 2 = unsupported (throws exception in binary)
+    pub fn is_lattice(&self) -> bool {
+        matches!(self.major, 3 | 4 | 5 | 6 | 8 | 9 | 10 | 11)
+    }
+}
+
+impl std::fmt::Display for HwRevision {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let fpga = if self.is_lattice() {
+            "Lattice ECP5"
+        } else {
+            "Xilinx Spartan-6"
+        };
+        write!(f, "Rev {}.{:02} ({})", self.major, self.minor, fpga)
+    }
+}
+
+/// Read the hardware revision from EEPROM and determine if the FPGA is Lattice.
+///
+/// This reads 6 bytes from EEPROM offset 0x20 via `ReadVersion` (opcode 0x07)
+/// and parses the "REV" + major.minor format. The major version determines
+/// the FPGA chip type (Xilinx vs Lattice).
+///
+/// # Returns
+///
+/// The parsed [`HwRevision`], or an error if the read fails or the data
+/// cannot be parsed.
+pub fn read_hw_revision(ep1: &mut Ep1CommandChannel) -> DriverResult<HwRevision> {
+    let data = ep1.read_version(&HwRevision::EEPROM_READ_PARAMS)?;
+    HwRevision::parse(&data).ok_or_else(|| DriverError::CommandFailed {
+        command: "ReadHwRevision",
+        detail: format!(
+            "failed to parse hardware revision from EEPROM data: {:02x?}",
+            data
+        ),
+    })
+}
 
 // ---------------------------------------------------------------------------
 // Configuration constants
@@ -158,18 +255,18 @@ pub fn program_fpga(
     );
     ep1.write_config_data_chunked(bitstream, chunk_size, read_ack)?;
 
-    // Step 3: Verify readback.
+    // Step 3: Verify FPGA programming via register 0x7F readback.
     //
-    // The original software reads a register and expects 0xAA. Based on
-    // the error string "FPGA readback got {:#x} instead of 0xAA", this
-    // is a simple status check via the 8-bit register path.
+    // Pcap-validated sequence (Phase 3a, frames 1373-1384):
+    //   WriteRegisters r0x7f=0xaa (write test value, twice)
+    //   ReadRegisters  r0x7f -> 0xaa (read back to confirm FPGA is responsive)
     //
-    // Register address 0x00 is used here as a best guess -- the exact
-    // address needs USB capture confirmation. It may be a dedicated
-    // "programming status" register that returns 0xAA when the FPGA
-    // configuration is complete and valid.
-    debug!("Verifying FPGA programming (expecting 0xAA readback)");
-    let status = ep1.read_registers(&[0x00])?;
+    // Register 0x7F is a scratch/test register that only works after
+    // successful FPGA configuration.
+    debug!("Verifying FPGA programming (write 0xAA to r0x7F, read back)");
+    ep1.write_registers(&[(0x7F, fpga_regs::FPGA_READBACK_OK)])?;
+    ep1.write_registers(&[(0x7F, fpga_regs::FPGA_READBACK_OK)])?;
+    let status = ep1.read_registers(&[0x7F])?;
 
     if status.is_empty() {
         return Err(DriverError::FpgaProgramming {
@@ -261,7 +358,7 @@ pub fn fpga_post_init(ep1: &mut Ep1CommandChannel, is_lattice: bool) -> DriverRe
 /// Result of the [`common_device_init`] sequence.
 ///
 /// Contains the device ID read from EEPROM and the status of the JESD204B
-/// link and DDR subsystem.
+/// link (Lattice) or DCM lock (Xilinx) subsystem.
 #[derive(Debug, Clone)]
 pub struct DeviceInitResult {
     /// 64-bit device ID read from EEPROM via I2C tunnel.
@@ -270,11 +367,14 @@ pub struct DeviceInitResult {
     /// `https://downloads.saleae.com/calibration/{device_id:x}.cal`
     pub device_id: u64,
 
-    /// Whether the JESD204B link is locked (ADC <-> FPGA communication active).
+    /// Whether the JESD204B link is locked (Lattice ECP5 only).
     pub jesd_locked: bool,
 
-    /// Whether the DDR subsystem is ready (locked and calibrated).
+    /// Whether the DDR subsystem is ready (Lattice ECP5 only).
     pub ddr_ready: bool,
+
+    /// Whether DCM PLLs are locked (Xilinx Spartan-6 / AD9637 only).
+    pub dcm_locked: bool,
 }
 
 /// Common device initialization sequence.
@@ -316,33 +416,24 @@ pub fn common_device_init(
     ep1: &mut Ep1CommandChannel,
     is_lattice: bool,
 ) -> DriverResult<DeviceInitResult> {
-    info!("Running CommonDeviceInit");
+    info!("Running CommonDeviceInit (lattice={})", is_lattice);
 
     let mut jesd_locked = false;
     let mut ddr_ready = false;
+    let mut dcm_locked = false;
 
     if is_lattice {
-        // Step 1: Configure SPI bridge for ADC access.
+        // Lattice ECP5 path: ADS528x ADC via SPI bridge + JESD204B link.
         configure_spi_bridge(ep1)?;
-
-        // Step 2: Set ADC drive strength.
         set_ads528x_drive(ep1)?;
-
-        // Step 3: Enable ADC.
         set_ads528x_enabled(ep1)?;
-
-        // Step 4: Reset JESD PHY transceivers.
         reset_jesd_phy(ep1)?;
 
-        // Step 5: Wait for JESD lock.
         jesd_locked = wait_for_jesd_lock(ep1, JESD_LOCK_TIMEOUT)?;
-
-        // Step 6: Run bitslip detection.
         if jesd_locked {
             run_bitslip_detection(ep1)?;
         }
 
-        // Step 7: Verify DDR is still ready (it should be from post_init).
         let status = ep1.read_fpga_register(fpga_regs::REG_STATUS_DDR_JESD)?;
         ddr_ready = (status & fpga_regs::DDR_READY_MASK) == fpga_regs::DDR_READY_MASK;
         if !ddr_ready {
@@ -351,21 +442,41 @@ pub fn common_device_init(
                 "DDR not ready after JESD init"
             );
         }
+    } else {
+        // Xilinx Spartan-6 path: AD9637 ADC via FPGA proxy + DCM lock.
+        //
+        // Read calibration coefficients from EEPROM first (offset 0x10, 16 bytes).
+        // These are needed for the full AD9637 init sequence.
+        info!("Reading calibration coefficients from EEPROM");
+        let cal_data = ep1.read_version(&[0x33, 0x81, 0x10, 0x00, 0x10, 0x00])?;
+        debug!(
+            "Calibration: {}",
+            cal_data
+                .iter()
+                .map(|b| format!("{b:02x}"))
+                .collect::<Vec<_>>()
+                .join(" ")
+        );
+
+        let dcm_result = crate::adc::init_ad9637(ep1, &cal_data)?;
+        dcm_locked = dcm_result.locked;
     }
 
-    // Step 8: Read EEPROM device ID.
+    // Read EEPROM device ID.
     let device_id = ep1.read_eeprom_device_id()?;
 
     let result = DeviceInitResult {
         device_id,
         jesd_locked,
         ddr_ready,
+        dcm_locked,
     };
 
     info!(
         device_id = format_args!("{:#018x}", result.device_id),
         jesd_locked = result.jesd_locked,
         ddr_ready = result.ddr_ready,
+        dcm_locked = result.dcm_locked,
         "CommonDeviceInit complete"
     );
 
@@ -681,7 +792,10 @@ mod tests {
         mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
         // 2. WriteConfigurationData ACK (small bitstream fits in one chunk)
         mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
-        // 3. ReadRegisters response: 0xAA (success)
+        // 3-4. WriteRegisters ACKs (write 0xAA to r0x7F, twice)
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
+        // 5. ReadRegisters response: 0xAA (success)
         mock.push_bulk_in_response(endpoint::BULK_IN, vec![0xAA]);
 
         let mut channel = mock_channel(&mock);
@@ -702,17 +816,16 @@ mod tests {
             .filter(|op| matches!(op, UsbOperation::BulkOut { .. }))
             .collect();
 
-        // Should be 3 bulk OUTs: reset, config_data, read_registers
+        // Should be 5 bulk OUTs: reset + data + 2x write_regs + read_regs
         assert_eq!(
             out_ops.len(),
-            3,
-            "expected 3 OUT transfers (reset + data + read_regs)"
+            5,
+            "expected 5 OUT transfers (reset + data + 2x write + read)"
         );
 
         // First OUT: ResetFpga (opcode 0x7E)
         match out_ops[0] {
             UsbOperation::BulkOut { data, .. } => {
-                // data[1] = opcode with seed=0
                 assert_eq!(data[1], 0x7E, "first command should be ResetFpga (0x7E)");
             }
             _ => unreachable!(),
@@ -729,12 +842,22 @@ mod tests {
             _ => unreachable!(),
         }
 
-        // Third OUT: ReadRegisters (opcode 0x81)
-        match out_ops[2] {
+        // Third + Fourth OUT: WriteRegisters (opcode 0x80) writing 0xAA to r0x7F
+        for i in 2..4 {
+            match out_ops[i] {
+                UsbOperation::BulkOut { data, .. } => {
+                    assert_eq!(data[1], 0x80, "command {i} should be WriteRegisters (0x80)");
+                }
+                _ => unreachable!(),
+            }
+        }
+
+        // Fifth OUT: ReadRegisters (opcode 0x81)
+        match out_ops[4] {
             UsbOperation::BulkOut { data, .. } => {
                 assert_eq!(
                     data[1], 0x81,
-                    "third command should be ReadRegisters (0x81)"
+                    "fifth command should be ReadRegisters (0x81)"
                 );
             }
             _ => unreachable!(),
@@ -748,6 +871,8 @@ mod tests {
         // Queue responses:
         mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]); // ResetFpga ACK
         mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]); // Config data ACK
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]); // WriteRegisters ACK #1
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]); // WriteRegisters ACK #2
         mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x55]); // Wrong readback!
 
         let mut channel = mock_channel(&mock);
@@ -771,6 +896,8 @@ mod tests {
 
         mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]); // ResetFpga ACK
         mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]); // Config data ACK
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]); // WriteRegisters ACK #1
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]); // WriteRegisters ACK #2
         mock.push_bulk_in_response(endpoint::BULK_IN, vec![]); // Empty!
 
         let mut channel = mock_channel(&mock);
@@ -805,6 +932,8 @@ mod tests {
         for _ in 0..num_chunks {
             mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]); // Config data ACKs
         }
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]); // WriteRegisters ACK #1
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]); // WriteRegisters ACK #2
         mock.push_bulk_in_response(endpoint::BULK_IN, vec![0xAA]); // Readback OK
 
         let mut channel = mock_channel(&mock);
@@ -822,12 +951,12 @@ mod tests {
             .iter()
             .filter(|op| matches!(op, UsbOperation::BulkOut { .. }))
             .count();
-        // 1 (reset) + num_chunks (data) + 1 (read_registers) = num_chunks + 2
+        // 1 (reset) + num_chunks (data) + 2 (write_regs) + 1 (read_registers) = num_chunks + 4
         assert_eq!(
             out_count,
-            num_chunks + 2,
+            num_chunks + 4,
             "expected {} OUT transfers for {} byte bitstream",
-            num_chunks + 2,
+            num_chunks + 4,
             bitstream_size
         );
     }
@@ -980,6 +1109,9 @@ mod tests {
         // ResetFpga ACK
         mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
         // No config data chunks needed for empty bitstream.
+        // WriteRegisters ACKs (write 0xAA to r0x7F, twice)
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
         // ReadRegisters response
         mock.push_bulk_in_response(endpoint::BULK_IN, vec![0xAA]);
 
@@ -1072,48 +1204,123 @@ mod tests {
         assert!(result.ddr_ready);
     }
 
-    #[test]
-    fn common_device_init_non_lattice_skips_adc_and_jesd() {
-        let mock = std::sync::Arc::new(MockTransport::new());
+    /// Queue mock responses for the Xilinx (non-Lattice) common_device_init.
+    ///
+    /// The Xilinx path reads EEPROM calibration, runs AD9637 init
+    /// (configure + DCM lock + calibration cascade), then reads device ID.
+    ///
+    /// The new init_ad9637 sequence (matching decompiled binary):
+    /// 1. configure_ad9637: 9 proxy write ACKs
+    /// 2. r0x15=0x00: 1 write ACK
+    /// 3. set_ad9637_enabled_false: 1 proxy ACK + dcm_cascade (5-step JESD)
+    /// 4. set_ad9637_enabled_true: 3 proxy ACKs + reset_main_dcm (5-step JESD) + 3 reads
+    /// 5. write_calibration_and_cascade: 2+16 write ACKs + set_ad9637_enabled_false (1 proxy ACK + 5-step JESD) + 1 read + 1 ACK
+    ///
+    /// Returns the expected device ID.
+    fn queue_xilinx_device_init_responses(mock: &MockTransport) -> u64 {
+        let device_id: u64 = 0x764051b51bd4d9f1;
 
-        // Non-Lattice path: only EEPROM read.
-        let device_id: u64 = 0xDEADBEEFCAFE1234;
+        // Helper: queue one dcm_cascade (5-step JESD: 5 write ACKs + r0x40 read + r0x4a read).
+        let queue_one_cascade = |mock: &MockTransport, r40: u8| {
+            // 5 writes: JESD power sequence (0x1E, 0x1C, 0x18, 0x08, 0x00)
+            for _ in 0..5 {
+                mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
+            }
+            // 2 reads: r0x40, r0x4a
+            mock.push_bulk_in_response(endpoint::BULK_IN, vec![r40]);
+            mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]); // r0x4a
+        };
+
+        // Helper: queue reset_main_dcm (5-step JESD cascade, no SERDES retry).
+        // r40: the r0x40 value returned after the cascade.
+        let queue_reset_main_dcm = |mock: &MockTransport, r40: u8| {
+            queue_one_cascade(mock, r40);
+        };
+
+        // Calibration EEPROM read (ReadVersion with I2C params) -> 16 bytes
+        let cal_data = vec![
+            0x46, 0xFF, 0xC6, 0xA6, 0x60, 0xB7, 0xDE, 0x07, 0x67, 0x8B, 0x03, 0x66, 0x11, 0x35,
+            0x7C, 0x7F,
+        ];
+        mock.push_bulk_in_response(endpoint::BULK_IN, cal_data);
+
+        // configure_ad9637: 2 proxy writes (reset) + 7 proxy writes (config) = 9 ACKs
+        for _ in 0..9 {
+            mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
+        }
+
+        // r0x15=0x00 (ADC power off): 1 ACK
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
+
+        // set_ad9637_enabled_false:
+        //   1 proxy write ACK (0x08=0x01 SPI transfer)
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
+        //   dcm_cascade (5-step JESD): 5 write ACKs + r0x40=0x00 + r0x4a=0x00
+        queue_one_cascade(&mock, 0x00);
+
+        // set_ad9637_enabled_true:
+        //   3 proxy write ACKs (0x08=0x00, 0x08=0x03, 0x08=0x00)
+        for _ in 0..3 {
+            mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
+        }
+        //   reset_main_dcm (5-step JESD cascade):
+        queue_reset_main_dcm(&mock, 0xE0);
+        //   3 additional reads in set_ad9637_enabled_true (r0x19, r0x40, r0x4a)
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]); // r0x19
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0xE0]); // r0x40
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]); // r0x4a
+
+        // write_calibration_and_cascade:
+        //   2 direct writes (r0x00=0x00, r0x00=0x40)
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
+        //   16 calibration coefficient writes
+        for _ in 0..16 {
+            mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
+        }
+        //   set_ad9637_enabled_false: 1 proxy ACK + dcm_cascade (5-step JESD)
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
+        queue_one_cascade(&mock, 0x00);
+        //   1 read (r0x40 post-cal)
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
+        //   1 write (r0x12=0x04)
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
+
+        // EEPROM device ID read
         let id_bytes = device_id.to_le_bytes();
         mock.push_bulk_in_response(endpoint::BULK_IN, id_bytes.to_vec());
+
+        device_id
+    }
+
+    #[test]
+    fn common_device_init_xilinx_runs_ad9637_init() {
+        let mock = std::sync::Arc::new(MockTransport::new());
+        let expected_id = queue_xilinx_device_init_responses(&mock);
 
         let mut channel = mock_channel(&mock);
         let result = common_device_init(&mut channel, false).unwrap();
 
-        assert_eq!(result.device_id, device_id);
+        assert_eq!(result.device_id, expected_id);
+        assert!(result.dcm_locked, "DCM should be locked for Xilinx");
         assert!(
             !result.jesd_locked,
             "JESD should not be locked for non-Lattice"
         );
         assert!(!result.ddr_ready, "DDR ready not checked for non-Lattice");
-
-        // Verify only 1 OUT transfer (the EEPROM read command).
-        let ops = mock.operations();
-        let out_count = ops
-            .iter()
-            .filter(|op| matches!(op, UsbOperation::BulkOut { .. }))
-            .count();
-        assert_eq!(out_count, 1, "non-Lattice should only send EEPROM read");
     }
 
     #[test]
     fn common_device_init_eeprom_read_sends_opcode_0x88() {
+        // Test via Lattice path (simpler mock setup) that EEPROM read uses 0x88.
         let mock = std::sync::Arc::new(MockTransport::new());
-
-        // Non-Lattice path: just EEPROM read.
-        let device_id: u64 = 0x1234567890ABCDEF;
-        let id_bytes = device_id.to_le_bytes();
-        mock.push_bulk_in_response(endpoint::BULK_IN, id_bytes.to_vec());
+        let expected_id = queue_lattice_device_init_responses(&mock, 0, 0);
 
         let mut channel = mock_channel(&mock);
-        let result = common_device_init(&mut channel, false).unwrap();
-        assert_eq!(result.device_id, device_id);
+        let result = common_device_init(&mut channel, true).unwrap();
+        assert_eq!(result.device_id, expected_id);
 
-        // Verify the EEPROM read sent opcode 0x88.
+        // Find the last OUT transfer -- should be the EEPROM read (opcode 0x88).
         let ops = mock.operations();
         let out_ops: Vec<_> = ops
             .iter()
@@ -1122,20 +1329,38 @@ mod tests {
                 _ => None,
             })
             .collect();
-        assert_eq!(out_ops.len(), 1);
         // With seed=0 and XorAll: data[1] is the opcode byte.
-        assert_eq!(out_ops[0][1], 0x88, "EEPROM read should use opcode 0x88");
+        let last_out = out_ops.last().unwrap();
+        assert_eq!(last_out[1], 0x88, "EEPROM read should use opcode 0x88");
     }
 
     #[test]
     fn common_device_init_eeprom_read_short_response_fails() {
+        // Test via Lattice path -- short EEPROM response should fail.
         let mock = std::sync::Arc::new(MockTransport::new());
 
-        // Return only 4 bytes instead of 8.
+        // Queue all Lattice init responses except replace the EEPROM response
+        // with a short one.
+        // SPI bridge + drive + enable = 3 ACKs
+        for _ in 0..3 {
+            mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
+        }
+        // JESD PHY reset = 2 ACKs
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
+        // JESD lock poll (immediate success)
+        let all_ready = (fpga_regs::JESD_READY_MASK | fpga_regs::DDR_READY_MASK) as u8;
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![all_ready]);
+        // Bitslip (immediate success)
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]); // write ACK
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x01]); // aligned
+                                                                   // DDR status
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![all_ready]);
+        // Short EEPROM response (only 4 bytes instead of 8)
         mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x01, 0x02, 0x03, 0x04]);
 
         let mut channel = mock_channel(&mock);
-        let err = common_device_init(&mut channel, false).unwrap_err();
+        let err = common_device_init(&mut channel, true).unwrap_err();
         let msg = err.to_string();
         assert!(
             msg.contains("expected at least 8 bytes"),
@@ -1147,15 +1372,12 @@ mod tests {
     fn common_device_init_device_id_matches_calibration_url() {
         // Verify the device ID from the reference calibration file works.
         let mock = std::sync::Arc::new(MockTransport::new());
-
-        let device_id: u64 = 8520900333282843121; // 0x764051b51bd4d9f1
-        let id_bytes = device_id.to_le_bytes();
-        mock.push_bulk_in_response(endpoint::BULK_IN, id_bytes.to_vec());
+        let expected_id = queue_lattice_device_init_responses(&mock, 0, 0);
 
         let mut channel = mock_channel(&mock);
-        let result = common_device_init(&mut channel, false).unwrap();
+        let result = common_device_init(&mut channel, true).unwrap();
 
-        assert_eq!(result.device_id, device_id);
+        assert_eq!(result.device_id, expected_id);
         assert_eq!(
             format!("{:x}", result.device_id),
             "764051b51bd4d9f1",
@@ -1175,19 +1397,19 @@ mod tests {
         // Instead, we test the JESD timeout behavior via the standalone
         // wait_for_jesd_lock function (see jesd_lock_timeout_returns_false).
         //
-        // This test verifies the non-Lattice path as a proxy for "JESD
-        // didn't lock + EEPROM still readable" behavior.
+        // This test verifies the Xilinx path gets DCM locked status.
         let mock = std::sync::Arc::new(MockTransport::new());
-
-        let device_id: u64 = 0xFFFF_0000_1111_2222;
-        let id_bytes = device_id.to_le_bytes();
-        mock.push_bulk_in_response(endpoint::BULK_IN, id_bytes.to_vec());
+        let expected_id = queue_xilinx_device_init_responses(&mock);
 
         let mut channel = mock_channel(&mock);
         let result = common_device_init(&mut channel, false).unwrap();
 
-        assert_eq!(result.device_id, device_id);
-        assert!(!result.jesd_locked);
+        assert_eq!(result.device_id, expected_id);
+        assert!(
+            !result.jesd_locked,
+            "JESD should not be set for Xilinx path"
+        );
+        assert!(result.dcm_locked, "DCM should be locked for Xilinx path");
     }
 
     // -----------------------------------------------------------------------
@@ -1378,5 +1600,91 @@ mod tests {
         let mut channel = mock_channel(&mock);
         let result = channel.read_eeprom_device_id().unwrap();
         assert_eq!(result, u64::MAX);
+    }
+
+    // -----------------------------------------------------------------------
+    // HwRevision tests
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn hw_revision_parse_valid_xilinx_rev1() {
+        // Real device: Logic Pro 8 Rev 1.02 (Xilinx Spartan-6)
+        let data = [0x52, 0x45, 0x56, 0x01, 0x2E, 0x02]; // "REV" + 1 + "." + 2
+        let rev = HwRevision::parse(&data).unwrap();
+        assert_eq!(rev.major, 1);
+        assert_eq!(rev.minor, 2);
+        assert!(!rev.is_lattice());
+    }
+
+    #[test]
+    fn hw_revision_parse_valid_xilinx_rev0() {
+        let data = [0x52, 0x45, 0x56, 0x00, 0x2E, 0x05]; // "REV" + 0 + "." + 5
+        let rev = HwRevision::parse(&data).unwrap();
+        assert_eq!(rev.major, 0);
+        assert_eq!(rev.minor, 5);
+        assert!(!rev.is_lattice());
+    }
+
+    #[test]
+    fn hw_revision_parse_valid_lattice_rev4() {
+        let data = [0x52, 0x45, 0x56, 0x04, 0x2E, 0x00]; // "REV" + 4 + "." + 0
+        let rev = HwRevision::parse(&data).unwrap();
+        assert_eq!(rev.major, 4);
+        assert_eq!(rev.minor, 0);
+        assert!(rev.is_lattice());
+    }
+
+    #[test]
+    fn hw_revision_parse_valid_lattice_rev3() {
+        let data = [0x52, 0x45, 0x56, 0x03, 0x2E, 0x01];
+        let rev = HwRevision::parse(&data).unwrap();
+        assert!(rev.is_lattice());
+    }
+
+    #[test]
+    fn hw_revision_parse_too_short() {
+        let data = [0x52, 0x45, 0x56, 0x01, 0x2E]; // 5 bytes, need 6
+        assert!(HwRevision::parse(&data).is_none());
+    }
+
+    #[test]
+    fn hw_revision_parse_wrong_header() {
+        let data = [0x00, 0x00, 0x00, 0x01, 0x2E, 0x02]; // not "REV"
+        assert!(HwRevision::parse(&data).is_none());
+    }
+
+    #[test]
+    fn hw_revision_rev2_is_neither_xilinx_nor_lattice() {
+        // Rev 2 is unsupported in the binary (throws exception)
+        let data = [0x52, 0x45, 0x56, 0x02, 0x2E, 0x00];
+        let rev = HwRevision::parse(&data).unwrap();
+        assert!(!rev.is_lattice()); // not Lattice
+                                    // but also not a known Xilinx rev -- just "not Lattice"
+    }
+
+    #[test]
+    fn hw_revision_display_xilinx() {
+        let rev = HwRevision { major: 1, minor: 2 };
+        assert_eq!(rev.to_string(), "Rev 1.02 (Xilinx Spartan-6)");
+    }
+
+    #[test]
+    fn hw_revision_display_lattice() {
+        let rev = HwRevision { major: 4, minor: 0 };
+        assert_eq!(rev.to_string(), "Rev 4.00 (Lattice ECP5)");
+    }
+
+    #[test]
+    fn hw_revision_lattice_major_values() {
+        // All Lattice major revisions from the switch statement
+        for major in [3, 4, 5, 6, 8, 9, 10, 11] {
+            let rev = HwRevision { major, minor: 0 };
+            assert!(rev.is_lattice(), "major {major} should be Lattice");
+        }
+        // Non-Lattice major revisions
+        for major in [0, 1, 7] {
+            let rev = HwRevision { major, minor: 0 };
+            assert!(!rev.is_lattice(), "major {major} should not be Lattice");
+        }
     }
 }

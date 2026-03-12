@@ -1,0 +1,75 @@
+TestEeprom decompilation analysis
+==================================
+Ghidra address: 01d44010 (ELF VA: 0x1c44010)
+Source: LogicProfessionalDevice.cpp line 0x54 (84)
+
+Callers: Only via vtable (3 vtable entries at 0x018413ec, 0x01a9a9e8, 0x0040308c)
+Not called during normal init -- called on demand through device interface.
+
+Algorithm (reconstructed from decompilation):
+----------------------------------------------
+
+1. WRITE PHASE: Write test pattern to EEPROM addresses 0x0008..0x0FFF
+   - Builds a std::vector<u8> for each 256-byte chunk
+   - Loop: for address = 8; address < 0x1000; address += 0x100
+     - Fill buffer with incrementing byte pattern starting from a counter
+     - Counter starts at 0, increments per byte written, wraps at 256
+     - Last chunk (starting at 0x0F00) is only 0x100 bytes (256 - 8 for the gap)
+     - Actually: the loop adjusts buffer size when address + 0x100 > 0x1000
+   - Calls WriteEeprom(this->device_features, address, &buffer) via vtable[0x10]
+   - Start address = 8 (skips first 8 bytes = "CY" bootloader header + VID/PID)
+   - sVar7 = starting address (starts at 8, increments by 0x100)
+
+2. READ PHASE: Read back entire EEPROM (0x000..0xFFF) via ReadEeprom
+   - Calls FUN_01d43660(result_vec, this) = ReadEeprom
+   - ReadEeprom reads 16 chunks of 0x100 bytes at offsets 0x0000..0x0F00
+   - Returns a vector of 0x1000 (4096) bytes total
+   - Uses vtable[0x18] = ReadEeprom(device_features, offset, buffer, 0x100)
+
+3. VERIFY PHASE: Check bytes starting at offset 8
+   - If total length < 9, skip verification (empty EEPROM)
+   - Loop: for i = 0; i < (total_length - 8); i++
+     - Expected: (char)i  (incrementing pattern 0x00, 0x01, 0x02, ... wrapping at 256)
+     - Actual: data[8 + i]
+     - If mismatch: assert("false", "EEprom error detected!") -- FATAL ERROR
+   - Key: verification starts at byte index 8 (after the CY+VID/PID header)
+
+4. CLEANUP: Free allocated buffers
+
+Key observations:
+-----------------
+- EEPROM size = 4096 bytes (0x1000) for FX3 Pro devices
+- First 8 bytes (0x0000-0x0007) are PRESERVED (not overwritten):
+  - 0x0000-0x0001: "CY" magic
+  - 0x0002-0x0003: B2 bootloader header
+  - 0x0004-0x0007: VID/PID (little-endian)
+- Test pattern: simple incrementing counter 0x00, 0x01, 0x02, ... wrapping
+- Self-test is DESTRUCTIVE: overwrites all EEPROM data from byte 8 onward
+  (device ID, calibration coefficients, hardware revision -- all destroyed!)
+- This is a manufacturing/diagnostic test, NOT safe for production use
+- After TestEeprom, the device needs recalibration/reprogramming
+
+EEPROM Layout refresher (from memory):
+- 0x0000: "CY" + B2 bootloader header (4 bytes)
+- 0x0004: VID/PID (4 bytes)
+- 0x0008: Device serial/ID (8 bytes) -- OVERWRITTEN BY TEST
+- 0x0010: 16 calibration coefficients (16 bytes) -- OVERWRITTEN BY TEST
+- 0x0020: "REV" + hw revision (6 bytes) -- OVERWRITTEN BY TEST
+- 0x0026-0x01FF: 0xFF padding -- OVERWRITTEN BY TEST
+- 0x0200-0x0FFF: unknown/unused -- OVERWRITTEN BY TEST
+
+ReadEeprom (FUN_01d43660):
+- Uses vtable[0x18] = ReadEeprom(device_features, offset, buffer, count)
+- Reads 16 x 256-byte chunks at offsets 0x0000..0x0F00
+- Concatenates into single 4096-byte vector
+- This is the FX3 ReadEeprom that uses EP1 ReadVersion(0x07) I2C tunnel
+
+WriteEeprom:
+- Uses vtable[0x10] = WriteEeprom(device_features, address, &buffer)
+- Writes chunks of up to 256 bytes
+
+WipeEeprom (FUN_01d50820):
+- Allocates 0x26 (38) bytes, fills with 0xFF
+- Calls WriteEeprom(device_features, 0, &buffer)
+- This wipes the first 38 bytes of EEPROM
+- Also preserves nothing -- wipes CY header too!

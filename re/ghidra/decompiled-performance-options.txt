@@ -1,0 +1,1464 @@
+openjdk version "21.0.9" 2025-10-21
+OpenJDK Runtime Environment (build 21.0.9+-nixos)
+OpenJDK 64-Bit Server VM (build 21.0.9+-nixos, mixed mode)
+Module manifest file error on line 2 of file: /home/mpedersen/.config/ghidra/ghidra_11.3.2_NIX/Extensions/GhidraMCP/Module.manifest
+	-> Invalid line encountered: GHIDRA_MODULE_NAME=GhidraMCP
+Module manifest file error on line 3 of file: /home/mpedersen/.config/ghidra/ghidra_11.3.2_NIX/Extensions/GhidraMCP/Module.manifest
+	-> Invalid line encountered: GHIDRA_MODULE_DESC=An HTTP server plugin for Ghidra
+Module manifest file error on line 2 of file: /home/mpedersen/.config/ghidra/ghidra_11.3.2_NIX/Extensions/GhidraMCP/Module.manifest
+	-> Invalid line encountered: GHIDRA_MODULE_NAME=GhidraMCP
+Module manifest file error on line 3 of file: /home/mpedersen/.config/ghidra/ghidra_11.3.2_NIX/Extensions/GhidraMCP/Module.manifest
+	-> Invalid line encountered: GHIDRA_MODULE_DESC=An HTTP server plugin for Ghidra
+INFO  Using log config file: jar:file:/nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Framework/Generic/lib/Generic.jar!/generic.log4j.xml (LoggingInitialization)  
+INFO  Using log file: /home/mpedersen/.config/ghidra/ghidra_11.3.2_NIX/application.log (LoggingInitialization)  
+INFO  Loading user preferences: /home/mpedersen/.config/ghidra/ghidra_11.3.2_NIX/preferences (Preferences)  
+INFO  Searching for classes... (ClassSearcher)  
+INFO  Class search complete (1172 ms) (ClassSearcher)  
+INFO  Initializing SSL Context (SSLContextInitializer)  
+INFO  Initializing Random Number Generator... (SecureRandomFactory)  
+INFO  Random Number Generator initialization complete: NativePRNGNonBlocking (SecureRandomFactory)  
+INFO  Trust manager disabled, cacerts have not been set (ApplicationTrustManagerFactory)  
+INFO  Headless startup complete (2541 ms) (AnalyzeHeadless)  
+INFO  Class searcher loaded 57 extension points (18 false positives) (ClassSearcher)  
+INFO  HEADLESS Script Paths:
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Processors/DATA/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/Jython/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/MicrosoftCodeAnalyzer/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Processors/PIC/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Debug/Debugger/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/SwiftDemangler/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/Base/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/PyGhidra/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/FunctionID/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Debug/Debugger-rmi-trace/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/DecompilerDependent/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/BSim/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/BytePatterns/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/Decompiler/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/WildcardAssembler/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/GnuDemangler/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/PDB/ghidra_scripts
+    /home/mpedersen/nvidia/saleae_reverse/re/ghidra/scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Processors/Atmel/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/FileFormats/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/SystemEmulation/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Processors/JVM/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Processors/8051/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/VersionTracking/ghidra_scripts (HeadlessAnalyzer)  
+INFO  HEADLESS: execution starts (HeadlessAnalyzer)  
+INFO  Opening existing project: /home/mpedersen/nvidia/saleae_reverse/ghidra_proj2/sal_rev2 (HeadlessAnalyzer)  
+INFO  Opening project: /home/mpedersen/nvidia/saleae_reverse/ghidra_proj2/sal_rev2 (HeadlessProject)  
+INFO  REPORT: Processing project file: /libgraph_server_shared.so (HeadlessAnalyzer)  
+INFO  SCRIPT: /home/mpedersen/nvidia/saleae_reverse/re/ghidra/scripts/DecompilePerformanceOptions.java (HeadlessAnalyzer)  
+INFO  DecompilePerformanceOptions.java> === FUN_01d49e40 @ 01d49e40 (label: GetPerformanceInterfaceType) === (GhidraScript)  
+INFO  DecompilePerformanceOptions.java> 
+undefined4 FUN_01d49e40(uint *param_1)
+
+{
+  uint uVar1;
+  
+  uVar1 = *param_1;
+  if (((ulong)(long)(int)uVar1 < 9) && ((0x1fbU >> (uVar1 & 0x1f) & 1) != 0)) {
+    return *(undefined4 *)(&DAT_005748cc + (long)(int)uVar1 * 4);
+  }
+                    /* WARNING: Subroutine does not return */
+  FUN_02eca300("false",5,
+               "PerformanceInterfaceType DeviceSettings::GetPerformanceInterfaceType() const",0x4c,
+               "/workspace/monorepo/graph-io/devices/logic_interface/src/DeviceSettings.cpp",0x4b,
+               0x387,0x4d1d3d,0xe);
+}
+
+ (GhidraScript)  
+INFO  DecompilePerformanceOptions.java>  (GhidraScript)  
+INFO  DecompilePerformanceOptions.java> === FUN_01d48ee0 @ 01d48ee0 (label: xref_GetAnalogBasicPerformanceOptions_1) === (GhidraScript)  
+INFO  DecompilePerformanceOptions.java> 
+/* WARNING: Removing unreachable block (ram,0x01d49100) */
+/* WARNING: Globals starting with '_' overlap smaller symbols at the same address */
+
+ulong FUN_01d48ee0(uint *param_1,int *param_2)
+
+{
+  long *plVar1;
+  long *plVar2;
+  uint uVar3;
+  void *pvVar4;
+  bool bVar5;
+  undefined8 *puVar6;
+  undefined8 uVar7;
+  undefined8 *puVar8;
+  uint *puVar9;
+  uint *puVar10;
+  int *piVar11;
+  ulong uVar12;
+  uint uVar13;
+  long *plVar14;
+  long lVar15;
+  ulong uVar16;
+  undefined8 *puVar17;
+  int iVar18;
+  ulong uVar19;
+  long lVar20;
+  ulong uVar21;
+  byte bVar22;
+  byte bVar23;
+  undefined8 unaff_R15;
+  undefined7 uVar24;
+  bool bVar25;
+  int *local_a8;
+  int *piStack_a0;
+  undefined8 local_98;
+  char *local_88;
+  uint6 uStack_80;
+  undefined2 uStack_7a;
+  undefined8 local_78;
+  char *local_68;
+  undefined8 uStack_60;
+  undefined8 *local_58;
+  undefined8 *puStack_50;
+  undefined8 local_48;
+  int *local_40;
+  uint *local_38;
+  
+  lVar15 = *(long *)(param_1 + 0x14);
+  uVar21 = (*(long *)(param_1 + 0x16) - lVar15 >> 2) * 0x6db6db6db6db6db7;
+  local_40 = param_2;
+  local_38 = param_1;
+  if (((*(ulong *)(param_2 + 4) == uVar21) && (*(ulong *)(param_2 + 10) == uVar21)) &&
+     ((int)uVar21 != 0)) {
+    plVar1 = (long *)(param_2 + 8);
+    plVar2 = (long *)(param_2 + 2);
+    lVar20 = 0;
+    uVar16 = 0;
+    bVar25 = false;
+    while( true ) {
+      iVar18 = *(int *)(lVar15 + 8 + lVar20);
+      bVar5 = iVar18 != 0;
+      uVar24 = (undefined7)((ulong)unaff_R15 >> 8);
+      plVar14 = plVar1;
+      if ((iVar18 == 0) || (plVar14 = plVar2, iVar18 == 1)) {
+        if ((*(ulong *)(*plVar14 + (uVar16 >> 6) * 8) >> (uVar16 & 0x3f) & 1) != 0) {
+          bVar25 = true;
+        }
+        uVar13 = *(uint *)(lVar15 + 0x10 + lVar20);
+      }
+      else {
+        bVar5 = false;
+        uVar24 = 0;
+        uVar13 = *(uint *)(lVar15 + 0x10 + lVar20);
+      }
+      if ((uVar13 == 3) && ((*(ulong *)(*plVar1 + (uVar16 >> 6) * 8) >> (uVar16 & 0x3f) & 1) != 0))
+      {
+        bVar25 = true;
+      }
+      uVar3 = *(uint *)(lVar15 + 0xc + lVar20);
+      if ((uVar3 == 3) && ((*(ulong *)(*plVar2 + (uVar16 >> 6) * 8) >> (uVar16 & 0x3f) & 1) != 0)) {
+        bVar25 = true;
+      }
+      if (((iVar18 != 0) && ((uVar13 | 2) != 3)) &&
+         ((*(ulong *)(*plVar1 + (uVar16 >> 6) * 8) >> (uVar16 & 0x3f) & 1) == 0)) {
+        bVar25 = true;
+      }
+      if (((!bVar5) && ((uVar3 | 2) != 3)) &&
+         ((*(ulong *)(*plVar2 + (uVar16 >> 6) * 8) >> (uVar16 & 0x3f) & 1) == 0)) {
+        bVar25 = true;
+      }
+      if (bVar25) goto LAB_01d4912f;
+      if ((iVar18 != 0) && (uVar13 == 1)) {
+        *(uint *)(lVar15 + 0x18 + lVar20) =
+             (uint)((*(ulong *)(*plVar1 + (uVar16 >> 6) * 8) >> (uVar16 & 0x3f) & 1) == 0);
+        lVar15 = *(long *)(param_1 + 0x14);
+      }
+      if ((*(int *)(lVar15 + 8 + lVar20) != 1) && (*(int *)(lVar15 + 0xc + lVar20) == 1)) {
+        if ((*(ulong *)(*plVar2 + (uVar16 >> 6) * 8) >> (uVar16 & 0x3f) & 1) == 0) {
+          *(undefined4 *)(lVar15 + 0x14 + lVar20) = 1;
+        }
+        else {
+          *(undefined4 *)(lVar15 + 0x14 + lVar20) = 0;
+        }
+      }
+      bVar23 = 1;
+      if ((uVar21 & 0xffffffff) <= uVar16 + 1) break;
+      unaff_R15 = CONCAT71(uVar24,1);
+      uVar16 = uVar16 + 1;
+      lVar20 = lVar20 + 0x1c;
+    }
+  }
+  else {
+    if (*(ulong *)(param_2 + 4) == uVar21) {
+      uVar24 = (undefined7)((ulong)unaff_R15 >> 8);
+      bVar23 = 1;
+      if (*(ulong *)(param_2 + 10) == uVar21) goto LAB_01d49319;
+    }
+LAB_01d4912f:
+    uVar13 = *param_1;
+    if (8 < uVar13) goto LAB_01d49ca7;
+    if ((0x11bU >> (uVar13 & 0x1f) & 1) == 0) {
+      if ((0xe0U >> (uVar13 & 0x1f) & 1) == 0) goto LAB_01d49ca7;
+      puVar9 = (uint *)operator_new(0x14);
+      uVar7 = _UNK_005748c0;
+      *(undefined8 *)puVar9 = _DAT_005748b8;
+      *(undefined8 *)(puVar9 + 2) = uVar7;
+      puVar9[4] = DAT_005748c8;
+                    /* try { // try from 01d491f1 to 01d491fa has its CatchHandler @ 01d49d97 */
+      puVar10 = (uint *)operator_new(8);
+      puVar10[0] = 5;
+      puVar10[1] = 6;
+      uVar21 = (*(long *)(param_1 + 0x16) - lVar15 >> 2) * 0x6db6db6db6db6db7;
+      if ((int)uVar21 != 0) {
+        uVar13 = 0;
+        do {
+          if (uVar21 <= uVar13) {
+            local_a8 = (int *)0x52e333;
+            piStack_a0 = (int *)0x12;
+                    /* try { // try from 01d49a30 to 01d49aba has its CatchHandler @ 01d49daa */
+                    /* WARNING: Subroutine does not return */
+            FUN_02eca300("false",5,"ChannelConfiguration &DeviceSettings::ChannelConfigByIndex(U32)"
+                         ,0x3f,
+                         "/workspace/monorepo/graph-io/devices/logic_interface/src/DeviceSettings.cpp"
+                         ,0x4b,0x178,0x52e333,0x12);
+          }
+          lVar20 = (ulong)uVar13 * 0x1c;
+          iVar18 = *(int *)(lVar15 + 0xc + lVar20);
+          if (iVar18 == 3) {
+LAB_01d492b8:
+            iVar18 = *(int *)(lVar15 + 0x10 + lVar20);
+          }
+          else {
+            if ((((uVar13 == *puVar9) || (uVar13 == puVar9[1])) || (uVar13 == puVar9[2])) ||
+               ((uVar13 == puVar9[3] || (uVar13 == puVar9[4])))) {
+              *(undefined4 *)(lVar15 + 0x14 + lVar20) = 0;
+              goto LAB_01d492b8;
+            }
+            if (iVar18 != 1) {
+              local_a8 = (int *)0x4fc5e8;
+              piStack_a0 = (int *)0x14;
+                    /* try { // try from 01d49d5c to 01d49d96 has its CatchHandler @ 01d49daa */
+                    /* WARNING: Subroutine does not return */
+              FUN_02eca300("false",5,"void ChannelConfiguration::EnableDigital(bool)",0x2e,
+                           "/workspace/monorepo/graph-io/devices/logic_interface/src/DeviceSettings.cpp"
+                           ,0x4b,0x7d,0x4fc5e8,0x14);
+            }
+            *(undefined4 *)(lVar15 + 0x14 + lVar20) = 1;
+            iVar18 = *(int *)(lVar15 + 0x10 + lVar20);
+          }
+          if (iVar18 != 3) {
+            if ((uVar13 == *puVar10) || (uVar13 == puVar10[1])) {
+              if (iVar18 != 1) {
+                local_a8 = (int *)0x4fc5e8;
+                piStack_a0 = (int *)0x14;
+                    /* WARNING: Subroutine does not return */
+                FUN_02eca300("false",5,"void ChannelConfiguration::EnableAnalog(bool)",0x2d,
+                             "/workspace/monorepo/graph-io/devices/logic_interface/src/DeviceSettings.cpp"
+                             ,0x4b,0x8b,0x4fc5e8,0x14);
+              }
+              *(undefined4 *)(lVar15 + 0x18 + lVar20) = 0;
+            }
+            else {
+              if (iVar18 != 1) {
+                local_a8 = (int *)0x4fc5e8;
+                piStack_a0 = (int *)0x14;
+                    /* try { // try from 01d49bcc to 01d49c06 has its CatchHandler @ 01d49daa */
+                    /* WARNING: Subroutine does not return */
+                FUN_02eca300("false",5,"void ChannelConfiguration::EnableAnalog(bool)",0x2d,
+                             "/workspace/monorepo/graph-io/devices/logic_interface/src/DeviceSettings.cpp"
+                             ,0x4b,0x8b,0x4fc5e8,0x14);
+              }
+              *(undefined4 *)(lVar15 + 0x18 + lVar20) = 1;
+            }
+          }
+          uVar13 = uVar13 + 1;
+          lVar15 = *(long *)(param_1 + 0x14);
+          uVar21 = (*(long *)(param_1 + 0x16) - lVar15 >> 2) * 0x6db6db6db6db6db7;
+        } while (uVar13 < (uint)uVar21);
+      }
+      operator_delete(puVar10);
+      operator_delete(puVar9);
+    }
+    else if ((int)uVar21 != 0) {
+      lVar20 = 0;
+      iVar18 = *(int *)(lVar15 + 8);
+      do {
+        if (iVar18 == 1) {
+LAB_01d491a8:
+          if (*(int *)(lVar15 + 0x10 + lVar20) == 1) {
+            *(undefined4 *)(lVar15 + 0x18 + lVar20) = 0;
+          }
+        }
+        else {
+          if (*(int *)(lVar15 + 0xc + lVar20) == 1) {
+            *(undefined4 *)(lVar15 + 0x14 + lVar20) = 0;
+            iVar18 = *(int *)(lVar15 + 8 + lVar20);
+          }
+          if (iVar18 != 0) goto LAB_01d491a8;
+        }
+        if ((uVar21 & 0xffffffff) * 0x1c + -0x1c == lVar20) break;
+        lVar15 = *(long *)(param_1 + 0x14);
+        lVar20 = lVar20 + 0x1c;
+        iVar18 = *(int *)(lVar15 + 8 + lVar20);
+      } while( true );
+    }
+    bVar23 = 0;
+    uVar24 = 0;
+  }
+LAB_01d49319:
+  puVar9 = local_38;
+  lVar15 = *(long *)(local_38 + 0x50) - *(long *)(local_38 + 0x4e);
+  if (lVar15 != 0) {
+    if (local_40[0x18] == 10) {
+      uVar21 = (ulong)((*local_38 & 0xfffffffe) == 6);
+    }
+    else {
+      uVar16 = (lVar15 >> 3) * -0x5555555555555555;
+      uVar19 = (ulong)local_40[0xf];
+      uVar21 = 0;
+      if (uVar19 <= uVar16 && uVar16 - uVar19 != 0) {
+        uVar21 = uVar19;
+      }
+    }
+    std::string::operator=
+              ((string *)(local_38 + 0x30),(string *)(*(long *)(local_38 + 0x4e) + uVar21 * 0x18));
+  }
+  uVar13 = *puVar9;
+  if (8 < uVar13) {
+LAB_01d49ca7:
+    local_a8 = (int *)0x4d1d3d;
+    piStack_a0 = (int *)0xe;
+                    /* WARNING: Subroutine does not return */
+    FUN_02eca300("false",5,
+                 "PerformanceInterfaceType DeviceSettings::GetPerformanceInterfaceType() const",0x4c
+                 ,"/workspace/monorepo/graph-io/devices/logic_interface/src/DeviceSettings.cpp",0x4b
+                 ,0x387,0x4d1d3d,0xe);
+  }
+  if ((0xe0U >> (uVar13 & 0x1f) & 1) == 0) {
+    if ((0x118U >> (uVar13 & 0x1f) & 1) == 0) {
+      if ((3U >> (uVar13 & 0x1f) & 1) == 0) goto LAB_01d49ca7;
+      local_a8 = (int *)0x0;
+      piStack_a0 = (int *)0x0;
+      local_98 = 0;
+      local_58 = (undefined8 *)0x0;
+      puStack_50 = (undefined8 *)0x0;
+      local_48 = 0;
+      FUN_01d49ec0(puVar9,&local_a8);
+      bVar25 = true;
+      bVar5 = false;
+    }
+    else {
+      local_a8 = (int *)0x0;
+      piStack_a0 = (int *)0x0;
+      local_98 = 0;
+      local_58 = (undefined8 *)0x0;
+      puStack_50 = (undefined8 *)0x0;
+      local_48 = 0;
+      if ((1 < uVar13 - 3) && (uVar13 != 8)) {
+        if (2 < uVar13 - 5) {
+          local_88 = "Invalid device";
+          _uStack_80 = 0xe;
+                    /* try { // try from 01d49d0c to 01d49d46 has its CatchHandler @ 01d49da6 */
+                    /* WARNING: Subroutine does not return */
+          FUN_02eca300("false",5,
+                       "PerformanceInterfaceType DeviceSettings::GetPerformanceInterfaceType() const"
+                       ,0x4c,
+                       "/workspace/monorepo/graph-io/devices/logic_interface/src/DeviceSettings.cpp"
+                       ,0x4b,0x387,0x4d1d3d,0xe);
+        }
+        local_88 = "invalid performance interface type";
+        _uStack_80 = 0x22;
+                    /* try { // try from 01d49b7c to 01d49bb6 has its CatchHandler @ 01d49da6 */
+                    /* WARNING: Subroutine does not return */
+        FUN_02eca300("false",5,
+                     "void DeviceSettings::GetAnalogBasicPerformanceOptions(std::vector<SampleRateOption> &) const"
+                     ,0x5c,
+                     "/workspace/monorepo/graph-io/devices/logic_interface/src/DeviceSettings.cpp",
+                     0x4b,0x3be,0x4d1db3,0x22);
+      }
+      piStack_a0 = (int *)0x0;
+      if (((int **)(puVar9 + 0x3c) != &local_a8) && (puVar9[0x28] != 0)) {
+                    /* try { // try from 01d49420 to 01d49501 has its CatchHandler @ 01d49da6 */
+        FUN_01cf0100(&local_a8,*(undefined8 *)(puVar9 + 0x3c),*(undefined8 *)(puVar9 + 0x3e));
+      }
+      bVar5 = true;
+      bVar25 = false;
+    }
+    if ((long)piStack_a0 - (long)local_a8 != 0) {
+      lVar20 = ((long)piStack_a0 - (long)local_a8 >> 3) * -0x5555555555555555;
+      piVar11 = local_a8;
+      lVar15 = 1;
+      if (lVar20 != 0) {
+        lVar15 = lVar20;
+      }
+      do {
+        if (*(char *)((long)piVar11 + 0xd) == '\0') {
+          local_88 = "attempt to read un-set SampleRateOption";
+          _uStack_80 = 0x27;
+                    /* WARNING: Subroutine does not return */
+          FUN_02eca300("false",5,"U32 SampleRateOption::DigitalSampleRateHz() const",0x31,
+                       "/workspace/monorepo/graph-io/devices/logic_interface/src/DeviceSettings.cpp"
+                       ,0x4b,0x111,0x469cf2,0x27);
+        }
+        if ((char)piVar11[1] == '\0') {
+          local_88 = "digital sample rate is not valid";
+          _uStack_80 = 0x20;
+                    /* try { // try from 01d49990 to 01d49a1a has its CatchHandler @ 01d49dba */
+                    /* WARNING: Subroutine does not return */
+          FUN_02eca300("false",5,"U32 SampleRateOption::DigitalSampleRateHz() const",0x31,
+                       "/workspace/monorepo/graph-io/devices/logic_interface/src/DeviceSettings.cpp"
+                       ,0x4b,0x114,0x4e75d5,0x20);
+        }
+        if (*piVar11 == *local_40) {
+          if ((char)piVar11[3] == '\0') {
+            bVar22 = 1;
+            if (bVar5) {
+                    /* try { // try from 01d49627 to 01d49641 has its CatchHandler @ 01d49dba */
+              FUN_01d4ac00(puVar9,piVar11);
+            }
+            else {
+              FUN_01d4af40(puVar9,piVar11);
+            }
+            goto LAB_01d497ee;
+          }
+          if (piVar11[2] == local_40[1]) {
+            bVar22 = 1;
+                    /* try { // try from 01d49579 to 01d49583 has its CatchHandler @ 01d49dba */
+            FUN_01d4ac00(puVar9,piVar11);
+            goto LAB_01d497ee;
+          }
+        }
+        lVar15 = lVar15 + -1;
+        piVar11 = piVar11 + 6;
+      } while (lVar15 != 0);
+    }
+    if (bVar25) {
+                    /* try { // try from 01d4958d to 01d495aa has its CatchHandler @ 01d49da4 */
+      FUN_01d4af40(puVar9);
+    }
+    if (bVar5) {
+      FUN_01d4ac00(puVar9,local_a8);
+    }
+  }
+  else {
+    local_a8 = (int *)0x0;
+    piStack_a0 = (int *)0x0;
+    local_98 = 0;
+    local_58 = (undefined8 *)0x0;
+    puStack_50 = (undefined8 *)0x0;
+    local_48 = 0;
+    FUN_01d4a250(puVar9);
+    uVar21 = (ulong)(uint)local_40[0xe];
+    uVar16 = ((long)puStack_50 - (long)local_58 >> 3) * -0x5555555555555555;
+    if (uVar21 <= uVar16 && uVar16 - uVar21 != 0) {
+      lVar20 = local_58[uVar21 * 3];
+      lVar15 = local_58[uVar21 * 3 + 1];
+      if (lVar15 != lVar20) {
+        plVar1 = local_58 + uVar21 * 3;
+        iVar18 = local_40[1];
+        if (iVar18 == 0) {
+          uVar21 = 0;
+          uVar16 = 1;
+          do {
+            piVar11 = (int *)(lVar20 + uVar21 * 0x18);
+            if (*(char *)(lVar20 + 0xc + uVar21 * 0x18) == '\0') {
+              if (*(char *)(lVar20 + 0xd + uVar21 * 0x18) == '\0') {
+                local_88 = "attempt to read un-set SampleRateOption";
+                _uStack_80 = 0x27;
+                    /* try { // try from 01d49c1c to 01d49ca6 has its CatchHandler @ 01d49da8 */
+                    /* WARNING: Subroutine does not return */
+                FUN_02eca300("false",5,"U32 SampleRateOption::DigitalSampleRateHz() const",0x31,
+                             "/workspace/monorepo/graph-io/devices/logic_interface/src/DeviceSettings.cpp"
+                             ,0x4b,0x111,0x469cf2,0x27);
+              }
+              if (*(char *)(lVar20 + 4 + uVar21 * 0x18) == '\0') {
+                local_88 = "digital sample rate is not valid";
+                _uStack_80 = 0x20;
+                    /* WARNING: Subroutine does not return */
+                FUN_02eca300("false",5,"U32 SampleRateOption::DigitalSampleRateHz() const",0x31,
+                             "/workspace/monorepo/graph-io/devices/logic_interface/src/DeviceSettings.cpp"
+                             ,0x4b,0x114,0x4e75d5,0x20);
+              }
+              if (*piVar11 == *local_40) {
+                bVar22 = 1;
+                    /* try { // try from 01d496e0 to 01d496e7 has its CatchHandler @ 01d49da8 */
+                FUN_01d4b130(puVar9);
+                goto LAB_01d497ee;
+              }
+            }
+            else if ((*local_40 == 0) && (*(char *)(lVar20 + 4 + uVar21 * 0x18) == '\0')) {
+              if (*(int *)(lVar20 + 8 + uVar21 * 0x18) == 0) goto LAB_01d4987b;
+            }
+            else if (*(int *)(lVar20 + 8 + uVar21 * 0x18) == 0) {
+              if (*(char *)(lVar20 + 0xd + uVar21 * 0x18) == '\0') goto LAB_01d49b0b;
+              if (*(char *)(lVar20 + 4 + uVar21 * 0x18) == '\0') goto LAB_01d49abb;
+              if (*piVar11 == *local_40) goto LAB_01d4986b;
+            }
+            lVar20 = *plVar1;
+            uVar21 = (plVar1[1] - lVar20 >> 3) * -0x5555555555555555;
+            bVar25 = uVar16 <= uVar21;
+            lVar15 = uVar21 - uVar16;
+            uVar21 = uVar16;
+            uVar16 = (ulong)((int)uVar16 + 1);
+          } while (bVar25 && lVar15 != 0);
+        }
+        else {
+          uVar21 = 1;
+          uVar16 = 0;
+          do {
+            uVar19 = uVar21;
+            if ((*local_40 == 0) && (*(char *)(lVar20 + 4 + uVar16 * 0x18) == '\0')) {
+              if (*(int *)(lVar20 + 8 + uVar16 * 0x18) == iVar18) goto LAB_01d4987b;
+            }
+            else if (*(int *)(lVar20 + 8 + uVar16 * 0x18) == iVar18) {
+              if (*(char *)(lVar20 + 0xd + uVar16 * 0x18) == '\0') {
+LAB_01d49b0b:
+                local_88 = "attempt to read un-set SampleRateOption";
+                _uStack_80 = 0x27;
+                    /* WARNING: Subroutine does not return */
+                FUN_02eca300("false",5,"U32 SampleRateOption::DigitalSampleRateHz() const",0x31,
+                             "/workspace/monorepo/graph-io/devices/logic_interface/src/DeviceSettings.cpp"
+                             ,0x4b,0x111,0x469cf2,0x27);
+              }
+              if (*(char *)(lVar20 + 4 + uVar16 * 0x18) == '\0') {
+LAB_01d49abb:
+                local_68 = "digital sample rate is not valid";
+                uStack_60 = 0x20;
+                    /* try { // try from 01d49ad0 to 01d49b5a has its CatchHandler @ 01d49da8 */
+                    /* WARNING: Subroutine does not return */
+                FUN_02eca300("false",5,"U32 SampleRateOption::DigitalSampleRateHz() const",0x31,
+                             "/workspace/monorepo/graph-io/devices/logic_interface/src/DeviceSettings.cpp"
+                             ,0x4b,0x114,0x4e75d5,0x20);
+              }
+              if (*(int *)(lVar20 + uVar16 * 0x18) == *local_40) goto LAB_01d4986b;
+              lVar15 = plVar1[1];
+              lVar20 = *plVar1;
+            }
+            uVar12 = (lVar15 - lVar20 >> 3) * -0x5555555555555555;
+            uVar21 = (ulong)((int)uVar19 + 1);
+            uVar16 = uVar19;
+          } while (uVar19 <= uVar12 && uVar12 - uVar19 != 0);
+        }
+      }
+    }
+    uStack_80 = (uint6)(uint5)uStack_80;
+    if (local_58 != puStack_50) {
+      uVar13 = 0;
+      puVar17 = local_58;
+      do {
+        for (puVar10 = (uint *)*puVar17; puVar10 != (uint *)puVar17[1]; puVar10 = puVar10 + 6) {
+          if (puVar10[2] == 0x1e848) {
+            if (*(char *)((long)puVar10 + 0xd) == '\0') {
+              local_68 = "attempt to read un-set SampleRateOption";
+              uStack_60 = 0x27;
+                    /* try { // try from 01d498a0 to 01d4997a has its CatchHandler @ 01d49dbc */
+                    /* WARNING: Subroutine does not return */
+              FUN_02eca300("false",5,"U32 SampleRateOption::DigitalSampleRateHz() const",0x31,
+                           "/workspace/monorepo/graph-io/devices/logic_interface/src/DeviceSettings.cpp"
+                           ,0x4b,0x111,0x469cf2,0x27);
+            }
+            if ((char)puVar10[1] == '\0') {
+              local_68 = "digital sample rate is not valid";
+              uStack_60 = 0x20;
+                    /* WARNING: Subroutine does not return */
+              FUN_02eca300("false",5,"U32 SampleRateOption::DigitalSampleRateHz() const",0x31,
+                           "/workspace/monorepo/graph-io/devices/logic_interface/src/DeviceSettings.cpp"
+                           ,0x4b,0x114,0x4e75d5,0x20);
+            }
+            if (uVar13 < *puVar10) {
+              local_78 = *(undefined8 *)(puVar10 + 4);
+              local_88 = *(char **)puVar10;
+              _uStack_80 = *(undefined8 *)(puVar10 + 2);
+              if (*(char *)((long)puVar10 + 0xd) == '\0') {
+                local_68 = "attempt to read un-set SampleRateOption";
+                uStack_60 = 0x27;
+                    /* WARNING: Subroutine does not return */
+                FUN_02eca300("false",5,"U32 SampleRateOption::DigitalSampleRateHz() const",0x31,
+                             "/workspace/monorepo/graph-io/devices/logic_interface/src/DeviceSettings.cpp"
+                             ,0x4b,0x111,0x469cf2,0x27);
+              }
+              if ((char)puVar10[1] == '\0') {
+                local_68 = "digital sample rate is not valid";
+                uStack_60 = 0x20;
+                    /* try { // try from 01d49792 to 01d497cc has its CatchHandler @ 01d49dbc */
+                    /* WARNING: Subroutine does not return */
+                FUN_02eca300("false",5,"U32 SampleRateOption::DigitalSampleRateHz() const",0x31,
+                             "/workspace/monorepo/graph-io/devices/logic_interface/src/DeviceSettings.cpp"
+                             ,0x4b,0x114,0x4e75d5,0x20);
+              }
+              uVar13 = *puVar10;
+            }
+          }
+        }
+        puVar17 = puVar17 + 3;
+      } while (puVar17 != puStack_50);
+      if (uVar13 != 0) {
+                    /* try { // try from 01d497d1 to 01d497ea has its CatchHandler @ 01d49da2 */
+        FUN_01d4b130(puVar9,&local_88);
+        goto LAB_01d497eb;
+      }
+    }
+    FUN_01d4b130(puVar9,*local_58);
+  }
+LAB_01d497eb:
+  bVar22 = 0;
+LAB_01d497ee:
+  puVar17 = local_58;
+  puVar8 = puStack_50;
+  if (local_58 != (undefined8 *)0x0) {
+    while (puVar6 = puVar8, puVar6 != puVar17) {
+      pvVar4 = (void *)puVar6[-3];
+      puVar8 = puVar6 + -3;
+      if (pvVar4 != (void *)0x0) {
+        puVar6[-2] = pvVar4;
+        operator_delete(pvVar4);
+      }
+    }
+    puStack_50 = puVar17;
+    operator_delete(local_58);
+  }
+  if (local_a8 != (int *)0x0) {
+    piStack_a0 = local_a8;
+    operator_delete(local_a8);
+  }
+  return CONCAT71(uVar24,bVar23 & bVar22) & 0xffffffff;
+LAB_01d4986b:
+  bVar22 = 1;
+                    /* try { // try from 01d4986e to 01d49885 has its CatchHandler @ 01d49da8 */
+  FUN_01d4b130(puVar9);
+  goto LAB_01d497ee;
+LAB_01d4987b:
+  bVar22 = 1;
+  FUN_01d4b130(puVar9);
+  goto LAB_01d497ee;
+}
+
+ (GhidraScript)  
+INFO  DecompilePerformanceOptions.java>  (GhidraScript)  
+INFO  DecompilePerformanceOptions.java> === FUN_01d49ec0 @ 01d49ec0 (label: xref_GetPerfInterfaceType_4) === (GhidraScript)  
+INFO  DecompilePerformanceOptions.java> 
+void FUN_01d49ec0(uint *param_1,undefined8 *param_2)
+
+{
+  int iVar1;
+  uint uVar2;
+  ulong uVar3;
+  uint *puVar4;
+  long lVar5;
+  ulong uVar6;
+  ulong uVar7;
+  long lVar8;
+  undefined8 local_58;
+  undefined8 uStack_50;
+  undefined8 local_48;
+  char *local_40;
+  undefined8 uStack_38;
+  
+  if (1 < *param_1) {
+    if (*param_1 - 3 < 6) {
+      local_40 = "invalid performance interface type";
+      uStack_38 = 0x22;
+                    /* WARNING: Subroutine does not return */
+      FUN_02eca300("false",5,
+                   "void DeviceSettings::GetDigitalOnlyPerforamnceOptions(std::vector<SampleRateOption> &) const"
+                   ,0x5c,
+                   "/workspace/monorepo/graph-io/devices/logic_interface/src/DeviceSettings.cpp",
+                   0x4b,0x38f,0x4d1db3,0x22);
+    }
+    local_58 = "Invalid device";
+    uStack_50 = 0xe;
+                    /* WARNING: Subroutine does not return */
+    FUN_02eca300("false",5,
+                 "PerformanceInterfaceType DeviceSettings::GetPerformanceInterfaceType() const",0x4c
+                 ,"/workspace/monorepo/graph-io/devices/logic_interface/src/DeviceSettings.cpp",0x4b
+                 ,0x387,0x4d1d3d,0xe);
+  }
+  param_2[1] = *param_2;
+  if ((ulong)(long)(int)param_1[0x28] < 3) {
+    lVar5 = *(long *)(param_1 + 0x14);
+    uVar6 = (*(long *)(param_1 + 0x16) - lVar5 >> 2) * 0x6db6db6db6db6db7;
+    if ((int)uVar6 == 0) {
+      uVar7 = 0;
+    }
+    else {
+      lVar8 = 0;
+      uVar7 = 0;
+      do {
+        if (*(int *)(lVar5 + 8 + lVar8) != 1) {
+          iVar1 = *(int *)(lVar5 + 0xc + lVar8);
+          if (iVar1 == 1) {
+            uVar7 = (ulong)((int)uVar7 + (uint)(*(int *)(lVar5 + 0x14 + lVar8) == 0));
+          }
+          else if (iVar1 != 3) {
+            uVar7 = (ulong)((int)uVar7 + 1);
+          }
+        }
+        lVar8 = lVar8 + 0x1c;
+      } while ((uVar6 & 0xffffffff) * 0x1c != lVar8);
+    }
+    lVar5 = *(long *)(param_1 + 0x36);
+    uVar6 = (ulong)(*(long *)(param_1 + 0x38) - lVar5) >> 2;
+    if ((int)uVar6 != 0) {
+      uVar3 = *(ulong *)(&DAT_005748f0 + (long)(int)param_1[0x28] * 8);
+      lVar8 = 0;
+      while( true ) {
+        uVar2 = *(uint *)(lVar5 + lVar8 * 4);
+        if (uVar2 * uVar7 < uVar3 || uVar2 * uVar7 - uVar3 == 0) {
+          uStack_50 = CONCAT17(uStack_50._7_1_,0x10000000000);
+          local_58._0_5_ = CONCAT14(1,uVar2);
+          local_48 = 0;
+          puVar4 = (uint *)param_2[1];
+          if (puVar4 < (uint *)param_2[2]) {
+            *(undefined2 *)((long)puVar4 + 0xd) = 1;
+            *puVar4 = uVar2;
+            *(undefined1 *)(puVar4 + 1) = 1;
+            puVar4[4] = 0;
+            puVar4[5] = 0;
+            *(undefined1 *)(puVar4 + 3) = 0;
+            puVar4[2] = 0;
+            param_2[1] = puVar4 + 6;
+          }
+          else {
+            FUN_01d4d5d0(param_2,&local_58);
+          }
+        }
+        if ((uVar6 & 0xffffffff) - 1 == lVar8) break;
+        lVar8 = lVar8 + 1;
+        lVar5 = *(long *)(param_1 + 0x36);
+      }
+    }
+    return;
+  }
+  local_58 = "Invalid USB speed";
+  uStack_50 = 0x11;
+                    /* WARNING: Subroutine does not return */
+  FUN_02eca300("false",5,"U64 DeviceSettings::GetInterfaceMaximumBitRate() const",0x36,
+               "/workspace/monorepo/graph-io/devices/logic_interface/src/DeviceSettings.cpp",0x4b,
+               0x36f,0x46309a,0x11);
+}
+
+ (GhidraScript)  
+INFO  DecompilePerformanceOptions.java>  (GhidraScript)  
+INFO  DecompilePerformanceOptions.java> === FUN_01d4a140 @ 01d4a140 (label: xref_GetAnalogBasicPerformanceOptions_2) === (GhidraScript)  
+INFO  DecompilePerformanceOptions.java> 
+void FUN_01d4a140(uint *param_1,uint *param_2)
+
+{
+  uint uVar1;
+  
+  uVar1 = *param_1;
+  if (1 < uVar1 - 3) {
+    if (uVar1 < 9) {
+      if (uVar1 == 8) goto LAB_01d4a159;
+      if ((0xe3U >> (uVar1 & 0x1f) & 1) != 0) {
+                    /* WARNING: Subroutine does not return */
+        FUN_02eca300("false",5,
+                     "void DeviceSettings::GetAnalogBasicPerformanceOptions(std::vector<SampleRateOption> &) const"
+                     ,0x5c,
+                     "/workspace/monorepo/graph-io/devices/logic_interface/src/DeviceSettings.cpp",
+                     0x4b,0x3be,0x4d1db3,0x22);
+      }
+    }
+                    /* WARNING: Subroutine does not return */
+    FUN_02eca300("false",5,
+                 "PerformanceInterfaceType DeviceSettings::GetPerformanceInterfaceType() const",0x4c
+                 ,"/workspace/monorepo/graph-io/devices/logic_interface/src/DeviceSettings.cpp",0x4b
+                 ,0x387,0x4d1d3d,0xe);
+  }
+LAB_01d4a159:
+  *(undefined8 *)(param_2 + 2) = *(undefined8 *)param_2;
+  if ((param_1 + 0x3c != param_2) && (param_1[0x28] != 0)) {
+    FUN_01cf0100(param_2,*(undefined8 *)(param_1 + 0x3c),*(undefined8 *)(param_1 + 0x3e));
+    return;
+  }
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompilePerformanceOptions.java>  (GhidraScript)  
+INFO  DecompilePerformanceOptions.java> === FUN_01d4a250 @ 01d4a250 (label: xref_GetAnalogAdvancedPerformanceOptions_1) === (GhidraScript)  
+INFO  DecompilePerformanceOptions.java> 
+/* WARNING: Globals starting with '_' overlap smaller symbols at the same address */
+
+void FUN_01d4a250(uint *param_1,long *param_2)
+
+{
+  uint uVar1;
+  int iVar2;
+  uint uVar3;
+  uint uVar4;
+  uint uVar5;
+  void *pvVar6;
+  undefined1 (*pauVar7) [16];
+  uint *puVar8;
+  undefined4 *puVar9;
+  long lVar10;
+  undefined1 auVar11 [12];
+  undefined1 auVar12 [16];
+  ulong *puVar13;
+  ulong *puVar14;
+  ulong uVar15;
+  long lVar16;
+  long lVar17;
+  ulong uVar18;
+  ulong uVar19;
+  ulong uVar20;
+  ulong uVar21;
+  undefined1 auVar22 [16];
+  undefined1 local_e8 [8];
+  undefined8 uStack_e0;
+  undefined8 local_d8;
+  uint local_d0;
+  char local_c9;
+  undefined1 local_c8 [16];
+  ulong *local_b8;
+  uint local_ac;
+  uint *local_a8;
+  long *local_a0;
+  long local_98;
+  uint local_90;
+  uint local_8c;
+  long local_88;
+  ulong local_80;
+  ulong local_78;
+  ulong local_70;
+  ulong local_68;
+  ulong local_60;
+  undefined1 local_58 [4];
+  undefined1 local_54 [4];
+  char *local_50;
+  undefined8 uStack_48;
+  char *local_40;
+  undefined8 uStack_38;
+  
+  uVar1 = *param_1;
+  local_a8 = param_1;
+  if (2 < uVar1 - 5) {
+    if ((uVar1 < 9) && ((0x11bU >> (uVar1 & 0x1f) & 1) != 0)) {
+      local_40 = "invalid performance interface type";
+      uStack_38 = 0x22;
+                    /* WARNING: Subroutine does not return */
+      FUN_02eca300("false",5,
+                   "void DeviceSettings::GetAnalogAdvancedPerformanceOptions(std::vector<std::vector<SampleRateOption>> &) const"
+                   ,0x6c,
+                   "/workspace/monorepo/graph-io/devices/logic_interface/src/DeviceSettings.cpp",
+                   0x4b,0x3e5,"invalid performance interface type",0x22);
+    }
+    local_c8._8_8_ = 0xe;
+    local_c8._0_8_ = "Invalid device";
+                    /* WARNING: Subroutine does not return */
+    FUN_02eca300("false",5,
+                 "PerformanceInterfaceType DeviceSettings::GetPerformanceInterfaceType() const",0x4c
+                 ,"/workspace/monorepo/graph-io/devices/logic_interface/src/DeviceSettings.cpp",0x4b
+                 ,0x387,"Invalid device",0xe);
+  }
+  lVar16 = *param_2;
+  lVar10 = param_2[1];
+  while (lVar17 = lVar10, lVar17 != lVar16) {
+    pvVar6 = *(void **)(lVar17 + -0x18);
+    lVar10 = lVar17 + -0x18;
+    if (pvVar6 != (void *)0x0) {
+      *(void **)(lVar17 + -0x10) = pvVar6;
+      operator_delete(pvVar6);
+    }
+  }
+  param_2[1] = lVar16;
+  uVar1 = local_a8[0x28];
+  if (2 < (ulong)(long)(int)uVar1) {
+    local_c8._8_8_ = 0x11;
+    local_c8._0_8_ = "Invalid USB speed";
+                    /* WARNING: Subroutine does not return */
+    FUN_02eca300("false",5,"U64 DeviceSettings::GetInterfaceMaximumBitRate() const",0x36,
+                 "/workspace/monorepo/graph-io/devices/logic_interface/src/DeviceSettings.cpp",0x4b,
+                 0x36f,"Invalid USB speed",0x11);
+  }
+  local_c8 = (undefined1  [16])0x0;
+  local_b8 = (ulong *)0x0;
+                    /* try { // try from 01d4a2b4 to 01d4a2bd has its CatchHandler @ 01d4ab9a */
+  puVar13 = (ulong *)operator_new(8);
+  uVar20 = *(ulong *)(&DAT_005748f0 + (long)(int)uVar1 * 8);
+  local_b8 = puVar13 + 1;
+  *puVar13 = uVar20;
+  local_c8._0_8_ = puVar13;
+  local_c8._8_8_ = local_b8;
+                    /* try { // try from 01d4a2e6 to 01d4a2ef has its CatchHandler @ 01d4ab98 */
+  puVar14 = (ulong *)operator_new(0x10);
+  puVar14[1] = (uVar20 * 8) / 10;
+  auVar22._8_4_ = (int)puVar14;
+  auVar22._0_8_ = puVar14;
+  auVar22._12_4_ = (int)((ulong)puVar14 >> 0x20);
+  local_c8._8_8_ = (long)puVar14 + _DAT_0044aa30;
+  local_b8 = (ulong *)(auVar22._8_8_ + _UNK_0044aa38);
+  *puVar14 = *puVar13;
+  local_c8._0_8_ = puVar14;
+  operator_delete(puVar13);
+                    /* try { // try from 01d4a33c to 01d4a345 has its CatchHandler @ 01d4ab96 */
+  puVar13 = (ulong *)operator_new(0x20);
+  puVar13[2] = (uVar20 * 6) / 10;
+  uVar15 = puVar14[1];
+  *puVar13 = *puVar14;
+  puVar13[1] = uVar15;
+  local_c8._8_8_ = puVar13 + 3;
+  local_c8._0_8_ = puVar13;
+  local_b8 = puVar13 + 4;
+  operator_delete(puVar14);
+  puVar13[3] = (uVar20 * 4) / 10;
+  local_c8._8_8_ = puVar13 + 4;
+                    /* try { // try from 01d4a3a0 to 01d4a3a9 has its CatchHandler @ 01d4ab94 */
+  local_c8._0_8_ = operator_new(0x40);
+  local_b8 = (ulong *)(local_c8._0_8_ + 0x40);
+  *(ulong *)(local_c8._0_8_ + 0x20) = (uVar20 & 0xffffffff) / 5;
+  uVar15 = puVar13[1];
+  uVar18 = puVar13[2];
+  uVar21 = puVar13[3];
+  *(ulong *)local_c8._0_8_ = *puVar13;
+  *(ulong *)(local_c8._0_8_ + 8) = uVar15;
+  *(ulong *)(local_c8._0_8_ + 0x10) = uVar18;
+  *(ulong *)(local_c8._0_8_ + 0x18) = uVar21;
+  local_c8._8_8_ = (ulong *)(local_c8._0_8_ + 0x28);
+  operator_delete(puVar13);
+  uVar18 = (ulong)(*(long *)(local_a8 + 0x44) - *(long *)(local_a8 + 0x42)) >> 2;
+  lVar16 = *(long *)(local_a8 + 0x14);
+  uVar15 = (*(long *)(local_a8 + 0x16) - lVar16 >> 2) * 0x6db6db6db6db6db7;
+  if ((int)uVar15 == 0) {
+    local_d0 = 0;
+    local_ac = 0;
+  }
+  else {
+    lVar10 = (uVar15 & 0xffffffff) * 0x1c;
+    lVar17 = 0;
+    local_d0 = 0;
+    do {
+      if (*(int *)(lVar16 + 8 + lVar17) != 1) {
+        iVar2 = *(int *)(lVar16 + 0xc + lVar17);
+        if (iVar2 == 1) {
+          local_d0 = local_d0 + (*(int *)(lVar16 + 0x14 + lVar17) == 0);
+        }
+        else if (iVar2 != 3) {
+          local_d0 = local_d0 + 1;
+        }
+      }
+      lVar17 = lVar17 + 0x1c;
+    } while (lVar10 != lVar17);
+    lVar17 = 0;
+    local_ac = 0;
+    do {
+      if (*(int *)(lVar16 + 8 + lVar17) != 0) {
+        iVar2 = *(int *)(lVar16 + 0x10 + lVar17);
+        if (iVar2 == 1) {
+          local_ac = local_ac + (*(int *)(lVar16 + 0x18 + lVar17) == 0);
+        }
+        else if (iVar2 != 3) {
+          local_ac = local_ac + 1;
+        }
+      }
+      lVar17 = lVar17 + 0x1c;
+    } while (lVar10 != lVar17);
+  }
+  local_a0 = param_2;
+  if (local_ac == 0) {
+    if (local_d0 == 0) {
+      local_50 = "no channels selected";
+      uStack_48 = 0x14;
+                    /* try { // try from 01d4aafe to 01d4ab3d has its CatchHandler @ 01d4ab92 */
+                    /* WARNING: Subroutine does not return */
+      FUN_02eca300("false",5,
+                   "void DeviceSettings::GetAnalogAdvancedPerformanceOptions(std::vector<std::vector<SampleRateOption>> &) const"
+                   ,0x6c,
+                   "/workspace/monorepo/graph-io/devices/logic_interface/src/DeviceSettings.cpp",
+                   0x4b,0x3fe,"no channels selected",0x14);
+    }
+    _local_e8 = (undefined1  [16])0x0;
+    local_d8 = 0;
+    pauVar7 = (undefined1 (*) [16])param_2[1];
+    if (pauVar7 < (undefined1 (*) [16])param_2[2]) {
+      *pauVar7 = (undefined1  [16])0x0;
+      *(undefined8 *)pauVar7[1] = 0;
+      *(undefined8 *)pauVar7[1] = 0;
+      param_2[1] = (long)(pauVar7[1] + 8);
+    }
+    else {
+                    /* try { // try from 01d4a82a to 01d4a836 has its CatchHandler @ 01d4ab90 */
+      FUN_01d4d770(param_2,local_e8);
+      if (local_e8 != (undefined1  [8])0x0) {
+        uStack_e0 = local_e8;
+        operator_delete((void *)local_e8);
+      }
+    }
+    if ((int)uVar18 != 0) {
+      uVar21 = (ulong)local_d0;
+      uVar15 = 0;
+      do {
+        uVar1 = *(uint *)(*(long *)(local_a8 + 0x42) + uVar15 * 4);
+        if (uVar1 * uVar21 < uVar20 || uVar1 * uVar21 - uVar20 == 0) {
+          lVar16 = local_a0[1];
+          uStack_e0._5_2_ = 1;
+          auVar22 = _local_e8;
+          local_e8[4] = 1;
+          local_e8._0_4_ = uVar1;
+          auVar12 = _local_e8;
+          local_d8 = 0;
+          uStack_e0._5_3_ = auVar22._13_3_;
+          _local_e8 = auVar12._0_12_;
+          uStack_e0._4_1_ = 0;
+          local_e8 = auVar12._0_8_;
+          uStack_e0._0_4_ = 0;
+          puVar8 = *(uint **)(lVar16 + -0x10);
+          if (puVar8 < *(uint **)(lVar16 + -8)) {
+            *(undefined2 *)((long)puVar8 + 0xd) = 1;
+            *puVar8 = uVar1;
+            *(undefined1 *)(puVar8 + 1) = 1;
+            puVar8[4] = 0;
+            puVar8[5] = 0;
+            *(undefined1 *)(puVar8 + 3) = 0;
+            puVar8[2] = 0;
+            *(uint **)(lVar16 + -0x10) = puVar8 + 6;
+          }
+          else {
+                    /* try { // try from 01d4a900 to 01d4a907 has its CatchHandler @ 01d4ab9e */
+            FUN_01d4d5d0(lVar16 + -0x18,local_e8);
+          }
+        }
+        uVar15 = uVar15 + 1;
+      } while ((uVar18 & 0xffffffff) != uVar15);
+    }
+  }
+  else {
+    uVar15 = (ulong)(*(long *)(local_a8 + 0x4a) - *(long *)(local_a8 + 0x48)) >> 3;
+    if (local_d0 == 0) {
+      pauVar7 = (undefined1 (*) [16])param_2[1];
+      if (pauVar7 == (undefined1 (*) [16])*param_2) {
+        _local_e8 = (undefined1  [16])0x0;
+        local_d8 = 0;
+        if (pauVar7 < (undefined1 (*) [16])param_2[2]) {
+          *pauVar7 = (undefined1  [16])0x0;
+          *(undefined8 *)pauVar7[1] = 0;
+          *(undefined8 *)pauVar7[1] = 0;
+          param_2[1] = (long)(pauVar7[1] + 8);
+        }
+        else {
+                    /* try { // try from 01d4a90a to 01d4a916 has its CatchHandler @ 01d4ab8e */
+          FUN_01d4d770(param_2,local_e8);
+          if (local_e8 != (undefined1  [8])0x0) {
+            uStack_e0 = local_e8;
+            operator_delete((void *)local_e8);
+          }
+        }
+      }
+      if ((int)uVar15 != 0) {
+        uVar21 = (ulong)local_ac;
+        uVar18 = 0;
+        do {
+          auVar22 = _local_e8;
+          uVar1 = *(uint *)(*(long *)(local_a8 + 0x48) + uVar18 * 8);
+          uVar19 = (ulong)local_a8[0x1a] * uVar1 * uVar21;
+          if (uVar19 < uVar20 || uVar19 - uVar20 == 0) {
+            uVar3 = *(uint *)(*(long *)(local_a8 + 0x48) + 4 + uVar18 * 8);
+            lVar16 = local_a0[1];
+            auVar11[0xb] = 0;
+            auVar11._0_11_ = stack0xffffffffffffff1d;
+            _local_e8 = auVar11 << 0x28;
+            uStack_e0._4_2_ = 0x101;
+            local_d8 = (ulong)uVar1;
+            uStack_e0._7_1_ = auVar22[0xf];
+            uStack_e0._6_1_ = uVar1 != uVar3;
+            uStack_e0._0_4_ = uVar3;
+            puVar9 = *(undefined4 **)(lVar16 + -0x10);
+            if (puVar9 < *(undefined4 **)(lVar16 + -8)) {
+              *puVar9 = 0;
+              *(undefined1 *)(puVar9 + 1) = 0;
+              puVar9[4] = uVar1;
+              *(undefined2 *)(puVar9 + 3) = 0x101;
+              puVar9[5] = 0;
+              puVar9[2] = uVar3;
+              *(bool *)((long)puVar9 + 0xe) = uVar1 != uVar3;
+              *(undefined4 **)(lVar16 + -0x10) = puVar9 + 6;
+            }
+            else {
+                    /* try { // try from 01d4a9f0 to 01d4a9f7 has its CatchHandler @ 01d4ab9c */
+              FUN_01d4d5d0(lVar16 + -0x18,local_e8);
+            }
+          }
+          uVar18 = uVar18 + 1;
+        } while ((uVar15 & 0xffffffff) != uVar18);
+      }
+    }
+    else {
+      local_68 = (ulong)local_d0;
+      local_70 = (ulong)local_ac;
+      local_80 = uVar15 & 0xffffffff;
+      local_78 = uVar18 & 0xffffffff;
+      local_88 = local_c8._0_8_;
+      local_c9 = (int)uVar18 == 0 || (int)uVar15 == 0;
+      lVar16 = 0;
+      do {
+        _local_e8 = (undefined1  [16])0x0;
+        local_d8 = 0;
+        pauVar7 = (undefined1 (*) [16])local_a0[1];
+        local_98 = lVar16;
+        if (pauVar7 < (undefined1 (*) [16])local_a0[2]) {
+          *pauVar7 = (undefined1  [16])0x0;
+          *(undefined8 *)pauVar7[1] = 0;
+          *(undefined8 *)*pauVar7 = 0;
+          *(undefined8 *)(*pauVar7 + 8) = 0;
+          *(undefined8 *)pauVar7[1] = 0;
+          local_a0[1] = (long)(pauVar7[1] + 8);
+        }
+        else {
+                    /* try { // try from 01d4a5e0 to 01d4a5e9 has its CatchHandler @ 01d4aba0 */
+          FUN_01d4d770(local_a0,local_e8);
+          if (local_e8 != (undefined1  [8])0x0) {
+            uStack_e0 = local_e8;
+            operator_delete((void *)local_e8);
+          }
+        }
+        if (local_c9 == '\0') {
+          local_60 = *(ulong *)(local_88 + local_98 * 8);
+          uVar20 = 0;
+          do {
+            uVar15 = 0;
+            do {
+              uVar1 = *(uint *)(*(long *)(local_a8 + 0x48) + uVar20 * 8);
+              uVar3 = *(uint *)(*(long *)(local_a8 + 0x48) + 4 + uVar20 * 8);
+              uVar4 = *(uint *)(*(long *)(local_a8 + 0x42) + uVar15 * 4);
+              uVar5 = local_a8[0x1a];
+                    /* try { // try from 01d4a6b9 to 01d4a6fd has its CatchHandler @ 01d4abd7 */
+              FUN_01d19fa0(local_d0,local_ac,(ulong)uVar4,(ulong)uVar1,
+                           ((*local_a8 & 0xfffffffe) == 6) * '\x10' + '\x10',0xc,&local_8c,&local_90
+                           ,local_54,local_58);
+              auVar22 = _local_e8;
+              if (((ulong)uVar5 * uVar1 * local_70 + uVar4 * local_68 <= local_60) &&
+                 ((local_90 | local_8c) < 0x100)) {
+                lVar16 = local_a0[1];
+                local_e8[4] = 1;
+                local_e8._0_4_ = uVar4;
+                auVar12 = _local_e8;
+                uStack_e0._4_2_ = 0x101;
+                local_d8 = CONCAT44((uint)local_98,uVar1);
+                uStack_e0._7_1_ = auVar22[0xf];
+                uStack_e0._6_1_ = uVar3 != uVar1;
+                local_e8 = auVar12._0_8_;
+                uStack_e0._0_4_ = uVar3;
+                puVar8 = *(uint **)(lVar16 + -0x10);
+                if (puVar8 < *(uint **)(lVar16 + -8)) {
+                  *puVar8 = uVar4;
+                  *(undefined1 *)(puVar8 + 1) = 1;
+                  puVar8[4] = uVar1;
+                  *(undefined2 *)(puVar8 + 3) = 0x101;
+                  puVar8[5] = (uint)local_98;
+                  puVar8[2] = uVar3;
+                  *(bool *)((long)puVar8 + 0xe) = uVar3 != uVar1;
+                  *(uint **)(lVar16 + -0x10) = puVar8 + 6;
+                }
+                else {
+                    /* try { // try from 01d4a787 to 01d4a790 has its CatchHandler @ 01d4abd5 */
+                  FUN_01d4d5d0(lVar16 + -0x18,local_e8);
+                }
+                break;
+              }
+              uVar15 = uVar15 + 1;
+            } while (local_78 != uVar15);
+            uVar20 = uVar20 + 1;
+          } while (uVar20 != local_80);
+        }
+        lVar16 = local_98 + 1;
+      } while (lVar16 != 5);
+    }
+  }
+  if ((void *)local_c8._0_8_ != (void *)0x0) {
+    local_c8._8_8_ = local_c8._0_8_;
+    operator_delete((void *)local_c8._0_8_);
+  }
+  return;
+}
+
+ (GhidraScript)  
+INFO  DecompilePerformanceOptions.java>  (GhidraScript)  
+INFO  DecompilePerformanceOptions.java> === FUN_01d4ac00 @ 01d4ac00 (label: xref_GetAnalogBasicPerformanceOptions_3) === (GhidraScript)  
+INFO  DecompilePerformanceOptions.java> 
+void FUN_01d4ac00(uint *param_1,int *param_2)
+
+{
+  uint uVar1;
+  long lVar2;
+  undefined8 uVar3;
+  long lVar4;
+  int *piVar5;
+  int *local_78;
+  int *piStack_70;
+  undefined8 local_68;
+  char *local_58;
+  undefined8 uStack_50;
+  char *local_48;
+  undefined8 uStack_40;
+  char *local_38;
+  undefined8 uStack_30;
+  char *local_28;
+  undefined8 uStack_20;
+  
+  uVar1 = *param_1;
+  if (1 < uVar1 - 3) {
+    if (uVar1 < 9) {
+      if (uVar1 == 8) goto LAB_01d4ac2b;
+      if ((0xe3U >> (uVar1 & 0x1f) & 1) != 0) {
+        local_48 = "invalid performance interface type";
+        uStack_40 = 0x22;
+                    /* WARNING: Subroutine does not return */
+        FUN_02eca300("false",5,
+                     "void DeviceSettings::SetAnalogBasicPerformanceOption(const SampleRateOption &)"
+                     ,0x4e,
+                     "/workspace/monorepo/graph-io/devices/logic_interface/src/DeviceSettings.cpp",
+                     0x4b,0x3cb,0x4d1db3,0x22);
+      }
+    }
+    local_78 = (int *)0x4d1d3d;
+    piStack_70 = (int *)0xe;
+                    /* WARNING: Subroutine does not return */
+    FUN_02eca300("false",5,
+                 "PerformanceInterfaceType DeviceSettings::GetPerformanceInterfaceType() const",0x4c
+                 ,"/workspace/monorepo/graph-io/devices/logic_interface/src/DeviceSettings.cpp",0x4b
+                 ,0x387,0x4d1d3d,0xe);
+  }
+LAB_01d4ac2b:
+  local_78 = (int *)0x0;
+  piStack_70 = (int *)0x0;
+  local_68 = 0;
+  if ((1 < uVar1 - 3) && (uVar1 != 8)) {
+    if (uVar1 - 5 < 3) {
+      local_38 = "invalid performance interface type";
+      uStack_30 = 0x22;
+                    /* try { // try from 01d4ae43 to 01d4aecd has its CatchHandler @ 01d4af1e */
+                    /* WARNING: Subroutine does not return */
+      FUN_02eca300("false",5,
+                   "void DeviceSettings::GetAnalogBasicPerformanceOptions(std::vector<SampleRateOption> &) const"
+                   ,0x5c,
+                   "/workspace/monorepo/graph-io/devices/logic_interface/src/DeviceSettings.cpp",
+                   0x4b,0x3be,0x4d1db3,0x22);
+    }
+    local_28 = "Invalid device";
+    uStack_20 = 0xe;
+                    /* WARNING: Subroutine does not return */
+    FUN_02eca300("false",5,
+                 "PerformanceInterfaceType DeviceSettings::GetPerformanceInterfaceType() const",0x4c
+                 ,"/workspace/monorepo/graph-io/devices/logic_interface/src/DeviceSettings.cpp",0x4b
+                 ,0x387,0x4d1d3d,0xe);
+  }
+  piStack_70 = (int *)0x0;
+                    /* try { // try from 01d4ac84 to 01d4adc7 has its CatchHandler @ 01d4af1e */
+  if ((((int **)(param_1 + 0x3c) != &local_78) && (param_1[0x28] != 0)) &&
+     (FUN_01cf0100(&local_78,*(undefined8 *)(param_1 + 0x3c),*(undefined8 *)(param_1 + 0x3e)),
+     local_78 != piStack_70)) {
+    piVar5 = local_78;
+    do {
+      if (((((*(char *)((long)piVar5 + 0xd) == *(char *)((long)param_2 + 0xd)) &&
+            ((char)piVar5[3] == (char)param_2[3])) &&
+           ((piVar5[4] == param_2[4] &&
+            (((char)piVar5[1] == (char)param_2[1] && (*piVar5 == *param_2)))))) &&
+          (piVar5[5] == param_2[5])) && (piVar5[2] == param_2[2])) {
+        if (piStack_70 != piVar5) {
+          *(undefined8 *)(param_1 + 0x2d) = *(undefined8 *)(param_2 + 4);
+          uVar3 = *(undefined8 *)(param_2 + 2);
+          *(undefined8 *)(param_1 + 0x29) = *(undefined8 *)param_2;
+          *(undefined8 *)(param_1 + 0x2b) = uVar3;
+          if ((char)param_2[3] == '\0') {
+            lVar2 = *(long *)(param_1 + 0x16);
+            for (lVar4 = *(long *)(param_1 + 0x14); lVar4 != lVar2; lVar4 = lVar4 + 0x1c) {
+              if (*(int *)(lVar4 + 0x10) == 1) {
+                *(undefined4 *)(lVar4 + 0x18) = 1;
+              }
+            }
+          }
+          if (local_78 != (int *)0x0) {
+            piStack_70 = local_78;
+            operator_delete(local_78);
+          }
+          return;
+        }
+        break;
+      }
+      piVar5 = piVar5 + 6;
+    } while (piStack_70 != piVar5);
+  }
+  local_58 = "attempted to set invalid sample rate";
+  uStack_50 = 0x24;
+                    /* WARNING: Subroutine does not return */
+  FUN_02eca300("false",5,
+               "void DeviceSettings::SetAnalogBasicPerformanceOption(const SampleRateOption &)",0x4e
+               ,"/workspace/monorepo/graph-io/devices/logic_interface/src/DeviceSettings.cpp",0x4b,
+               0x3d1,0x4be2ad,0x24);
+}
+
+ (GhidraScript)  
+INFO  DecompilePerformanceOptions.java>  (GhidraScript)  
+INFO  DecompilePerformanceOptions.java> === FUN_01d4af40 @ 01d4af40 (label: xref_SetDigitalOnlyPerformanceOption_1) === (GhidraScript)  
+INFO  DecompilePerformanceOptions.java> 
+void FUN_01d4af40(uint *param_1,int *param_2)
+
+{
+  undefined8 uVar1;
+  int *piVar2;
+  int *local_58;
+  int *piStack_50;
+  undefined8 local_48;
+  char *local_38;
+  undefined8 uStack_30;
+  char *local_28;
+  undefined8 uStack_20;
+  
+  if (1 < *param_1) {
+    if (*param_1 - 3 < 6) {
+      local_28 = "invalid performance interface type";
+      uStack_20 = 0x22;
+                    /* WARNING: Subroutine does not return */
+      FUN_02eca300("false",5,
+                   "void DeviceSettings::SetDigitalOnlyPerformanceOption(const SampleRateOption &)",
+                   0x4e,
+                   "/workspace/monorepo/graph-io/devices/logic_interface/src/DeviceSettings.cpp",
+                   0x4b,0x3a6,0x4d1db3,0x22);
+    }
+    local_58 = (int *)0x4d1d3d;
+    piStack_50 = (int *)0xe;
+                    /* WARNING: Subroutine does not return */
+    FUN_02eca300("false",5,
+                 "PerformanceInterfaceType DeviceSettings::GetPerformanceInterfaceType() const",0x4c
+                 ,"/workspace/monorepo/graph-io/devices/logic_interface/src/DeviceSettings.cpp",0x4b
+                 ,0x387,0x4d1d3d,0xe);
+  }
+  local_58 = (int *)0x0;
+  piStack_50 = (int *)0x0;
+  local_48 = 0;
+                    /* try { // try from 01d4af6b to 01d4b063 has its CatchHandler @ 01d4b10c */
+  FUN_01d49ec0(param_1,&local_58);
+  piVar2 = local_58;
+  if (local_58 == piStack_50) {
+LAB_01d4afdf:
+    if (piVar2 != piStack_50) {
+      *(undefined8 *)(param_1 + 0x2d) = *(undefined8 *)(param_2 + 4);
+      uVar1 = *(undefined8 *)(param_2 + 2);
+      *(undefined8 *)(param_1 + 0x29) = *(undefined8 *)param_2;
+      *(undefined8 *)(param_1 + 0x2b) = uVar1;
+      if (local_58 != (int *)0x0) {
+        piStack_50 = local_58;
+        operator_delete(local_58);
+      }
+      return;
+    }
+  }
+  else {
+    do {
+      if ((((*(char *)((long)piVar2 + 0xd) == *(char *)((long)param_2 + 0xd)) &&
+           ((char)piVar2[3] == (char)param_2[3])) && (piVar2[4] == param_2[4])) &&
+         ((((char)piVar2[1] == (char)param_2[1] && (*piVar2 == *param_2)) &&
+          ((piVar2[5] == param_2[5] && (piVar2[2] == param_2[2])))))) goto LAB_01d4afdf;
+      piVar2 = piVar2 + 6;
+    } while (piStack_50 != piVar2);
+  }
+  local_38 = "attempted to set invalid sample rate";
+  uStack_30 = 0x24;
+                    /* WARNING: Subroutine does not return */
+  FUN_02eca300("false",5,
+               "void DeviceSettings::SetDigitalOnlyPerformanceOption(const SampleRateOption &)",0x4e
+               ,"/workspace/monorepo/graph-io/devices/logic_interface/src/DeviceSettings.cpp",0x4b,
+               0x3ac,0x4be2ad,0x24);
+}
+
+ (GhidraScript)  
+INFO  DecompilePerformanceOptions.java>  (GhidraScript)  
+INFO  DecompilePerformanceOptions.java> === FUN_01d4b130 @ 01d4b130 (label: xref_GetPerfInterfaceType_10) === (GhidraScript)  
+INFO  DecompilePerformanceOptions.java> 
+void FUN_01d4b130(uint *param_1,int *param_2)
+
+{
+  uint uVar1;
+  int *piVar2;
+  void *pvVar3;
+  undefined8 uVar4;
+  char *pcVar5;
+  char *pcVar6;
+  char *pcVar7;
+  int *piVar8;
+  ulong uVar9;
+  ulong uVar10;
+  char *local_68;
+  char *pcStack_60;
+  undefined8 local_58;
+  char *local_50;
+  undefined8 uStack_48;
+  char *local_40;
+  undefined8 uStack_38;
+  
+  uVar1 = *param_1;
+  if (2 < uVar1 - 5) {
+    if ((uVar1 < 9) && ((0x11bU >> (uVar1 & 0x1f) & 1) != 0)) {
+      local_40 = "invalid performance interface type";
+      uStack_38 = 0x22;
+                    /* WARNING: Subroutine does not return */
+      FUN_02eca300("false",5,
+                   "void DeviceSettings::SetAnalogAdvancedPerformanceOption(const SampleRateOption &)"
+                   ,0x51,
+                   "/workspace/monorepo/graph-io/devices/logic_interface/src/DeviceSettings.cpp",
+                   0x4b,0x44e,0x4d1db3,0x22);
+    }
+    local_68 = "Invalid device";
+    pcStack_60 = (char *)0xe;
+                    /* WARNING: Subroutine does not return */
+    FUN_02eca300("false",5,
+                 "PerformanceInterfaceType DeviceSettings::GetPerformanceInterfaceType() const",0x4c
+                 ,"/workspace/monorepo/graph-io/devices/logic_interface/src/DeviceSettings.cpp",0x4b
+                 ,0x387,0x4d1d3d,0xe);
+  }
+  local_68 = (char *)0x0;
+  pcStack_60 = (char *)0x0;
+  local_58 = 0;
+                    /* try { // try from 01d4b163 to 01d4b16c has its CatchHandler @ 01d4b38d */
+  FUN_01d4a250(param_1,&local_68);
+  pcVar6 = local_68;
+  uVar9 = ((long)pcStack_60 - (long)local_68 >> 3) * -0x5555555555555555;
+  if ((int)uVar9 != 0) {
+    uVar10 = 0;
+    do {
+      piVar8 = *(int **)(local_68 + uVar10 * 0x18);
+      piVar2 = *(int **)(local_68 + uVar10 * 0x18 + 8);
+      if (piVar8 == piVar2) {
+LAB_01d4b1e0:
+        if (piVar8 != piVar2) {
+          *(undefined8 *)(param_1 + 0x2d) = *(undefined8 *)(param_2 + 4);
+          uVar4 = *(undefined8 *)(param_2 + 2);
+          *(undefined8 *)(param_1 + 0x29) = *(undefined8 *)param_2;
+          *(undefined8 *)(param_1 + 0x2b) = uVar4;
+          pcVar7 = pcStack_60;
+          if (local_68 != (char *)0x0) {
+            while (pcVar5 = pcVar7, pcVar5 != pcVar6) {
+              pvVar3 = *(void **)(pcVar5 + -0x18);
+              pcVar7 = pcVar5 + -0x18;
+              if (pvVar3 != (void *)0x0) {
+                *(void **)(pcVar5 + -0x10) = pvVar3;
+                operator_delete(pvVar3);
+              }
+            }
+            pcStack_60 = pcVar6;
+            operator_delete(local_68);
+          }
+          return;
+        }
+      }
+      else {
+        do {
+          if ((((*(char *)((long)piVar8 + 0xd) == *(char *)((long)param_2 + 0xd)) &&
+               ((char)piVar8[3] == (char)param_2[3])) && (piVar8[4] == param_2[4])) &&
+             ((((char)piVar8[1] == (char)param_2[1] && (*piVar8 == *param_2)) &&
+              ((piVar8[5] == param_2[5] && (piVar8[2] == param_2[2])))))) goto LAB_01d4b1e0;
+          piVar8 = piVar8 + 6;
+        } while (piVar2 != piVar8);
+      }
+      uVar10 = uVar10 + 1;
+    } while (uVar10 != (uVar9 & 0xffffffff));
+  }
+  local_50 = "invalid sample rate option";
+  uStack_48 = 0x1a;
+                    /* try { // try from 01d4b2a3 to 01d4b2dd has its CatchHandler @ 01d4b38f */
+                    /* WARNING: Subroutine does not return */
+  FUN_02eca300("false",5,
+               "void DeviceSettings::SetAnalogAdvancedPerformanceOption(const SampleRateOption &)",
+               0x51,"/workspace/monorepo/graph-io/devices/logic_interface/src/DeviceSettings.cpp",
+               0x4b,0x461,0x470a86,0x1a);
+}
+
+ (GhidraScript)  
+INFO  DecompilePerformanceOptions.java>  (GhidraScript)  
+INFO  REPORT: Save succeeded for processed file: /libgraph_server_shared.so (HeadlessAnalyzer)  
