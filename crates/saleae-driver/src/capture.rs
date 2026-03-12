@@ -1267,6 +1267,11 @@ pub struct CaptureResult {
     pub read_count: u64,
     /// Wall-clock duration of the EP2 read loop.
     pub elapsed: std::time::Duration,
+    /// Whether the capture ran for the full requested duration.
+    ///
+    /// `false` if the EP2 read loop broke out early due to a USB transfer
+    /// error. Callers should treat partial captures with caution.
+    pub completed_normally: bool,
 }
 
 impl CaptureResult {
@@ -1352,6 +1357,7 @@ pub fn run_capture(
 
     let mut raw_data = Vec::new();
     let mut read_count: u64 = 0;
+    let mut completed_normally = true;
     let mut buf = vec![0u8; buf_size];
     let start = std::time::Instant::now();
 
@@ -1366,6 +1372,7 @@ pub fn run_capture(
             }
             Err(e) => {
                 warn!("EP2 read error (stopping early): {e}");
+                completed_normally = false;
                 break;
             }
         }
@@ -1391,6 +1398,7 @@ pub fn run_capture(
         raw_data,
         read_count,
         elapsed,
+        completed_normally,
     };
     info!(
         throughput_mbps = format_args!("{:.1}", result.throughput_mbps()),

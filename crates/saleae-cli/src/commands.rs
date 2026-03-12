@@ -912,6 +912,9 @@ pub fn full_init(
     )
     .map_err(|e| anyhow::anyhow!("capture failed: {e}"))?;
 
+    if !result.completed_normally {
+        println!("WARNING: capture ended early due to EP2 read error (data may be partial)");
+    }
     let raw_data = &result.raw_data;
     let total_bytes = result.bytes_read();
     println!(
@@ -1243,6 +1246,9 @@ pub fn capture_digital(
     println!();
 
     // --- Summary ---
+    if !result.completed_normally {
+        println!("WARNING: capture ended early due to EP2 read error (data may be partial)");
+    }
     println!("Capture complete:");
     println!("  Duration:    {:.2}s", result.elapsed.as_secs_f64());
     println!("  Total reads: {}", result.read_count);
@@ -1499,6 +1505,9 @@ pub fn capture_quick(
     }
 
     // Summary.
+    if !result.completed_normally {
+        println!("WARNING: capture ended early due to EP2 read error (data may be partial)");
+    }
     println!("Capture complete:");
     println!("  Duration:    {:.2}s", result.elapsed.as_secs_f64());
     println!("  Total reads: {}", result.read_count);
