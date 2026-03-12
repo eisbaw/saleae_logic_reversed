@@ -1,6 +1,7 @@
 //! Error types for protocol parsing.
 
 use std::fmt;
+use std::sync::Arc;
 
 /// Result type alias for protocol operations.
 pub type ProtoResult<T> = Result<T, ProtoError>;
@@ -43,6 +44,12 @@ pub enum ProtoError {
     /// Generic parse error with context.
     #[error("parse error: {context}")]
     Parse { context: String },
+
+    /// I/O error (e.g. reading a `.cal` or `.sal` file).
+    ///
+    /// Wrapped in `Arc` so that `ProtoError` remains `Clone`.
+    #[error("I/O error: {0}")]
+    Io(Arc<std::io::Error>),
 }
 
 impl ProtoError {
@@ -51,5 +58,11 @@ impl ProtoError {
         Self::Parse {
             context: context.to_string(),
         }
+    }
+}
+
+impl From<std::io::Error> for ProtoError {
+    fn from(err: std::io::Error) -> Self {
+        Self::Io(Arc::new(err))
     }
 }

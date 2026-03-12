@@ -391,8 +391,7 @@ pub fn parse_calibration(xml_data: &[u8]) -> ProtoResult<CalibrationData> {
         device_type.ok_or_else(|| ProtoError::parse("missing mDeviceType in calibration file"))?;
     let calibration_date = calibration_date
         .ok_or_else(|| ProtoError::parse("missing mCalibrationDate in calibration file"))?;
-    let adc_gain =
-        adc_gain.ok_or_else(|| ProtoError::parse("missing mAdcGain in calibration file"))?;
+    let adc_gain = adc_gain.unwrap_or(0.0);
 
     if calibration_sets.is_empty() {
         return Err(ProtoError::parse("no calibration sets found"));
@@ -841,5 +840,71 @@ mod tests {
             assert!(section.a1.abs() < 1e-15);
             assert!(section.a2.abs() < 1e-15);
         }
+    }
+
+    #[test]
+    fn parse_missing_adc_gain_defaults_to_zero() {
+        // Same as parse_minimal_xml but without the <mAdcGain> element.
+        let xml = r#"<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<!DOCTYPE boost_serialization>
+<boost_serialization signature="serialization::archive" version="10">
+<DeviceCalibrationSet class_id="0" tracking_level="0" version="1">
+  <px class_id="1" tracking_level="1" version="21" object_id="_0">
+    <mDeviceId class_id="2" tracking_level="0" version="21">
+      <mDeviceId>12345</mDeviceId>
+      <mDeviceType>6</mDeviceType>
+    </mDeviceId>
+    <mCalibrationDate>1/1/2020</mCalibrationDate>
+    <mCalibrationData class_id="3" tracking_level="0" version="0">
+      <count>1</count>
+      <item_version>21</item_version>
+      <item class_id="4" tracking_level="0" version="21">
+        <mChannel class_id="5" tracking_level="0" version="21">
+          <mDeviceId>12345</mDeviceId>
+          <mChannelIndex>0</mChannelIndex>
+          <mDataType>0</mDataType>
+        </mChannel>
+        <mSampleRate>1000000</mSampleRate>
+        <mDf1SosCoefficients>
+          <count>30</count>
+          <item_version>0</item_version>
+          <item>1.0</item><item>0.0</item><item>0.0</item><item>1</item><item>0.0</item><item>0.0</item>
+          <item>1.0</item><item>0.0</item><item>0.0</item><item>1</item><item>0.0</item><item>0.0</item>
+          <item>1.0</item><item>0.0</item><item>0.0</item><item>1</item><item>0.0</item><item>0.0</item>
+          <item>1.0</item><item>0.0</item><item>0.0</item><item>1</item><item>0.0</item><item>0.0</item>
+          <item>1.0</item><item>0.0</item><item>0.0</item><item>1</item><item>0.0</item><item>0.0</item>
+        </mDf1SosCoefficients>
+        <mFirTaps>
+          <count>30</count>
+          <item_version>0</item_version>
+          <item>1.0</item><item>0.0</item><item>0.0</item><item>1</item><item>0.0</item><item>0.0</item>
+          <item>1.0</item><item>0.0</item><item>0.0</item><item>1</item><item>0.0</item><item>0.0</item>
+          <item>1.0</item><item>0.0</item><item>0.0</item><item>1</item><item>0.0</item><item>0.0</item>
+          <item>1.0</item><item>0.0</item><item>0.0</item><item>1</item><item>0.0</item><item>0.0</item>
+          <item>1.0</item><item>0.0</item><item>0.0</item><item>1</item><item>0.0</item><item>0.0</item>
+        </mFirTaps>
+        <mGroupDelay>0</mGroupDelay>
+        <mImpulseLength>1</mImpulseLength>
+      </item>
+    </mCalibrationData>
+    <mFullScaleVoltageRanges class_id="7" tracking_level="0" version="0">
+      <count>1</count>
+      <item_version>21</item_version>
+      <item class_id="8" tracking_level="0" version="21">
+        <mChannel>
+          <mDeviceId>12345</mDeviceId>
+          <mChannelIndex>0</mChannelIndex>
+          <mDataType>0</mDataType>
+        </mChannel>
+        <mFullScaleMinVoltage>-10.0</mFullScaleMinVoltage>
+        <mFullScaleMaxVoltage>10.0</mFullScaleMaxVoltage>
+      </item>
+    </mFullScaleVoltageRanges>
+  </px>
+</DeviceCalibrationSet>
+</boost_serialization>"#;
+
+        let cal = parse_calibration(xml.as_bytes()).expect("parse without mAdcGain");
+        assert!((cal.adc_gain - 0.0).abs() < 1e-10, "adc_gain should default to 0.0");
     }
 }
