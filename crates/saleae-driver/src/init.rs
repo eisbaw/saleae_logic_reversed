@@ -1,9 +1,16 @@
-//! Pcap-validated 8-phase device initialization sequence.
+//! 8-phase device initialization orchestrator.
 //!
-//! This module orchestrates the full Logic Pro 8 initialization, matching the
-//! protocol captured in `re/notes/init-sequence-pcap.md` (928 EP1 frames, 0
-//! unknown opcodes). It calls into existing modules (`ep1.rs`, `fpga.rs`,
-//! `capture.rs`) without duplicating their logic.
+//! This module orchestrates the full Logic Pro 8 initialization sequence,
+//! delegating to the canonical implementations in each subsystem:
+//!
+//! - **Phase 2** (FPGA upload): delegates to [`fpga::program_fpga`]
+//! - **Phase 3** (post-FPGA init): delegates to [`adc::init_ad9637`]
+//! - **Phase 7** (capture start): delegates to [`adc::power_on_for_capture`]
+//!   and [`capture::configure_capture`]
+//! - **Phase 8** (teardown): delegates to [`adc::power_down`]
+//!
+//! The overall sequence matches the protocol captured in
+//! `re/notes/init-sequence-pcap.md` (928 EP1 frames, 0 unknown opcodes).
 //!
 //! # Phase summary
 //!
@@ -34,9 +41,9 @@ use saleae_proto::device::{DeviceProfile, UsbSpeed};
 use saleae_proto::fpga_regs;
 use tracing::{debug, info};
 
+use crate::capture::CaptureConfig;
 use crate::ep1::Ep1CommandChannel;
 use crate::error::{DriverError, DriverResult};
-use crate::jesd;
 
 // ---------------------------------------------------------------------------
 // Phase tracking
@@ -112,45 +119,10 @@ impl Default for ChannelConfig {
     }
 }
 
-// ---------------------------------------------------------------------------
-// Capture parameters
-// ---------------------------------------------------------------------------
-
-/// Capture parameters for Phase 7, matching pcap register writes.
-///
-/// These are the 12 registers written before StartSampling:
-/// ```text
-/// r0x00=0x00  r0x08=0xff  r0x06=0xff  r0x0a=0x20
-/// r0x0b=0x10  r0x0c=0x00  r0x1a=0x00  r0x0d=0x18
-/// r0x0e=0x08  r0x12=0x02  r0x13=0x00  r0x14=0x10
-/// ```
-#[derive(Debug, Clone)]
-pub struct CaptureParams {
-    /// Register address-value pairs to write before StartSampling.
-    pub registers: Vec<(u8, u8)>,
-}
-
-impl Default for CaptureParams {
-    /// Default values from pcap Phase 7.
-    fn default() -> Self {
-        Self {
-            registers: vec![
-                (0x00, 0x00),
-                (0x08, 0xFF),
-                (0x06, 0xFF),
-                (0x0A, 0x20),
-                (0x0B, 0x10),
-                (0x0C, 0x00),
-                (0x1A, 0x00),
-                (0x0D, 0x18),
-                (0x0E, 0x08),
-                (0x12, 0x02),
-                (0x13, 0x00),
-                (0x14, 0x10),
-            ],
-        }
-    }
-}
+// CaptureParams removed -- use capture::CaptureConfig instead, which
+// computes register values from high-level parameters (sample rate, channels).
+// The old CaptureParams was a literal pcap replay (hardcoded register values)
+// that could not adapt to different sample rates or channel configurations.
 
 // ---------------------------------------------------------------------------
 // Init result
@@ -302,12 +274,14 @@ impl<'a> DeviceSession<'a> {
 
     /// Execute Phase 2: FPGA bitstream upload.
     ///
-    /// Sends the bitstream via WriteConfigurationData (opcode 0x7F) in
-    /// device-appropriate chunks. This delegates to `ep1.write_config_data_for_device`.
+    /// Delegates to [`fpga::program_fpga`], which performs the complete
+    /// hardware-validated sequence: ResetFpga, chunked bitstream upload,
+    /// and r0x7F write/readback verification.
     ///
-    /// Note: ResetFpga was already sent in Phase 1. The pcap shows
-    /// ResetFpga at the end of Phase 1, then the bitstream upload starts
-    /// immediately (frames 37-1369).
+    /// Note: Phase 1 already sent ResetFpga, and `program_fpga` sends it
+    /// again. The double reset is harmless (idempotent) and keeps the
+    /// delegation clean -- `program_fpga` is the canonical FPGA programming
+    /// entry point.
     pub fn upload_fpga(&mut self, bitstream: &[u8]) -> DriverResult<()> {
         self.require_phase(InitPhase::Handshake, "upload_fpga")?;
 
@@ -316,11 +290,10 @@ impl<'a> DeviceSession<'a> {
             "Phase 2: FPGA bitstream upload"
         );
 
-        self.ep1
-            .write_config_data_for_device(bitstream, &self.profile, self.usb_speed)?;
+        crate::fpga::program_fpga(self.ep1, bitstream, &self.profile, self.usb_speed)?;
 
         self.phase = InitPhase::FpgaUpload;
-        info!("Phase 2 complete: FPGA bitstream uploaded");
+        info!("Phase 2 complete: FPGA bitstream uploaded and verified");
         Ok(())
     }
 
@@ -330,94 +303,39 @@ impl<'a> DeviceSession<'a> {
 
     /// Execute Phase 3: Post-FPGA register initialization.
     ///
-    /// Sequence (pcap frames 1373-1624):
-    /// 3a. FPGA ID verification (write 0xAA to r0x7f, read back)
-    /// 3b. ADC init / bank configuration (4-register indirect writes)
-    /// 3c. JESD204B link establishment (r0x00 power sequence, poll r0x40)
-    /// 3d. Post-JESD config + ReadVersion for calibration data
-    /// 3e. Calibration coefficient writes (16x to r0x17)
-    /// 3f. Third power cycle
+    /// Delegates to [`adc::init_ad9637`], which is the hardware-validated
+    /// Xilinx Spartan-6 / AD9637 init sequence. This replaces the previous
+    /// inline pcap replay that duplicated the same logic.
     ///
-    /// This is the most complex phase. Many of the detailed register values
-    /// will be filled in by TASK-0111.
+    /// The sequence (now encapsulated in `adc::init_ad9637`):
+    /// - ADC register configuration (reset, output modes, DCO, VREF)
+    /// - ADC power off
+    /// - SetAd9637Enabled(false) -- SPI commit + DCM cascade
+    /// - SetAd9637Enabled(true) -- enable, reset cycle, DCM lock + bitslip
+    /// - Calibration coefficient writes + post-cal cascade
+    ///
+    /// # Note on FPGA verification
+    ///
+    /// FPGA r0x7F readback verification is handled by [`fpga::program_fpga`]
+    /// in Phase 2, so it is not repeated here.
     pub fn post_fpga_init(&mut self) -> DriverResult<Vec<u8>> {
         self.require_phase(InitPhase::FpgaUpload, "post_fpga_init")?;
 
         info!("Phase 3: Post-FPGA register initialization");
 
-        // 3a: FPGA ID verification
-        self.verify_fpga_id()?;
-
-        // 3b: ADC init / bank configuration
-        self.adc_init()?;
-
-        // 3c: JESD link establishment (first attempt may fail)
-        jesd::jesd_power_sequence(self.ep1)?;
-        let mut jesd_status = self.ep1.read_register_8(fpga_regs::FEAT_JESD_LINK_STATUS)?;
-        debug!(
-            status = format_args!("{jesd_status:#04x}"),
-            "JESD status (first attempt)"
-        );
-
-        if jesd_status != fpga_regs::FEAT_JESD_LINK_ESTABLISHED {
-            // Pcap shows first attempt returns 0x00, second succeeds.
-            debug!("JESD not ready, retrying power sequence");
-            jesd::jesd_power_sequence(self.ep1)?;
-            jesd_status = self.ep1.read_register_8(fpga_regs::FEAT_JESD_LINK_STATUS)?;
-            debug!(
-                status = format_args!("{jesd_status:#04x}"),
-                "JESD status (second attempt)"
-            );
-        }
-
-        // Read status registers
-        let _r4a = self
-            .ep1
-            .read_register_8(fpga_regs::FEAT_JESD_STATUS_DETAIL)?;
-        let _r19 = self.ep1.read_register_8(fpga_regs::FEAT_STATUS_GENERAL)?;
-        let _r40 = self.ep1.read_register_8(fpga_regs::FEAT_JESD_LINK_STATUS)?;
-        let _r4a2 = self
-            .ep1
-            .read_register_8(fpga_regs::FEAT_JESD_STATUS_DETAIL)?;
-
-        // 3d: Post-JESD config
-        self.ep1.write_register_8(
-            fpga_regs::FEAT_CAPTURE_INIT,
-            fpga_regs::JESD_POWER_ALL_ACTIVE,
-        )?;
-        self.ep1
-            .write_register_8(fpga_regs::FEAT_CAPTURE_INIT, 0x40)?;
-
-        // ReadVersion for calibration data (16 bytes)
+        // Read calibration coefficients from EEPROM (offset 0x10, 16 bytes).
         let calibration_data = self
             .ep1
             .read_version(&[0x33, 0x81, 0x10, 0x00, 0x10, 0x00])?;
         debug!(len = calibration_data.len(), "ReadVersion calibration data");
 
-        // 3e: Write calibration coefficients to r0x17
-        // The EEPROM stores 16 device-specific calibration coefficients at offset
-        // 0x0010. These are written one-by-one to FPGA register 0x17 to configure
-        // the ADC calibration for this specific device.
-        if calibration_data.len() != 16 {
-            return Err(DriverError::InvalidArgument {
-                message: format!(
-                    "expected 16 calibration coefficients from EEPROM, got {}",
-                    calibration_data.len(),
-                ),
-            });
-        }
-        jesd::write_calibration_coefficients(self.ep1, &calibration_data)?;
-
-        // 3f: Third power cycle
-        jesd::write_adc_register(self.ep1, 0x08, 0x01)?;
-        jesd::jesd_power_sequence(self.ep1)?;
-        let _r40 = self.ep1.read_register_8(fpga_regs::FEAT_JESD_LINK_STATUS)?;
-        let _r4a = self
-            .ep1
-            .read_register_8(fpga_regs::FEAT_JESD_STATUS_DETAIL)?;
-        let _r19 = self.ep1.read_register_8(fpga_regs::FEAT_STATUS_GENERAL)?;
-        self.ep1
-            .write_register_8(fpga_regs::FEAT_CAPTURE_CONFIG_2, 0x04)?;
+        // Delegate to the hardware-validated AD9637 init sequence.
+        let dcm_result = crate::adc::init_ad9637(self.ep1, &calibration_data)?;
+        info!(
+            locked = dcm_result.locked,
+            status_40 = format_args!("{:#04x}", dcm_result.status_40),
+            "AD9637 init complete"
+        );
 
         self.phase = InitPhase::PostFpgaInit;
         info!("Phase 3 complete: post-FPGA init done");
@@ -559,54 +477,36 @@ impl<'a> DeviceSession<'a> {
 
     /// Execute Phase 7: Start capture.
     ///
-    /// Sequence (pcap frames 1753-1846):
-    /// 1. ADC re-initialization
-    /// 2. JESD re-establishment (power sequence + poll)
-    /// 3. Write capture parameter registers
-    /// 4. Read back capture registers (verify)
-    /// 5. StartSampling (0x01)
-    /// 6. Write r0x00=0x01 (trigger capture)
-    pub fn start_capture(&mut self, params: &CaptureParams) -> DriverResult<()> {
+    /// Delegates to [`adc::power_on_for_capture`] for ADC re-init and
+    /// [`capture::configure_capture`] for register computation, write,
+    /// and readback verification. This replaces the previous inline
+    /// pcap replay that used hardcoded register values.
+    ///
+    /// Sequence:
+    /// 1. ADC power-on + DCM re-lock (`adc::power_on_for_capture`)
+    /// 2. Compute + write + verify capture registers (`capture::configure_capture`)
+    /// 3. StartSampling (0x01)
+    /// 4. Trigger capture (r0x00=0x01)
+    pub fn start_capture(&mut self, config: &CaptureConfig) -> DriverResult<()> {
         self.require_phase_at_least(InitPhase::ChannelConfig, "start_capture")?;
 
         info!("Phase 7: Capture start");
 
-        // Step 1: ADC re-initialization
-        self.ep1
-            .write_register_8(fpga_regs::FEAT_BANK_POWER, 0x03)?;
-        jesd::write_adc_register(self.ep1, 0x08, 0x00)?;
-        jesd::write_adc_register(self.ep1, 0x08, 0x03)?;
-        jesd::write_adc_register(self.ep1, 0x08, 0x00)?;
+        // Step 1: ADC re-initialization and DCM lock.
+        let dcm_result = crate::adc::power_on_for_capture(self.ep1)?;
+        debug!(
+            locked = dcm_result.locked,
+            status_40 = format_args!("{:#04x}", dcm_result.status_40),
+            "ADC powered on for capture"
+        );
 
-        // Step 2: JESD re-establishment
-        jesd::jesd_power_sequence(self.ep1)?;
-        let _r40 = self.ep1.read_register_8(fpga_regs::FEAT_JESD_LINK_STATUS)?;
-        let _r4a = self
-            .ep1
-            .read_register_8(fpga_regs::FEAT_JESD_STATUS_DETAIL)?;
-        let _r19 = self.ep1.read_register_8(fpga_regs::FEAT_STATUS_GENERAL)?;
-        let _r40 = self.ep1.read_register_8(fpga_regs::FEAT_JESD_LINK_STATUS)?;
-        let _r4a = self
-            .ep1
-            .read_register_8(fpga_regs::FEAT_JESD_STATUS_DETAIL)?;
+        // Step 2: Write capture registers (computed from config) + readback verify.
+        crate::capture::configure_capture(self.ep1, config)?;
 
-        // Step 3: Write capture parameters
-        // The pcap shows a 12-register batch write, but the register count
-        // limit is 31, so this fits in one WriteRegisters call.
-        if !params.registers.is_empty() {
-            self.ep1.write_registers(&params.registers)?;
-        }
-
-        // Step 4: Read back to verify (same registers)
-        let addrs: Vec<u8> = params.registers.iter().map(|&(addr, _)| addr).collect();
-        if !addrs.is_empty() {
-            let _readback = self.ep1.read_registers(&addrs)?;
-        }
-
-        // Step 5: StartSampling
+        // Step 3: StartSampling.
         self.ep1.start_sampling()?;
 
-        // Step 6: Trigger capture
+        // Step 4: Trigger capture (r0x00=0x01).
         self.ep1
             .write_register_8(fpga_regs::FEAT_CAPTURE_INIT, 0x01)?;
 
@@ -621,46 +521,24 @@ impl<'a> DeviceSession<'a> {
 
     /// Execute Phase 8: Capture teardown.
     ///
-    /// Sequence (pcap frames 5446-5497):
-    /// 1. Write r0x00=0x00 (stop capture)
+    /// Sequence:
+    /// 1. Write r0x00=0x00 (stop capture trigger)
     /// 2. StopStream (0x02)
-    /// 3. Read status registers (r0x40, r0x4a)
-    /// 4. Power down: r0x15=0x00, ADC bank 0x08=0x01
-    /// 5. JESD power-down sequence
-    /// 6. Read final status (r0x40, r0x4a)
+    /// 3. Power down ADC (`adc::power_down`)
     pub fn stop_capture(&mut self) -> DriverResult<()> {
         self.require_phase_at_least(InitPhase::CaptureStart, "stop_capture")?;
 
         info!("Phase 8: Capture teardown");
 
-        // Step 1: Stop capture
-        self.ep1.write_register_8(
-            fpga_regs::FEAT_CAPTURE_INIT,
-            fpga_regs::JESD_POWER_ALL_ACTIVE,
-        )?;
+        // Step 1: Stop capture trigger.
+        self.ep1
+            .write_register_8(fpga_regs::FEAT_CAPTURE_INIT, 0x00)?;
 
-        // Step 2: StopStream
+        // Step 2: StopStream.
         self.ep1.stop_stream()?;
 
-        // Step 3: Read status
-        let _r40 = self.ep1.read_register_8(fpga_regs::FEAT_JESD_LINK_STATUS)?;
-        let _r4a = self
-            .ep1
-            .read_register_8(fpga_regs::FEAT_JESD_STATUS_DETAIL)?;
-
-        // Step 4: Power down
-        self.ep1
-            .write_register_8(fpga_regs::FEAT_BANK_POWER, 0x00)?;
-        jesd::write_adc_register(self.ep1, 0x08, 0x01)?;
-
-        // Step 5: JESD power-down sequence
-        jesd::jesd_power_sequence(self.ep1)?;
-
-        // Step 6: Final status
-        let _r40 = self.ep1.read_register_8(fpga_regs::FEAT_JESD_LINK_STATUS)?;
-        let _r4a = self
-            .ep1
-            .read_register_8(fpga_regs::FEAT_JESD_STATUS_DETAIL)?;
+        // Step 3: Power down ADC.
+        crate::adc::power_down(self.ep1)?;
 
         self.phase = InitPhase::Teardown;
         info!("Phase 8 complete: capture torn down");
@@ -693,61 +571,14 @@ impl<'a> DeviceSession<'a> {
         Ok(())
     }
 
-    /// Verify FPGA is responsive by writing/reading register 0x7F.
-    ///
-    /// Phase 3a: Write 0xAA to r0x7f twice, read back, expect 0xAA.
-    fn verify_fpga_id(&mut self) -> DriverResult<()> {
-        debug!("3a: FPGA ID verification");
-        self.ep1.write_register_8(0x7F, 0xAA)?;
-        self.ep1.write_register_8(0x7F, 0xAA)?;
-        let readback = self.ep1.read_register_8(0x7F)?;
-        if readback != 0xAA {
-            return Err(DriverError::FpgaProgramming {
-                context: format!("FPGA ID verification failed: expected 0xAA, got {readback:#04x}"),
-            });
-        }
-        debug!("FPGA ID verification OK (0xAA readback)");
-        Ok(())
+    // verify_fpga_id and adc_init removed -- now handled by
+    // fpga::program_fpga (FPGA verify) and adc::init_ad9637 (ADC init).
+
+    /// Test-only: set phase directly to skip expensive init sequences.
+    #[cfg(test)]
+    fn set_phase(&mut self, phase: InitPhase) {
+        self.phase = phase;
     }
-
-    /// ADC initialization via bank register writes.
-    ///
-    /// Phase 3b: Multiple 4-register writes using the indirect access
-    /// pattern [r0x03, r0x16, r0x04, r0x05].
-    fn adc_init(&mut self) -> DriverResult<()> {
-        debug!("3b: ADC init / bank configuration");
-
-        // ADC bank register writes from pcap Phase 3b.
-        // Pattern: r0x03=bank_addr, r0x16=0x00, r0x04=value, r0x05=0x00
-        let bank_writes: &[(u8, u8)] = &[
-            (0x08, 0x03),
-            (0x08, 0x00),
-            (0x08, 0x01),
-            (0x08, 0x00),
-            (0x0D, 0x00),
-            (0x15, 0x21),
-            (0x21, 0xC2),
-            (0x05, 0x0F),
-            (0x04, 0x0F),
-            (0x10, 0x00),
-            (0x18, 0x04),
-        ];
-
-        for &(bank, value) in bank_writes {
-            jesd::write_adc_register(self.ep1, bank, value)?;
-        }
-
-        // Single register writes
-        self.ep1
-            .write_register_8(fpga_regs::FEAT_BANK_POWER, 0x00)?;
-        jesd::write_adc_register(self.ep1, 0x08, 0x01)?;
-
-        Ok(())
-    }
-
-    // write_adc_bank_register and jesd_power_sequence have been moved to
-    // the `jesd` module as `jesd::write_adc_register` and
-    // `jesd::jesd_power_sequence` respectively.
 }
 
 // ---------------------------------------------------------------------------
@@ -769,9 +600,6 @@ mod tests {
     }
 
     /// Queue the responses needed for Phase 1 (Handshake) in None mode.
-    ///
-    /// In None mode, encrypt_reseed returns raw 4-byte seed, and commands
-    /// are sent without encryption. Responses are also unencrypted.
     fn queue_phase1_responses(mock: &MockTransport) {
         // Reseed: no response needed (just bulk OUT)
         // Ping response: 0xAA
@@ -789,90 +617,22 @@ mod tests {
         mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
     }
 
-    /// Queue responses for Phase 2 (FPGA Upload) for a small bitstream.
+    /// Queue responses for Phase 2 (FPGA Upload via `fpga::program_fpga`).
+    ///
+    /// `program_fpga` does: ResetFpga + chunked upload + 2x WriteRegisters(r0x7F=0xAA) +
+    /// ReadRegisters(r0x7F) -> 0xAA.
     fn queue_phase2_responses(mock: &MockTransport, num_chunks: usize) {
-        // In None mode, WriteConfigurationData for non-Pro doesn't read ACK.
-        // But for Pro (LOGIC_PRO_8_PROFILE), it does read ACK.
-        // Since we use None mode, the chunked write still reads ACK if read_ack=true.
-        // Actually, write_config_data_for_device checks the profile, not encryption.
-        // Pro profiles always read ACK.
+        // ResetFpga ACK
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
+        // WriteConfigurationData ACKs (one per chunk)
         for _ in 0..num_chunks {
             mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
         }
-    }
-
-    /// Queue minimal responses for Phase 3 (Post-FPGA Init).
-    ///
-    /// This queues ACKs for all the register writes and reads in Phase 3.
-    fn queue_phase3_responses(mock: &MockTransport) {
-        // 3a: verify_fpga_id
-        // write_register_8(0x7F, 0xAA) x2 -> 2 ACKs
+        // WriteRegisters r0x7F=0xAA (twice) -> 2 ACKs
         mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
         mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
-        // read_register_8(0x7F) -> 0xAA
+        // ReadRegisters r0x7F -> 0xAA
         mock.push_bulk_in_response(endpoint::BULK_IN, vec![0xAA]);
-
-        // 3b: adc_init -- 11 bank writes (each is a write_registers with 4 pairs -> 1 ACK each)
-        for _ in 0..11 {
-            mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
-        }
-        // write_register_8(0x15, 0x00) -> 1 ACK
-        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
-        // write_adc_bank_register(0x08, 0x01) -> 1 ACK
-        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
-
-        // 3c: JESD power sequence (5 writes) -> 5 ACKs
-        for _ in 0..5 {
-            mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
-        }
-        // read_register_8(0x40) -> 0x00 (first attempt: not ready)
-        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
-
-        // Second JESD power sequence (5 writes) -> 5 ACKs
-        for _ in 0..5 {
-            mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
-        }
-        // read_register_8(0x40) -> 0xE0 (JESD ready!)
-        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0xE0]);
-
-        // Status reads: r0x4a, r0x19, r0x40, r0x4a
-        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x02]);
-        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
-        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0xE0]);
-        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
-
-        // 3d: Post-JESD config
-        // write_register_8(0x00, 0x00) -> ACK
-        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
-        // write_register_8(0x00, 0x40) -> ACK
-        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
-        // read_version calibration data -> 16 bytes
-        mock.push_bulk_in_response(
-            endpoint::BULK_IN,
-            vec![
-                0x46, 0xFF, 0xC6, 0xA6, 0x60, 0xB7, 0xDE, 0x07, 0x67, 0x8B, 0x03, 0x66, 0x11, 0x35,
-                0x7C, 0x7F,
-            ],
-        );
-
-        // 3e: 16 calibration coefficient writes to r0x17 -> 16 ACKs
-        for _ in 0..16 {
-            mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
-        }
-
-        // 3f: Third power cycle
-        // write_adc_bank_register(0x08, 0x01) -> ACK
-        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
-        // JESD power sequence (5 writes) -> 5 ACKs
-        for _ in 0..5 {
-            mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
-        }
-        // Status reads: r0x40, r0x4a, r0x19
-        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
-        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
-        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
-        // write_register_8(0x12, 0x04) -> ACK
-        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
     }
 
     /// Queue responses for Phase 4 or 5 (Channel Config).
@@ -880,12 +640,7 @@ mod tests {
         // Reseed: no response (bulk OUT only in None mode)
         // Ping response
         mock.push_bulk_in_response(endpoint::BULK_IN, vec![0xAA]);
-        // WriteRegisters (3 pairs) -> ACK (None mode: no ACK for non-Pro,
-        // but write_registers always reads ACK for Pro... in None mode the
-        // command is unencrypted but ACK is still read per the code path).
-        // Actually in None mode, encrypt_command returns raw bytes without
-        // control byte, and recv_response doesn't decrypt. The write_registers
-        // method always reads an ACK response.
+        // WriteRegisters (3 pairs) -> ACK
         mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
     }
 
@@ -962,7 +717,6 @@ mod tests {
     fn handshake_rejects_double_call() {
         let mock = std::sync::Arc::new(MockTransport::new());
         queue_phase1_responses(&mock);
-        // Queue again in case first completes
         queue_phase1_responses(&mock);
 
         let mut ep1 = mock_channel_none(&mock);
@@ -975,7 +729,7 @@ mod tests {
     }
 
     // -------------------------------------------------------------------
-    // Phase 2: FPGA Upload
+    // Phase 2: FPGA Upload (now delegates to fpga::program_fpga)
     // -------------------------------------------------------------------
 
     #[test]
@@ -993,7 +747,7 @@ mod tests {
     fn upload_fpga_advances_phase() {
         let mock = std::sync::Arc::new(MockTransport::new());
         queue_phase1_responses(&mock);
-        // Small bitstream: 100 bytes -> 1 chunk at 1020 chunk size
+        // program_fpga: ResetFpga + 1 chunk + 2x WriteRegisters + 1 ReadRegisters
         queue_phase2_responses(&mock, 1);
 
         let mut ep1 = mock_channel_none(&mock);
@@ -1022,7 +776,7 @@ mod tests {
     }
 
     // -------------------------------------------------------------------
-    // Phase 7: Capture start
+    // Phase 7: Capture start (now uses CaptureConfig)
     // -------------------------------------------------------------------
 
     #[test]
@@ -1032,8 +786,8 @@ mod tests {
         let mut session =
             DeviceSession::new(&mut ep1, LOGIC_PRO_8_PROFILE.clone(), UsbSpeed::Super);
 
-        let params = CaptureParams::default();
-        let err = session.start_capture(&params).unwrap_err();
+        let config = CaptureConfig::default();
+        let err = session.start_capture(&config).unwrap_err();
         assert!(err.to_string().contains("Channel Config"));
     }
 
@@ -1060,14 +814,12 @@ mod tests {
     fn reseed_happens_at_correct_phase_boundaries() {
         // Verify that Phases 4 and 5 each perform a reseed by checking
         // that ep1.initialize() is called (which sends reseed + ping).
+        //
+        // Uses set_phase to skip the expensive Phase 2-3 init (which
+        // involves hardware delays from adc::init_ad9637). Those phases
+        // are tested independently in their own modules.
         let mock = std::sync::Arc::new(MockTransport::new());
 
-        // Phase 1 responses
-        queue_phase1_responses(&mock);
-        // Phase 2 responses (1 chunk)
-        queue_phase2_responses(&mock, 1);
-        // Phase 3 responses
-        queue_phase3_responses(&mock);
         // Phase 4 responses (reseed + ping + write_registers)
         queue_channel_config_responses(&mock);
         // Phase 5 responses (reseed + ping + write_registers)
@@ -1077,9 +829,8 @@ mod tests {
         let mut session =
             DeviceSession::new(&mut ep1, LOGIC_PRO_8_PROFILE.clone(), UsbSpeed::Super);
 
-        session.handshake().unwrap();
-        session.upload_fpga(&[0xFF; 100]).unwrap();
-        session.post_fpga_init().unwrap();
+        // Skip directly to PostFpgaInit (Phases 1-3 tested elsewhere).
+        session.set_phase(InitPhase::PostFpgaInit);
 
         let config = ChannelConfig {
             digital_enable_low: 0x00,
@@ -1109,12 +860,11 @@ mod tests {
                 _ => false,
             })
             .count();
-        // Phase 1: 1 ping (after reseed #1)
         // Phase 4: 1 ping (after reseed #2)
         // Phase 5: 1 ping (after reseed #3)
         assert_eq!(
-            ping_count, 3,
-            "expected 3 pings (one per reseed in Phases 1, 4, 5)"
+            ping_count, 2,
+            "expected 2 pings (one per reseed in Phases 4 and 5)"
         );
     }
 
