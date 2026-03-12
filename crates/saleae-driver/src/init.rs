@@ -395,14 +395,18 @@ impl<'a> DeviceSession<'a> {
         debug!(len = calibration_data.len(), "ReadVersion calibration data");
 
         // 3e: Write calibration coefficients to r0x17
-        // The pcap shows 16 individual writes to r0x17 with specific values.
-        // The exact values are device-specific (from calibration data).
-        // For now we write the pcap-observed values as defaults.
-        let cal_coefficients: [u8; 16] = [
-            0x46, 0xFF, 0xC6, 0xA6, 0x60, 0xB7, 0xDE, 0x07, 0x67, 0x8B, 0x03, 0x66, 0x11, 0x35,
-            0x7C, 0x7F,
-        ];
-        jesd::write_calibration_coefficients(self.ep1, &cal_coefficients)?;
+        // The EEPROM stores 16 device-specific calibration coefficients at offset
+        // 0x0010. These are written one-by-one to FPGA register 0x17 to configure
+        // the ADC calibration for this specific device.
+        if calibration_data.len() != 16 {
+            return Err(DriverError::InvalidArgument {
+                message: format!(
+                    "expected 16 calibration coefficients from EEPROM, got {}",
+                    calibration_data.len(),
+                ),
+            });
+        }
+        jesd::write_calibration_coefficients(self.ep1, &calibration_data)?;
 
         // 3f: Third power cycle
         jesd::write_adc_register(self.ep1, 0x08, 0x01)?;
