@@ -29,7 +29,7 @@
 //! The Logic 8 format is **Confirmed** from FUN_01bf21b0. Exact bit-level
 //! behavior of Logic 8 FUN_01bf1ff0 transform is still uncertain.
 
-use crate::device::{DeviceProfile, FpgaType};
+use crate::device::{DeviceFeatureClass, DeviceProfile};
 use crate::error::{ProtoError, ProtoResult};
 
 // ---------------------------------------------------------------------------
@@ -233,7 +233,7 @@ pub struct DisaggregatedData {
 /// chunk received from EP2 IN.
 #[derive(Debug, Clone)]
 pub struct Disaggregator {
-    fpga_type: FpgaType,
+    feature_class: DeviceFeatureClass,
     num_digital: usize,
     num_analog: usize,
     /// GPIF bus width in bytes (2 or 4).
@@ -266,7 +266,7 @@ impl Disaggregator {
         digital_rate: u64,
         analog_rate: u64,
     ) -> ProtoResult<Self> {
-        if profile.fpga_type == FpgaType::Mso {
+        if profile.feature_class == DeviceFeatureClass::Mso {
             return Err(ProtoError::parse(
                 "MSO devices are not supported by disaggregator",
             ));
@@ -305,7 +305,7 @@ impl Disaggregator {
         )?;
 
         Ok(Self {
-            fpga_type: profile.fpga_type,
+            feature_class: profile.feature_class,
             num_digital,
             num_analog,
             packet_size: (gpif_width / 8) as usize,
@@ -339,10 +339,10 @@ impl Disaggregator {
     ///
     /// Returns error if the data length is not a multiple of the cycle size.
     pub fn process_chunk(&self, data: &[u8]) -> ProtoResult<DisaggregatedData> {
-        match self.fpga_type {
-            FpgaType::Pro => self.deinterleave_pro(data),
-            FpgaType::NonPro => self.deinterleave_non_pro(data),
-            FpgaType::Mso => Err(ProtoError::parse("MSO not supported")),
+        match self.feature_class {
+            DeviceFeatureClass::Pro => self.deinterleave_pro(data),
+            DeviceFeatureClass::NonPro => self.deinterleave_non_pro(data),
+            DeviceFeatureClass::Mso => Err(ProtoError::parse("MSO not supported")),
         }
     }
 

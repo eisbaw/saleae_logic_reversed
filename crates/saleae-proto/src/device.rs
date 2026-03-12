@@ -187,10 +187,14 @@ impl std::fmt::Display for DeviceType {
 }
 
 // ---------------------------------------------------------------------------
-// FPGA type enum
+// Device feature class (software interface)
 // ---------------------------------------------------------------------------
 
-/// FPGA device features class, determines register interface and capabilities.
+/// Device feature class, determines the register interface and capabilities.
+///
+/// This describes the *software interface class* from the Saleae binary's
+/// C++ class hierarchy, NOT the FPGA silicon. For FPGA silicon type, see
+/// [`FpgaVariant`].
 ///
 /// From the Saleae class hierarchy (`re/notes/device-class-hierarchy.md`):
 ///
@@ -200,7 +204,7 @@ impl std::fmt::Display for DeviceType {
 ///   verification, 508/1020-byte FPGA programming chunks (USB 2.0/3.0).
 /// - **Mso**: Separate oscilloscope device path (out of scope).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum FpgaType {
+pub enum DeviceFeatureClass {
     /// FpgaDeviceFeatures: Logic 4, Logic 8.
     /// Fire-and-forget register writes, 62-byte bitstream chunks.
     NonPro,
@@ -211,13 +215,187 @@ pub enum FpgaType {
     Mso,
 }
 
-impl std::fmt::Display for FpgaType {
+/// Backward-compatible alias. Prefer [`DeviceFeatureClass`] in new code.
+pub type FpgaType = DeviceFeatureClass;
+
+impl std::fmt::Display for DeviceFeatureClass {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            FpgaType::NonPro => f.write_str("NonPro (FpgaDeviceFeatures)"),
-            FpgaType::Pro => f.write_str("Pro (ProFpgaDeviceFeatures)"),
-            FpgaType::Mso => f.write_str("Mso (MsoFpga)"),
+            DeviceFeatureClass::NonPro => f.write_str("NonPro (FpgaDeviceFeatures)"),
+            DeviceFeatureClass::Pro => f.write_str("Pro (ProFpgaDeviceFeatures)"),
+            DeviceFeatureClass::Mso => f.write_str("Mso (MsoFpga)"),
         }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// FPGA silicon variant
+// ---------------------------------------------------------------------------
+
+/// FPGA silicon variant, determined by EEPROM hardware revision.
+///
+/// This describes which physical FPGA chip is on the board, NOT the software
+/// interface class. For the software interface, see [`DeviceFeatureClass`].
+///
+/// Source: `ParseBoardRevision` switch statement at ELF VA 0x1c23bc0.
+/// See `re/notes/eeprom-layout.md` for the full mapping.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum FpgaVariant {
+    /// Xilinx Spartan-6 XC6SLX9 (major rev 0).
+    Xilinx,
+    /// Xilinx Spartan-6, alternate variant (major rev 1, 7).
+    XilinxAlt,
+    /// Lattice ECP5 (major rev 3, 4, 5, 6, 8, 9, 10, 11).
+    LatticeEcp5,
+}
+
+impl std::fmt::Display for FpgaVariant {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            FpgaVariant::Xilinx => f.write_str("Xilinx Spartan-6"),
+            FpgaVariant::XilinxAlt => f.write_str("Xilinx Spartan-6 (alt)"),
+            FpgaVariant::LatticeEcp5 => f.write_str("Lattice ECP5"),
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// ADC type
+// ---------------------------------------------------------------------------
+
+/// ADC chip type, determined by EEPROM hardware revision.
+///
+/// The ADC type is per-revision, NOT per-device-model. A Logic Pro 8 with
+/// revision 0 (Xilinx) has AD9637, while the same model with revision 4
+/// (Lattice) has ADS528x.
+///
+/// Source: `ParseBoardRevision` switch statement, `RevisionDetail::AdcType`.
+/// See `re/notes/eeprom-layout.md` for the mapping table.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum AdcType {
+    /// Analog Devices AD9637 -- parallel LVDS, 12-bit.
+    /// Used by Logic Pro 8/16 with Xilinx Spartan-6 (rev 0, 1, 3).
+    /// ADC init via FPGA proxy registers (r0x03=addr, r0x04=value).
+    Ad9637,
+    /// Texas Instruments ADS528x -- JESD204B interface, 12-bit.
+    /// Used by Logic Pro 8/16 with Lattice ECP5 (rev 4, 5, 6, 9, 10, 11).
+    Ads528x,
+    /// Analog Devices HMCAD1100 -- 8-bit, SPI interface.
+    /// Used by Logic 4/8 with Xilinx revisions only.
+    /// 7-bit SPI address, direct I2C access (not FPGA proxy).
+    Hmcad1100,
+}
+
+impl AdcType {
+    /// ADC bit depth for this ADC type.
+    pub const fn bit_depth(self) -> u8 {
+        match self {
+            AdcType::Ad9637 => 12,
+            AdcType::Ads528x => 12,
+            AdcType::Hmcad1100 => 8,
+        }
+    }
+}
+
+impl std::fmt::Display for AdcType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            AdcType::Ad9637 => f.write_str("AD9637 (12-bit parallel LVDS)"),
+            AdcType::Ads528x => f.write_str("ADS528x (12-bit JESD204B)"),
+            AdcType::Hmcad1100 => f.write_str("HMCAD1100 (8-bit SPI)"),
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Hardware revision
+// ---------------------------------------------------------------------------
+
+/// Parsed hardware revision from EEPROM, bundling board revision, FPGA
+/// variant, and ADC type.
+///
+/// The EEPROM stores 6 bytes at offset 0x20: "REV" (3 bytes) + major (1 byte)
+/// \+ '.' (1 byte) + minor (1 byte). The major version determines the FPGA
+/// chip type and ADC type.
+///
+/// Source: `ParseBoardRevision` at ELF VA 0x1c23bc0.
+/// See `re/notes/eeprom-layout.md` for the full mapping table.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct HardwareRevision {
+    /// Major hardware revision (determines FPGA and ADC type).
+    pub major: u8,
+    /// Minor hardware revision.
+    pub minor: u8,
+    /// FPGA silicon on the board.
+    pub fpga_variant: FpgaVariant,
+    /// ADC chip on the board.
+    pub adc_type: AdcType,
+}
+
+impl HardwareRevision {
+    /// EEPROM read parameters for ReadVersion to fetch hw revision.
+    ///
+    /// ReadVersion opcode 0x07 with I2C params:
+    /// `[0x33, 0x81, addr_lo, addr_hi, count_lo, count_hi]`
+    /// Address 0x0020, count 6.
+    pub const EEPROM_READ_PARAMS: [u8; 6] = [0x33, 0x81, 0x20, 0x00, 0x06, 0x00];
+
+    /// Parse hardware revision from raw EEPROM bytes (6 bytes from offset 0x20).
+    ///
+    /// Expected format: `[0x52, 0x45, 0x56, major, 0x2E, minor]` = "REV" +
+    /// major + "." + minor.
+    ///
+    /// Returns `None` if the data doesn't start with "REV", is too short,
+    /// or the major revision is unsupported (e.g., major 2).
+    pub fn parse(data: &[u8]) -> Option<Self> {
+        if data.len() < 6 {
+            return None;
+        }
+        if &data[0..3] != b"REV" {
+            return None;
+        }
+        let major = data[3];
+        let minor = data[5];
+
+        let (fpga_variant, adc_type) = Self::classify(major)?;
+
+        Some(Self {
+            major,
+            minor,
+            fpga_variant,
+            adc_type,
+        })
+    }
+
+    /// Determine FPGA variant and ADC type from major revision.
+    ///
+    /// Returns `None` for unsupported revisions (major 2).
+    fn classify(major: u8) -> Option<(FpgaVariant, AdcType)> {
+        match major {
+            0 => Some((FpgaVariant::Xilinx, AdcType::Ad9637)),
+            1 => Some((FpgaVariant::XilinxAlt, AdcType::Ad9637)),
+            3 => Some((FpgaVariant::LatticeEcp5, AdcType::Ad9637)),
+            4 | 5 | 6 | 9 | 10 | 11 => Some((FpgaVariant::LatticeEcp5, AdcType::Ads528x)),
+            7 => Some((FpgaVariant::XilinxAlt, AdcType::Ads528x)),
+            8 => Some((FpgaVariant::LatticeEcp5, AdcType::Ads528x)),
+            // Major 2 is unsupported in the binary (throws exception).
+            _ => None,
+        }
+    }
+
+    /// Whether this hardware revision uses a Lattice ECP5 FPGA.
+    pub fn is_lattice(&self) -> bool {
+        matches!(self.fpga_variant, FpgaVariant::LatticeEcp5)
+    }
+}
+
+impl std::fmt::Display for HardwareRevision {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Rev {}.{:02} ({}, {})",
+            self.major, self.minor, self.fpga_variant, self.adc_type
+        )
     }
 }
 
@@ -252,13 +430,14 @@ pub struct DeviceProfile {
     /// Number of analog channels.
     pub analog_channels: u8,
 
-    /// FPGA register interface type.
-    pub fpga_type: FpgaType,
+    /// Software feature class (register interface and capabilities).
+    pub feature_class: DeviceFeatureClass,
 
     /// ADC bit depth (8 for HMCAD1100 Xilinx revisions, 12 for AD9637/ADS528x).
     ///
     /// Note: actual ADC type depends on hardware revision, not device model.
-    /// This is the typical/default value for the device.
+    /// This is the typical/default value for the device. After EEPROM read,
+    /// use `hardware_revision.adc_type.bit_depth()` for the actual value.
     pub adc_bits: u8,
 
     /// GPIF bus width in bits (16 for non-Pro, 32 for Pro).
@@ -293,13 +472,13 @@ impl DeviceProfile {
     /// - Pro USB 2.0: 508 bytes
     /// - Pro USB 3.0: 1020 bytes
     pub const fn fpga_chunk_size(&self, usb_speed: UsbSpeed) -> usize {
-        match self.fpga_type {
-            FpgaType::NonPro => 62,
-            FpgaType::Pro => match usb_speed {
+        match self.feature_class {
+            DeviceFeatureClass::NonPro => 62,
+            DeviceFeatureClass::Pro => match usb_speed {
                 UsbSpeed::Super | UsbSpeed::SuperPlus => 1020,
                 _ => 508,
             },
-            FpgaType::Mso => 508, // placeholder
+            DeviceFeatureClass::Mso => 508, // placeholder
         }
     }
 
@@ -308,7 +487,7 @@ impl DeviceProfile {
     /// Pro devices read back a 1-byte ACK after every EP1 register write.
     /// Non-Pro devices fire-and-forget.
     pub const fn register_write_verifies(&self) -> bool {
-        matches!(self.fpga_type, FpgaType::Pro)
+        matches!(self.feature_class, DeviceFeatureClass::Pro)
     }
 
     /// Default USB speed when the forced-speed flag is set.
@@ -317,8 +496,8 @@ impl DeviceProfile {
     /// - Non-Pro: defaults to USB 2.0 (speed=1)
     /// - Pro: defaults to USB 3.0 (speed=2)
     pub const fn default_forced_usb_speed(&self) -> UsbSpeed {
-        match self.fpga_type {
-            FpgaType::Pro => UsbSpeed::Super,
+        match self.feature_class {
+            DeviceFeatureClass::Pro => UsbSpeed::Super,
             _ => UsbSpeed::High,
         }
     }
@@ -399,7 +578,7 @@ impl DeviceProfile {
 
     /// Whether this device has an analog front-end with VGA/attenuators.
     pub const fn has_afe(&self) -> bool {
-        matches!(self.fpga_type, FpgaType::Pro)
+        matches!(self.feature_class, DeviceFeatureClass::Pro)
     }
 
     /// USB transfer block alignment size for the given USB speed.
@@ -507,7 +686,7 @@ pub static LOGIC_4_PROFILE: DeviceProfile = DeviceProfile {
     device_type: DeviceType::Logic4,
     digital_channels: 4,
     analog_channels: 4,
-    fpga_type: FpgaType::NonPro,
+    feature_class: DeviceFeatureClass::NonPro,
     adc_bits: 8,    // HMCAD1100 (Xilinx rev), 12 for ADS528x (Lattice rev)
     gpif_width: 16, // FX2LP has 8 or 16-bit GPIF
     supports_encryption: false,
@@ -522,7 +701,7 @@ pub static LOGIC_8_PROFILE: DeviceProfile = DeviceProfile {
     device_type: DeviceType::Logic8,
     digital_channels: 8,
     analog_channels: 8,
-    fpga_type: FpgaType::NonPro,
+    feature_class: DeviceFeatureClass::NonPro,
     adc_bits: 12,
     gpif_width: 16, // FpgaDeviceFeatures, 16-bit default
     supports_encryption: false,
@@ -537,7 +716,7 @@ pub static LOGIC_PRO_8_PROFILE: DeviceProfile = DeviceProfile {
     device_type: DeviceType::LogicPro8,
     digital_channels: 8,
     analog_channels: 8,
-    fpga_type: FpgaType::Pro,
+    feature_class: DeviceFeatureClass::Pro,
     adc_bits: 12,
     gpif_width: 32,
     supports_encryption: true,
@@ -552,7 +731,7 @@ pub static LOGIC_PRO_16_PROFILE: DeviceProfile = DeviceProfile {
     device_type: DeviceType::LogicPro16,
     digital_channels: 16,
     analog_channels: 16, // channels 8-15 become digital-only at USB 2.0
-    fpga_type: FpgaType::Pro,
+    feature_class: DeviceFeatureClass::Pro,
     adc_bits: 12,
     gpif_width: 32,
     supports_encryption: true,
@@ -950,14 +1129,141 @@ mod tests {
     }
 
     // -----------------------------------------------------------------------
-    // FpgaType tests
+    // DeviceFeatureClass tests
     // -----------------------------------------------------------------------
 
     #[test]
-    fn fpga_type_display() {
-        assert!(FpgaType::NonPro.to_string().contains("NonPro"));
-        assert!(FpgaType::Pro.to_string().contains("Pro"));
-        assert!(FpgaType::Mso.to_string().contains("Mso"));
+    fn device_feature_class_display() {
+        assert!(DeviceFeatureClass::NonPro.to_string().contains("NonPro"));
+        assert!(DeviceFeatureClass::Pro.to_string().contains("Pro"));
+        assert!(DeviceFeatureClass::Mso.to_string().contains("Mso"));
+    }
+
+    #[test]
+    fn fpga_type_alias_works() {
+        // FpgaType is a backward-compatible alias for DeviceFeatureClass.
+        let fc: FpgaType = DeviceFeatureClass::Pro;
+        assert_eq!(fc, DeviceFeatureClass::Pro);
+    }
+
+    // -----------------------------------------------------------------------
+    // FpgaVariant tests
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn fpga_variant_display() {
+        assert!(FpgaVariant::Xilinx.to_string().contains("Xilinx"));
+        assert!(FpgaVariant::XilinxAlt.to_string().contains("alt"));
+        assert!(FpgaVariant::LatticeEcp5.to_string().contains("Lattice"));
+    }
+
+    // -----------------------------------------------------------------------
+    // AdcType tests
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn adc_type_bit_depth() {
+        assert_eq!(AdcType::Ad9637.bit_depth(), 12);
+        assert_eq!(AdcType::Ads528x.bit_depth(), 12);
+        assert_eq!(AdcType::Hmcad1100.bit_depth(), 8);
+    }
+
+    #[test]
+    fn adc_type_display() {
+        assert!(AdcType::Ad9637.to_string().contains("AD9637"));
+        assert!(AdcType::Ads528x.to_string().contains("ADS528x"));
+        assert!(AdcType::Hmcad1100.to_string().contains("HMCAD1100"));
+    }
+
+    // -----------------------------------------------------------------------
+    // HardwareRevision tests
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn hardware_revision_parse_xilinx_rev0() {
+        let data = [0x52, 0x45, 0x56, 0x00, 0x2E, 0x05];
+        let rev = HardwareRevision::parse(&data).unwrap();
+        assert_eq!(rev.major, 0);
+        assert_eq!(rev.minor, 5);
+        assert_eq!(rev.fpga_variant, FpgaVariant::Xilinx);
+        assert_eq!(rev.adc_type, AdcType::Ad9637);
+        assert!(!rev.is_lattice());
+    }
+
+    #[test]
+    fn hardware_revision_parse_xilinx_alt_rev1() {
+        let data = [0x52, 0x45, 0x56, 0x01, 0x2E, 0x02];
+        let rev = HardwareRevision::parse(&data).unwrap();
+        assert_eq!(rev.fpga_variant, FpgaVariant::XilinxAlt);
+        assert_eq!(rev.adc_type, AdcType::Ad9637);
+        assert!(!rev.is_lattice());
+    }
+
+    #[test]
+    fn hardware_revision_parse_lattice_rev4_ads528x() {
+        let data = [0x52, 0x45, 0x56, 0x04, 0x2E, 0x00];
+        let rev = HardwareRevision::parse(&data).unwrap();
+        assert_eq!(rev.fpga_variant, FpgaVariant::LatticeEcp5);
+        assert_eq!(rev.adc_type, AdcType::Ads528x);
+        assert!(rev.is_lattice());
+    }
+
+    #[test]
+    fn hardware_revision_parse_lattice_rev3_ad9637() {
+        let data = [0x52, 0x45, 0x56, 0x03, 0x2E, 0x01];
+        let rev = HardwareRevision::parse(&data).unwrap();
+        assert_eq!(rev.fpga_variant, FpgaVariant::LatticeEcp5);
+        assert_eq!(rev.adc_type, AdcType::Ad9637);
+    }
+
+    #[test]
+    fn hardware_revision_parse_rev7_xilinx_alt_ads528x() {
+        let data = [0x52, 0x45, 0x56, 0x07, 0x2E, 0x00];
+        let rev = HardwareRevision::parse(&data).unwrap();
+        assert_eq!(rev.fpga_variant, FpgaVariant::XilinxAlt);
+        assert_eq!(rev.adc_type, AdcType::Ads528x);
+    }
+
+    #[test]
+    fn hardware_revision_rev2_unsupported() {
+        let data = [0x52, 0x45, 0x56, 0x02, 0x2E, 0x00];
+        assert!(HardwareRevision::parse(&data).is_none());
+    }
+
+    #[test]
+    fn hardware_revision_parse_too_short() {
+        let data = [0x52, 0x45, 0x56, 0x01, 0x2E];
+        assert!(HardwareRevision::parse(&data).is_none());
+    }
+
+    #[test]
+    fn hardware_revision_parse_wrong_header() {
+        let data = [0x00, 0x00, 0x00, 0x01, 0x2E, 0x02];
+        assert!(HardwareRevision::parse(&data).is_none());
+    }
+
+    #[test]
+    fn hardware_revision_display() {
+        let data = [0x52, 0x45, 0x56, 0x01, 0x2E, 0x02];
+        let rev = HardwareRevision::parse(&data).unwrap();
+        let s = rev.to_string();
+        assert!(s.contains("Rev 1.02"), "got: {s}");
+        assert!(s.contains("Xilinx"), "got: {s}");
+        assert!(s.contains("AD9637"), "got: {s}");
+    }
+
+    #[test]
+    fn hardware_revision_lattice_major_values() {
+        for major in [3u8, 4, 5, 6, 8, 9, 10, 11] {
+            let data = [0x52, 0x45, 0x56, major, 0x2E, 0x00];
+            let rev = HardwareRevision::parse(&data).unwrap();
+            assert!(rev.is_lattice(), "major {major} should be Lattice");
+        }
+        for major in [0u8, 1, 7] {
+            let data = [0x52, 0x45, 0x56, major, 0x2E, 0x00];
+            let rev = HardwareRevision::parse(&data).unwrap();
+            assert!(!rev.is_lattice(), "major {major} should not be Lattice");
+        }
     }
 
     // -----------------------------------------------------------------------
@@ -1008,10 +1314,10 @@ mod tests {
 
     #[test]
     fn profile_fpga_types() {
-        assert_eq!(LOGIC_4_PROFILE.fpga_type, FpgaType::NonPro);
-        assert_eq!(LOGIC_8_PROFILE.fpga_type, FpgaType::NonPro);
-        assert_eq!(LOGIC_PRO_8_PROFILE.fpga_type, FpgaType::Pro);
-        assert_eq!(LOGIC_PRO_16_PROFILE.fpga_type, FpgaType::Pro);
+        assert_eq!(LOGIC_4_PROFILE.feature_class, DeviceFeatureClass::NonPro);
+        assert_eq!(LOGIC_8_PROFILE.feature_class, DeviceFeatureClass::NonPro);
+        assert_eq!(LOGIC_PRO_8_PROFILE.feature_class, DeviceFeatureClass::Pro);
+        assert_eq!(LOGIC_PRO_16_PROFILE.feature_class, DeviceFeatureClass::Pro);
     }
 
     #[test]

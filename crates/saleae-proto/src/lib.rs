@@ -35,8 +35,9 @@ pub use compare::{
     CompareReport, DigitalCompareResult,
 };
 pub use device::{
-    BootState, DeviceProfile, DeviceType, FpgaType, SaleaeDevice, UsbId, UsbSpeed, LOGIC_4_PROFILE,
-    LOGIC_8_PROFILE, LOGIC_PRO_16_PROFILE, LOGIC_PRO_8_PROFILE,
+    AdcType, BootState, DeviceFeatureClass, DeviceProfile, DeviceType, FpgaType, FpgaVariant,
+    HardwareRevision, SaleaeDevice, UsbId, UsbSpeed, LOGIC_4_PROFILE, LOGIC_8_PROFILE,
+    LOGIC_PRO_16_PROFILE, LOGIC_PRO_8_PROFILE,
 };
 pub use disaggregator::{DisaggregatedData, Disaggregator, MixRateResult};
 pub use error::{ProtoError, ProtoResult};

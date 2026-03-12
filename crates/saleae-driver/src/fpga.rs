@@ -29,92 +29,25 @@ use std::time::{Duration, Instant};
 
 use saleae_proto::device::{DeviceProfile, UsbSpeed};
 use saleae_proto::fpga_regs;
-use tracing::{debug, info, warn};
+use tracing::{debug, info};
 
 use crate::ep1::Ep1CommandChannel;
 use crate::error::{DriverError, DriverResult};
 
 // ---------------------------------------------------------------------------
-// Hardware revision parsing
+// Hardware revision (re-exported from saleae-proto)
 // ---------------------------------------------------------------------------
 
-/// Parsed hardware revision from the EEPROM at offset 0x20.
+/// Backward-compatible alias for the proto-level `HardwareRevision`.
 ///
-/// The EEPROM stores 6 bytes: "REV" (3 bytes) + major (1 byte) + '.' (1 byte)
-/// \+ minor (1 byte). The major version determines the FPGA chip type and ADC
-/// type.
-///
-/// Source: `ParseBoardRevision` at ELF VA 0x1c23bc0 in libgraph_server_shared.so.
-/// See `re/notes/eeprom-layout.md` for the full mapping table.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct HwRevision {
-    /// Major hardware revision (determines FPGA and ADC type).
-    pub major: u8,
-    /// Minor hardware revision.
-    pub minor: u8,
-}
+/// New code should use `saleae_proto::device::HardwareRevision` directly.
+pub type HwRevision = saleae_proto::device::HardwareRevision;
 
-impl HwRevision {
-    /// EEPROM read parameters for ReadVersion to fetch hw revision.
-    ///
-    /// ReadVersion opcode 0x07 with I2C params:
-    /// `[0x33, 0x81, addr_lo, addr_hi, count_lo, count_hi]`
-    /// Address 0x0020, count 6.
-    pub const EEPROM_READ_PARAMS: [u8; 6] = [0x33, 0x81, 0x20, 0x00, 0x06, 0x00];
-
-    /// Parse hardware revision from raw EEPROM bytes (6 bytes from offset 0x20).
-    ///
-    /// Expected format: `[0x52, 0x45, 0x56, major, 0x2E, minor]` = "REV" + major + "." + minor.
-    ///
-    /// Returns `None` if the data doesn't start with "REV" or is too short.
-    pub fn parse(data: &[u8]) -> Option<Self> {
-        if data.len() < 6 {
-            warn!(
-                len = data.len(),
-                "HwRevision: data too short (need 6 bytes)"
-            );
-            return None;
-        }
-        if &data[0..3] != b"REV" {
-            warn!(
-                header = format_args!("{:02x?}", &data[0..3]),
-                "HwRevision: expected 'REV' header"
-            );
-            return None;
-        }
-        Some(Self {
-            major: data[3],
-            minor: data[5],
-        })
-    }
-
-    /// Whether this hardware revision uses a Lattice ECP5 FPGA.
-    ///
-    /// From `ParseBoardRevision` switch statement:
-    /// - Major 0, 1, 7 = Xilinx Spartan-6 (FpgaType 0 or 1)
-    /// - Major 3, 4, 5, 6, 8, 9, 10, 11 = Lattice ECP5 (FpgaType 2)
-    /// - Major 2 = unsupported (throws exception in binary)
-    pub fn is_lattice(&self) -> bool {
-        matches!(self.major, 3 | 4 | 5 | 6 | 8 | 9 | 10 | 11)
-    }
-}
-
-impl std::fmt::Display for HwRevision {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let fpga = if self.is_lattice() {
-            "Lattice ECP5"
-        } else {
-            "Xilinx Spartan-6"
-        };
-        write!(f, "Rev {}.{:02} ({})", self.major, self.minor, fpga)
-    }
-}
-
-/// Read the hardware revision from EEPROM and determine if the FPGA is Lattice.
+/// Read the hardware revision from EEPROM and determine FPGA/ADC type.
 ///
 /// This reads 6 bytes from EEPROM offset 0x20 via `ReadVersion` (opcode 0x07)
 /// and parses the "REV" + major.minor format. The major version determines
-/// the FPGA chip type (Xilinx vs Lattice).
+/// the FPGA chip type (Xilinx vs Lattice) and ADC type.
 ///
 /// # Returns
 ///
@@ -1613,37 +1546,48 @@ mod tests {
 
     #[test]
     fn hw_revision_parse_valid_xilinx_rev1() {
+        use saleae_proto::device::{AdcType, FpgaVariant};
         // Real device: Logic Pro 8 Rev 1.02 (Xilinx Spartan-6)
         let data = [0x52, 0x45, 0x56, 0x01, 0x2E, 0x02]; // "REV" + 1 + "." + 2
         let rev = HwRevision::parse(&data).unwrap();
         assert_eq!(rev.major, 1);
         assert_eq!(rev.minor, 2);
         assert!(!rev.is_lattice());
+        assert_eq!(rev.fpga_variant, FpgaVariant::XilinxAlt);
+        assert_eq!(rev.adc_type, AdcType::Ad9637);
     }
 
     #[test]
     fn hw_revision_parse_valid_xilinx_rev0() {
+        use saleae_proto::device::{AdcType, FpgaVariant};
         let data = [0x52, 0x45, 0x56, 0x00, 0x2E, 0x05]; // "REV" + 0 + "." + 5
         let rev = HwRevision::parse(&data).unwrap();
         assert_eq!(rev.major, 0);
         assert_eq!(rev.minor, 5);
         assert!(!rev.is_lattice());
+        assert_eq!(rev.fpga_variant, FpgaVariant::Xilinx);
+        assert_eq!(rev.adc_type, AdcType::Ad9637);
     }
 
     #[test]
     fn hw_revision_parse_valid_lattice_rev4() {
+        use saleae_proto::device::{AdcType, FpgaVariant};
         let data = [0x52, 0x45, 0x56, 0x04, 0x2E, 0x00]; // "REV" + 4 + "." + 0
         let rev = HwRevision::parse(&data).unwrap();
         assert_eq!(rev.major, 4);
         assert_eq!(rev.minor, 0);
         assert!(rev.is_lattice());
+        assert_eq!(rev.fpga_variant, FpgaVariant::LatticeEcp5);
+        assert_eq!(rev.adc_type, AdcType::Ads528x);
     }
 
     #[test]
     fn hw_revision_parse_valid_lattice_rev3() {
+        use saleae_proto::device::AdcType;
         let data = [0x52, 0x45, 0x56, 0x03, 0x2E, 0x01];
         let rev = HwRevision::parse(&data).unwrap();
         assert!(rev.is_lattice());
+        assert_eq!(rev.adc_type, AdcType::Ad9637);
     }
 
     #[test]
@@ -1659,36 +1603,45 @@ mod tests {
     }
 
     #[test]
-    fn hw_revision_rev2_is_neither_xilinx_nor_lattice() {
-        // Rev 2 is unsupported in the binary (throws exception)
+    fn hw_revision_rev2_is_unsupported() {
+        // Rev 2 is unsupported in the binary (throws exception).
+        // HardwareRevision::parse now returns None for unsupported revisions.
         let data = [0x52, 0x45, 0x56, 0x02, 0x2E, 0x00];
-        let rev = HwRevision::parse(&data).unwrap();
-        assert!(!rev.is_lattice()); // not Lattice
-                                    // but also not a known Xilinx rev -- just "not Lattice"
+        assert!(HwRevision::parse(&data).is_none());
     }
 
     #[test]
     fn hw_revision_display_xilinx() {
-        let rev = HwRevision { major: 1, minor: 2 };
-        assert_eq!(rev.to_string(), "Rev 1.02 (Xilinx Spartan-6)");
+        let data = [0x52, 0x45, 0x56, 0x01, 0x2E, 0x02];
+        let rev = HwRevision::parse(&data).unwrap();
+        let display = rev.to_string();
+        assert!(display.contains("Rev 1.02"), "got: {display}");
+        assert!(display.contains("Xilinx"), "got: {display}");
+        assert!(display.contains("AD9637"), "got: {display}");
     }
 
     #[test]
     fn hw_revision_display_lattice() {
-        let rev = HwRevision { major: 4, minor: 0 };
-        assert_eq!(rev.to_string(), "Rev 4.00 (Lattice ECP5)");
+        let data = [0x52, 0x45, 0x56, 0x04, 0x2E, 0x00];
+        let rev = HwRevision::parse(&data).unwrap();
+        let display = rev.to_string();
+        assert!(display.contains("Rev 4.00"), "got: {display}");
+        assert!(display.contains("Lattice"), "got: {display}");
+        assert!(display.contains("ADS528x"), "got: {display}");
     }
 
     #[test]
     fn hw_revision_lattice_major_values() {
         // All Lattice major revisions from the switch statement
-        for major in [3, 4, 5, 6, 8, 9, 10, 11] {
-            let rev = HwRevision { major, minor: 0 };
+        for major in [3u8, 4, 5, 6, 8, 9, 10, 11] {
+            let data = [0x52, 0x45, 0x56, major, 0x2E, 0x00];
+            let rev = HwRevision::parse(&data).unwrap();
             assert!(rev.is_lattice(), "major {major} should be Lattice");
         }
         // Non-Lattice major revisions
-        for major in [0, 1, 7] {
-            let rev = HwRevision { major, minor: 0 };
+        for major in [0u8, 1, 7] {
+            let data = [0x52, 0x45, 0x56, major, 0x2E, 0x00];
+            let rev = HwRevision::parse(&data).unwrap();
             assert!(!rev.is_lattice(), "major {major} should not be Lattice");
         }
     }

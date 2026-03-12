@@ -22,7 +22,7 @@
 //! The 0x7F path is for FPGA bitstream upload only.
 
 use saleae_proto::capture_data::{self, DataChunk};
-use saleae_proto::device::{endpoint, FpgaType, UsbSpeed};
+use saleae_proto::device::{endpoint, DeviceFeatureClass, UsbSpeed};
 use saleae_proto::fpga_regs;
 use tracing::{debug, info, warn};
 
@@ -104,8 +104,8 @@ pub struct CaptureConfig {
     pub base_analog_rate: u64,
     /// USB connection speed. Used for bandwidth validation.
     pub usb_speed: UsbSpeed,
-    /// FPGA type. Determines samples-per-chunk limits.
-    pub fpga_type: FpgaType,
+    /// Device feature class. Determines samples-per-chunk limits.
+    pub feature_class: DeviceFeatureClass,
 }
 
 impl Default for CaptureConfig {
@@ -125,7 +125,7 @@ impl Default for CaptureConfig {
             base_digital_rate: 500_000_000,
             base_analog_rate: 100_000_000,
             usb_speed: UsbSpeed::Super,
-            fpga_type: FpgaType::Pro,
+            feature_class: DeviceFeatureClass::Pro,
         }
     }
 }
@@ -140,7 +140,7 @@ impl CaptureConfig {
     /// - `base_digital_rate`: 500 MHz
     /// - `base_analog_rate`: 100 MHz
     /// - `usb_speed`: SuperSpeed
-    /// - `fpga_type`: Pro
+    /// - `feature_class`: Pro
     ///
     /// Other fields (`duration_samples`, `voltage_threshold`, `stats_enabled`,
     /// `samples_per_chunk`) use their `Default` values. Override them after
@@ -264,16 +264,16 @@ impl CaptureConfig {
 
         // --- FPGA samples_per_chunk limits ---
 
-        let (min_chunk, max_chunk) = match self.fpga_type {
-            FpgaType::NonPro | FpgaType::Pro => (256u32, 7680u32), // Xilinx
-            FpgaType::Mso => (64u32, 6016u32),                     // Altera
+        let (min_chunk, max_chunk) = match self.feature_class {
+            DeviceFeatureClass::NonPro | DeviceFeatureClass::Pro => (256u32, 7680u32), // Xilinx
+            DeviceFeatureClass::Mso => (64u32, 6016u32),                     // Altera
         };
 
         if self.samples_per_chunk < min_chunk || self.samples_per_chunk > max_chunk {
             return Err(DriverError::InvalidCaptureConfig {
                 reason: format!(
                     "samples_per_chunk {} is outside {} range [{min_chunk}, {max_chunk}]",
-                    self.samples_per_chunk, self.fpga_type,
+                    self.samples_per_chunk, self.feature_class,
                 ),
             });
         }
@@ -2497,7 +2497,7 @@ mod tests {
             analog_channels: vec![],
             samples_per_chunk: 256,
             usb_speed: UsbSpeed::Super,
-            fpga_type: FpgaType::Pro,
+            feature_class: DeviceFeatureClass::Pro,
             ..CaptureConfig::default()
         };
         config.validate_bandwidth().unwrap();
@@ -2512,7 +2512,7 @@ mod tests {
             analog_channels: vec![],
             samples_per_chunk: 256,
             usb_speed: UsbSpeed::Super,
-            fpga_type: FpgaType::Pro,
+            feature_class: DeviceFeatureClass::Pro,
             ..CaptureConfig::default()
         };
         config.validate_bandwidth().unwrap();
@@ -2530,7 +2530,7 @@ mod tests {
             analog_channels: vec![0, 1, 2, 3, 4, 5, 6, 7],
             samples_per_chunk: 256,
             usb_speed: UsbSpeed::Super,
-            fpga_type: FpgaType::Pro,
+            feature_class: DeviceFeatureClass::Pro,
             ..CaptureConfig::default()
         };
         let err = config.validate_bandwidth().unwrap_err();
@@ -2548,7 +2548,7 @@ mod tests {
             analog_channels: vec![],
             samples_per_chunk: 256,
             usb_speed: UsbSpeed::High,
-            fpga_type: FpgaType::Pro,
+            feature_class: DeviceFeatureClass::Pro,
             ..CaptureConfig::default()
         };
         let err = config.validate_bandwidth().unwrap_err();
@@ -2565,7 +2565,7 @@ mod tests {
             analog_channels: vec![],
             samples_per_chunk: 256,
             usb_speed: UsbSpeed::High,
-            fpga_type: FpgaType::Pro,
+            feature_class: DeviceFeatureClass::Pro,
             ..CaptureConfig::default()
         };
         config.validate_bandwidth().unwrap();
@@ -2579,7 +2579,7 @@ mod tests {
             analog_channels: vec![],
             samples_per_chunk: 256,
             usb_speed: UsbSpeed::Full,
-            fpga_type: FpgaType::Pro,
+            feature_class: DeviceFeatureClass::Pro,
             ..CaptureConfig::default()
         };
         let err = config.validate_bandwidth().unwrap_err();
@@ -2595,7 +2595,7 @@ mod tests {
             analog_channels: vec![0, 1, 2, 3],
             samples_per_chunk: 256,
             usb_speed: UsbSpeed::Super,
-            fpga_type: FpgaType::Pro,
+            feature_class: DeviceFeatureClass::Pro,
             ..CaptureConfig::default()
         };
         config.validate_bandwidth().unwrap();
@@ -2609,7 +2609,7 @@ mod tests {
             analog_channels: vec![],
             samples_per_chunk: 128, // below Xilinx min of 256
             usb_speed: UsbSpeed::Super,
-            fpga_type: FpgaType::Pro,
+            feature_class: DeviceFeatureClass::Pro,
             ..CaptureConfig::default()
         };
         let err = config.validate_bandwidth().unwrap_err();
@@ -2626,7 +2626,7 @@ mod tests {
             analog_channels: vec![],
             samples_per_chunk: 8192, // above Xilinx max of 7680
             usb_speed: UsbSpeed::Super,
-            fpga_type: FpgaType::Pro,
+            feature_class: DeviceFeatureClass::Pro,
             ..CaptureConfig::default()
         };
         let err = config.validate_bandwidth().unwrap_err();
@@ -2643,21 +2643,21 @@ mod tests {
             analog_channels: vec![],
             samples_per_chunk: 64,
             usb_speed: UsbSpeed::Super,
-            fpga_type: FpgaType::Mso,
+            feature_class: DeviceFeatureClass::Mso,
             ..CaptureConfig::default()
         };
         config_ok.validate_bandwidth().unwrap();
 
         let config_ok_max = CaptureConfig {
             samples_per_chunk: 6016,
-            fpga_type: FpgaType::Mso,
+            feature_class: DeviceFeatureClass::Mso,
             ..config_ok.clone()
         };
         config_ok_max.validate_bandwidth().unwrap();
 
         let config_too_big = CaptureConfig {
             samples_per_chunk: 6017,
-            fpga_type: FpgaType::Mso,
+            feature_class: DeviceFeatureClass::Mso,
             ..config_ok.clone()
         };
         let err = config_too_big.validate_bandwidth().unwrap_err();
@@ -2676,7 +2676,7 @@ mod tests {
             analog_channels: vec![0, 1],
             samples_per_chunk: 256,
             usb_speed: UsbSpeed::Super,
-            fpga_type: FpgaType::Pro,
+            feature_class: DeviceFeatureClass::Pro,
             ..CaptureConfig::default()
         };
         config.validate_bandwidth().unwrap();
@@ -2695,7 +2695,7 @@ mod tests {
             analog_channels: vec![],
             samples_per_chunk: 256,
             usb_speed: UsbSpeed::Super,
-            fpga_type: FpgaType::Pro,
+            feature_class: DeviceFeatureClass::Pro,
             ..CaptureConfig::default()
         };
         config.validate_bandwidth().unwrap();
@@ -2713,7 +2713,7 @@ mod tests {
             analog_channels: vec![0],
             samples_per_chunk: 256,
             usb_speed: UsbSpeed::Super,
-            fpga_type: FpgaType::Pro,
+            feature_class: DeviceFeatureClass::Pro,
             ..CaptureConfig::default()
         };
         let err = config.validate_bandwidth().unwrap_err();

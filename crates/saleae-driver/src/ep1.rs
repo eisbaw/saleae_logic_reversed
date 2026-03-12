@@ -516,14 +516,14 @@ impl Ep1CommandChannel {
         let chunk_size = profile.fpga_chunk_size(usb_speed);
         let read_ack = profile.register_write_verifies();
 
-        match profile.fpga_type {
-            saleae_proto::device::FpgaType::Pro => {
+        match profile.feature_class {
+            saleae_proto::device::DeviceFeatureClass::Pro => {
                 self.write_config_data_chunked(data, chunk_size, read_ack)
             }
-            saleae_proto::device::FpgaType::NonPro => {
+            saleae_proto::device::DeviceFeatureClass::NonPro => {
                 self.write_config_data_non_pro(data, chunk_size)
             }
-            saleae_proto::device::FpgaType::Mso => {
+            saleae_proto::device::DeviceFeatureClass::Mso => {
                 // MSO is out of scope. Fall back to Pro format as placeholder.
                 self.write_config_data_chunked(data, chunk_size, read_ack)
             }
