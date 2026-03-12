@@ -1078,45 +1078,12 @@ mod tests {
         mock: &std::sync::Arc<MockTransport>,
         seed: u32,
     ) -> Ep1CommandChannel {
-        let transport = Box::new(MockTransportWrapper(mock.clone()));
+        let transport: Box<dyn UsbTransport> = Box::new(mock.clone());
         let mut channel = Ep1CommandChannel::new(transport, EncryptionMode::XorAll, true);
         // Manually set the seed (bypassing initialize).
         channel.encryption.reseed(seed);
         channel.initialized = true;
         channel
-    }
-
-    /// Wrapper to clone a MockTransport via Arc for test purposes.
-    struct MockTransportWrapper(std::sync::Arc<MockTransport>);
-
-    impl UsbTransport for MockTransportWrapper {
-        fn control_transfer_out(
-            &self,
-            params: &saleae_usb::transport::ControlTransferParams,
-            data: &[u8],
-        ) -> saleae_usb::UsbResult<usize> {
-            self.0.control_transfer_out(params, data)
-        }
-
-        fn control_transfer_in(
-            &self,
-            params: &saleae_usb::transport::ControlTransferParams,
-            buf: &mut [u8],
-        ) -> saleae_usb::UsbResult<usize> {
-            self.0.control_transfer_in(params, buf)
-        }
-
-        fn bulk_transfer_out(&self, endpoint: u8, data: &[u8]) -> saleae_usb::UsbResult<usize> {
-            self.0.bulk_transfer_out(endpoint, data)
-        }
-
-        fn bulk_transfer_in(&self, endpoint: u8, buf: &mut [u8]) -> saleae_usb::UsbResult<usize> {
-            self.0.bulk_transfer_in(endpoint, buf)
-        }
-
-        fn reset(&self) -> saleae_usb::UsbResult<()> {
-            self.0.reset()
-        }
     }
 
     #[test]
@@ -1150,7 +1117,7 @@ mod tests {
         // encrypt_reseed returns raw 4-byte seed (no control byte, no XOR).
         // For encryption correctness, see pcap_validation tests in
         // obfuscation.rs.
-        let transport = Box::new(MockTransportWrapper(mock.clone()));
+        let transport = Box::new(mock.clone()) as Box<dyn UsbTransport>;
         let mut channel = Ep1CommandChannel::new(transport, EncryptionMode::None, true);
 
         // Queue response for the ping (unencrypted since mode is None).
@@ -1328,7 +1295,7 @@ mod tests {
     fn write_registers_non_pro_skips_ack_read() {
         let mock = std::sync::Arc::new(MockTransport::new());
         // No ACK response queued -- non-Pro should not read one.
-        let transport = Box::new(MockTransportWrapper(mock.clone()));
+        let transport = Box::new(mock.clone()) as Box<dyn UsbTransport>;
         let mut channel = Ep1CommandChannel::new(transport, EncryptionMode::None, false);
         channel.initialized = true;
 
@@ -1354,7 +1321,7 @@ mod tests {
     fn write_config_data_non_pro_channel_skips_ack() {
         let mock = std::sync::Arc::new(MockTransport::new());
         // No ACK response queued -- non-Pro should not read one.
-        let transport = Box::new(MockTransportWrapper(mock.clone()));
+        let transport = Box::new(mock.clone()) as Box<dyn UsbTransport>;
         let mut channel = Ep1CommandChannel::new(transport, EncryptionMode::None, false);
         channel.initialized = true;
 

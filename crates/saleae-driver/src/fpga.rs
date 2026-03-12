@@ -671,45 +671,12 @@ mod tests {
 
     /// Create a mock channel with XorAll encryption and seed=0 (identity XOR).
     fn mock_channel(mock: &std::sync::Arc<MockTransport>) -> Ep1CommandChannel {
-        let transport = Box::new(MockTransportWrapper(mock.clone()));
+        let transport: Box<dyn saleae_usb::transport::UsbTransport> = Box::new(mock.clone());
         let mut channel = Ep1CommandChannel::new(transport, EncryptionMode::XorAll, true);
         // Seed 0 makes XOR identity -- simplifies assertions.
         channel.encryption.reseed(0);
         channel.initialized = true;
         channel
-    }
-
-    /// Wrapper to clone a MockTransport via Arc for test purposes.
-    struct MockTransportWrapper(std::sync::Arc<MockTransport>);
-
-    impl saleae_usb::transport::UsbTransport for MockTransportWrapper {
-        fn control_transfer_out(
-            &self,
-            params: &saleae_usb::transport::ControlTransferParams,
-            data: &[u8],
-        ) -> saleae_usb::UsbResult<usize> {
-            self.0.control_transfer_out(params, data)
-        }
-
-        fn control_transfer_in(
-            &self,
-            params: &saleae_usb::transport::ControlTransferParams,
-            buf: &mut [u8],
-        ) -> saleae_usb::UsbResult<usize> {
-            self.0.control_transfer_in(params, buf)
-        }
-
-        fn bulk_transfer_out(&self, endpoint: u8, data: &[u8]) -> saleae_usb::UsbResult<usize> {
-            self.0.bulk_transfer_out(endpoint, data)
-        }
-
-        fn bulk_transfer_in(&self, endpoint: u8, buf: &mut [u8]) -> saleae_usb::UsbResult<usize> {
-            self.0.bulk_transfer_in(endpoint, buf)
-        }
-
-        fn reset(&self) -> saleae_usb::UsbResult<()> {
-            self.0.reset()
-        }
     }
 
     // -----------------------------------------------------------------------

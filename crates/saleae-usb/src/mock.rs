@@ -236,6 +236,40 @@ impl UsbTransport for MockTransport {
     }
 }
 
+/// Blanket impl so `Arc<MockTransport>` can be used as `Box<dyn UsbTransport>`
+/// without a manual wrapper struct. This eliminates the need for the
+/// `MockTransportWrapper` newtype that was previously copy-pasted across every
+/// test module in `saleae-driver`.
+impl UsbTransport for std::sync::Arc<MockTransport> {
+    fn control_transfer_out(
+        &self,
+        params: &ControlTransferParams,
+        data: &[u8],
+    ) -> UsbResult<usize> {
+        (**self).control_transfer_out(params, data)
+    }
+
+    fn control_transfer_in(
+        &self,
+        params: &ControlTransferParams,
+        buf: &mut [u8],
+    ) -> UsbResult<usize> {
+        (**self).control_transfer_in(params, buf)
+    }
+
+    fn bulk_transfer_out(&self, endpoint: u8, data: &[u8]) -> UsbResult<usize> {
+        (**self).bulk_transfer_out(endpoint, data)
+    }
+
+    fn bulk_transfer_in(&self, endpoint: u8, buf: &mut [u8]) -> UsbResult<usize> {
+        (**self).bulk_transfer_in(endpoint, buf)
+    }
+
+    fn reset(&self) -> UsbResult<()> {
+        (**self).reset()
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------

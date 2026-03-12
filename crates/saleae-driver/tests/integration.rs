@@ -29,42 +29,6 @@ use saleae_usb::UsbError;
 // Test infrastructure
 // ---------------------------------------------------------------------------
 
-/// Wrapper to share a MockTransport via Arc while implementing UsbTransport.
-///
-/// Integration tests (external to the crate) cannot access the internal
-/// MockTransportWrapper used in unit tests. This provides the same pattern.
-struct SharedMock(Arc<MockTransport>);
-
-impl UsbTransport for SharedMock {
-    fn control_transfer_out(
-        &self,
-        params: &saleae_usb::transport::ControlTransferParams,
-        data: &[u8],
-    ) -> saleae_usb::UsbResult<usize> {
-        self.0.control_transfer_out(params, data)
-    }
-
-    fn control_transfer_in(
-        &self,
-        params: &saleae_usb::transport::ControlTransferParams,
-        buf: &mut [u8],
-    ) -> saleae_usb::UsbResult<usize> {
-        self.0.control_transfer_in(params, buf)
-    }
-
-    fn bulk_transfer_out(&self, endpoint: u8, data: &[u8]) -> saleae_usb::UsbResult<usize> {
-        self.0.bulk_transfer_out(endpoint, data)
-    }
-
-    fn bulk_transfer_in(&self, endpoint: u8, buf: &mut [u8]) -> saleae_usb::UsbResult<usize> {
-        self.0.bulk_transfer_in(endpoint, buf)
-    }
-
-    fn reset(&self) -> saleae_usb::UsbResult<()> {
-        self.0.reset()
-    }
-}
-
 /// Create an Ep1CommandChannel with EncryptionMode::None, already initialized
 /// via the public `initialize()` method.
 ///
@@ -77,7 +41,7 @@ fn make_initialized_channel(mock: &Arc<MockTransport>) -> Ep1CommandChannel {
     // Queue response for ping during initialize().
     mock.push_bulk_in_response(endpoint::BULK_IN, vec![0xAA]);
 
-    let transport = Box::new(SharedMock(mock.clone()));
+    let transport: Box<dyn UsbTransport> = Box::new(mock.clone());
     let mut channel = Ep1CommandChannel::new(transport, EncryptionMode::None, true);
     channel.initialize().expect("initialize should succeed");
     assert!(channel.is_initialized());
@@ -473,7 +437,7 @@ fn ep1_initialize_sends_reseed_then_ping() {
     // Queue the ping response for initialize().
     mock.push_bulk_in_response(endpoint::BULK_IN, vec![0xAA]);
 
-    let transport = Box::new(SharedMock(mock.clone()));
+    let transport = Box::new(mock.clone()) as Box<dyn UsbTransport>;
     let mut channel = Ep1CommandChannel::new(transport, EncryptionMode::None, true);
 
     assert!(!channel.is_initialized());
@@ -528,7 +492,7 @@ fn ep1_initialize_fails_on_wrong_ping_response() {
     // Queue wrong ping response.
     mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x55]); // wrong! expected 0xAA
 
-    let transport = Box::new(SharedMock(mock.clone()));
+    let transport = Box::new(mock.clone()) as Box<dyn UsbTransport>;
     let mut channel = Ep1CommandChannel::new(transport, EncryptionMode::None, true);
 
     let err = channel.initialize().unwrap_err();
@@ -787,7 +751,7 @@ fn ep1_command_handles_bulk_out_failure() {
 
     // Initialize channel successfully first.
     mock.push_bulk_in_response(endpoint::BULK_IN, vec![0xAA]);
-    let transport = Box::new(SharedMock(mock.clone()));
+    let transport = Box::new(mock.clone()) as Box<dyn UsbTransport>;
     let mut channel = Ep1CommandChannel::new(transport, EncryptionMode::None, true);
     channel.initialize().unwrap();
     mock.clear();
