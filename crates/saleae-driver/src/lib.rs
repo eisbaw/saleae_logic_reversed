@@ -13,6 +13,7 @@
 
 pub mod adc;
 pub mod autoscale;
+pub mod calibrate;
 pub mod calibration;
 pub mod capture;
 pub mod device;

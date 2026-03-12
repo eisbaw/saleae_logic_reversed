@@ -981,9 +981,12 @@ pub fn full_init(firmware_path: &str, bitstream_path: &str, auto_bitstream: bool
         );
     }
 
-    // Print analog channel summary.
+    // Print analog channel summary (raw ADC codes).
     println!();
-    println!("Analog channels ({} channels):", output.analog.len());
+    println!(
+        "Analog channels ({} channels, raw ADC codes):",
+        output.analog.len()
+    );
     for (ch, data) in output.analog.iter().enumerate() {
         if data.is_empty() {
             println!("  CH{ch}: no samples");
@@ -1002,6 +1005,48 @@ pub fn full_init(firmware_path: &str, bitstream_path: &str, auto_bitstream: bool
             "  CH{ch}: {} samples, min={min} max={max} mean={mean:.1} | {preview}...",
             data.len(),
         );
+    }
+
+    // Apply analog calibration if a .cal file is available.
+    if !output.analog.is_empty() {
+        let cal_path = std::path::Path::new("re/calibration-764051b51bd4d9f1.cal");
+        match std::fs::read(cal_path) {
+            Ok(cal_bytes) => match saleae_proto::calibration::parse_calibration(&cal_bytes) {
+                Ok(cal) => {
+                    let analog_indices: Vec<u8> = capture_config.analog_channels.clone();
+                    let calibrated = saleae_driver::calibrate::apply_calibration(
+                        &output,
+                        &cal,
+                        &analog_indices,
+                        capture_config.sample_rate,
+                    );
+                    match calibrated {
+                        Some(cal_output) => {
+                            println!();
+                            println!("Calibrated analog voltages:");
+                            cal_output.print_summary();
+                        }
+                        None => {
+                            println!();
+                            println!(
+                                    "Calibration skipped: missing calibration data for one or more channels"
+                                );
+                        }
+                    }
+                }
+                Err(e) => {
+                    println!();
+                    println!("Calibration skipped: failed to parse .cal file: {e}");
+                }
+            },
+            Err(_) => {
+                println!();
+                println!(
+                    "Calibration skipped: .cal file not found at {}",
+                    cal_path.display()
+                );
+            }
+        }
     }
 
     // Power down
