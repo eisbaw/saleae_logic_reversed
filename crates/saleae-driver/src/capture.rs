@@ -1355,7 +1355,9 @@ pub fn run_capture(
         buf_size, "Reading EP2 capture data"
     );
 
-    let mut raw_data = Vec::new();
+    let estimated_capacity =
+        (buf_size as u128 * duration.as_millis() / 10).min(256 * 1024 * 1024) as usize;
+    let mut raw_data = Vec::with_capacity(estimated_capacity);
     let mut read_count: u64 = 0;
     let mut completed_normally = true;
     let mut buf = vec![0u8; buf_size];
