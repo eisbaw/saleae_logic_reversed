@@ -910,7 +910,7 @@ pub fn full_init(
         Duration::from_secs(2),
         16384,
     )
-    .map_err(|e| anyhow::anyhow!("capture failed: {e}"))?;
+    .context("capture failed")?;
 
     if !result.completed_normally {
         println!("WARNING: capture ended early due to EP2 read error (data may be partial)");
@@ -1114,9 +1114,7 @@ pub fn capture_digital(
         fpga_type: saleae_proto::FpgaType::Pro,
     };
 
-    config
-        .validate()
-        .map_err(|e| anyhow::anyhow!("invalid capture config: {e}"))?;
+    config.validate().context("invalid capture config")?;
 
     println!("Digital capture configuration:");
     println!("  Sample rate:       {} Hz", config.sample_rate);
@@ -1235,7 +1233,7 @@ pub fn capture_digital(
         Duration::from_secs_f64(duration),
         16 * 1024,
     )
-    .map_err(|e| anyhow::anyhow!("capture failed: {e}"))?;
+    .context("capture failed")?;
 
     // --- Step 9: Teardown ---
     // Power down ADC
@@ -1483,7 +1481,7 @@ pub fn capture_quick(
         Duration::from_secs_f64(duration),
         buf_size,
     )
-    .map_err(|e| anyhow::anyhow!("capture failed: {e}"))?;
+    .context("capture failed")?;
 
     // Power down ADC if we powered it on.
     if !is_digital_only {
@@ -1601,9 +1599,7 @@ pub fn capture_analog(
     };
 
     // Validate configuration.
-    config
-        .validate()
-        .map_err(|e| anyhow::anyhow!("invalid analog capture config: {e}"))?;
+    config.validate().context("invalid analog capture config")?;
 
     println!("Analog capture configuration:");
     println!("  Sample rate:       {} Hz", config.sample_rate);
@@ -1623,7 +1619,7 @@ pub fn capture_analog(
         Ok(path) => {
             println!("Loading calibration from {}", path.display());
             saleae_driver::calibration::load_calibration_file(&path)
-                .map_err(|e| anyhow::anyhow!("failed to load {}: {}", path.display(), e))
+                .with_context(|| format!("failed to load {}", path.display()))
         }
         Err(_) => {
             // Fall back to searching re/ directory for any .cal file.
@@ -1764,7 +1760,7 @@ fn find_and_load_calibration(dir: &std::path::Path) -> Result<saleae_proto::Cali
         let path = entry.path();
         if path.extension().is_some_and(|ext| ext == "cal") {
             return saleae_driver::calibration::load_calibration_file(&path)
-                .map_err(|e| anyhow::anyhow!("failed to load {}: {}", path.display(), e));
+                .with_context(|| format!("failed to load {}", path.display()));
         }
     }
 
