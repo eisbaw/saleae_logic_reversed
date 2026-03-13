@@ -20,9 +20,12 @@
 //! // Device is now ready for capture.
 //! ```
 
+use std::time::Duration;
+
 use saleae_proto::device::{BootState, DeviceProfile, SaleaeDevice, UsbSpeed};
+use saleae_proto::firmware::fx3::Fx3Image;
 use saleae_proto::obfuscation::EncryptionMode;
-use tracing::info;
+use tracing::{info, warn};
 
 use crate::ep1::Ep1CommandChannel;
 use crate::error::{DriverError, DriverResult};
@@ -54,8 +57,8 @@ pub struct ConnectedDevice {
 ///
 /// This is the "connect to a device that already has firmware running"
 /// path. It does NOT handle firmware upload or auto-recovery -- for that,
-/// use `ensure_device_ready` in the CLI (which calls this after firmware
-/// upload).
+/// use [`connect_or_recover`] which handles the full "from any state to
+/// connected" flow including firmware upload and dead-EP1 recovery.
 ///
 /// When `serial_filter` is `Some`, only devices whose USB serial number
 /// contains the filter string (case-insensitive) are considered. When
@@ -173,6 +176,184 @@ pub fn reconnect_with_channel(
         usb_speed,
         device,
     })
+}
+
+// ---------------------------------------------------------------------------
+// connect_or_recover
+// ---------------------------------------------------------------------------
+
+/// Ensure a Saleae device is ready for EP1 communication, handling all
+/// recovery scenarios automatically.
+///
+/// This is the "from any state to connected" facade function. It handles:
+///
+/// 1. **Bootloader mode**: uploads firmware, waits for re-enumeration.
+/// 2. **Firmware running, EP1 alive**: returns immediately.
+/// 3. **Firmware running, EP1 dead**: resets device to bootloader,
+///    re-uploads firmware, waits for re-enumeration.
+/// 4. **Unknown bcdDevice**: returns an error.
+///
+/// After recovery, opens a fresh EP1 channel (reseed + ping verified)
+/// and returns a [`ConnectedDevice`] ready for use.
+///
+/// The `firmware_data` must be the raw bytes of an FX3 firmware image
+/// (already read from disk by the caller). The `firmware_image` is the
+/// parsed `Fx3Image`.
+///
+/// # Callback
+///
+/// The optional `on_status` callback receives human-readable status
+/// messages suitable for display to the user. If `None`, messages are
+/// logged via `tracing::info!`.
+pub fn connect_or_recover(
+    firmware_image: &Fx3Image,
+    serial_filter: Option<&str>,
+    on_status: Option<&dyn Fn(&str)>,
+) -> DriverResult<ConnectedDevice> {
+    let status = |msg: &str| {
+        if let Some(cb) = on_status {
+            cb(msg);
+        } else {
+            info!("{}", msg);
+        }
+    };
+
+    let timeout = Duration::from_secs(10);
+    let poll_interval = Duration::from_millis(500);
+
+    // Step 1: Find device.
+    let device = find_device(serial_filter)?;
+    status(&format!("Found device: {device}"));
+    status(&format!("  Boot state: {}", device.boot_state));
+
+    match device.boot_state {
+        BootState::Bootloader => {
+            // Device is in bootloader -- upload firmware directly.
+            status("Device in bootloader mode. Uploading firmware...");
+            upload_firmware_and_wait(firmware_image, timeout, poll_interval, serial_filter, &status)?;
+        }
+        BootState::FirmwareRunning => {
+            // Firmware running -- try a quick ping to see if EP1 thread is alive.
+            status("Firmware running. Testing EP1 with ping...");
+            if try_ping_ep1(serial_filter) {
+                status("EP1 ping succeeded. Device is ready.");
+            } else {
+                // EP1 is dead. Reset device to bootloader, then re-upload firmware.
+                status("EP1 ping failed (command thread likely dead).");
+                status("Resetting device to bootloader for firmware re-upload...");
+                attempt_reset_to_bootloader(serial_filter, &status);
+
+                // Wait for bootloader to appear.
+                status("Waiting for device in bootloader mode...");
+                match saleae_usb::discovery::wait_for_bootloader(timeout, poll_interval) {
+                    Ok(bl_device) => {
+                        status(&format!("Device in bootloader: {bl_device}"));
+                    }
+                    Err(_) => {
+                        return Err(DriverError::PowerCycleRequired {
+                            reason: format!(
+                                "Device did not enter bootloader mode within {timeout:?}. \
+                                 The FX3 command thread is dead and the device cannot be reset \
+                                 via USB. A physical power cycle is required."
+                            ),
+                        });
+                    }
+                }
+
+                // Upload firmware.
+                status("Uploading firmware...");
+                upload_firmware_and_wait(firmware_image, timeout, poll_interval, serial_filter, &status)?;
+            }
+        }
+        BootState::Unknown(bcd) => {
+            return Err(DriverError::InvalidState {
+                current: format!("Unknown(bcdDevice={bcd:#06x})"),
+                required: "FirmwareRunning or Bootloader".to_string(),
+            });
+        }
+    }
+
+    // At this point, firmware should be running. Open a fresh channel.
+    let dev = open_and_connect_with_serial(serial_filter)?;
+    status("EP1 command channel initialized.");
+
+    Ok(dev)
+}
+
+/// Upload firmware to a device in bootloader mode and wait for re-enumeration.
+///
+/// Opens the USB device, sends the firmware image via control transfers,
+/// drops the transport, then polls until the device reappears with
+/// `BootState::FirmwareRunning`.
+pub fn upload_firmware_and_wait(
+    image: &Fx3Image,
+    timeout: Duration,
+    poll_interval: Duration,
+    serial_filter: Option<&str>,
+    on_status: &dyn Fn(&str),
+) -> DriverResult<()> {
+    let usb_device = match serial_filter {
+        Some(serial) => saleae_usb::discovery::open_device_by_serial(serial)?,
+        None => saleae_usb::discovery::open_first_device()?,
+    };
+    let transport = saleae_usb::nusb_backend::NusbTransport::open(usb_device)?;
+
+    crate::firmware::upload_fx3_firmware(&transport, image)?;
+    on_status(&format!(
+        "Firmware uploaded ({} bytes). Waiting for re-enumeration...",
+        image.total_data_bytes()
+    ));
+
+    // Drop transport so the old device handle is released before polling.
+    drop(transport);
+
+    saleae_usb::discovery::wait_for_device(timeout, poll_interval)?;
+    on_status("Device re-enumerated with firmware running.");
+
+    Ok(())
+}
+
+// ---------------------------------------------------------------------------
+// Recovery helpers (private)
+// ---------------------------------------------------------------------------
+
+/// Find a Saleae device, optionally filtered by serial.
+fn find_device(serial_filter: Option<&str>) -> DriverResult<SaleaeDevice> {
+    let device = match serial_filter {
+        Some(serial) => saleae_usb::discovery::find_saleae_by_serial(serial)?,
+        None => saleae_usb::discovery::find_first_saleae()?,
+    };
+    Ok(device)
+}
+
+/// Try to ping the device via EP1. Returns true if ping succeeds.
+///
+/// Uses `open_and_connect_with_serial` which does reseed + ping. If anything
+/// fails (timeout, USB error, wrong response), returns false.
+fn try_ping_ep1(serial_filter: Option<&str>) -> bool {
+    open_and_connect_with_serial(serial_filter).is_ok()
+}
+
+/// Attempt to reset the device to bootloader mode via ResetAndReEnumerate.
+///
+/// This may fail if the EP1 thread is dead (which is why we're resetting
+/// in the first place). Failure is expected and silently handled.
+fn attempt_reset_to_bootloader(serial_filter: Option<&str>, on_status: &dyn Fn(&str)) {
+    // Try to open and connect. If EP1 is dead, this will fail -- that's OK.
+    let mut dev = match open_and_connect_with_serial(serial_filter) {
+        Ok(d) => d,
+        Err(e) => {
+            warn!("Could not connect for reset (expected if EP1 dead): {e}");
+            on_status(&format!("  Could not connect for reset (expected if EP1 dead): {e}"));
+            return;
+        }
+    };
+
+    // Send ResetAndReEnumerate (0x82). May fail, that's OK.
+    match dev.channel.send_command(0x82, &[]) {
+        Ok(()) => on_status("  ResetAndReEnumerate sent."),
+        Err(e) => on_status(&format!("  ResetAndReEnumerate failed (expected): {e}")),
+    }
 }
 
 // ---------------------------------------------------------------------------

@@ -97,4 +97,9 @@ pub enum DriverError {
     /// An argument to a driver function was out of range or otherwise invalid.
     #[error("invalid argument: {message}")]
     InvalidArgument { message: String },
+
+    /// The device requires a physical power cycle (e.g. dead EP1 thread
+    /// that cannot be reset via USB).
+    #[error("device requires physical power cycle: {reason}")]
+    PowerCycleRequired { reason: String },
 }

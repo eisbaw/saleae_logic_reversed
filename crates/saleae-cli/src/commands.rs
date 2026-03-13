@@ -26,173 +26,35 @@ const SLX9_BITSTREAMS: &[&str] = &[
 ];
 
 // -----------------------------------------------------------------------
-// Auto-recovery helper
+// Auto-recovery helper (thin wrapper around driver facade)
 // -----------------------------------------------------------------------
 
 /// Ensure a Saleae device is ready for EP1 communication.
 ///
-/// This handles the common failure mode where the FX3 command thread is
-/// dead (previous host process exited, DMA channel destroyed). The recovery
-/// sequence is:
+/// Delegates to [`saleae_driver::facade::connect_or_recover`] which handles
+/// all recovery scenarios: bootloader mode, dead EP1 thread, and firmware
+/// upload. Status messages are printed to stdout for the user.
 ///
-/// 1. Find the device on USB.
-/// 2. If in bootloader mode: upload firmware, wait for re-enumeration.
-/// 3. If firmware running: try a ping to test EP1.
-///    - If ping succeeds: EP1 is alive, return the channel.
-///    - If ping fails (timeout): EP1 thread is dead.
-///      a. Send ResetAndReEnumerate (may fail, that's OK).
-///      b. Wait for device in bootloader mode.
-///      c. Upload firmware.
-///      d. Wait for re-enumeration.
-/// 4. After firmware is confirmed running, open transport + create EP1 channel.
-/// 5. Return the ready-to-use initialized channel.
-///
-/// The returned channel has already passed ReseedDevice + Ping.
-pub fn ensure_device_ready(
+/// Returns a [`saleae_driver::facade::ConnectedDevice`] with an initialized
+/// EP1 channel (reseed + ping verified).
+fn ensure_device_ready(
     firmware_path: &str,
     serial_filter: Option<&str>,
-) -> Result<saleae_driver::ep1::Ep1CommandChannel> {
+) -> Result<saleae_driver::facade::ConnectedDevice> {
     // Parse firmware upfront so we fail fast on bad path.
     let firmware_data = std::fs::read(firmware_path)
         .with_context(|| format!("failed to read firmware file: {firmware_path}"))?;
     let (image, _) = saleae_proto::Fx3Image::parse(&firmware_data)
         .context("failed to parse FX3 firmware image")?;
 
-    let timeout = Duration::from_secs(10);
-    let poll_interval = Duration::from_millis(500);
+    let dev = saleae_driver::facade::connect_or_recover(
+        &image,
+        serial_filter,
+        Some(&|msg| println!("{msg}")),
+    )
+    .context("failed to connect/recover device")?;
 
-    // Step 1: Find device (filtered by serial if specified).
-    let device = match serial_filter {
-        Some(serial) => saleae_usb::discovery::find_saleae_by_serial(serial)
-            .context("no Saleae device found matching serial filter")?,
-        None => saleae_usb::discovery::find_first_saleae()
-            .context("no Saleae device found on USB")?,
-    };
-
-    println!("Found device: {device}");
-    println!("  Boot state: {}", device.boot_state);
-
-    match device.boot_state {
-        BootState::Bootloader => {
-            // Device is in bootloader -- upload firmware directly.
-            println!("Device in bootloader mode. Uploading firmware...");
-            upload_firmware_and_wait(&image, timeout, poll_interval, serial_filter)?;
-        }
-        BootState::FirmwareRunning => {
-            // Firmware running -- try a quick ping to see if EP1 thread is alive.
-            println!("Firmware running. Testing EP1 with ping...");
-            if !try_ping_ep1(&device, serial_filter) {
-                // EP1 is dead. Reset device to bootloader, then re-upload firmware.
-                println!("EP1 ping failed (command thread likely dead).");
-                println!("Resetting device to bootloader for firmware re-upload...");
-                attempt_reset_to_bootloader(&device, serial_filter);
-
-                // Wait for bootloader to appear.
-                println!("Waiting for device in bootloader mode...");
-                match saleae_usb::discovery::wait_for_bootloader(timeout, poll_interval) {
-                    Ok(bl_device) => {
-                        println!("Device in bootloader: {bl_device}");
-                    }
-                    Err(_) => {
-                        bail!(
-                            "Device did not enter bootloader mode within {timeout:?}.\n\
-                             The FX3 command thread is dead and the device cannot be reset\n\
-                             via USB. A physical power cycle is required."
-                        );
-                    }
-                }
-
-                // Upload firmware.
-                println!("Uploading firmware...");
-                upload_firmware_and_wait(&image, timeout, poll_interval, serial_filter)?;
-            } else {
-                println!("EP1 ping succeeded. Device is ready.");
-                // Device is good -- open a fresh channel and return it.
-                // (The ping channel consumed the transport, so we open a new one.)
-            }
-        }
-        BootState::Unknown(bcd) => {
-            bail!("Device has unexpected bcdDevice value {bcd:#06x}.");
-        }
-    }
-
-    // At this point, firmware should be running. Open a fresh channel via facade.
-    let dev = saleae_driver::facade::open_and_connect_with_serial(serial_filter)
-        .context("failed to connect after recovery")?;
-    println!("EP1 command channel initialized.");
-
-    Ok(dev.channel)
-}
-
-/// Try to ping the device via EP1. Returns true if ping succeeds.
-///
-/// Uses the facade to open, connect, and initialize. If anything fails
-/// (timeout, USB error, wrong response), returns false.
-fn try_ping_ep1(
-    _device: &saleae_proto::device::SaleaeDevice,
-    serial_filter: Option<&str>,
-) -> bool {
-    saleae_driver::facade::open_and_connect_with_serial(serial_filter).is_ok()
-}
-
-/// Attempt to reset the device to bootloader mode via ResetAndReEnumerate.
-///
-/// This may fail if the EP1 thread is dead (which is why we're resetting
-/// in the first place). Failure is expected and silently ignored.
-fn attempt_reset_to_bootloader(
-    _device: &saleae_proto::device::SaleaeDevice,
-    serial_filter: Option<&str>,
-) {
-    // Try to open and connect. If EP1 is dead, this will fail -- that's OK.
-    let mut dev = match saleae_driver::facade::open_and_connect_with_serial(serial_filter) {
-        Ok(d) => d,
-        Err(e) => {
-            println!("  Could not connect for reset (expected if EP1 dead): {e}");
-            return;
-        }
-    };
-    let channel = &mut dev.channel;
-
-    // Send ResetAndReEnumerate (0x82). May fail, that's OK.
-    match channel.send_command(0x82, &[]) {
-        Ok(()) => println!("  ResetAndReEnumerate sent."),
-        Err(e) => println!("  ResetAndReEnumerate failed (expected): {e}"),
-    }
-}
-
-/// Upload firmware to the device and wait for re-enumeration.
-///
-/// Assumes the device is currently in bootloader mode.
-fn upload_firmware_and_wait(
-    image: &saleae_proto::Fx3Image,
-    timeout: Duration,
-    poll_interval: Duration,
-    serial_filter: Option<&str>,
-) -> Result<()> {
-    let usb_device = match serial_filter {
-        Some(serial) => saleae_usb::discovery::open_device_by_serial(serial)
-            .context("failed to open device for firmware upload (serial filter)")?,
-        None => saleae_usb::discovery::open_first_device()
-            .context("failed to open device for firmware upload")?,
-    };
-    let transport = saleae_usb::nusb_backend::NusbTransport::open(usb_device)
-        .context("failed to claim USB interface for firmware upload")?;
-
-    saleae_driver::firmware::upload_fx3_firmware(&transport, image)
-        .context("firmware upload failed")?;
-    println!(
-        "Firmware uploaded ({} bytes). Waiting for re-enumeration...",
-        image.total_data_bytes()
-    );
-
-    // Drop transport so the old device handle is released before polling.
-    drop(transport);
-
-    saleae_usb::discovery::wait_for_device(timeout, poll_interval)
-        .context("device did not re-enumerate after firmware upload")?;
-    println!("Device re-enumerated with firmware running.");
-
-    Ok(())
+    Ok(dev)
 }
 
 /// List connected Saleae devices.
@@ -309,45 +171,24 @@ pub fn upload_firmware(firmware_path: &str, serial_filter: Option<&str>) -> Resu
         );
     }
 
-    // Open the device and upload firmware.
-    let usb_device = match serial_filter {
-        Some(serial) => saleae_usb::discovery::open_device_by_serial(serial)
-            .context("failed to open Saleae device (serial filter)")?,
-        None => saleae_usb::discovery::open_first_device()
-            .context("failed to open Saleae device")?,
-    };
-
-    let transport = saleae_usb::nusb_backend::NusbTransport::open(usb_device)
-        .context("failed to claim USB interface")?;
-
-    saleae_driver::firmware::upload_fx3_firmware(&transport, &image)
-        .context("firmware upload failed")?;
-
-    println!("Firmware uploaded. Waiting for device to re-enumerate...");
-
-    // Drop the transport so the old device handle is released before
-    // we poll for the re-enumerated device.
-    drop(transport);
-
-    // Wait for the device to reappear with firmware running.
+    // Upload firmware and wait for re-enumeration via driver facade.
     let timeout = Duration::from_secs(10);
     let poll_interval = Duration::from_millis(500);
 
-    match saleae_usb::discovery::wait_for_device(timeout, poll_interval) {
-        Ok(new_device) => {
-            println!();
-            println!("Device re-enumerated successfully:");
-            println!("  {new_device}");
-            println!("  Boot state: {}", new_device.boot_state);
-            if let Some(speed) = new_device.usb_speed {
-                println!("  USB speed:  {speed}");
-            }
+    match saleae_driver::facade::upload_firmware_and_wait(
+        &image,
+        timeout,
+        poll_interval,
+        serial_filter,
+        &|msg| println!("{msg}"),
+    ) {
+        Ok(()) => {
             println!();
             println!("Firmware upload complete. Device is ready for FPGA programming.");
         }
-        Err(_) => {
+        Err(e) => {
             println!();
-            println!("WARNING: Device did not re-enumerate within {timeout:?}.");
+            println!("WARNING: Firmware upload issue: {e}");
             println!("The firmware may still be loading, or the device may need");
             println!("a power cycle. Try 'saleae-cli list-devices' to check.");
         }
@@ -603,11 +444,7 @@ pub fn full_init(
     serial_filter: Option<&str>,
 ) -> Result<()> {
     // Use ensure_device_ready for firmware upload + EP1 recovery.
-    let channel = ensure_device_ready(firmware_path, serial_filter)?;
-
-    // Bundle channel with device metadata via facade.
-    let mut dev = saleae_driver::facade::reconnect_with_channel(channel, serial_filter)
-        .context("failed to reconnect for profile/speed info")?;
+    let mut dev = ensure_device_ready(firmware_path, serial_filter)?;
 
     // Read firmware version string for diagnostics.
     match dev.channel.get_device_info() {
@@ -911,9 +748,7 @@ pub fn capture_digital(
 
     // --- Step 1: Firmware + EP1 init (auto-recovery) ---
     println!("Ensuring device is ready (firmware + EP1)...");
-    let channel = ensure_device_ready(firmware_path, serial_filter)?;
-    let mut dev = saleae_driver::facade::reconnect_with_channel(channel, serial_filter)
-        .context("failed to reconnect for profile/speed info")?;
+    let mut dev = ensure_device_ready(firmware_path, serial_filter)?;
     println!("Device ready: {}", dev.device);
     println!();
 
@@ -1096,9 +931,7 @@ pub fn capture_quick(
     let mut dev = if let Some(fw_path) = firmware_path {
         // Auto-recovery: handles bootloader, dead EP1, etc.
         println!("Ensuring device is ready (firmware + EP1)...");
-        let channel = ensure_device_ready(fw_path, serial_filter)?;
-        saleae_driver::facade::reconnect_with_channel(channel, serial_filter)
-            .context("failed to reconnect after firmware upload")?
+        ensure_device_ready(fw_path, serial_filter)?
     } else {
         // Manual mode: device must already have firmware running.
         saleae_driver::facade::open_and_connect_with_serial(serial_filter)
@@ -1440,9 +1273,7 @@ pub fn capture_analog(
 
     // --- Step 1: Firmware + EP1 init (auto-recovery) ---
     println!("Ensuring device is ready (firmware + EP1)...");
-    let channel = ensure_device_ready(firmware_path, serial_filter)?;
-    let mut dev = saleae_driver::facade::reconnect_with_channel(channel, serial_filter)
-        .context("failed to reconnect for profile/speed info")?;
+    let mut dev = ensure_device_ready(firmware_path, serial_filter)?;
     println!("Device ready: {}", dev.device);
     println!();
 
