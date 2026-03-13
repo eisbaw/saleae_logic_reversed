@@ -103,6 +103,14 @@ Analog samples are stored as `int16_t` (signed 16-bit integer).
 
 **Confidence: High** -- Assertion strings confirm the validation logic
 
+### Data Justification and Encoding
+
+ADC data is right-justified in the int16_t container: bits [11:0] hold
+the ADC value, bits [15:12] are sign-extended. Encoding is two's
+complement, giving a range of [-2048, 2047] for 12-bit ADCs.
+
+**Confidence: Confirmed** -- See `re/notes/adc-encoding.md` for full analysis
+
 ### ADC Code Range
 
 The `AcquisitionInfo` struct tracks the actual ADC range per acquisition:
@@ -276,11 +284,7 @@ USB capture validation
 
 1. Exact interleaving format in the USB bulk transfer (sample-level vs
    block-level interleaving)
-2. ADC data justification: RESOLVED -- right-justified, bits [11:0],
-   sign-extended in [15:12]. See re/notes/adc-encoding.md.
-3. ADC data encoding: RESOLVED -- two's complement, range [-2048, 2047].
-   See re/notes/adc-encoding.md.
-4. Exact values of minAnalogSamplesPerPacket and maxAnalogSamplesPerPacket
-5. AnalogStats format (what fields are in per-packet stats)
-6. HMCAD1100 multi-channel mode selection logic
-7. Logic 4 and Logic 8 analog channel counts
+2. Exact values of minAnalogSamplesPerPacket and maxAnalogSamplesPerPacket
+3. AnalogStats format (what fields are in per-packet stats)
+4. HMCAD1100 multi-channel mode selection logic
+5. Logic 4 and Logic 8 analog channel counts

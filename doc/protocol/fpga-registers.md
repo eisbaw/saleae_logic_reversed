@@ -197,11 +197,16 @@ Same bit layout as DIGITAL_CH_CONFIG: `enabled<<20 | pulseWidth[19:0]`.
 
 ## FpgaDeviceFeatures Register Map
 
+**Naming convention**: Registers in this section use the `FEAT_` prefix
+when they share a name with an MsoFpga register (e.g., `FEAT_CAPTURE_CONTROL`
+at 0x13 vs MsoFpga `CAPTURE_CONTROL` at 0x0040). The two register
+interfaces have different address widths, value widths, and semantics.
+
 ### Capture Configuration (SetCaptureParameters)
 
 | Reg | Name | Description |
 |-----|------|-------------|
-| 0x00 | CAPTURE_INIT | Initial register (value 0). |
+| 0x00 | FEAT_CAPTURE_INIT | Initial register (value 0). Written 0x01 to trigger capture start, 0x00 to stop. |
 | 0x06 | ANALOG_CH_ENABLE_LO | Analog channel enable mask, low byte. |
 | 0x07 | ANALOG_CH_ENABLE_HI | Analog channel enable mask, high byte (16ch). |
 | 0x08 | DIGITAL_CH_ENABLE_LO | Digital channel enable mask, low byte. |
@@ -211,7 +216,7 @@ Same bit layout as DIGITAL_CH_CONFIG: `enabled<<20 | pulseWidth[19:0]`.
 | 0x0C | DIGITAL_DIVIDER_HI | Digital sample rate divider, high byte. |
 | 0x0D | MIX_RATIO_A | Analog/digital mix ratio A. |
 | 0x0E | MIX_RATIO_B | Analog/digital mix ratio B. |
-| 0x13 | CAPTURE_CONTROL | bit 0=enabled, bit 1=ignore errors. |
+| 0x13 | FEAT_CAPTURE_CONTROL | bit 0=enabled, bit 1=ignore errors. |
 | 0x14 | DECIMATION_FACTOR | Computed decimation factor (max 0xFF). |
 | 0x15 | BANK_POWER | IO bank power control. 0x03 = enable both banks, 0x00 = off. Written during SetBankPower before capture; cleared during power-down. |
 | 0x1A | ADC_CONFIG | ADC configuration (Pro/JESD devices only). |
@@ -239,20 +244,42 @@ Same bit layout as DIGITAL_CH_CONFIG: `enabled<<20 | pulseWidth[19:0]`.
 After FPGA bitstream upload completes:
 
 ```
-1. Write reg 0x01C0  (COMMIT_CONTROL)
-2. Write reg 0x0040  (CAPTURE_CONTROL)
-3. Write reg 0x00E0  (INIT_CONFIG)
-4. Write reg 0x0024  (GPIF_FLUSH_TIMEOUT)
-5. Write reg 0x0020  (GPIF_ENABLE)
-6. [Lattice ECP5]: ResetJesdPhyTransceivers  (writes reg 0x0008)
+1. Write COMMIT_CONTROL  (0x01C0) = 0x00000000  -- disable smart cable, reset bank config
+2. Write CAPTURE_CONTROL (0x0040) = 0x00000000  -- disable capture
+3. Write INIT_CONFIG     (0x00E0) = 0x00000000  -- post-programming init (exact value TBD)
+4. Write GPIF_FLUSH_TIMEOUT (0x0024) = 0x000186A0  -- ~1 ms at 100 MHz
+5. Write GPIF_ENABLE     (0x0020) = 0x00000001  -- enable GPIF data path
+6. [Lattice ECP5]: ResetJesdPhyTransceivers  (writes reg 0x0008 = 2)
 7. [Lattice ECP5]: WaitForDdrReady           (polls reg 0x0008 bits [4:3])
 ```
+
+### Success criteria
+
+Steps 1-5 are fire-and-forget register writes. Success = no USB transport
+error. Steps 6-7 apply only to Lattice ECP5 devices (not Xilinx Spartan-6).
+
+For step 7, DDR is ready when `(reg_0x0008 & 0x18) == 0x18` (both
+DDR_LOCKED bit 4 and DDR_CALIBRATED bit 3 are set).
+
+### Timeouts and error handling
+
+- **DDR ready timeout**: 5 seconds (polled every 1 ms).
+- **Success log**: `"Locked and calibrated DDR after {} ms"`
+- **Failure**: Returns `DriverError::FpgaProgramming` with the raw status
+  register value for diagnosis.
+- **Xilinx Spartan-6**: Steps 6-7 are skipped entirely. JESD registers
+  do not exist on Spartan-6 (r0x40 stays 0x00).
+
+**Confidence: High** -- Decompilation of init sequence (TASK-0068) +
+Rust driver implementation. Init register values (COMMIT_CONTROL,
+CAPTURE_CONTROL, INIT_CONFIG) use zero as a reasonable default but have
+not been confirmed from USB capture of the exact init function.
 
 
 ## DDR Ready Check
 
 ```
-Read register 0x0008:
+Read register 0x0008 (STATUS_DDR_JESD):
   DDR_LOCKED      = bit 4
   DDR_CALIBRATED  = bit 3
   DDR_READY       = (value & 0x18) == 0x18
@@ -279,13 +306,13 @@ MsoFpga (16-bit addresses, 32-bit values):
   0x01C0-0x01C4  Commit/bank control, digital test pattern
 
 FpgaDeviceFeatures (8-bit addresses, 8-bit values):
-  0x00           Capture init
+  0x00           Capture init (FEAT_CAPTURE_INIT)
   0x03-0x05      ADC SPI bridge (address, data)
   0x06-0x09      Channel enable masks (analog + digital, lo + hi)
   0x0A           Analog decimation
   0x0B-0x0C      Digital sample rate divider (lo + hi)
   0x0D-0x0E      Analog/digital mix ratios
-  0x13           Capture control flags
+  0x13           Capture control flags (FEAT_CAPTURE_CONTROL)
   0x14           Decimation factor
   0x15           IO bank power control
   0x16           ADC SPI extended address

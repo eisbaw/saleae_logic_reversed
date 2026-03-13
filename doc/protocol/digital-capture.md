@@ -2,8 +2,9 @@
 
 Status: High confidence (static analysis of libgraph_server_shared.so v2.4.40)
 Corroboration: Multiple independent evidence sources (string analysis,
-RTTI/mangled symbols, assertion messages, source file paths)
-Awaiting: USB capture validation and Ghidra decompilation for exact constants
+RTTI/mangled symbols, assertion messages, source file paths).
+Partially validated: EP2 transport layer, FIFO overflow, and sample
+packing confirmed via USB pcap and Rust driver implementation.
 
 
 ## Overview
@@ -239,6 +240,21 @@ Sample rate options are returned by `DeviceSettings` methods:
 The `LogicStudentDevice::ModifyFakeData` has an additional `U32` parameter
 compared to `LogicDevice::ModifyFakeData`, suggesting the Logic 4 has a
 slightly different data format (possibly different channel packing).
+
+
+## Confidence Assessment
+
+| Finding | Confidence | Sources |
+|---------|-----------|---------|
+| EP2 IN for sample data stream | **Confirmed** | lsusb + binary analysis + hardware-tested |
+| Interleaved digital+analog on EP2 IN | **High** | Mangled symbols + format strings (Ghidra only) |
+| DisaggregatorNode splits stream | **High** | RTTI + pipe handler registration (Ghidra only) |
+| 1-bit-per-sample packing, 8-aligned | **Confirmed** | Assertion strings + pcap validation + Rust driver |
+| Channel count constrained to 2 or 4 | **High** | Assertion string in binary (Ghidra only) |
+| RLE storage via AppendRle | **High** | Mangled function signatures (Ghidra only) |
+| FIFO overflow detection mechanism | **Confirmed** | String analysis + pcap validation |
+| Packet size constraints (FpgaConstants) | **High** | CMP immediates (Ghidra), see `doc/protocol/capture-constants.md` |
+| 5 device-specific StartSampling variants | **High** | Virtual function signature strings (Ghidra only) |
 
 
 ## Smart Cable Digital Channels

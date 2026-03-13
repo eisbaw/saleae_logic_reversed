@@ -180,11 +180,12 @@ Fixed list for devices supporting downsampling (Logic 4/8/Pro 8/Pro 16):
 1. **Exact analogLimit values per device**: These are runtime values and
    their actual numeric values depend on the device model and firmware
    version. Need USB capture or runtime instrumentation to observe.
+   (Related: TASK-0018)
 
 2. **MinTriggerBufferIndex values**: The "Altera" (legacy Xilinx) and Xilinx
    MinTriggerBufferIndex values were not extracted as clear immediates.
    The MaxTriggerBufferIndex is likely the same as MaxTriggerBufferSamples
-   but needs verification.
+   but needs verification. (Related: TASK-0034)
 
 3. **"Altera" vs Xilinx device type mapping**: Device type 0/1 = "Altera"
    (legacy Xilinx), type >= 2 = Xilinx. The meaning of the specific type
@@ -193,10 +194,11 @@ Fixed list for devices supporting downsampling (Logic 4/8/Pro 8/Pro 16):
    (Spartan-6, 7-Series) and Lattice (ECP5). See `doc/protocol/fpga-registers.md`
    for FPGA variant constraints on SamplesPerChunk and MaxTriggerBuffer
    (Xilinx: 0x100-0x1E00 / 0x3FFFC000, "Altera": 0x40-0x1780 / 0x2FFFC000).
+   (Related: TASK-0032, TASK-0027)
 
 4. **SamplesPerPacketMultiple without stats**: When stats collection is
    disabled, what alignment (if any) is required? The code only checks
-   the modulo when the withStats flag is set.
+   the modulo when the withStats flag is set. (Related: TASK-0037)
 
 
 ## Cross-References

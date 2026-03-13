@@ -382,20 +382,25 @@ is terminal -- the device must be physically reconnected.
 1. **Exact start/stop command bytes**: What is the binary format of
    SendStartCommand and COMMAND_STOP_STREAM? Are these specific byte
    values on EP1 OUT, or structured packets with headers?
+   (Related: TASK-0014)
 
-2. ~~**Configuration blob format**~~: RESOLVED. SetCaptureParameters uses
-   WriteRegisters (opcode 0x80) to write individual 8-bit FPGA registers,
-   not a monolithic blob via WriteConfigurationData. Register addresses
-   and values are documented in `doc/protocol/fpga-registers.md` and
-   validated in pcap Phase 7.
+2. **FPGA register map for triggers**: The MsoFpga path uses 16-bit
+   addresses and 32-bit values (`FPGA WriteRegister 0x{:04x} = 0x{:08x}`).
+   The FpgaDeviceFeatures capture config registers (0x06-0x14) are
+   documented in `doc/protocol/fpga-registers.md`, but the MsoFpga
+   trigger register exact values per device type are not yet observed
+   in USB captures. (Related: TASK-0031)
 
-3. **FPGA register map**: Which specific register addresses control
-   sample rate, channel enables, and trigger configuration? The format
-   `FPGA WriteRegister 0x{:04x} = 0x{:08x}` shows 16-bit addresses
-   and 32-bit values, but the address assignments are unknown.
+3. **DisaggregatorSettingsData format**: How does this struct describe the
+   channel interleaving layout in the USB stream? (Related: TASK-0038)
 
-4. ~~**Exact FpgaConstants values**~~: RESOLVED in TASK-0023.
-   See `doc/protocol/capture-constants.md` for all extracted values.
+## Resolved Questions
 
-5. **DisaggregatorSettingsData format**: How does this struct describe the
-   channel interleaving layout in the USB stream?
+- **Configuration blob format**: SetCaptureParameters uses WriteRegisters
+  (opcode 0x80) to write individual 8-bit FPGA registers, not a monolithic
+  blob via WriteConfigurationData. Register addresses and values are
+  documented in `doc/protocol/fpga-registers.md` and validated in pcap
+  Phase 7.
+
+- **Exact FpgaConstants values**: Resolved in TASK-0023. See
+  `doc/protocol/capture-constants.md` for all extracted values.
