@@ -50,24 +50,31 @@ pub struct ConnectedDevice {
 // open_and_connect
 // ---------------------------------------------------------------------------
 
-/// Find the first Saleae device, open it, and return an initialized EP1 channel.
+/// Find a Saleae device, open it, and return an initialized EP1 channel.
 ///
 /// This is the "connect to a device that already has firmware running"
 /// path. It does NOT handle firmware upload or auto-recovery -- for that,
 /// use `ensure_device_ready` in the CLI (which calls this after firmware
 /// upload).
 ///
+/// When `serial_filter` is `Some`, only devices whose USB serial number
+/// contains the filter string (case-insensitive) are considered. When
+/// `None`, the first Saleae device found is used.
+///
 /// Steps:
-/// 1. Find first Saleae device on USB.
+/// 1. Find Saleae device on USB (filtered by serial if provided).
 /// 2. Require firmware running (bail on bootloader/unknown).
 /// 3. Determine encryption mode from device type.
 /// 4. Open USB device, create transport.
 /// 5. Create EP1 command channel and initialize (reseed + ping).
 ///
 /// Returns a [`ConnectedDevice`] with the initialized channel and device info.
-pub fn open_and_connect() -> DriverResult<ConnectedDevice> {
+pub fn open_and_connect_with_serial(serial_filter: Option<&str>) -> DriverResult<ConnectedDevice> {
     // Step 1: Find device.
-    let device = saleae_usb::discovery::find_first_saleae()?;
+    let device = match serial_filter {
+        Some(serial) => saleae_usb::discovery::find_saleae_by_serial(serial)?,
+        None => saleae_usb::discovery::find_first_saleae()?,
+    };
     info!("Found device: {device}");
 
     // Step 2: Require firmware running.
@@ -101,7 +108,10 @@ pub fn open_and_connect() -> DriverResult<ConnectedDevice> {
         .unwrap_or_else(|| profile.default_forced_usb_speed());
 
     // Step 5: Open USB and create channel.
-    let usb_device = saleae_usb::discovery::open_first_device()?;
+    let usb_device = match serial_filter {
+        Some(serial) => saleae_usb::discovery::open_device_by_serial(serial)?,
+        None => saleae_usb::discovery::open_first_device()?,
+    };
     let transport = saleae_usb::nusb_backend::NusbTransport::open(usb_device)?;
 
     let reads_write_ack = device.device_type.is_pro();
@@ -119,6 +129,13 @@ pub fn open_and_connect() -> DriverResult<ConnectedDevice> {
     })
 }
 
+/// Find the first Saleae device, open it, and return an initialized EP1 channel.
+///
+/// Convenience wrapper around [`open_and_connect_with_serial`] with no serial filter.
+pub fn open_and_connect() -> DriverResult<ConnectedDevice> {
+    open_and_connect_with_serial(None)
+}
+
 // ---------------------------------------------------------------------------
 // reconnect (re-discover after ensure_device_ready)
 // ---------------------------------------------------------------------------
@@ -129,8 +146,17 @@ pub fn open_and_connect() -> DriverResult<ConnectedDevice> {
 /// This is for use after `ensure_device_ready` (which handles firmware
 /// upload and returns a bare channel). It discovers the device to obtain
 /// profile/speed info and bundles them together.
-pub fn reconnect_with_channel(channel: Ep1CommandChannel) -> DriverResult<ConnectedDevice> {
-    let device = saleae_usb::discovery::find_first_saleae()?;
+///
+/// When `serial_filter` is `Some`, only devices whose USB serial number
+/// contains the filter string (case-insensitive) are considered.
+pub fn reconnect_with_channel(
+    channel: Ep1CommandChannel,
+    serial_filter: Option<&str>,
+) -> DriverResult<ConnectedDevice> {
+    let device = match serial_filter {
+        Some(serial) => saleae_usb::discovery::find_saleae_by_serial(serial)?,
+        None => saleae_usb::discovery::find_first_saleae()?,
+    };
 
     let profile = device.device_type.profile().ok_or_else(|| {
         DriverError::InvalidArgument {

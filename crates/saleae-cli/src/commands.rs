@@ -48,7 +48,10 @@ const SLX9_BITSTREAMS: &[&str] = &[
 /// 5. Return the ready-to-use initialized channel.
 ///
 /// The returned channel has already passed ReseedDevice + Ping.
-pub fn ensure_device_ready(firmware_path: &str) -> Result<saleae_driver::ep1::Ep1CommandChannel> {
+pub fn ensure_device_ready(
+    firmware_path: &str,
+    serial_filter: Option<&str>,
+) -> Result<saleae_driver::ep1::Ep1CommandChannel> {
     // Parse firmware upfront so we fail fast on bad path.
     let firmware_data = std::fs::read(firmware_path)
         .with_context(|| format!("failed to read firmware file: {firmware_path}"))?;
@@ -58,9 +61,13 @@ pub fn ensure_device_ready(firmware_path: &str) -> Result<saleae_driver::ep1::Ep
     let timeout = Duration::from_secs(10);
     let poll_interval = Duration::from_millis(500);
 
-    // Step 1: Find device.
-    let device =
-        saleae_usb::discovery::find_first_saleae().context("no Saleae device found on USB")?;
+    // Step 1: Find device (filtered by serial if specified).
+    let device = match serial_filter {
+        Some(serial) => saleae_usb::discovery::find_saleae_by_serial(serial)
+            .context("no Saleae device found matching serial filter")?,
+        None => saleae_usb::discovery::find_first_saleae()
+            .context("no Saleae device found on USB")?,
+    };
 
     println!("Found device: {device}");
     println!("  Boot state: {}", device.boot_state);
@@ -69,16 +76,16 @@ pub fn ensure_device_ready(firmware_path: &str) -> Result<saleae_driver::ep1::Ep
         BootState::Bootloader => {
             // Device is in bootloader -- upload firmware directly.
             println!("Device in bootloader mode. Uploading firmware...");
-            upload_firmware_and_wait(&image, timeout, poll_interval)?;
+            upload_firmware_and_wait(&image, timeout, poll_interval, serial_filter)?;
         }
         BootState::FirmwareRunning => {
             // Firmware running -- try a quick ping to see if EP1 thread is alive.
             println!("Firmware running. Testing EP1 with ping...");
-            if !try_ping_ep1(&device) {
+            if !try_ping_ep1(&device, serial_filter) {
                 // EP1 is dead. Reset device to bootloader, then re-upload firmware.
                 println!("EP1 ping failed (command thread likely dead).");
                 println!("Resetting device to bootloader for firmware re-upload...");
-                attempt_reset_to_bootloader(&device);
+                attempt_reset_to_bootloader(&device, serial_filter);
 
                 // Wait for bootloader to appear.
                 println!("Waiting for device in bootloader mode...");
@@ -97,7 +104,7 @@ pub fn ensure_device_ready(firmware_path: &str) -> Result<saleae_driver::ep1::Ep
 
                 // Upload firmware.
                 println!("Uploading firmware...");
-                upload_firmware_and_wait(&image, timeout, poll_interval)?;
+                upload_firmware_and_wait(&image, timeout, poll_interval, serial_filter)?;
             } else {
                 println!("EP1 ping succeeded. Device is ready.");
                 // Device is good -- open a fresh channel and return it.
@@ -110,7 +117,7 @@ pub fn ensure_device_ready(firmware_path: &str) -> Result<saleae_driver::ep1::Ep
     }
 
     // At this point, firmware should be running. Open a fresh channel via facade.
-    let dev = saleae_driver::facade::open_and_connect()
+    let dev = saleae_driver::facade::open_and_connect_with_serial(serial_filter)
         .context("failed to connect after recovery")?;
     println!("EP1 command channel initialized.");
 
@@ -121,17 +128,23 @@ pub fn ensure_device_ready(firmware_path: &str) -> Result<saleae_driver::ep1::Ep
 ///
 /// Uses the facade to open, connect, and initialize. If anything fails
 /// (timeout, USB error, wrong response), returns false.
-fn try_ping_ep1(_device: &saleae_proto::device::SaleaeDevice) -> bool {
-    saleae_driver::facade::open_and_connect().is_ok()
+fn try_ping_ep1(
+    _device: &saleae_proto::device::SaleaeDevice,
+    serial_filter: Option<&str>,
+) -> bool {
+    saleae_driver::facade::open_and_connect_with_serial(serial_filter).is_ok()
 }
 
 /// Attempt to reset the device to bootloader mode via ResetAndReEnumerate.
 ///
 /// This may fail if the EP1 thread is dead (which is why we're resetting
 /// in the first place). Failure is expected and silently ignored.
-fn attempt_reset_to_bootloader(_device: &saleae_proto::device::SaleaeDevice) {
+fn attempt_reset_to_bootloader(
+    _device: &saleae_proto::device::SaleaeDevice,
+    serial_filter: Option<&str>,
+) {
     // Try to open and connect. If EP1 is dead, this will fail -- that's OK.
-    let mut dev = match saleae_driver::facade::open_and_connect() {
+    let mut dev = match saleae_driver::facade::open_and_connect_with_serial(serial_filter) {
         Ok(d) => d,
         Err(e) => {
             println!("  Could not connect for reset (expected if EP1 dead): {e}");
@@ -154,9 +167,14 @@ fn upload_firmware_and_wait(
     image: &saleae_proto::Fx3Image,
     timeout: Duration,
     poll_interval: Duration,
+    serial_filter: Option<&str>,
 ) -> Result<()> {
-    let usb_device = saleae_usb::discovery::open_first_device()
-        .context("failed to open device for firmware upload")?;
+    let usb_device = match serial_filter {
+        Some(serial) => saleae_usb::discovery::open_device_by_serial(serial)
+            .context("failed to open device for firmware upload (serial filter)")?,
+        None => saleae_usb::discovery::open_first_device()
+            .context("failed to open device for firmware upload")?,
+    };
     let transport = saleae_usb::nusb_backend::NusbTransport::open(usb_device)
         .context("failed to claim USB interface for firmware upload")?;
 
@@ -226,7 +244,7 @@ pub fn list_devices() -> Result<()> {
 ///   and exits successfully without uploading.
 /// - If in bootloader state (bcdDevice=0x0100), proceeds with upload
 ///   and waits for re-enumeration.
-pub fn upload_firmware(firmware_path: &str) -> Result<()> {
+pub fn upload_firmware(firmware_path: &str, serial_filter: Option<&str>) -> Result<()> {
     // Read and parse firmware file first (before touching USB), so we
     // fail fast on a bad file path or corrupt image.
     let firmware_data = std::fs::read(firmware_path)
@@ -242,8 +260,12 @@ pub fn upload_firmware(firmware_path: &str) -> Result<()> {
     println!();
 
     // Discover device and check boot state.
-    let device =
-        saleae_usb::discovery::find_first_saleae().context("failed to find Saleae device")?;
+    let device = match serial_filter {
+        Some(serial) => saleae_usb::discovery::find_saleae_by_serial(serial)
+            .context("failed to find Saleae device matching serial filter")?,
+        None => saleae_usb::discovery::find_first_saleae()
+            .context("failed to find Saleae device")?,
+    };
 
     println!("Found device: {device}");
     println!("  Boot state: {}", device.boot_state);
@@ -288,8 +310,12 @@ pub fn upload_firmware(firmware_path: &str) -> Result<()> {
     }
 
     // Open the device and upload firmware.
-    let usb_device =
-        saleae_usb::discovery::open_first_device().context("failed to open Saleae device")?;
+    let usb_device = match serial_filter {
+        Some(serial) => saleae_usb::discovery::open_device_by_serial(serial)
+            .context("failed to open Saleae device (serial filter)")?,
+        None => saleae_usb::discovery::open_first_device()
+            .context("failed to open Saleae device")?,
+    };
 
     let transport = saleae_usb::nusb_backend::NusbTransport::open(usb_device)
         .context("failed to claim USB interface")?;
@@ -334,9 +360,13 @@ pub fn upload_firmware(firmware_path: &str) -> Result<()> {
 ///
 /// Sends ResetAndReEnumerate (opcode 0x82) via EP1. This causes the FX3
 /// to reset and boot from EEPROM (B2 bootloader), returning to bootloader mode.
-pub fn reset_device() -> Result<()> {
-    let device =
-        saleae_usb::discovery::find_first_saleae().context("failed to find Saleae device")?;
+pub fn reset_device(serial_filter: Option<&str>) -> Result<()> {
+    let device = match serial_filter {
+        Some(serial) => saleae_usb::discovery::find_saleae_by_serial(serial)
+            .context("failed to find Saleae device matching serial filter")?,
+        None => saleae_usb::discovery::find_first_saleae()
+            .context("failed to find Saleae device")?,
+    };
 
     println!("Found device: {device}");
 
@@ -351,7 +381,7 @@ pub fn reset_device() -> Result<()> {
         }
     }
 
-    let mut dev = saleae_driver::facade::open_and_connect()
+    let mut dev = saleae_driver::facade::open_and_connect_with_serial(serial_filter)
         .context("failed to connect to device")?;
 
     println!("Sending ResetAndReEnumerate (0x82)...");
@@ -368,9 +398,9 @@ pub fn reset_device() -> Result<()> {
 /// This tests firmware responsiveness and verifies the XOR encryption
 /// is working correctly. It is the first real hardware validation of
 /// the LFSR implementation.
-pub fn ping() -> Result<()> {
+pub fn ping(serial_filter: Option<&str>) -> Result<()> {
     println!("Running ReseedDevice + Ping...");
-    let dev = saleae_driver::facade::open_and_connect()
+    let dev = saleae_driver::facade::open_and_connect_with_serial(serial_filter)
         .context("failed to connect to device")?;
 
     let encryption_mode = saleae_driver::facade::encryption_mode_for_device(&dev.device);
@@ -392,7 +422,7 @@ pub fn ping() -> Result<()> {
 /// Reads the bitstream from disk, opens the device, performs the
 /// ReseedDevice + Ping handshake, then programs the FPGA and runs
 /// the post-init sequence.
-pub fn program_fpga(bitstream_path: &str, skip_post_init: bool) -> Result<()> {
+pub fn program_fpga(bitstream_path: &str, skip_post_init: bool, serial_filter: Option<&str>) -> Result<()> {
     // Read bitstream file.
     let bitstream = std::fs::read(bitstream_path)
         .with_context(|| format!("failed to read bitstream file: {bitstream_path}"))?;
@@ -404,7 +434,7 @@ pub fn program_fpga(bitstream_path: &str, skip_post_init: bool) -> Result<()> {
     println!();
 
     // Open device and create initialized EP1 channel.
-    let mut dev = saleae_driver::facade::open_and_connect()
+    let mut dev = saleae_driver::facade::open_and_connect_with_serial(serial_filter)
         .context("failed to connect to device")?;
 
     println!("Found device: {}", dev.device);
@@ -446,9 +476,9 @@ pub fn program_fpga(bitstream_path: &str, skip_post_init: bool) -> Result<()> {
 /// Run CommonDeviceInit: ADC initialization, JESD link, EEPROM device ID.
 ///
 /// Optionally programs the FPGA first if a bitstream path is provided.
-pub fn device_init(bitstream_path: Option<&str>, skip_fpga: bool) -> Result<()> {
+pub fn device_init(bitstream_path: Option<&str>, skip_fpga: bool, serial_filter: Option<&str>) -> Result<()> {
     // Open device and create initialized EP1 channel.
-    let mut dev = saleae_driver::facade::open_and_connect()
+    let mut dev = saleae_driver::facade::open_and_connect_with_serial(serial_filter)
         .context("failed to connect to device")?;
 
     println!("Found device: {}", dev.device);
@@ -570,12 +600,13 @@ pub fn full_init(
     bitstream_path: &str,
     auto_bitstream: bool,
     cal_file: Option<&str>,
+    serial_filter: Option<&str>,
 ) -> Result<()> {
     // Use ensure_device_ready for firmware upload + EP1 recovery.
-    let channel = ensure_device_ready(firmware_path)?;
+    let channel = ensure_device_ready(firmware_path, serial_filter)?;
 
     // Bundle channel with device metadata via facade.
-    let mut dev = saleae_driver::facade::reconnect_with_channel(channel)
+    let mut dev = saleae_driver::facade::reconnect_with_channel(channel, serial_filter)
         .context("failed to reconnect for profile/speed info")?;
 
     // Read firmware version string for diagnostics.
@@ -658,6 +689,7 @@ pub fn full_init(
         &capture_config,
         Duration::from_secs(2),
         16384,
+        None,
     )
     .context("capture failed")?;
 
@@ -826,6 +858,7 @@ pub fn full_init(
 /// 5. Write capture parameters (pcap Phase 7 values)
 /// 6. EP2 read loop
 /// 7. Teardown (stop capture, power down ADC)
+#[allow(clippy::too_many_arguments)]
 pub fn capture_digital(
     sample_rate: u64,
     duration: f64,
@@ -834,6 +867,8 @@ pub fn capture_digital(
     format: &str,
     firmware_path: &str,
     bitstream_path: &str,
+    serial_filter: Option<&str>,
+    stop_flag: &std::sync::Arc<std::sync::atomic::AtomicBool>,
 ) -> Result<()> {
     let channel_list = parse_channel_list(channels)?;
 
@@ -851,10 +886,17 @@ pub fn capture_digital(
 
     config.validate().context("invalid capture config")?;
 
+    let duration_desc = if duration <= 0.0 {
+        "until Ctrl-C".to_string()
+    } else {
+        format!("{duration:.1}s")
+    };
+
     println!("Digital capture configuration:");
     println!("  Sample rate:       {} Hz", config.sample_rate);
     println!("  Channels:          {:?}", config.digital_channels);
     println!("  Duration samples:  {}", config.duration_samples);
+    println!("  Duration:          {duration_desc}");
     println!("  Voltage threshold: {} V", config.voltage_threshold);
     println!("  Firmware:          {firmware_path}");
     println!("  Bitstream:         {bitstream_path}");
@@ -863,8 +905,8 @@ pub fn capture_digital(
     // Parse export format early so we fail fast on bad --format.
     let export_format = parse_export_format(format)?;
 
-    if duration <= 0.0 {
-        bail!("Duration must be > 0 for hardware capture (Ctrl-C not yet supported).");
+    if duration < 0.0 {
+        bail!("Duration must be >= 0 (0 = until Ctrl-C).");
     }
 
     // Parse bitstream upfront so we fail fast on bad path.
@@ -873,8 +915,8 @@ pub fn capture_digital(
 
     // --- Step 1: Firmware + EP1 init (auto-recovery) ---
     println!("Ensuring device is ready (firmware + EP1)...");
-    let channel = ensure_device_ready(firmware_path)?;
-    let mut dev = saleae_driver::facade::reconnect_with_channel(channel)
+    let channel = ensure_device_ready(firmware_path, serial_filter)?;
+    let mut dev = saleae_driver::facade::reconnect_with_channel(channel, serial_filter)
         .context("failed to reconnect for profile/speed info")?;
     println!("Device ready: {}", dev.device);
     println!();
@@ -887,12 +929,18 @@ pub fn capture_digital(
     println!();
 
     // --- Step 6-8: Capture pipeline (configure + start + stream + stop) ---
-    println!("Running capture for {duration:.1}s...");
+    println!("Running capture ({duration_desc})...");
+    let capture_duration = if duration <= 0.0 {
+        Duration::ZERO
+    } else {
+        Duration::from_secs_f64(duration)
+    };
     let result = saleae_driver::capture::run_capture(
         &mut dev.channel,
         &config,
-        Duration::from_secs_f64(duration),
+        capture_duration,
         16 * 1024,
+        Some(stop_flag),
     )
     .context("capture failed")?;
 
@@ -1001,6 +1049,7 @@ pub fn capture_digital(
 /// This is the simplest path to seeing EP2 data. When --firmware is provided,
 /// uses ensure_device_ready for auto-recovery. Otherwise assumes firmware is
 /// already running.
+#[allow(clippy::too_many_arguments)]
 pub fn capture_quick(
     duration: f64,
     digital_mask_str: &str,
@@ -1009,6 +1058,8 @@ pub fn capture_quick(
     buf_size: usize,
     output_path: Option<&str>,
     firmware_path: Option<&str>,
+    serial_filter: Option<&str>,
+    stop_flag: &std::sync::Arc<std::sync::atomic::AtomicBool>,
 ) -> Result<()> {
     // Parse hex masks.
     let digital_mask = parse_hex_u8(digital_mask_str)
@@ -1043,20 +1094,20 @@ pub fn capture_quick(
     }
     println!();
 
-    if duration <= 0.0 {
-        bail!("Duration must be > 0.");
+    if duration < 0.0 {
+        bail!("Duration must be >= 0 (0 = until Ctrl-C).");
     }
 
     // Step 1: Get device ready.
     let mut dev = if let Some(fw_path) = firmware_path {
         // Auto-recovery: handles bootloader, dead EP1, etc.
         println!("Ensuring device is ready (firmware + EP1)...");
-        let channel = ensure_device_ready(fw_path)?;
-        saleae_driver::facade::reconnect_with_channel(channel)
+        let channel = ensure_device_ready(fw_path, serial_filter)?;
+        saleae_driver::facade::reconnect_with_channel(channel, serial_filter)
             .context("failed to reconnect after firmware upload")?
     } else {
         // Manual mode: device must already have firmware running.
-        saleae_driver::facade::open_and_connect()
+        saleae_driver::facade::open_and_connect_with_serial(serial_filter)
             .context("failed to connect to device")?
     };
 
@@ -1158,12 +1209,23 @@ pub fn capture_quick(
         saleae_driver::capture::CaptureConfig::pro8(12_500_000, digital_channels, analog_channels);
 
     // Step 5-8: Capture pipeline (configure + start + stream + stop).
-    println!("Running capture for {duration:.1}s...");
+    let capture_duration = if duration <= 0.0 {
+        Duration::ZERO
+    } else {
+        Duration::from_secs_f64(duration)
+    };
+    let duration_desc = if duration <= 0.0 {
+        "until Ctrl-C".to_string()
+    } else {
+        format!("{duration:.1}s")
+    };
+    println!("Running capture ({duration_desc})...");
     let result = saleae_driver::capture::run_capture(
         &mut dev.channel,
         &quick_config,
-        Duration::from_secs_f64(duration),
+        capture_duration,
         buf_size,
+        Some(stop_flag),
     )
     .context("capture failed")?;
 
@@ -1273,6 +1335,8 @@ pub fn capture_analog(
     cal_file: Option<&str>,
     firmware_path: &str,
     bitstream_path: &str,
+    serial_filter: Option<&str>,
+    stop_flag: &std::sync::Arc<std::sync::atomic::AtomicBool>,
 ) -> Result<()> {
     let channel_list = parse_channel_list(channels)?;
 
@@ -1290,10 +1354,17 @@ pub fn capture_analog(
 
     config.validate().context("invalid capture config")?;
 
+    let duration_desc = if duration <= 0.0 {
+        "until Ctrl-C".to_string()
+    } else {
+        format!("{duration:.1}s")
+    };
+
     println!("Analog capture configuration:");
     println!("  Sample rate:       {} Hz", config.sample_rate);
     println!("  Analog channels:   {:?}", config.analog_channels);
     println!("  Duration samples:  {}", config.duration_samples);
+    println!("  Duration:          {duration_desc}");
     println!("  Firmware:          {firmware_path}");
     println!("  Bitstream:         {bitstream_path}");
     println!();
@@ -1301,8 +1372,8 @@ pub fn capture_analog(
     // Parse export format early so we fail fast on bad --format.
     let export_format = parse_export_format(format)?;
 
-    if duration <= 0.0 {
-        bail!("Duration must be > 0 for hardware capture (Ctrl-C not yet supported).");
+    if duration < 0.0 {
+        bail!("Duration must be >= 0 (0 = until Ctrl-C).");
     }
 
     // Parse bitstream upfront so we fail fast on bad path.
@@ -1376,8 +1447,8 @@ pub fn capture_analog(
 
     // --- Step 1: Firmware + EP1 init (auto-recovery) ---
     println!("Ensuring device is ready (firmware + EP1)...");
-    let channel = ensure_device_ready(firmware_path)?;
-    let mut dev = saleae_driver::facade::reconnect_with_channel(channel)
+    let channel = ensure_device_ready(firmware_path, serial_filter)?;
+    let mut dev = saleae_driver::facade::reconnect_with_channel(channel, serial_filter)
         .context("failed to reconnect for profile/speed info")?;
     println!("Device ready: {}", dev.device);
     println!();
@@ -1390,12 +1461,18 @@ pub fn capture_analog(
     println!();
 
     // --- Step 6-8: Capture pipeline (configure + start + stream + stop) ---
-    println!("Running analog capture for {duration:.1}s...");
+    let capture_duration = if duration <= 0.0 {
+        Duration::ZERO
+    } else {
+        Duration::from_secs_f64(duration)
+    };
+    println!("Running analog capture ({duration_desc})...");
     let result = saleae_driver::capture::run_capture(
         &mut dev.channel,
         &config,
-        Duration::from_secs_f64(duration),
+        capture_duration,
         16 * 1024,
+        Some(stop_flag),
     )
     .context("capture failed")?;
 

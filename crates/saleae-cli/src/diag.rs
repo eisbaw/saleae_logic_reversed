@@ -31,9 +31,13 @@ use anyhow::{Context, Result};
 /// A physical power cycle of the Saleae device (unplug and replug) will
 /// reset the FX3 to bootloader mode, after which fresh firmware can be
 /// uploaded.
-pub fn raw_ep1_test() -> Result<()> {
-    let device =
-        saleae_usb::discovery::find_first_saleae().context("failed to find Saleae device")?;
+pub fn raw_ep1_test(serial_filter: Option<&str>) -> Result<()> {
+    let device = match serial_filter {
+        Some(serial) => saleae_usb::discovery::find_saleae_by_serial(serial)
+            .context("failed to find Saleae device matching serial filter")?,
+        None => saleae_usb::discovery::find_first_saleae()
+            .context("failed to find Saleae device")?,
+    };
 
     println!("Found device: {device}");
     println!("  Boot state: {}", device.boot_state);
@@ -42,8 +46,12 @@ pub fn raw_ep1_test() -> Result<()> {
     }
     println!();
 
-    let usb_device =
-        saleae_usb::discovery::open_first_device().context("failed to open Saleae device")?;
+    let usb_device = match serial_filter {
+        Some(serial) => saleae_usb::discovery::open_device_by_serial(serial)
+            .context("failed to open Saleae device (serial filter)")?,
+        None => saleae_usb::discovery::open_first_device()
+            .context("failed to open Saleae device")?,
+    };
 
     // Check active configuration before claiming.
     match usb_device.active_configuration() {

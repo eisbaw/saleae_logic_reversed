@@ -1360,6 +1360,7 @@ pub fn run_capture(
     config: &CaptureConfig,
     duration: std::time::Duration,
     buf_size: usize,
+    stop_flag: Option<&std::sync::atomic::AtomicBool>,
 ) -> DriverResult<CaptureResult> {
     // Step 1: Configure FPGA registers + readback verify.
     configure_capture(ep1, config)?;
@@ -1373,22 +1374,40 @@ pub fn run_capture(
     ep1.write_registers(&[(0x00, 0x01)])?;
 
     // Step 4: EP2 read loop.
+    // Duration of zero means "capture until stop_flag is set" (Ctrl-C).
+    let capture_indefinitely = duration.is_zero();
     info!(
         duration_ms = duration.as_millis(),
+        capture_indefinitely,
         buf_size, "Reading EP2 capture data"
     );
 
     // Assume ~1 USB transfer completes per 10ms (conservative for SuperSpeed).
     // Cap at 256 MiB to avoid absurd allocations; Vec will grow if needed.
-    let estimated_capacity =
-        (buf_size as u128 * duration.as_millis() / 10).min(256 * 1024 * 1024) as usize;
+    let estimated_capacity = if capture_indefinitely {
+        // Start with a reasonable default for indefinite capture.
+        16 * 1024 * 1024 // 16 MiB
+    } else {
+        (buf_size as u128 * duration.as_millis() / 10).min(256 * 1024 * 1024) as usize
+    };
     let mut raw_data = Vec::with_capacity(estimated_capacity);
     let mut read_count: u64 = 0;
     let mut completed_normally = true;
     let mut buf = vec![0u8; buf_size];
     let start = std::time::Instant::now();
 
-    while start.elapsed() < duration {
+    let should_stop = |start: &std::time::Instant| -> bool {
+        // Check stop flag first (Ctrl-C).
+        if let Some(flag) = stop_flag {
+            if flag.load(std::sync::atomic::Ordering::Relaxed) {
+                return true;
+            }
+        }
+        // Then check duration (unless capturing indefinitely).
+        !capture_indefinitely && start.elapsed() >= duration
+    };
+
+    while !should_stop(&start) {
         match ep1.transport().bulk_transfer_in(EP2_CAPTURE_IN, &mut buf) {
             Ok(n) if n > 0 => {
                 raw_data.extend_from_slice(&buf[..n]);
@@ -1402,6 +1421,13 @@ pub fn run_capture(
                 completed_normally = false;
                 break;
             }
+        }
+    }
+
+    // If stopped by Ctrl-C, that's still a "normal" completion.
+    if let Some(flag) = stop_flag {
+        if flag.load(std::sync::atomic::Ordering::Relaxed) {
+            info!("Capture stopped by signal (Ctrl-C)");
         }
     }
 
@@ -1451,8 +1477,10 @@ pub fn run_capture(
 ///
 /// - `ep1`: Initialized EP1 command channel (firmware loaded, FPGA programmed).
 /// - `config`: Capture configuration (sample rate, channels, etc.).
-/// - `duration`: How long to read EP2 data.
+/// - `duration`: How long to read EP2 data (zero = until stop_flag is set).
 /// - `stream_reader`: A bulk stream reader implementation (real or mock).
+/// - `stop_flag`: Optional atomic flag checked each iteration; when set to
+///   `true` (e.g. by a Ctrl-C handler), capture stops gracefully.
 ///
 /// # Errors
 ///
@@ -1464,6 +1492,7 @@ pub fn run_capture_streaming(
     config: &CaptureConfig,
     duration: std::time::Duration,
     mut stream_reader: Box<dyn saleae_usb::BulkStreamReader>,
+    stop_flag: Option<&std::sync::atomic::AtomicBool>,
 ) -> DriverResult<CaptureResult> {
     // Step 1: Configure FPGA registers + readback verify.
     configure_capture(ep1, config)?;
@@ -1502,10 +1531,13 @@ pub fn run_capture_streaming(
     ep1.write_registers(&[(0x00, 0x01)])?;
 
     // Step 6: EP2 read loop using queued transfers.
-    let estimated_capacity = (transfer_config.transfer_size as u128
-        * duration.as_millis()
-        / 10)
-        .min(256 * 1024 * 1024) as usize;
+    let capture_indefinitely = duration.is_zero();
+    let estimated_capacity = if capture_indefinitely {
+        16 * 1024 * 1024 // 16 MiB starting point for indefinite capture
+    } else {
+        (transfer_config.transfer_size as u128 * duration.as_millis() / 10)
+            .min(256 * 1024 * 1024) as usize
+    };
     let mut raw_data = Vec::with_capacity(estimated_capacity);
     let mut read_count: u64 = 0;
     let mut completed_normally = true;
@@ -1514,10 +1546,20 @@ pub fn run_capture_streaming(
 
     info!(
         duration_ms = duration.as_millis(),
+        capture_indefinitely,
         "Reading EP2 capture data (streaming)"
     );
 
-    while start.elapsed() < duration {
+    let should_stop = |start: &std::time::Instant| -> bool {
+        if let Some(flag) = stop_flag {
+            if flag.load(std::sync::atomic::Ordering::Relaxed) {
+                return true;
+            }
+        }
+        !capture_indefinitely && start.elapsed() >= duration
+    };
+
+    while !should_stop(&start) {
         match stream_reader.next_completion(transfer_timeout) {
             Ok(buf) => {
                 let len = buf.len();
@@ -1542,8 +1584,15 @@ pub fn run_capture_streaming(
                 }
             }
             Err(e) => {
-                // Timeout is expected at the end of capture when data stops flowing.
-                if matches!(e, saleae_usb::UsbError::Timeout { .. }) && start.elapsed() >= duration
+                // Timeout is expected at the end of capture when data stops flowing,
+                // or when stopped by Ctrl-C during indefinite capture.
+                let timed_capture_done =
+                    !capture_indefinitely && start.elapsed() >= duration;
+                let stopped_by_signal = stop_flag
+                    .map(|f| f.load(std::sync::atomic::Ordering::Relaxed))
+                    .unwrap_or(false);
+                if matches!(e, saleae_usb::UsbError::Timeout { .. })
+                    && (timed_capture_done || stopped_by_signal)
                 {
                     break;
                 }
@@ -3044,6 +3093,7 @@ mod tests {
             &config,
             std::time::Duration::from_millis(50),
             Box::new(reader),
+            None,
         )
         .unwrap();
 
@@ -3072,6 +3122,7 @@ mod tests {
             &config,
             std::time::Duration::from_millis(10),
             Box::new(reader),
+            None,
         )
         .unwrap();
 
@@ -3103,6 +3154,7 @@ mod tests {
             &config,
             std::time::Duration::from_secs(5), // long duration, but error stops early
             Box::new(reader),
+            None,
         )
         .unwrap();
 

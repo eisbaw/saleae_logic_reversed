@@ -37,6 +37,9 @@ getrandom = "0.3"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
+# Signal handling
+ctrlc = "3"
+
 # Internal crates
 saleae-proto = { path = "crates/saleae-proto" }
 saleae-usb = { path = "crates/saleae-usb" }

@@ -3,6 +3,9 @@
 //! Provides subcommands for device discovery, firmware upload, and capture.
 //! This is a thin wrapper around the `saleae-driver` crate.
 
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
+
 use clap::{Parser, Subcommand};
 
 mod commands;
@@ -26,6 +29,14 @@ struct Cli {
     /// bootloader mode, re-uploading firmware, and re-initializing.
     #[arg(long, global = true)]
     firmware: Option<String>,
+
+    /// Filter devices by USB serial number (case-insensitive substring match).
+    ///
+    /// When multiple Saleae devices are connected, use this to select a
+    /// specific device. The filter is matched against the USB serial number
+    /// descriptor. Use `list-devices` to see available serials.
+    #[arg(long, global = true)]
+    serial: Option<String>,
 
     #[command(subcommand)]
     command: Command,
@@ -172,7 +183,7 @@ enum Command {
         #[arg(long, default_value = "1000000")]
         sample_rate: u64,
 
-        /// Duration in seconds (must be > 0).
+        /// Duration in seconds (0 = until Ctrl-C).
         #[arg(long, default_value = "1.0")]
         duration: f64,
 
@@ -208,7 +219,7 @@ enum Command {
     /// For digital-only capture, skips all ADC/DCM init entirely.
     /// For mixed (analog+digital), does ADC init with best-effort DCM lock.
     CaptureQuick {
-        /// Duration in seconds.
+        /// Duration in seconds (0 = until Ctrl-C).
         #[arg(long, default_value = "2.0")]
         duration: f64,
 
@@ -255,20 +266,39 @@ fn main() -> anyhow::Result<()> {
         )
         .init();
 
+    // Set up Ctrl-C handler: sets an AtomicBool flag that capture loops check.
+    let stop_flag = Arc::new(AtomicBool::new(false));
+    {
+        let flag = Arc::clone(&stop_flag);
+        ctrlc::set_handler(move || {
+            // On first Ctrl-C, set the flag for graceful shutdown.
+            // On second Ctrl-C, force-exit immediately.
+            if flag.load(Ordering::Relaxed) {
+                eprintln!("\nForce exit.");
+                std::process::exit(1);
+            }
+            eprintln!("\nCtrl-C received, stopping capture gracefully...");
+            flag.store(true, Ordering::Relaxed);
+        })
+        .expect("failed to set Ctrl-C handler");
+    }
+
+    let serial = cli.serial.as_deref();
+
     match cli.command {
         Command::ListDevices => commands::list_devices()?,
-        Command::UploadFirmware { firmware } => commands::upload_firmware(&firmware)?,
-        Command::Ping => commands::ping()?,
+        Command::UploadFirmware { firmware } => commands::upload_firmware(&firmware, serial)?,
+        Command::Ping => commands::ping(serial)?,
         Command::ProgramFpga {
             bitstream,
             skip_post_init,
-        } => commands::program_fpga(&bitstream, skip_post_init)?,
+        } => commands::program_fpga(&bitstream, skip_post_init, serial)?,
         Command::DeviceInit {
             bitstream,
             skip_fpga,
-        } => commands::device_init(bitstream.as_deref(), skip_fpga)?,
+        } => commands::device_init(bitstream.as_deref(), skip_fpga, serial)?,
         Command::Monitor { interval_ms } => commands::monitor(interval_ms)?,
-        Command::Ep1Test => diag::raw_ep1_test()?,
+        Command::Ep1Test => diag::raw_ep1_test(serial)?,
         Command::CaptureDigital {
             sample_rate,
             duration,
@@ -290,9 +320,11 @@ fn main() -> anyhow::Result<()> {
                 &format,
                 &fw_path,
                 &bs_path,
+                serial,
+                &stop_flag,
             )?
         }
-        Command::ResetDevice => commands::reset_device()?,
+        Command::ResetDevice => commands::reset_device(serial)?,
         Command::FullInit {
             firmware,
             bitstream,
@@ -302,7 +334,7 @@ fn main() -> anyhow::Result<()> {
             let fw_path = firmware
                 .or(cli.firmware.clone())
                 .unwrap_or_else(|| commands::DEFAULT_FIRMWARE_PATH.to_string());
-            commands::full_init(&fw_path, &bitstream, auto_bitstream, cal_file.as_deref())?
+            commands::full_init(&fw_path, &bitstream, auto_bitstream, cal_file.as_deref(), serial)?
         }
         Command::CaptureAnalog {
             sample_rate,
@@ -327,6 +359,8 @@ fn main() -> anyhow::Result<()> {
                 cal_file.as_deref(),
                 &fw_path,
                 &bs_path,
+                serial,
+                &stop_flag,
             )?
         }
         Command::CaptureQuick {
@@ -347,6 +381,8 @@ fn main() -> anyhow::Result<()> {
                 buf_size,
                 output.as_deref(),
                 fw_path.as_deref(),
+                serial,
+                &stop_flag,
             )?
         }
     }

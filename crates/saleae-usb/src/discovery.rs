@@ -109,6 +109,56 @@ pub fn find_first_saleae() -> UsbResult<SaleaeDevice> {
     devices.into_iter().next().ok_or(UsbError::NoDeviceFound)
 }
 
+/// Find a Saleae device by serial number string and return its info.
+///
+/// The `serial_filter` is matched as a case-insensitive substring against the
+/// USB serial number descriptor. For Saleae devices this is typically "SERNUM"
+/// for all devices of the same model, so this is most useful when EEPROM-based
+/// serial filtering is added in the future, or when multiple different device
+/// types are connected.
+pub fn find_saleae_by_serial(serial_filter: &str) -> UsbResult<SaleaeDevice> {
+    let devices = list_devices()?;
+    let filter_lower = serial_filter.to_lowercase();
+    for device in devices {
+        if let Some(ref serial) = device.serial {
+            if serial.to_lowercase().contains(&filter_lower) {
+                return Ok(device);
+            }
+        }
+    }
+    Err(UsbError::NoDeviceFound)
+}
+
+/// Find and open a Saleae device by serial number string.
+///
+/// The `serial_filter` is matched as a case-insensitive substring against the
+/// USB serial number descriptor.
+pub fn open_device_by_serial(serial_filter: &str) -> UsbResult<nusb::Device> {
+    let device_list = nusb::list_devices().map_err(|e| UsbError::OpenFailed {
+        context: format!("failed to enumerate USB devices: {e}"),
+    })?;
+
+    let filter_lower = serial_filter.to_lowercase();
+
+    for info in device_list {
+        let vid = info.vendor_id();
+        let pid = info.product_id();
+        let usb_id = UsbId::new(vid, pid);
+
+        if DeviceType::from_usb_id(usb_id).is_ok() {
+            if let Some(serial) = info.serial_number() {
+                if serial.to_lowercase().contains(&filter_lower) {
+                    return info.open().map_err(|e| UsbError::OpenFailed {
+                        context: format!("failed to open device {usb_id} (serial {serial}): {e}"),
+                    });
+                }
+            }
+        }
+    }
+
+    Err(UsbError::NoDeviceFound)
+}
+
 /// Wait for a Saleae device to appear on the USB bus with firmware running.
 ///
 /// Polls `list_devices()` every `poll_interval` until a device with

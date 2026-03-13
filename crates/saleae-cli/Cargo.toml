@@ -18,3 +18,4 @@ tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 nusb = { workspace = true }
 futures-lite = { workspace = true }
+ctrlc = { workspace = true }
