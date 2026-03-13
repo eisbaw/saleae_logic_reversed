@@ -733,6 +733,53 @@ mod tests {
     }
 
     #[test]
+    fn polled_read_timeout_after_max_attempts() {
+        let mock = std::sync::Arc::new(MockTransport::new());
+
+        // Queue MAX_POLL_ATTEMPTS "not ready" responses -- no "ready" ever arrives.
+        for _ in 0..MAX_POLL_ATTEMPTS {
+            mock.push_bulk_in_response(endpoint::BULK_IN, vec![EEPROM_STATUS_NOT_READY]);
+        }
+
+        let mut channel = mock_channel(&mock);
+        let err =
+            eeprom_read_register_poll(&mut channel, EEPROM_I2C_ADDR, EEPROM_REG_READ_BLOCK_35)
+                .unwrap_err();
+
+        let msg = err.to_string();
+        assert!(
+            msg.contains("poll timeout"),
+            "expected PollTimeout error, got: {msg}"
+        );
+        assert!(
+            msg.contains(&MAX_POLL_ATTEMPTS.to_string()),
+            "error should mention attempt count {MAX_POLL_ATTEMPTS}: {msg}"
+        );
+    }
+
+    #[test]
+    fn polled_read_timeout_with_empty_responses() {
+        let mock = std::sync::Arc::new(MockTransport::new());
+
+        // Queue MAX_POLL_ATTEMPTS empty responses (the code handles empty
+        // response by continuing, which also counts toward the attempt limit).
+        for _ in 0..MAX_POLL_ATTEMPTS {
+            mock.push_bulk_in_response(endpoint::BULK_IN, vec![]);
+        }
+
+        let mut channel = mock_channel(&mock);
+        let err =
+            eeprom_read_register_poll(&mut channel, EEPROM_I2C_ADDR, EEPROM_REG_READ_BLOCK_67)
+                .unwrap_err();
+
+        let msg = err.to_string();
+        assert!(
+            msg.contains("poll timeout"),
+            "empty responses should exhaust poll attempts: {msg}"
+        );
+    }
+
+    #[test]
     fn polled_read_unexpected_status_returns_error() {
         let mock = std::sync::Arc::new(MockTransport::new());
 

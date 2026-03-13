@@ -1500,6 +1500,229 @@ mod tests {
     }
 
     // -------------------------------------------------------------------
+    // SalReader adversarial / corrupt input tests
+    // -------------------------------------------------------------------
+
+    #[test]
+    fn sal_reader_corrupt_zip_returns_error() {
+        // Random bytes -- not a valid ZIP archive.
+        let data = vec![0xDE, 0xAD, 0xBE, 0xEF, 0x00, 0x11, 0x22, 0x33];
+        let result = SalReader::from_bytes(data);
+        assert!(result.is_err(), "corrupt ZIP should fail to parse");
+        let err = result.err().unwrap();
+        assert_eq!(err.kind(), io::ErrorKind::Other);
+    }
+
+    #[test]
+    fn sal_reader_empty_bytes_returns_error() {
+        let result = SalReader::from_bytes(vec![]);
+        assert!(result.is_err(), "empty bytes should fail to parse");
+        let err = result.err().unwrap();
+        assert_eq!(err.kind(), io::ErrorKind::Other);
+    }
+
+    #[test]
+    fn sal_reader_zip_missing_meta_json() {
+        // Create a valid ZIP with a file that is NOT meta.json.
+        let buf = Vec::new();
+        let cursor = Cursor::new(buf);
+        let mut zip_writer = zip::ZipWriter::new(cursor);
+        zip_writer
+            .start_file::<_, ()>("not-meta.txt", zip::write::SimpleFileOptions::default())
+            .unwrap();
+        zip_writer.write_all(b"hello").unwrap();
+        let cursor = zip_writer.finish().unwrap();
+        let data = cursor.into_inner();
+
+        let result = SalReader::from_bytes(data);
+        assert!(result.is_err(), "missing meta.json should fail");
+        let err = result.err().unwrap();
+        let msg = err.to_string();
+        assert!(
+            msg.contains("meta.json") || err.kind() == io::ErrorKind::Other,
+            "expected error about missing meta.json, got: {msg}"
+        );
+    }
+
+    #[test]
+    fn sal_reader_zip_with_invalid_meta_json() {
+        // Create a valid ZIP with a meta.json that contains invalid JSON.
+        let buf = Vec::new();
+        let cursor = Cursor::new(buf);
+        let mut zip_writer = zip::ZipWriter::new(cursor);
+        zip_writer
+            .start_file::<_, ()>("meta.json", zip::write::SimpleFileOptions::default())
+            .unwrap();
+        zip_writer.write_all(b"this is not json").unwrap();
+        let cursor = zip_writer.finish().unwrap();
+        let data = cursor.into_inner();
+
+        let result = SalReader::from_bytes(data);
+        assert!(result.is_err(), "invalid JSON should fail");
+        let err = result.err().unwrap();
+        assert_eq!(
+            err.kind(),
+            io::ErrorKind::InvalidData,
+            "invalid JSON should give InvalidData error, got: {err}"
+        );
+    }
+
+    #[test]
+    fn sal_reader_digital_truncated_header() {
+        // Create a valid .sal with a digital channel whose binary data
+        // is too short to contain even the transition count header (< 8 bytes).
+        let mut writer = SalWriter::new(test_capture_info());
+        writer.add_digital_channel(SalDigitalChannel {
+            channel: 0,
+            transitions: vec![100, 200],
+        });
+        let mut data = writer.write_to_vec().unwrap();
+
+        // Rewrite the digital-0.bin entry to be truncated.
+        // We'll build a new ZIP with a truncated digital file.
+        let cursor = Cursor::new(&data);
+        let mut archive = zip::ZipArchive::new(cursor).unwrap();
+
+        let mut meta_str = String::new();
+        {
+            let mut meta_file = archive.by_name("meta.json").unwrap();
+            meta_file.read_to_string(&mut meta_str).unwrap();
+        }
+
+        // Build new ZIP with truncated digital data.
+        let buf = Vec::new();
+        let out_cursor = Cursor::new(buf);
+        let mut zip_writer = zip::ZipWriter::new(out_cursor);
+
+        zip_writer
+            .start_file::<_, ()>("meta.json", zip::write::SimpleFileOptions::default())
+            .unwrap();
+        zip_writer.write_all(meta_str.as_bytes()).unwrap();
+
+        zip_writer
+            .start_file::<_, ()>("digital-0.bin", zip::write::SimpleFileOptions::default())
+            .unwrap();
+        // Only 4 bytes -- too short for the 8-byte count header.
+        zip_writer.write_all(&[0x01, 0x00, 0x00, 0x00]).unwrap();
+
+        let out_cursor = zip_writer.finish().unwrap();
+        data = out_cursor.into_inner();
+
+        let reader = SalReader::from_bytes(data).unwrap();
+        let err = reader.read_digital_transitions(0).unwrap_err();
+        let msg = err.to_string();
+        assert!(
+            msg.contains("too short"),
+            "truncated header should report 'too short': {msg}"
+        );
+    }
+
+    #[test]
+    fn sal_reader_digital_truncated_body() {
+        // Header claims N transitions, but body doesn't have enough bytes.
+        let buf = Vec::new();
+        let cursor = Cursor::new(buf);
+        let mut zip_writer = zip::ZipWriter::new(cursor);
+
+        // Minimal meta.json so SalReader::from_bytes succeeds.
+        let meta = serde_json::json!({
+            "version": 16,
+            "data": {
+                "name": "Test",
+                "startTime": 0,
+                "endTime": 1000000000u64,
+                "digitalChannels": [0],
+                "analogChannels": [],
+                "digitalSampleRates": [25000000],
+                "analogSampleRates": [],
+            },
+            "binData": [{
+                "category": "legacy",
+                "type": "Digital",
+                "deviceChannel": 0,
+                "file": "./digital-0.bin"
+            }]
+        });
+
+        zip_writer
+            .start_file::<_, ()>("meta.json", zip::write::SimpleFileOptions::default())
+            .unwrap();
+        zip_writer
+            .write_all(serde_json::to_string(&meta).unwrap().as_bytes())
+            .unwrap();
+
+        zip_writer
+            .start_file::<_, ()>("digital-0.bin", zip::write::SimpleFileOptions::default())
+            .unwrap();
+        // Claim 100 transitions (count = 100), but only provide 8 bytes of body
+        // (enough for 1 transition, not 100).
+        let count: u64 = 100;
+        zip_writer.write_all(&count.to_le_bytes()).unwrap();
+        zip_writer.write_all(&42u64.to_le_bytes()).unwrap(); // only 1 transition
+
+        let cursor = zip_writer.finish().unwrap();
+        let data = cursor.into_inner();
+
+        let reader = SalReader::from_bytes(data).unwrap();
+        let err = reader.read_digital_transitions(0).unwrap_err();
+        let msg = err.to_string();
+        assert!(
+            msg.contains("expected") && msg.contains("transitions"),
+            "truncated body should report size mismatch: {msg}"
+        );
+    }
+
+    #[test]
+    fn sal_reader_analog_truncated_header() {
+        let buf = Vec::new();
+        let cursor = Cursor::new(buf);
+        let mut zip_writer = zip::ZipWriter::new(cursor);
+
+        let meta = serde_json::json!({
+            "version": 16,
+            "data": {
+                "name": "Test",
+                "startTime": 0,
+                "endTime": 1000000000u64,
+                "digitalChannels": [],
+                "analogChannels": [0],
+                "digitalSampleRates": [],
+                "analogSampleRates": [6250000],
+            },
+            "binData": [{
+                "category": "legacy",
+                "type": "Analog",
+                "deviceChannel": 0,
+                "file": "./analog-0.bin"
+            }]
+        });
+
+        zip_writer
+            .start_file::<_, ()>("meta.json", zip::write::SimpleFileOptions::default())
+            .unwrap();
+        zip_writer
+            .write_all(serde_json::to_string(&meta).unwrap().as_bytes())
+            .unwrap();
+
+        zip_writer
+            .start_file::<_, ()>("analog-0.bin", zip::write::SimpleFileOptions::default())
+            .unwrap();
+        // Only 4 bytes -- too short for the 8-byte chunk_count header.
+        zip_writer.write_all(&[0x01, 0x00, 0x00, 0x00]).unwrap();
+
+        let cursor = zip_writer.finish().unwrap();
+        let data = cursor.into_inner();
+
+        let reader = SalReader::from_bytes(data).unwrap();
+        let err = reader.read_analog_voltages(0).unwrap_err();
+        let msg = err.to_string();
+        assert!(
+            msg.contains("too short"),
+            "truncated analog header should report 'too short': {msg}"
+        );
+    }
+
+    // -------------------------------------------------------------------
     // CSV reader tests
     // -------------------------------------------------------------------
 

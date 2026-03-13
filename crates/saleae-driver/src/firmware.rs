@@ -164,6 +164,64 @@ mod tests {
     }
 
     #[test]
+    fn upload_fails_mid_transfer() {
+        let mock = MockTransport::new();
+        let image = make_test_image();
+
+        // First section succeeds, second section fails.
+        mock.push_control_out_success();
+        mock.push_control_out_error(saleae_usb::UsbError::ControlTransfer {
+            context: "device disconnected mid-upload".into(),
+        });
+
+        let err = upload_fx3_firmware(&mock, &image).unwrap_err();
+        let msg = err.to_string();
+        assert!(
+            msg.contains("device disconnected") || msg.contains("control transfer"),
+            "expected control transfer error, got: {msg}"
+        );
+
+        // Verify that 2 control OUT operations were attempted (1 success + 1 failure).
+        let ops = mock.operations();
+        let out_count = ops
+            .iter()
+            .filter(|op| matches!(op, UsbOperation::ControlOut { .. }))
+            .count();
+        assert_eq!(
+            out_count, 2,
+            "should have attempted 2 control transfers before failure"
+        );
+    }
+
+    #[test]
+    fn upload_fails_on_entry_trigger() {
+        let mock = MockTransport::new();
+        let image = Fx3Image {
+            header: Fx3Header {
+                image_ctl: 0x00,
+                image_type: IMAGE_TYPE_NORMAL,
+            },
+            sections: vec![Fx3Section {
+                address: 0x0000_0100,
+                data: vec![0xAAu8; 64],
+            }],
+            entry_address: 0x4000_e020,
+            checksum: 0,
+        };
+
+        // Data chunk succeeds, entry trigger fails.
+        mock.push_control_out_success();
+        mock.push_control_out_error(saleae_usb::UsbError::Timeout { timeout_ms: 1000 });
+
+        let err = upload_fx3_firmware(&mock, &image).unwrap_err();
+        let msg = err.to_string();
+        assert!(
+            msg.contains("timed out"),
+            "expected timeout error on entry trigger, got: {msg}"
+        );
+    }
+
+    #[test]
     fn upload_chunks_large_section() {
         let mock = MockTransport::new();
         let image = Fx3Image {

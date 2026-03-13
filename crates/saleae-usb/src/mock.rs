@@ -46,6 +46,15 @@ pub enum BulkInResponse {
     Error(u8, UsbError),
 }
 
+/// A pre-loaded control OUT result: either success or an injected error.
+#[derive(Debug, Clone)]
+pub enum ControlOutResult {
+    /// Successful transfer (returns data length).
+    Success,
+    /// Injected error.
+    Error(UsbError),
+}
+
 /// Mock USB transport for testing.
 ///
 /// # Usage
@@ -69,6 +78,8 @@ pub struct MockTransport {
     control_in_responses: Mutex<VecDeque<Vec<u8>>>,
     /// Pre-loaded responses for bulk IN transfers, keyed by endpoint.
     bulk_in_responses: Mutex<VecDeque<BulkInResponse>>,
+    /// Pre-loaded results for control OUT transfers (optional error injection).
+    control_out_results: Mutex<VecDeque<ControlOutResult>>,
 }
 
 impl MockTransport {
@@ -78,6 +89,7 @@ impl MockTransport {
             operations: Mutex::new(Vec::new()),
             control_in_responses: Mutex::new(VecDeque::new()),
             bulk_in_responses: Mutex::new(VecDeque::new()),
+            control_out_results: Mutex::new(VecDeque::new()),
         }
     }
 
@@ -92,6 +104,30 @@ impl MockTransport {
             .lock()
             .unwrap()
             .push_back(BulkInResponse::Data(endpoint, data));
+    }
+
+    /// Pre-load an error for the next `control_transfer_out` call.
+    ///
+    /// When the driver sends a control OUT transfer, the mock will return
+    /// this error instead of success. Useful for testing firmware upload
+    /// failure mid-transfer.
+    pub fn push_control_out_error(&self, error: UsbError) {
+        self.control_out_results
+            .lock()
+            .unwrap()
+            .push_back(ControlOutResult::Error(error));
+    }
+
+    /// Pre-load a success result for the next `control_transfer_out` call.
+    ///
+    /// This is only needed when you have also queued errors and need to
+    /// interleave explicit successes. When the queue is empty,
+    /// `control_transfer_out` defaults to success.
+    pub fn push_control_out_success(&self) {
+        self.control_out_results
+            .lock()
+            .unwrap()
+            .push_back(ControlOutResult::Success);
     }
 
     /// Pre-load an error for the next bulk IN transfer on the given endpoint.
@@ -133,6 +169,30 @@ impl UsbTransport for MockTransport {
         params: &ControlTransferParams,
         data: &[u8],
     ) -> UsbResult<usize> {
+        // Check for injected error/success before recording the operation.
+        if let Some(result) = self.control_out_results.lock().unwrap().pop_front() {
+            match result {
+                ControlOutResult::Error(err) => {
+                    // Record the attempt even on failure (useful for verifying
+                    // how far a multi-transfer sequence got).
+                    self.operations
+                        .lock()
+                        .unwrap()
+                        .push(UsbOperation::ControlOut {
+                            bm_request_type: params.bm_request_type,
+                            b_request: params.b_request,
+                            w_value: params.w_value,
+                            w_index: params.w_index,
+                            data: data.to_vec(),
+                        });
+                    return Err(err);
+                }
+                ControlOutResult::Success => {
+                    // Fall through to normal behavior.
+                }
+            }
+        }
+
         self.operations
             .lock()
             .unwrap()

@@ -2003,6 +2003,77 @@ mod tests {
         assert!(err.to_string().contains("sample rate"));
     }
 
+    #[test]
+    fn configure_capture_readback_mismatch_returns_error() {
+        let mock = std::sync::Arc::new(MockTransport::new());
+        let config = CaptureConfig {
+            sample_rate: 1_000_000,
+            digital_channels: vec![0, 1],
+            ..CaptureConfig::default()
+        };
+
+        // WriteRegisters ACK (success).
+        mock.push_bulk_in_response(ep::BULK_IN, vec![0x00]);
+
+        // ReadRegisters readback: return values that DIFFER from what was written.
+        // Build the real register pairs, then corrupt the third value.
+        let pairs = build_capture_register_pairs(&config);
+        let mut readback: Vec<u8> = pairs.iter().map(|&(_, v)| v).collect();
+        assert!(
+            readback.len() >= 3,
+            "need at least 3 registers to corrupt one"
+        );
+        let corrupt_idx = 2;
+        let expected_val = readback[corrupt_idx];
+        readback[corrupt_idx] = expected_val.wrapping_add(1); // corrupt
+        mock.push_bulk_in_response(ep::BULK_IN, readback);
+
+        let mut channel = mock_channel(&mock);
+        let err = configure_capture(&mut channel, &config).unwrap_err();
+
+        let msg = err.to_string();
+        assert!(
+            msg.contains("readback mismatch"),
+            "expected ReadbackMismatch error, got: {msg}"
+        );
+        // Verify the error identifies the correct register.
+        let corrupt_addr = pairs[corrupt_idx].0;
+        assert!(
+            msg.contains(&format!("{corrupt_addr:#04x}")),
+            "error should mention register address {corrupt_addr:#04x}: {msg}"
+        );
+    }
+
+    #[test]
+    fn configure_capture_readback_short_response_returns_mismatch() {
+        let mock = std::sync::Arc::new(MockTransport::new());
+        let config = CaptureConfig {
+            sample_rate: 1_000_000,
+            digital_channels: vec![0, 1],
+            ..CaptureConfig::default()
+        };
+
+        // WriteRegisters ACK.
+        mock.push_bulk_in_response(ep::BULK_IN, vec![0x00]);
+
+        // ReadRegisters readback: return fewer bytes than expected.
+        // When readback is too short, the code uses unwrap_or(0xFF) which
+        // should mismatch on the first missing register.
+        let pairs = build_capture_register_pairs(&config);
+        // Return only the first value (rest will be 0xFF from unwrap_or).
+        let readback = vec![pairs[0].1];
+        mock.push_bulk_in_response(ep::BULK_IN, readback);
+
+        let mut channel = mock_channel(&mock);
+        let err = configure_capture(&mut channel, &config).unwrap_err();
+
+        let msg = err.to_string();
+        assert!(
+            msg.contains("readback mismatch"),
+            "short readback should cause mismatch: {msg}"
+        );
+    }
+
     // -------------------------------------------------------------------
     // start_digital_capture tests
     // -------------------------------------------------------------------
