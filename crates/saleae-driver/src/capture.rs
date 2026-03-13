@@ -415,69 +415,165 @@ pub const MAX_ANALOG_CHANNEL_PRO16: u8 = 15;
 
 /// Per-channel analog front-end (AFE) configuration.
 ///
-/// The AFE settings control the analog signal path before the ADC:
-/// attenuators, VGA gain, and DAC offset. These are written to FPGA
-/// registers 0x0054-0x0068.
+/// Maps to the `AfeConfig_RawHardware` struct from Ghidra decompilation of
+/// `libgraph_server_shared.so`. The VGA fields (preamp, power, filter, ladder)
+/// are encoded into an LMH6518 SPI control word via `encode_vga_config()`.
 ///
-/// # PLACEHOLDER
-///
-/// The exact register bit layout is unknown. The field names are from
-/// string analysis of `libgraph_server_shared.so`. The actual values
-/// need USB capture from the Saleae app during analog capture setup.
-#[derive(Debug, Clone, Copy)]
+/// The attenuators (attn1, attn2) are separate GPIO controls, not part of
+/// the VGA SPI word. The DAC offset voltage is computed dynamically per-channel
+/// and is not part of the static 66-entry config table.
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct AfeChannelConfig {
-    /// First attenuator stage (0 or 1). PLACEHOLDER.
-    pub attn1: u8,
-    /// Second attenuator stage (0 or 1). PLACEHOLDER.
-    pub attn2: u8,
-    /// Preamplifier enable (0 or 1). PLACEHOLDER.
-    pub preamp: u8,
-    /// Resistor ladder gain select. PLACEHOLDER.
-    pub ladder: u8,
-    /// Fine gain adjust. PLACEHOLDER.
-    pub gain: u8,
-    /// DAC offset correction code. PLACEHOLDER.
-    pub dac_offset: u16,
+    /// First attenuator stage: false=bypass, true=10x attenuation.
+    pub attn1: bool,
+    /// Second attenuator stage: false=bypass, true=100x attenuation.
+    pub attn2: bool,
+    /// LMH6518 preamp mode: false=Low Gain (-6.5 dB), true=High Gain (+13.5 dB).
+    pub preamp: bool,
+    /// LMH6518 power mode: false=low power, true=full power.
+    /// Always true (1) in the static config table.
+    pub power: bool,
+    /// LMH6518 filter/bandwidth select (3-bit, 0-7).
+    /// Always 4 in the static config table.
+    pub filter: u8,
+    /// LMH6518 ladder attenuation in dB (0 to -20, must be even).
+    pub ladder: i8,
+    /// DAC trim voltage. Not part of the static config table (always 0.0 there).
+    /// Computed dynamically per-channel based on desired voltage range.
+    pub dac_offset: f64,
 }
 
+/// Total number of static AFE configurations (3 attn combos x 2 preamp x 11 ladder values).
+pub const TOTAL_AFE_CONFIGURATIONS: usize = 66;
+
 impl Default for AfeChannelConfig {
-    /// Default AFE configuration (no attenuation, no gain, zero offset).
-    ///
-    /// PLACEHOLDER: These defaults are guesses. The correct values
-    /// depend on the voltage range and sample rate, and need USB
-    /// capture confirmation.
+    /// Default: no attenuation, low-gain preamp, full power, filter=4, no ladder atten.
+    /// Matches config index 11 in the static table (no atten, LG, ladder=0).
     fn default() -> Self {
         Self {
-            attn1: 0,
-            attn2: 0,
-            preamp: 0,
+            attn1: false,
+            attn2: false,
+            preamp: false,
+            power: true,
+            filter: 4,
             ladder: 0,
-            gain: 0,
-            dac_offset: 0,
+            dac_offset: 0.0,
         }
     }
 }
 
 impl AfeChannelConfig {
-    /// Pack the AFE config into a 32-bit register value.
+    /// Encode the VGA fields into an LMH6518 SPI control word (u16).
     ///
-    /// PLACEHOLDER: The bit layout is completely unknown. This packs
-    /// the fields into a minimal format for now. Will need to be
-    /// updated once the real format is reverse-engineered from USB
-    /// captures.
-    pub fn to_register_value(&self) -> u32 {
-        // PLACEHOLDER packing:
-        // [7:0]   = attn1 | attn2 | preamp | ladder | gain
-        // [23:8]  = dac_offset
-        // [31:24] = reserved
-        let mut value: u32 = 0;
-        value |= (self.attn1 as u32) & 0x01;
-        value |= ((self.attn2 as u32) & 0x01) << 1;
-        value |= ((self.preamp as u32) & 0x01) << 2;
-        value |= ((self.ladder as u32) & 0x0F) << 3;
-        value |= ((self.gain as u32) & 0x01) << 7;
-        value |= (self.dac_offset as u32) << 8;
+    /// Bit layout (from Ghidra decompilation of `EncodeVgaConfig`):
+    ///   [3:0]  = ladder attenuation (0-10, maps to 0 to -20 dB in 2 dB steps)
+    ///   [4]    = preamp (0=LG, 1=HG)
+    ///   [5]    = unused
+    ///   [8:6]  = filter/bandwidth select
+    ///   [9]    = unused
+    ///   [10]   = power mode (0=low power, 1=full power)
+    ///
+    /// # Panics
+    ///
+    /// Panics if ladder is out of range (must be 0 to -20, even) or filter > 7.
+    pub fn encode_vga_config(&self) -> u16 {
+        assert!(
+            self.ladder <= 0 && self.ladder >= -20,
+            "ladder must be 0 to -20, got {}",
+            self.ladder
+        );
+        assert!(
+            self.ladder % 2 == 0,
+            "ladder must be even, got {}",
+            self.ladder
+        );
+        assert!(self.filter <= 7, "filter must be 0-7, got {}", self.filter);
+
+        let mut value: u16 = 0;
+        value |= ((-self.ladder) as u16) >> 1; // bits [3:0]
+        if self.preamp {
+            value |= 1 << 4; // bit [4]
+        }
+        value |= (self.filter as u16 & 7) << 6; // bits [8:6]
+        if self.power {
+            value |= 1 << 10; // bit [10]
+        }
         value
+    }
+
+    /// Decode an LMH6518 SPI control word back into VGA fields.
+    ///
+    /// Attenuator and DAC fields are set to defaults (false / 0.0) since they
+    /// are not encoded in the VGA SPI word.
+    pub fn from_vga_config(spi_word: u16) -> Self {
+        let ladder_encoded = (spi_word & 0x0F) as i8; // bits [3:0]
+        let preamp = (spi_word >> 4) & 1 != 0; // bit [4]
+        let filter = ((spi_word >> 6) & 7) as u8; // bits [8:6]
+        let power = (spi_word >> 10) & 1 != 0; // bit [10]
+
+        Self {
+            attn1: false,
+            attn2: false,
+            preamp,
+            power,
+            filter,
+            ladder: -(ladder_encoded * 2),
+            dac_offset: 0.0,
+        }
+    }
+
+    /// Compute the config index (0-65) in the static AllConfigs table.
+    ///
+    /// Returns None if the combination is not representable in the table.
+    pub fn config_index(&self) -> Option<usize> {
+        let attn_group = match (self.attn1, self.attn2) {
+            (false, false) => 0,
+            (true, false) => 1,
+            (true, true) => 2,
+            (false, true) => return None, // invalid: attn2 without attn1
+        };
+        if self.ladder > 0 || self.ladder < -20 || self.ladder % 2 != 0 {
+            return None;
+        }
+        let ladder_idx = ((-self.ladder) / 2) as usize;
+        let preamp_offset = if self.preamp { 0 } else { 11 };
+        let index = attn_group * 22 + preamp_offset + ladder_idx;
+        if index < TOTAL_AFE_CONFIGURATIONS {
+            Some(index)
+        } else {
+            None
+        }
+    }
+
+    /// Create an AfeChannelConfig from a config table index (0-65).
+    ///
+    /// Returns None if index >= 66.
+    pub fn from_config_index(index: usize) -> Option<Self> {
+        if index >= TOTAL_AFE_CONFIGURATIONS {
+            return None;
+        }
+        let attn_group = index / 22;
+        let remainder = index % 22;
+        let (preamp, ladder_idx) = if remainder < 11 {
+            (true, remainder)
+        } else {
+            (false, remainder - 11)
+        };
+        let (attn1, attn2) = match attn_group {
+            0 => (false, false),
+            1 => (true, false),
+            2 => (true, true),
+            _ => return None,
+        };
+        Some(Self {
+            attn1,
+            attn2,
+            preamp,
+            power: true,
+            filter: 4,
+            ladder: -(ladder_idx as i8 * 2),
+            dac_offset: 0.0,
+        })
     }
 }
 
@@ -2718,34 +2814,111 @@ mod tests {
     // -------------------------------------------------------------------
 
     #[test]
-    fn afe_default_register_is_zero() {
+    fn afe_default_vga_config() {
+        // Default: LG preamp, full power, filter=4, ladder=0
+        // Expected: bits[3:0]=0, bit[4]=0(LG), bits[8:6]=4(0b100), bit[10]=1(power)
+        // = 0b0000_0101_0000_0000 = 0x0500 ... wait:
+        // filter=4 => bits [8:6] = 0b100 => bit8=1, bit7=0, bit6=0
+        // power=1 => bit[10] = 1
+        // = (1 << 10) | (4 << 6) = 0x400 | 0x100 = 0x500
         let afe = AfeChannelConfig::default();
-        assert_eq!(afe.to_register_value(), 0);
+        assert_eq!(afe.encode_vga_config(), 0x0500);
     }
 
     #[test]
-    fn afe_register_packing() {
+    fn afe_vga_encode_high_gain_full_ladder() {
         let afe = AfeChannelConfig {
-            attn1: 1,
-            attn2: 1,
-            preamp: 1,
-            ladder: 0x0A,
-            gain: 1,
-            dac_offset: 0x1234,
+            attn1: true,
+            attn2: false,
+            preamp: true,
+            power: true,
+            filter: 4,
+            ladder: -20,
+            dac_offset: 0.0,
         };
-        let val = afe.to_register_value();
-        // bit 0 = attn1 = 1
-        assert_eq!(val & 0x01, 1);
-        // bit 1 = attn2 = 1
-        assert_eq!((val >> 1) & 0x01, 1);
-        // bit 2 = preamp = 1
-        assert_eq!((val >> 2) & 0x01, 1);
-        // bits 6:3 = ladder = 0x0A
-        assert_eq!((val >> 3) & 0x0F, 0x0A);
-        // bit 7 = gain = 1
-        assert_eq!((val >> 7) & 0x01, 1);
-        // bits 23:8 = dac_offset = 0x1234
-        assert_eq!((val >> 8) & 0xFFFF, 0x1234);
+        // ladder=-20 => (-(-20))/2 = 10 => bits[3:0] = 10 = 0x0A
+        // preamp=HG => bit[4] = 1
+        // filter=4 => bits[8:6] = 0b100
+        // power=1 => bit[10] = 1
+        // = 0x0A | 0x10 | 0x100 | 0x400 = 0x051A
+        assert_eq!(afe.encode_vga_config(), 0x051A);
+    }
+
+    #[test]
+    fn afe_vga_roundtrip() {
+        let original = AfeChannelConfig {
+            attn1: false,
+            attn2: false,
+            preamp: true,
+            power: true,
+            filter: 4,
+            ladder: -12,
+            dac_offset: 0.0,
+        };
+        let spi = original.encode_vga_config();
+        let decoded = AfeChannelConfig::from_vga_config(spi);
+        // Attenuators and dac_offset are not in VGA word, so they default
+        assert_eq!(decoded.preamp, original.preamp);
+        assert_eq!(decoded.power, original.power);
+        assert_eq!(decoded.filter, original.filter);
+        assert_eq!(decoded.ladder, original.ladder);
+    }
+
+    #[test]
+    fn afe_config_index_roundtrip_all_66() {
+        for i in 0..TOTAL_AFE_CONFIGURATIONS {
+            let config = AfeChannelConfig::from_config_index(i)
+                .unwrap_or_else(|| panic!("from_config_index({}) returned None", i));
+            let idx = config
+                .config_index()
+                .unwrap_or_else(|| panic!("config_index() returned None for index {}", i));
+            assert_eq!(idx, i, "roundtrip failed for index {}", i);
+        }
+    }
+
+    #[test]
+    fn afe_config_index_out_of_range() {
+        assert!(AfeChannelConfig::from_config_index(66).is_none());
+        assert!(AfeChannelConfig::from_config_index(100).is_none());
+    }
+
+    #[test]
+    fn afe_config_index_invalid_attn_combo() {
+        let afe = AfeChannelConfig {
+            attn1: false,
+            attn2: true, // invalid: attn2 without attn1
+            ..AfeChannelConfig::default()
+        };
+        assert!(afe.config_index().is_none());
+    }
+
+    #[test]
+    fn afe_vga_encode_all_configs_valid() {
+        // Every config in the 66-entry table should produce a valid VGA word
+        for i in 0..TOTAL_AFE_CONFIGURATIONS {
+            let config = AfeChannelConfig::from_config_index(i).unwrap();
+            let _spi = config.encode_vga_config(); // should not panic
+        }
+    }
+
+    #[test]
+    #[should_panic(expected = "ladder must be 0 to -20")]
+    fn afe_vga_encode_rejects_positive_ladder() {
+        let afe = AfeChannelConfig {
+            ladder: 2,
+            ..AfeChannelConfig::default()
+        };
+        afe.encode_vga_config();
+    }
+
+    #[test]
+    #[should_panic(expected = "ladder must be even")]
+    fn afe_vga_encode_rejects_odd_ladder() {
+        let afe = AfeChannelConfig {
+            ladder: -3,
+            ..AfeChannelConfig::default()
+        };
+        afe.encode_vga_config();
     }
 
     // -------------------------------------------------------------------
