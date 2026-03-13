@@ -1099,12 +1099,22 @@ pub fn compute_capture_registers(config: &CaptureConfig) -> CaptureRegisters {
     };
 
     // Low-speed divider: determines ContractReadData decimation.
-    // At high sample rates (near max GPIF throughput): divider=1.
-    // At lower rates, the FPGA pads data and the host contracts.
-    // For 12.5 MSa/s on Pro 8: divider=1 (pcap r0x13=0x00).
-    // The threshold is approximate; needs more pcap data.
-    let low_speed_divider_selector: u8 = 0; // div1 for now
-    let low_speed_divider: u32 = 1;
+    //
+    // Decompiled from `LogicDevice::StartSampling` (ELF VA 0x1c3ad40):
+    //   - < 200 kSa/s: FPGA pads data, host strips padding via ContractReadData
+    //     25 kSa/s  -> divider=8
+    //     50 kSa/s  -> divider=4
+    //     100 kSa/s -> divider=2
+    //   - >= 200 kSa/s: divider=1 (no contraction)
+    //
+    // The non-Pro path uses a 48 MHz FPGA clock; the Pro path uses 200 MHz.
+    // Pro devices at their typical sample rates (>= 1 MSa/s) always use
+    // divider=1. The low-speed divider is primarily relevant for non-Pro
+    // digital-only captures at very low sample rates.
+    //
+    // See `re/notes/gpif-width-selection.md` for full decompilation.
+    let (low_speed_divider_selector, low_speed_divider): (u8, u32) =
+        compute_low_speed_divider(config.sample_rate);
 
     // Warn for unvalidated configurations.
     let is_pcap_reference = config.sample_rate == 12_500_000
@@ -1162,6 +1172,36 @@ fn gcd(mut a: u64, mut b: u64) -> u64 {
         a = t;
     }
     a
+}
+
+/// Compute LowSpeedDivider from sample rate.
+///
+/// Decompiled from `LogicDevice::StartSampling` (ELF VA 0x1c3ad40).
+/// At low sample rates the FPGA pads the EP2 data stream with dummy bytes
+/// to maintain a minimum USB bulk transfer rate. The host strips the
+/// padding with `ContractReadData` before disaggregation.
+///
+/// Returns `(selector_reg_value, actual_divider)`:
+/// - `selector_reg_value`: the value written to the FPGA register (0-3 maps to div 1/2/4/8).
+/// - `actual_divider`: the divisor for ContractReadData (1, 2, 4, or 8).
+///
+/// See `re/notes/gpif-width-selection.md`.
+fn compute_low_speed_divider(sample_rate: u64) -> (u8, u32) {
+    match sample_rate {
+        0..=24_999 => {
+            // Below 25 kSa/s: not a valid rate in the Saleae firmware.
+            // Fall through to divider=8 as the safest conservative choice.
+            tracing::warn!(
+                sample_rate,
+                "sample rate below 25 kSa/s is not valid in Saleae firmware, using divider=8"
+            );
+            (3, 8)
+        }
+        25_000 => (3, 8),
+        50_000 => (2, 4),
+        100_000 => (1, 2),
+        _ => (0, 1), // >= 200 kSa/s (and intermediate values > 100k)
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -3427,5 +3467,49 @@ mod tests {
         assert_eq!(result.bytes_read(), 256);
         assert_eq!(result.read_count, 1);
         assert!(!result.completed_normally);
+    }
+
+    // -------------------------------------------------------------------
+    // LowSpeedDivider selection tests
+    // -------------------------------------------------------------------
+
+    #[test]
+    fn low_speed_divider_25k() {
+        let (sel, div) = compute_low_speed_divider(25_000);
+        assert_eq!(sel, 3, "selector for 25 kSa/s");
+        assert_eq!(div, 8, "divider for 25 kSa/s");
+    }
+
+    #[test]
+    fn low_speed_divider_50k() {
+        let (sel, div) = compute_low_speed_divider(50_000);
+        assert_eq!(sel, 2, "selector for 50 kSa/s");
+        assert_eq!(div, 4, "divider for 50 kSa/s");
+    }
+
+    #[test]
+    fn low_speed_divider_100k() {
+        let (sel, div) = compute_low_speed_divider(100_000);
+        assert_eq!(sel, 1, "selector for 100 kSa/s");
+        assert_eq!(div, 2, "divider for 100 kSa/s");
+    }
+
+    #[test]
+    fn low_speed_divider_200k_and_above() {
+        for &rate in &[200_000u64, 500_000, 1_000_000, 12_500_000, 48_000_000] {
+            let (sel, div) = compute_low_speed_divider(rate);
+            assert_eq!(sel, 0, "selector for {rate}");
+            assert_eq!(div, 1, "divider for {rate}");
+        }
+    }
+
+    #[test]
+    fn low_speed_divider_intermediate_rates() {
+        // Rates between 100k and 200k should use divider=1 (>= 200k threshold
+        // is approximated; intermediate rates are not valid in the Saleae firmware
+        // but we treat them as divider=1 for safety).
+        let (sel, div) = compute_low_speed_divider(150_000);
+        assert_eq!(sel, 0);
+        assert_eq!(div, 1);
     }
 }

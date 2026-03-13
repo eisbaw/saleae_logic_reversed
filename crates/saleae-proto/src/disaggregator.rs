@@ -898,6 +898,11 @@ impl Disaggregator {
 /// Decimate raw EP2 data by keeping every Nth byte, where N is the
 /// low-speed divider. Mirrors `ContractReadData` at ELF VA 0x1c3bad0.
 ///
+/// At low sample rates (< 200 kSa/s) the FPGA pads the data stream with
+/// dummy bytes to maintain a minimum USB bulk transfer rate. The divider
+/// is determined by sample rate: 25k->8, 50k->4, 100k->2, >=200k->1.
+/// See `re/notes/gpif-width-selection.md` for the decompiled selection logic.
+///
 /// When `divider == 1`, this is a no-op (callers should skip it).
 pub fn contract_read_data(data: &[u8], divider: u32) -> Vec<u8> {
     debug_assert!(matches!(divider, 2 | 4 | 8));
