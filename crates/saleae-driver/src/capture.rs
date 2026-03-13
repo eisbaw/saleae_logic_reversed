@@ -338,48 +338,33 @@ impl CaptureConfig {
         compute_capture_registers(self)
     }
 
-    /// Compute [`DisaggregatorSettings`] matching this capture configuration.
+    /// Create a proto [`Disaggregator`](saleae_proto::Disaggregator) matching
+    /// this capture configuration.
     ///
     /// The disaggregator settings must match the FPGA capture registers
     /// so that the EP2 data stream is correctly split into per-channel
-    /// samples. The key parameters that vary with capture config:
+    /// samples.
     ///
-    /// - `digital_ratio`: digital packets per interleave cycle
-    /// - `digital_packet_size`: 2 (16-bit GPIF) or 4 (32-bit GPIF)
-    /// - `analog_group_size`: 4 (16-bit GPIF) or 8 (32-bit GPIF)
-    /// - `low_speed_divider`: 1, 2, 4, or 8 from FPGA config
-    /// - Channel enable vectors from the capture config
-    pub fn disaggregator_settings(&self) -> crate::disaggregator::DisaggregatorSettings {
+    /// # Errors
+    ///
+    /// Returns error if the GPIF/ADC combination is invalid.
+    pub fn disaggregator(&self) -> crate::DriverResult<saleae_proto::Disaggregator> {
         let regs = self.capture_registers();
-        let total = self.total_device_channels;
+        let gpif_width = regs.gpif_packet_size * 8;
+        let adc_bits = 12u32; // All supported FX3 devices use 12-bit ADCs
 
-        let mut digital_channels = vec![false; total as usize];
-        for &ch in &self.digital_channels {
-            if (ch as usize) < digital_channels.len() {
-                digital_channels[ch as usize] = true;
-            }
-        }
-
-        let mut analog_channels = vec![false; total as usize];
-        for &ch in &self.analog_channels {
-            if (ch as usize) < analog_channels.len() {
-                analog_channels[ch as usize] = true;
-            }
-        }
-
-        crate::disaggregator::DisaggregatorSettings {
-            digital_ratio: regs.digital_ratio,
-            digital_packet_size: regs.gpif_packet_size,
-            analog_group_size: if self.analog_channels.is_empty() {
-                0
-            } else {
-                regs.analog_group_size
-            },
-            analog_bytes_per_sample: 3, // 12-bit ADC, 3 bytes per 2 samples
-            digital_channels,
-            analog_channels,
-            low_speed_divider: regs.low_speed_divider,
-        }
+        saleae_proto::Disaggregator::from_register_settings(
+            self.feature_class,
+            gpif_width,
+            adc_bits,
+            self.digital_channels.len(),
+            self.analog_channels.len(),
+            regs.digital_ratio,
+            regs.low_speed_divider,
+        )
+        .map_err(|e| DriverError::InvalidCaptureConfig {
+            reason: e.to_string(),
+        })
     }
 }
 
@@ -2431,8 +2416,8 @@ mod tests {
     // -------------------------------------------------------------------
 
     #[test]
-    fn disaggregator_settings_pcap_reference() {
-        // The disaggregator settings for the pcap reference config must
+    fn disaggregator_pcap_reference() {
+        // The disaggregator for the pcap reference config must
         // produce the same cycle structure as the hardcoded values.
         let config = CaptureConfig {
             sample_rate: 12_500_000,
@@ -2445,24 +2430,20 @@ mod tests {
             base_analog_rate: 100_000_000,
             ..CaptureConfig::default()
         };
-        let settings = config.disaggregator_settings();
+        let disagg = config.disaggregator().unwrap();
 
-        assert_eq!(settings.digital_ratio, 1);
-        assert_eq!(settings.digital_packet_size, 4);
-        assert_eq!(settings.analog_group_size, 8);
-        assert_eq!(settings.analog_bytes_per_sample, 3);
-        assert_eq!(settings.low_speed_divider, 1);
-        assert_eq!(settings.digital_channels, vec![true; 8]);
-        assert_eq!(settings.analog_channels, vec![true; 8]);
+        assert_eq!(disagg.num_digital(), 8);
+        assert_eq!(disagg.num_analog(), 8);
+        assert_eq!(disagg.low_speed_divider(), 1);
 
         // Verify cycle size: 32 digital + 96 analog = 128 bytes.
-        assert_eq!(settings.digital_group_bytes(), 32);
-        assert_eq!(settings.analog_group_bytes(), 96);
-        assert_eq!(settings.full_cycle_size(), 128);
+        // digital: 1 ratio * 4 bytes * 8 channels = 32
+        // analog: 12 bytes/channel * 8 channels = 96
+        assert_eq!(disagg.cycle_bytes(), 128);
     }
 
     #[test]
-    fn disaggregator_settings_digital_only() {
+    fn disaggregator_digital_only() {
         let config = CaptureConfig {
             sample_rate: 12_500_000,
             digital_channels: (0..8).collect(),
@@ -2474,20 +2455,17 @@ mod tests {
             base_analog_rate: 100_000_000,
             ..CaptureConfig::default()
         };
-        let settings = config.disaggregator_settings();
+        let disagg = config.disaggregator().unwrap();
 
-        assert_eq!(settings.digital_ratio, 1);
-        assert_eq!(settings.digital_packet_size, 4);
-        assert_eq!(settings.analog_group_size, 0, "no analog -> group_size 0");
-        assert_eq!(settings.num_analog_channels(), 0);
-        assert_eq!(settings.num_digital_channels(), 8);
+        assert_eq!(disagg.num_digital(), 8);
+        assert_eq!(disagg.num_analog(), 0);
 
         // Cycle is digital-only: 1 * 4 * 8 = 32 bytes.
-        assert_eq!(settings.full_cycle_size(), 32);
+        assert_eq!(disagg.cycle_bytes(), 32);
     }
 
     #[test]
-    fn disaggregator_settings_channel_subset() {
+    fn disaggregator_channel_subset() {
         let config = CaptureConfig {
             sample_rate: 12_500_000,
             digital_channels: vec![0, 1, 2, 3],
@@ -2499,17 +2477,15 @@ mod tests {
             base_analog_rate: 100_000_000,
             ..CaptureConfig::default()
         };
-        let settings = config.disaggregator_settings();
+        let disagg = config.disaggregator().unwrap();
 
-        assert_eq!(settings.num_digital_channels(), 4);
-        assert_eq!(settings.num_analog_channels(), 2);
+        assert_eq!(disagg.num_digital(), 4);
+        assert_eq!(disagg.num_analog(), 2);
 
         // Digital: 1 * 4 * 4 = 16 bytes.
         // Analog: 12 * 2 = 24 bytes.
         // Total: 40 bytes.
-        assert_eq!(settings.digital_group_bytes(), 16);
-        assert_eq!(settings.analog_group_bytes(), 24);
-        assert_eq!(settings.full_cycle_size(), 40);
+        assert_eq!(disagg.cycle_bytes(), 40);
     }
 
     // -------------------------------------------------------------------

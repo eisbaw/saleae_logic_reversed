@@ -242,6 +242,9 @@ pub struct Disaggregator {
     packing: AdcPacking,
     /// Interleave ratios (only meaningful for Pro mixed-mode).
     mix_rate: MixRateResult,
+    /// Low-speed divider for ContractReadData. Valid values: 1, 2, 4, 8.
+    /// When > 1, every Nth byte is kept before disaggregation.
+    low_speed_divider: u32,
 }
 
 impl Disaggregator {
@@ -311,6 +314,160 @@ impl Disaggregator {
             packet_size: (gpif_width / 8) as usize,
             packing,
             mix_rate,
+            low_speed_divider: 1,
+        })
+    }
+
+    /// Create a disaggregator from explicit parameters (no DeviceProfile needed).
+    ///
+    /// This is useful when the caller already knows the hardware parameters
+    /// (e.g. from a `CaptureConfig`), and avoids the need to construct or
+    /// reference a full `DeviceProfile`.
+    ///
+    /// # Arguments
+    ///
+    /// - `feature_class`: Pro, NonPro, etc.
+    /// - `gpif_width`: GPIF bus width in bits (16 or 32).
+    /// - `adc_bits`: ADC resolution in bits (10 or 12).
+    /// - `digital_channels`: List of enabled digital channel indices.
+    /// - `analog_channels`: List of enabled analog channel indices.
+    /// - `digital_rate`: Digital sample rate in Hz (0 if no digital capture).
+    /// - `analog_rate`: Analog sample rate in Hz (0 if no analog capture).
+    /// - `low_speed_divider`: Low-speed divider (1, 2, 4, or 8).
+    #[allow(clippy::too_many_arguments)]
+    pub fn from_params(
+        feature_class: DeviceFeatureClass,
+        gpif_width: u32,
+        adc_bits: u32,
+        digital_channels: &[u8],
+        analog_channels: &[u8],
+        digital_rate: u64,
+        analog_rate: u64,
+        low_speed_divider: u32,
+    ) -> ProtoResult<Self> {
+        if feature_class == DeviceFeatureClass::Mso {
+            return Err(ProtoError::parse(
+                "MSO devices are not supported by disaggregator",
+            ));
+        }
+        if !matches!(low_speed_divider, 1 | 2 | 4 | 8) {
+            return Err(ProtoError::parse(format!(
+                "low_speed_divider must be 1, 2, 4, or 8, got {low_speed_divider}"
+            )));
+        }
+
+        let num_digital = digital_channels.len();
+        let num_analog = analog_channels.len();
+
+        let packing = adc_packing(gpif_width, adc_bits).ok_or_else(|| {
+            ProtoError::parse(format!(
+                "no valid analog/gpif combo: gpif_width={gpif_width}, adc_bits={adc_bits}"
+            ))
+        })?;
+
+        let dr = digital_rate.min(u32::MAX as u64) as u32;
+        let ar = analog_rate.min(u32::MAX as u64) as u32;
+
+        let mix_rate = calculate_mix_rate(
+            dr,
+            ar,
+            gpif_width,
+            adc_bits,
+            num_digital as u32,
+            num_analog as u32,
+        )?;
+
+        Ok(Self {
+            feature_class,
+            num_digital,
+            num_analog,
+            packet_size: (gpif_width / 8) as usize,
+            packing,
+            mix_rate,
+            low_speed_divider,
+        })
+    }
+
+    /// Create a disaggregator from pre-computed register-derived settings.
+    ///
+    /// Use this when the interleave parameters have already been computed
+    /// by the FPGA register calculation (e.g. from `CaptureRegisters`).
+    /// The `digital_ratio` here is the number of digital word groups per
+    /// interleave cycle (NOT multiplied by num_digital -- that multiplication
+    /// happens internally).
+    ///
+    /// # Arguments
+    ///
+    /// - `feature_class`: Pro, NonPro, etc.
+    /// - `gpif_width`: GPIF bus width in bits (16 or 32).
+    /// - `adc_bits`: ADC resolution in bits (10 or 12).
+    /// - `num_digital`: Number of enabled digital channels.
+    /// - `num_analog`: Number of enabled analog channels.
+    /// - `digital_ratio`: Digital word groups per interleave cycle.
+    /// - `low_speed_divider`: Low-speed divider (1, 2, 4, or 8).
+    pub fn from_register_settings(
+        feature_class: DeviceFeatureClass,
+        gpif_width: u32,
+        adc_bits: u32,
+        num_digital: usize,
+        num_analog: usize,
+        digital_ratio: u32,
+        low_speed_divider: u32,
+    ) -> ProtoResult<Self> {
+        if feature_class == DeviceFeatureClass::Mso {
+            return Err(ProtoError::parse(
+                "MSO devices are not supported by disaggregator",
+            ));
+        }
+        if !matches!(low_speed_divider, 1 | 2 | 4 | 8) {
+            return Err(ProtoError::parse(format!(
+                "low_speed_divider must be 1, 2, 4, or 8, got {low_speed_divider}"
+            )));
+        }
+
+        let packet_size = gpif_width / 8;
+
+        let packing = adc_packing(gpif_width, adc_bits).ok_or_else(|| {
+            ProtoError::parse(format!(
+                "no valid analog/gpif combo: gpif_width={gpif_width}, adc_bits={adc_bits}"
+            ))
+        })?;
+
+        // Compute cycle bytes from the register-derived digital_ratio.
+        // Digital section: digital_ratio * packet_size * num_digital
+        // Analog section: (bytes_per_group * samples_per_group / 2) * num_analog
+        //   = analog_channel_bytes * num_analog
+        // For 12-bit ADC with 32-bit GPIF: 12 bytes per channel.
+        // For 12-bit ADC with 16-bit GPIF: 6 bytes per channel.
+        let digital_bytes = digital_ratio * packet_size * num_digital as u32;
+        let analog_channel_bytes =
+            (packing.bytes_per_group * packing.samples_per_group) / 2;
+        let analog_bytes = analog_channel_bytes * num_analog as u32;
+
+        let mix_rate = MixRateResult {
+            // digital_ratio in MixRateResult is total digital words per cycle
+            // (digital_ratio_per_channel * num_digital).
+            digital_ratio: digital_ratio * num_digital as u32,
+            analog_ratio: if num_analog > 0 {
+                packing.samples_per_group * num_analog as u32
+            } else {
+                0
+            },
+            cycle_bytes: digital_bytes + analog_bytes,
+        };
+
+        if mix_rate.cycle_bytes == 0 && (num_digital > 0 || num_analog > 0) {
+            return Err(ProtoError::parse("cycle_bytes is 0 but channels are enabled"));
+        }
+
+        Ok(Self {
+            feature_class,
+            num_digital,
+            num_analog,
+            packet_size: packet_size as usize,
+            packing,
+            mix_rate,
+            low_speed_divider,
         })
     }
 
@@ -329,16 +486,60 @@ impl Disaggregator {
         self.mix_rate.cycle_bytes as usize
     }
 
+    /// Return the number of enabled digital channels.
+    pub fn num_digital(&self) -> usize {
+        self.num_digital
+    }
+
+    /// Return the number of enabled analog channels.
+    pub fn num_analog(&self) -> usize {
+        self.num_analog
+    }
+
+    /// Return the low-speed divider.
+    pub fn low_speed_divider(&self) -> u32 {
+        self.low_speed_divider
+    }
+
+    /// Set the low-speed divider for ContractReadData decimation.
+    ///
+    /// Valid values: 1, 2, 4, or 8. When > 1, every Nth byte of raw
+    /// EP2 data is kept before disaggregation.
+    ///
+    /// # Errors
+    ///
+    /// Returns error if the divider is not 1, 2, 4, or 8.
+    pub fn set_low_speed_divider(&mut self, divider: u32) -> ProtoResult<()> {
+        if !matches!(divider, 1 | 2 | 4 | 8) {
+            return Err(ProtoError::parse(format!(
+                "low_speed_divider must be 1, 2, 4, or 8, got {divider}"
+            )));
+        }
+        self.low_speed_divider = divider;
+        Ok(())
+    }
+
     /// Deinterleave a chunk of EP2 data into per-channel streams.
     ///
-    /// The input `data` must be raw sample bytes (after chunk header
-    /// stripping and any `ContractReadData` compaction). Its length must
-    /// be a multiple of `cycle_bytes()`.
+    /// If `low_speed_divider > 1`, applies ContractReadData decimation
+    /// first (keeps every Nth byte). Then deinterleaves the resulting
+    /// data into per-channel streams.
+    ///
+    /// The input length (after decimation) must be a multiple of
+    /// `cycle_bytes()`.
     ///
     /// # Errors
     ///
     /// Returns error if the data length is not a multiple of the cycle size.
     pub fn process_chunk(&self, data: &[u8]) -> ProtoResult<DisaggregatedData> {
+        let effective_data;
+        let data = if self.low_speed_divider > 1 {
+            effective_data = contract_read_data(data, self.low_speed_divider);
+            &effective_data
+        } else {
+            data
+        };
+
         match self.feature_class {
             DeviceFeatureClass::Pro => self.deinterleave_pro(data),
             DeviceFeatureClass::NonPro => self.deinterleave_non_pro(data),
@@ -684,6 +885,24 @@ impl Disaggregator {
             analog_samples: vec![Vec::new(); self.num_analog],
         })
     }
+}
+
+// ---------------------------------------------------------------------------
+// Standalone 12-bit ADC sign extension helpers
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// ContractReadData
+// ---------------------------------------------------------------------------
+
+/// Decimate raw EP2 data by keeping every Nth byte, where N is the
+/// low-speed divider. Mirrors `ContractReadData` at ELF VA 0x1c3bad0.
+///
+/// When `divider == 1`, this is a no-op (callers should skip it).
+pub fn contract_read_data(data: &[u8], divider: u32) -> Vec<u8> {
+    debug_assert!(matches!(divider, 2 | 4 | 8));
+    let step = divider as usize;
+    data.iter().step_by(step).copied().collect()
 }
 
 // ---------------------------------------------------------------------------

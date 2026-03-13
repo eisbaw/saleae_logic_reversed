@@ -19,8 +19,8 @@
 
 use saleae_proto::biquad::BiquadFilter;
 use saleae_proto::calibration::{CalibrationData, VoltageTransform};
+use saleae_proto::DisaggregatedData;
 
-use crate::disaggregator::DisaggregatorOutput;
 use crate::error::{DriverError, DriverResult};
 
 /// Per-channel calibrated voltage data.
@@ -76,24 +76,24 @@ pub struct CalibratedOutput {
 /// - `adc_min`, `adc_max`: ADC code range for voltage transform.
 ///   Logic Pro 8/16: (-2048, 2047). Logic 4: (0, 255).
 pub fn apply_calibration(
-    output: &DisaggregatorOutput,
+    output: &DisaggregatedData,
     cal: &CalibrationData,
     analog_channel_indices: &[u8],
     sample_rate: u64,
     adc_min: i16,
     adc_max: i16,
 ) -> DriverResult<CalibratedOutput> {
-    if analog_channel_indices.len() != output.analog.len() {
+    if analog_channel_indices.len() != output.analog_samples.len() {
         return Err(DriverError::InvalidCaptureConfig {
             reason: format!(
-                "analog_channel_indices length ({}) != output.analog length ({})",
+                "analog_channel_indices length ({}) != output.analog_samples length ({})",
                 analog_channel_indices.len(),
-                output.analog.len()
+                output.analog_samples.len()
             ),
         });
     }
 
-    if output.analog.is_empty() {
+    if output.analog_samples.is_empty() {
         return Ok(CalibratedOutput { channels: vec![] });
     }
 
@@ -106,9 +106,9 @@ pub fn apply_calibration(
             ),
         })?;
 
-    let mut channels = Vec::with_capacity(output.analog.len());
+    let mut channels = Vec::with_capacity(output.analog_samples.len());
 
-    for (i, raw_samples) in output.analog.iter().enumerate() {
+    for (i, raw_samples) in output.analog_samples.iter().enumerate() {
         let ch = analog_channel_indices[i];
 
         let cal_set =
@@ -186,8 +186,8 @@ fn find_closest_cal_rate(cal: &CalibrationData, channel: u8, target_rate: u64) -
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::disaggregator::DisaggregatorOutput;
     use saleae_proto::calibration;
+    use saleae_proto::DisaggregatedData;
     use std::path::PathBuf;
 
     fn reference_cal_path() -> PathBuf {
@@ -212,9 +212,9 @@ mod tests {
     #[test]
     fn calibrate_empty_analog() {
         let cal = load_reference_cal();
-        let output = DisaggregatorOutput {
-            digital: vec![],
-            analog: vec![],
+        let output = DisaggregatedData {
+            digital_samples: vec![],
+            analog_samples: vec![],
         };
         let result = apply_calibration(&output, &cal, &[], 12_500_000, PRO_ADC_MIN, PRO_ADC_MAX);
         assert!(result.is_ok());
@@ -225,9 +225,9 @@ mod tests {
     fn calibrate_single_channel_dc_zero() {
         let cal = load_reference_cal();
 
-        let output = DisaggregatorOutput {
-            digital: vec![],
-            analog: vec![vec![0i16; 1000]],
+        let output = DisaggregatedData {
+            digital_samples: vec![],
+            analog_samples: vec![vec![0i16; 1000]],
         };
 
         let result = apply_calibration(&output, &cal, &[0], 12_500_000, PRO_ADC_MIN, PRO_ADC_MAX)
@@ -249,9 +249,9 @@ mod tests {
     fn calibrate_two_channels_opposite_codes() {
         let cal = load_reference_cal();
 
-        let output = DisaggregatorOutput {
-            digital: vec![],
-            analog: vec![vec![1024i16; 1000], vec![-1024i16; 1000]],
+        let output = DisaggregatedData {
+            digital_samples: vec![],
+            analog_samples: vec![vec![1024i16; 1000], vec![-1024i16; 1000]],
         };
 
         let result =
@@ -273,9 +273,9 @@ mod tests {
     fn calibrate_all_eight_channels() {
         let cal = load_reference_cal();
 
-        let output = DisaggregatorOutput {
-            digital: vec![],
-            analog: vec![vec![0i16; 500]; 8],
+        let output = DisaggregatedData {
+            digital_samples: vec![],
+            analog_samples: vec![vec![0i16; 500]; 8],
         };
 
         let indices: Vec<u8> = (0..8).collect();
@@ -326,9 +326,9 @@ mod tests {
     #[test]
     fn calibrate_missing_channel_returns_error() {
         let cal = load_reference_cal();
-        let output = DisaggregatorOutput {
-            digital: vec![],
-            analog: vec![vec![0i16; 10]],
+        let output = DisaggregatedData {
+            digital_samples: vec![],
+            analog_samples: vec![vec![0i16; 10]],
         };
         let result = apply_calibration(&output, &cal, &[99], 12_500_000, PRO_ADC_MIN, PRO_ADC_MAX);
         assert!(result.is_err());
@@ -337,9 +337,9 @@ mod tests {
     #[test]
     fn calibrate_mismatched_indices_length() {
         let cal = load_reference_cal();
-        let output = DisaggregatorOutput {
-            digital: vec![],
-            analog: vec![vec![0i16; 10], vec![0i16; 10]],
+        let output = DisaggregatedData {
+            digital_samples: vec![],
+            analog_samples: vec![vec![0i16; 10], vec![0i16; 10]],
         };
         // 1 index for 2 channels = error
         let result = apply_calibration(&output, &cal, &[0], 12_500_000, PRO_ADC_MIN, PRO_ADC_MAX);
@@ -350,9 +350,9 @@ mod tests {
     fn calibrate_voltage_range_reasonable() {
         let cal = load_reference_cal();
 
-        let output = DisaggregatorOutput {
-            digital: vec![],
-            analog: vec![vec![2047i16; 1000]],
+        let output = DisaggregatedData {
+            digital_samples: vec![],
+            analog_samples: vec![vec![2047i16; 1000]],
         };
 
         let result = apply_calibration(&output, &cal, &[0], 12_500_000, PRO_ADC_MIN, PRO_ADC_MAX)

@@ -17,7 +17,6 @@ pub mod calibrate;
 pub mod calibration;
 pub mod capture;
 pub mod device_manager;
-pub mod disaggregator;
 pub mod eeprom;
 pub mod ep1;
 pub mod error;

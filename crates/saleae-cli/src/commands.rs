@@ -701,23 +701,21 @@ pub fn full_init(
         result.throughput_kbps(),
     );
 
-    // Compute matching disaggregator settings from the same capture config.
+    // Compute matching disaggregator from the same capture config.
     println!();
     println!("Decoding captured data...");
 
-    use saleae_driver::disaggregator::Disaggregator;
-
-    let settings = capture_config.disaggregator_settings();
+    let disagg = capture_config.disaggregator()?;
+    let cycle_size = disagg.cycle_bytes();
 
     println!(
-        "  Cycle size: {} bytes (digital={}, analog={})",
-        settings.full_cycle_size(),
-        settings.digital_group_bytes(),
-        settings.analog_group_bytes(),
+        "  Cycle size: {} bytes ({} digital ch, {} analog ch)",
+        cycle_size,
+        disagg.num_digital(),
+        disagg.num_analog(),
     );
 
     // Truncate to a whole number of cycles.
-    let cycle_size = settings.full_cycle_size();
     let usable_bytes = (total_bytes / cycle_size) * cycle_size;
     let num_cycles = usable_bytes / cycle_size;
     if usable_bytes < total_bytes {
@@ -728,13 +726,12 @@ pub fn full_init(
         );
     }
 
-    let disagg = Disaggregator::new(settings)?;
-    let output = disagg.process(&raw_data[..usable_bytes])?;
+    let output = disagg.process_chunk(&raw_data[..usable_bytes])?;
 
     // Print digital channel summary.
     println!();
-    println!("Digital channels ({} channels):", output.digital.len());
-    for (ch, data) in output.digital.iter().enumerate() {
+    println!("Digital channels ({} channels):", output.digital_samples.len());
+    for (ch, data) in output.digital_samples.iter().enumerate() {
         // Count ones and zeros across all bytes.
         let total_bits = data.len() * 8;
         let ones: u32 = data.iter().map(|b| b.count_ones()).sum();
@@ -757,9 +754,9 @@ pub fn full_init(
     println!();
     println!(
         "Analog channels ({} channels, raw ADC codes):",
-        output.analog.len()
+        output.analog_samples.len()
     );
-    for (ch, data) in output.analog.iter().enumerate() {
+    for (ch, data) in output.analog_samples.iter().enumerate() {
         if data.is_empty() {
             println!("  CH{ch}: no samples");
             continue;
@@ -780,7 +777,7 @@ pub fn full_init(
     }
 
     // Apply analog calibration if a .cal file is available.
-    if !output.analog.is_empty() {
+    if !output.analog_samples.is_empty() {
         match resolve_cal_file(cal_file, Some(device_id)) {
             Ok(cal_path) => {
                 println!("Loading calibration from {}", cal_path.display());
