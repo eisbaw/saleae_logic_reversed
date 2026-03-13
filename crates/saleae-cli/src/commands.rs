@@ -624,7 +624,7 @@ pub fn full_init(
                             Ok(cal) => {
                                 let analog_indices: Vec<u8> =
                                     capture_config.analog_channels.clone();
-                                match saleae_driver::calibrate::apply_calibration(
+                                match saleae_driver::cal_pipeline::apply_calibration(
                                     &output,
                                     &cal,
                                     &analog_indices,
@@ -1211,7 +1211,7 @@ pub fn capture_analog(
     let cal_result = match resolve_cal_file(cal_file, None) {
         Ok(path) => {
             println!("Loading calibration from {}", path.display());
-            saleae_driver::calibration::load_calibration_file(&path)
+            saleae_driver::cal_download::load_calibration_file(&path)
                 .with_context(|| format!("failed to load {}", path.display()))
         }
         Err(_) => {
@@ -1459,7 +1459,7 @@ fn find_and_load_calibration(dir: &std::path::Path) -> Result<saleae_proto::Cali
         let entry = entry?;
         let path = entry.path();
         if path.extension().is_some_and(|ext| ext == "cal") {
-            return saleae_driver::calibration::load_calibration_file(&path)
+            return saleae_driver::cal_download::load_calibration_file(&path)
                 .with_context(|| format!("failed to load {}", path.display()));
         }
     }

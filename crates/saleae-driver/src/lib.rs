@@ -24,8 +24,8 @@
 // TODO: CLI still reaches into these directly; ideally all access would go
 // through `facade` re-exports, but that requires further refactoring.
 pub mod adc;
-pub mod calibrate;
-pub mod calibration;
+pub mod cal_download;
+pub mod cal_pipeline;
 pub mod capture;
 pub mod device_manager;
 pub mod ep1;
