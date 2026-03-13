@@ -407,3 +407,14 @@ is terminal -- the device must be physically reconnected.
 - **DisaggregatorSettingsData format**: Resolved in TASK-0141. The
   disaggregator configuration is derived from sample rate, channel enables,
   and GPIF bus width. Implemented in `crates/saleae-proto/src/disaggregator.rs`.
+
+- **EP2 config_id assignment**: Resolved in TASK-0202. config_id is a
+  monotonically incrementing counter from `SetConfiguration()`. On MSO
+  FPGAs, written to SCOPE_CONFIG_ID registers (0x0044-0x0050). On
+  Spartan-6 (Logic Pro 8), no config_id registers exist; field is 0.
+  See `re/notes/config-id-semantics.md`.
+
+- **Start packet emission timing**: Resolved in TASK-0202. Start packets
+  (`is_start=1`) are emitted once per enabled channel at capture start.
+  A second start packet resets per-channel state. The host logs a warning
+  on config_id mismatch but does not drop the packet.

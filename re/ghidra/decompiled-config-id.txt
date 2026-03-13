@@ -1,0 +1,2770 @@
+// Decompilation output for config_id investigation
+// Ghidra addresses = ELF VA + 0x100000
+
+=== FUN_02e64230 @ 02e64230 (queried: 0x2e64264, size: 785) ===
+
+
+void FUN_02e64230(long param_1,undefined8 param_2,undefined8 param_3)
+
+{
+  long *plVar1;
+  ushort local_66;
+  undefined4 local_64;
+  char *local_60;
+  ushort *puStack_58;
+  char *local_50;
+  ushort local_46;
+  undefined4 local_44;
+  undefined8 local_40;
+  undefined8 local_38;
+  
+  local_60 = "/workspace/monorepo/graph-io/devices/mso_device/src/mso_device/component/mso_fpga.cpp"
+  ;
+  puStack_58._0_4_ = 0x240;
+  local_50 = "SetConfigurationIds";
+  local_40 = param_2;
+  local_38 = param_3;
+  FUN_02e68a20(DAT_030b0168,1,"Setting scope configuration IDs: {} {} {} {}",0x2c,&local_40,
+               (long)&local_40 + 4,0x49001c,0x240,"SetConfigurationIds",&local_38,
+               (long)&local_38 + 4);
+  local_66 = 0x44;
+  local_64 = (undefined4)local_40;
+  local_60 = "/workspace/monorepo/graph-io/devices/mso_device/src/mso_device/component/mso_fpga.cpp"
+  ;
+  puStack_58 = (ushort *)CONCAT44(puStack_58._4_4_,0x422);
+  local_50 = "WriteRegister";
+  FUN_02e69000(DAT_030b0168,1,"FPGA WriteRegister 0x{:04x} = 0x{:08x} ({})",0x2b,&local_66,&local_64
+               ,0x49001c,0x422,"WriteRegister",&local_64);
+  local_46 = local_66 << 8 | local_66 >> 8;
+  local_44 = local_64;
+  local_60 = (char *)0x6;
+  plVar1 = *(long **)(param_1 + 0x80);
+  if (plVar1 != (long *)0x0) {
+    puStack_58 = &local_46;
+    (**(code **)(*plVar1 + 0x30))(plVar1,&local_60);
+    local_66 = 0x48;
+    local_64 = local_40._4_4_;
+    local_60 = 
+    "/workspace/monorepo/graph-io/devices/mso_device/src/mso_device/component/mso_fpga.cpp";
+    puStack_58 = (ushort *)CONCAT44(puStack_58._4_4_,0x422);
+    local_50 = "WriteRegister";
+    FUN_02e69000(DAT_030b0168,1,"FPGA WriteRegister 0x{:04x} = 0x{:08x} ({})",0x2b,&local_66,
+                 &local_64,0x49001c,0x422,"WriteRegister",&local_64);
+    local_46 = local_66 << 8 | local_66 >> 8;
+    local_44 = local_64;
+    local_60 = (char *)0x6;
+    plVar1 = *(long **)(param_1 + 0x80);
+    if (plVar1 != (long *)0x0) {
+      puStack_58 = &local_46;
+      (**(code **)(*plVar1 + 0x30))(plVar1,&local_60);
+      local_66 = 0x4c;
+      local_64 = (undefined4)local_38;
+      local_60 = 
+      "/workspace/monorepo/graph-io/devices/mso_device/src/mso_device/component/mso_fpga.cpp";
+      puStack_58 = (ushort *)CONCAT44(puStack_58._4_4_,0x422);
+      local_50 = "WriteRegister";
+      FUN_02e69000(DAT_030b0168,1,"FPGA WriteRegister 0x{:04x} = 0x{:08x} ({})",0x2b,&local_66,
+                   &local_64,0x49001c,0x422,"WriteRegister",&local_64);
+      local_46 = local_66 << 8 | local_66 >> 8;
+      local_44 = local_64;
+      local_60 = (char *)0x6;
+      plVar1 = *(long **)(param_1 + 0x80);
+      if (plVar1 != (long *)0x0) {
+        puStack_58 = &local_46;
+        (**(code **)(*plVar1 + 0x30))(plVar1,&local_60);
+        local_66 = 0x50;
+        local_64 = local_38._4_4_;
+        local_60 = 
+        "/workspace/monorepo/graph-io/devices/mso_device/src/mso_device/component/mso_fpga.cpp";
+        puStack_58 = (ushort *)CONCAT44(puStack_58._4_4_,0x422);
+        local_50 = "WriteRegister";
+        FUN_02e69000(DAT_030b0168,1,"FPGA WriteRegister 0x{:04x} = 0x{:08x} ({})",0x2b,&local_66,
+                     &local_64,0x49001c,0x422,"WriteRegister",&local_64);
+        local_46 = local_66 << 8 | local_66 >> 8;
+        local_44 = local_64;
+        local_60 = (char *)0x6;
+        plVar1 = *(long **)(param_1 + 0x80);
+        if (plVar1 != (long *)0x0) {
+          puStack_58 = &local_46;
+          (**(code **)(*plVar1 + 0x30))(plVar1,&local_60);
+          return;
+        }
+      }
+    }
+  }
+  local_60 = (char *)0x6;
+  local_64 = local_44;
+  puStack_58 = &local_46;
+                    /* WARNING: Subroutine does not return */
+  FUN_01b292f0();
+}
+
+
+
+=== FUN_02e477d0 @ 02e477d0 (queried: 0x2e47a0c, size: 607) ===
+
+
+int FUN_02e477d0(long param_1,undefined8 param_2)
+
+{
+  long lVar1;
+  undefined8 *puVar2;
+  undefined8 *puVar3;
+  int iVar4;
+  byte bVar5;
+  char in_stack_00000008;
+  char in_stack_00000038;
+  char in_stack_00000060;
+  char in_stack_00000090;
+  char in_stack_000000b8;
+  char in_stack_000000e8;
+  char in_stack_00000110;
+  char in_stack_00000140;
+  undefined4 local_4d8;
+  undefined4 uStack_4d4;
+  undefined4 uStack_4d0;
+  undefined4 uStack_4cc;
+  char *local_4c8;
+  double local_320;
+  long local_318;
+  char *local_310;
+  undefined8 local_308;
+  undefined8 local_300;
+  size_t sStack_2f8;
+  char *local_2f0;
+  undefined4 uStack_2e8;
+  undefined4 uStack_2e4;
+  char *local_2e0;
+  undefined1 local_138 [272];
+  
+  bVar5 = 0;
+  local_310 = "SetConfiguration";
+  local_308 = 0x10;
+  local_318 = std::chrono::steady_clock::now();
+  if (((((in_stack_00000008 == '\0') && (in_stack_00000038 == '\0')) ||
+       (0 < *(long *)(param_1 + 0xa0))) &&
+      ((((in_stack_00000060 == '\0' && (in_stack_00000090 == '\0')) ||
+        (1 < *(long *)(param_1 + 0xa0))) &&
+       (((in_stack_000000b8 == '\0' && (in_stack_000000e8 == '\0')) ||
+        (2 < *(long *)(param_1 + 0xa0))))))) &&
+     (((in_stack_00000110 == '\0' && (in_stack_00000140 == '\0')) || (3 < *(long *)(param_1 + 0xa0))
+      ))) {
+    puVar2 = (undefined8 *)&stack0x00000008;
+    puVar3 = (undefined8 *)&local_4d8;
+                    /* try { // try from 02e47890 to 02e478ad has its CatchHandler @ 02e47a3b */
+    for (lVar1 = 0x37; lVar1 != 0; lVar1 = lVar1 + -1) {
+      *puVar3 = *puVar2;
+      puVar2 = puVar2 + (ulong)bVar5 * -2 + 1;
+      puVar3 = puVar3 + (ulong)bVar5 * -2 + 1;
+    }
+    FUN_02e47b00(&local_2f0,param_1);
+                    /* try { // try from 02e478b5 to 02e478bc has its CatchHandler @ 02e47a39 */
+    std::mutex::lock((mutex *)(param_1 + 0x150));
+    iVar4 = *(int *)(param_1 + 0x1f0) + 1;
+    *(int *)(param_1 + 0x1f0) = iVar4;
+    *(undefined8 *)(param_1 + 0x1f8) = param_2;
+    memcpy((void *)(param_1 + 0x200),&local_2f0,0x1b8);
+    memcpy((void *)(param_1 + 0x3b8),local_138,0x109);
+    std::mutex::unlock((mutex *)(param_1 + 0x150));
+                    /* try { // try from 02e4791a to 02e47921 has its CatchHandler @ 02e47a37 */
+    FUN_02ddee90(param_1 + 0x3258);
+    lVar1 = std::chrono::steady_clock::now();
+    if (1000000 < lVar1 - local_318) {
+      local_320 = (double)(lVar1 - local_318) / DAT_0044d7a0;
+      local_2f0 = "/workspace/monorepo/graph-io/core/saleae_base/include/profile.h";
+      uStack_2e8 = 0x1c;
+      local_2e0 = "~TimedScope";
+                    /* try { // try from 02e4798c to 02e479c2 has its CatchHandler @ 02e47a2f */
+      local_4c8 = "~TimedScope";
+      local_4d8 = 0x488d49;
+      uStack_4d4 = 0;
+      uStack_4d0 = 0x1c;
+      uStack_4cc = uStack_2e4;
+      FUN_02e3e1b0(DAT_030b0118,2,"{} finished, took {:.3f} ms",0x1b,&local_310,&local_320);
+    }
+    return iVar4;
+  }
+  local_300 = 0;
+  local_4c8 = (char *)strlen((char *)0x0);
+                    /* try { // try from 02e479f1 to 02e47a2e has its CatchHandler @ 02e47a3d */
+  uStack_4d0 = (undefined4)local_300;
+  uStack_4cc = local_300._4_4_;
+  local_4d8 = 0x368;
+  sStack_2f8 = (size_t)local_4c8;
+                    /* WARNING: Subroutine does not return */
+  FUN_02eca300("( !ch.mAnalogSettings.mEnabled && !ch.mDigitalSettings.mEnabled ) || mDeviceConstants.mAnalogChannelCount > i"
+               ,0x6d,
+               "MsoOscilloscopeInstrument::ConfigurationId Saleae::MsoOscilloscopeInstrument::SetConfiguration(Saleae::OscilloscopeConfiguration, uint64_t)"
+               ,0x8b,
+               "/workspace/monorepo/graph-io/devices/mso_device/src/mso_device/oscilloscope_instrument.cpp"
+               ,0x5a);
+}
+
+
+
+=== FUN_02e51710 @ 02e51710 (queried: 0x2e51710, size: 3659) ===
+
+
+/* WARNING: Globals starting with '_' overlap smaller symbols at the same address */
+
+void FUN_02e51710(long param_1,undefined8 param_2,long *param_3)
+
+{
+  __shared_weak_count *p_Var1;
+  mutex *this;
+  long *plVar2;
+  int iVar3;
+  __shared_weak_count _Var4;
+  char cVar5;
+  byte bVar6;
+  ulong uVar7;
+  __shared_weak_count *p_Var8;
+  void *pvVar9;
+  undefined *puVar10;
+  ulong uVar11;
+  undefined8 *puVar12;
+  long lVar13;
+  long lVar14;
+  long lVar15;
+  char *pcVar16;
+  undefined4 extraout_XMM0_Da;
+  undefined4 extraout_XMM0_Db;
+  uint local_434;
+  __shared_weak_count *local_430;
+  undefined4 uStack_428;
+  undefined4 uStack_424;
+  char *local_420;
+  undefined8 local_418;
+  undefined8 uStack_410;
+  undefined8 local_408;
+  undefined4 local_3f8;
+  undefined4 uStack_3f4;
+  uint uStack_3f0;
+  undefined4 uStack_3ec;
+  long local_3e8;
+  ulong uStack_3e0;
+  undefined4 local_3d8;
+  undefined1 local_3c8 [8];
+  __shared_weak_count *local_3c0;
+  __shared_weak_count *local_3b8;
+  undefined8 uStack_3b0;
+  char *local_3a8;
+  undefined8 local_348;
+  undefined8 uStack_340;
+  undefined8 local_338;
+  uint uStack_330;
+  uint uStack_32c;
+  uint uStack_328;
+  uint uStack_324;
+  uint uStack_320;
+  undefined4 uStack_31c;
+  undefined1 uStack_318;
+  uint uStack_317;
+  uint uStack_313;
+  undefined1 local_308 [40];
+  uint local_2e0;
+  char local_2d8;
+  long local_2d0;
+  undefined1 local_2c8 [16];
+  undefined1 *local_2b8;
+  undefined4 local_2b0;
+  undefined4 uStack_2ac;
+  undefined4 uStack_2a8;
+  undefined4 uStack_2a4;
+  undefined1 local_2a0 [64];
+  long local_260;
+  undefined8 local_258;
+  undefined4 uStack_250;
+  undefined4 uStack_24c;
+  undefined8 local_248;
+  uint auStack_240 [7];
+  undefined4 uStack_224;
+  undefined4 uStack_223;
+  uint auStack_21f [3];
+  undefined1 local_210 [40];
+  uint local_1e8;
+  char local_1e0;
+  undefined4 local_1d8;
+  undefined4 uStack_1d4;
+  undefined8 uStack_1d0;
+  uint local_1c8;
+  undefined4 uStack_1c4;
+  undefined4 uStack_1c0;
+  undefined4 uStack_1bc;
+  undefined4 uStack_1b8;
+  undefined4 uStack_1b4;
+  undefined4 uStack_1b0;
+  undefined4 uStack_1ac;
+  undefined1 uStack_1a8;
+  undefined4 uStack_1a7;
+  uint uStack_1a3;
+  undefined1 local_198 [40];
+  uint local_170;
+  char local_168;
+  undefined4 local_160;
+  undefined4 uStack_15c;
+  undefined8 uStack_158;
+  uint local_150;
+  undefined4 uStack_14c;
+  undefined4 uStack_148;
+  undefined4 uStack_144;
+  undefined4 uStack_140;
+  undefined4 uStack_13c;
+  undefined4 uStack_138;
+  undefined4 uStack_134;
+  undefined1 uStack_130;
+  undefined4 uStack_12f;
+  uint uStack_12b;
+  undefined1 local_120 [40];
+  uint local_f8;
+  char local_f0;
+  undefined4 local_e8;
+  undefined4 uStack_e4;
+  undefined8 uStack_e0;
+  uint local_d8;
+  undefined4 uStack_d4;
+  undefined4 uStack_d0;
+  undefined4 uStack_cc;
+  undefined4 uStack_c8;
+  undefined4 uStack_c4;
+  undefined4 uStack_c0;
+  undefined4 uStack_bc;
+  undefined1 uStack_b8;
+  undefined4 uStack_b7;
+  uint uStack_b3;
+  undefined1 local_a8 [40];
+  uint local_80;
+  char local_78;
+  undefined *local_68 [4];
+  undefined **local_48;
+  
+  cVar5 = FUN_02e32dd0();
+  lVar15 = DAT_030b0128;
+  if (cVar5 != '\0') {
+    return;
+  }
+  if ((int)((ulong)param_2 >> 0x20) != 1) {
+    local_348 = 
+    "/workspace/monorepo/graph-io/devices/mso_device/src/mso_device/logic_analyzer_instrument.cpp";
+    uStack_340._0_4_ = 0xae;
+    local_338 = "HandleData";
+    iVar3 = *(int *)(DAT_030b0128 + 0x38);
+    cVar5 = FUN_02edfa80(DAT_030b0128 + 0x70);
+    if ((3 < iVar3) && (cVar5 == '\0')) {
+      return;
+    }
+    if ((*(byte *)(lVar15 + 8) & 1) == 0) {
+      lVar14 = lVar15 + 9;
+      uVar11 = (ulong)(*(byte *)(lVar15 + 8) >> 1);
+    }
+    else {
+      lVar14 = *(long *)(lVar15 + 0x18);
+      uVar11 = *(ulong *)(lVar15 + 0x10);
+    }
+    FUN_02ee25b0(&local_258,lVar14,uVar11,3,"Received unexpected data type",0x1d,
+                 (undefined4)local_348,(undefined4)uStack_340,local_338);
+    FUN_02ee4120(lVar15,&local_258,iVar3 < 4,cVar5);
+    return;
+  }
+  uStack_3f0 = uStack_3f0 & 0xffffff00;
+  uStack_3e0 = uStack_3e0 & 0xffffffffffffff00;
+  local_2b0 = _DAT_0044b990;
+  uStack_2ac = _UNK_0044b994;
+  uStack_2a8 = _UNK_0044b998;
+  uStack_2a4 = _UNK_0044b99c;
+  local_3b8 = (__shared_weak_count *)*param_3;
+  local_430 = local_3b8 + param_3[1] * 0x20;
+                    /* try { // try from 02e51799 to 02e517b4 has its CatchHandler @ 02e526df */
+  local_2b8 = local_2a0;
+  FUN_01cc4530(&local_2b8,&local_3b8,&local_430,0);
+  local_260 = param_3[0xb];
+                    /* try { // try from 02e517c1 to 02e517d5 has its CatchHandler @ 02e52674 */
+  FUN_02e41c00(&local_258,&local_2b8);
+  local_3d8 = auStack_240[2];
+  uStack_3e0 = CONCAT44(auStack_240[1],auStack_240[0]);
+  local_3e8 = local_248;
+  local_3f8 = (undefined4)local_258;
+  uStack_3f4 = local_258._4_4_;
+  uStack_3f0 = uStack_250;
+  uStack_3ec = uStack_24c;
+  lVar15 = CONCAT44(uStack_2ac,local_2b0);
+  _Var4 = SUB41(auStack_240[0],0);
+  if (lVar15 != 0) {
+    puVar12 = (undefined8 *)(local_2b8 + 0x18);
+    do {
+      lVar15 = lVar15 + -1;
+      p_Var8 = (__shared_weak_count *)*puVar12;
+      if (p_Var8 != (__shared_weak_count *)0x0) {
+        LOCK();
+        p_Var1 = p_Var8 + 8;
+        lVar14 = *(long *)p_Var1;
+        *(long *)p_Var1 = *(long *)p_Var1 + -1;
+        UNLOCK();
+        if (lVar14 == 0) {
+          (**(code **)(*(long *)p_Var8 + 0x10))(p_Var8);
+          std::__shared_weak_count::__release_weak(p_Var8);
+        }
+      }
+      puVar12 = puVar12 + 4;
+      _Var4 = uStack_3e0._0_1_;
+    } while (lVar15 != 0);
+  }
+  uStack_3e0._0_1_ = _Var4;
+  if ((CONCAT44(uStack_2a4,uStack_2a8) != 0) && (local_2b8 != local_2a0)) {
+    operator_delete(local_2b8);
+  }
+  if (3 < (ulong)local_3f8._3_1_) {
+                    /* WARNING: Subroutine does not return */
+    FUN_01b22930("array::at");
+  }
+  puVar10 = &DAT_0044ca70;
+  if (*(int *)(param_1 + 0x8c) == 0) {
+    puVar10 = &DAT_0044c150;
+  }
+  local_3f8 = CONCAT13(puVar10[(ulong)local_3f8._3_1_ * 4],(undefined3)local_3f8);
+  local_258 = 0x3ff3333333333333;
+  uStack_250 = (uint)uStack_250._2_2_ << 0x10;
+  local_248 = 0;
+  auStack_240[0] = auStack_240[0] & 0xffffff00;
+  auStack_21f[1] = auStack_21f[1] & 0xffffff;
+  local_210[0] = 0;
+  local_1e0 = '\0';
+  local_1d8 = (uint)local_1d8._2_2_ << 0x10;
+  uStack_1d0 = 0;
+  local_1c8 = local_1c8 & 0xffffff00;
+  uStack_1a3 = uStack_1a3 & 0xffffff;
+  local_198[0] = 0;
+  local_168 = '\0';
+  local_160 = (uint)local_160._2_2_ << 0x10;
+  uStack_158 = 0;
+  local_150 = local_150 & 0xffffff00;
+  uStack_12b = uStack_12b & 0xffffff;
+  local_120[0] = 0;
+  local_f0 = '\0';
+  local_e8 = (uint)local_e8._2_2_ << 0x10;
+  uStack_e0 = 0;
+  local_d8 = local_d8 & 0xffffff00;
+  uStack_b3 = uStack_b3 & 0xffffff;
+  local_a8[0] = 0;
+  local_78 = '\0';
+  this = (mutex *)(param_1 + 0x90);
+                    /* try { // try from 02e51a13 to 02e51a1a has its CatchHandler @ 02e5266a */
+  std::mutex::lock(this);
+  lVar15 = DAT_030b0128;
+  if (*(char *)(param_1 + 0x4c0) == '\0') {
+    local_3b8 = (__shared_weak_count *)0x4e69b4;
+    uStack_3b0 = (__shared_weak_count *)CONCAT44(uStack_3b0._4_4_,0xce);
+    local_3a8 = "HandleData";
+    iVar3 = *(int *)(DAT_030b0128 + 0x38);
+                    /* try { // try from 02e51e2a to 02e51e2e has its CatchHandler @ 02e52963 */
+    bVar6 = FUN_02edfa80(DAT_030b0128 + 0x70);
+    if ((5 < iVar3 & (bVar6 ^ 1)) == 0) {
+      if ((*(byte *)(lVar15 + 8) & 1) == 0) {
+        lVar14 = lVar15 + 9;
+        uVar11 = (ulong)(*(byte *)(lVar15 + 8) >> 1);
+      }
+      else {
+        lVar14 = *(long *)(lVar15 + 0x18);
+        uVar11 = *(ulong *)(lVar15 + 0x10);
+      }
+                    /* try { // try from 02e5234d to 02e523a1 has its CatchHandler @ 02e52963 */
+      FUN_02ee25b0(&local_348,lVar14,uVar11,5,"Received digital data before device was configured",
+                   0x32,local_3b8._0_4_,(undefined4)uStack_3b0,local_3a8);
+      FUN_02ee4120(lVar15,&local_348,iVar3 < 6,bVar6);
+    }
+    std::mutex::unlock(this);
+    goto LAB_02e52435;
+  }
+  local_258 = *(undefined8 *)(param_1 + 0x2d8);
+  uStack_250 = *(int *)(param_1 + 0x2e0);
+  uStack_24c = *(undefined4 *)(param_1 + 0x2e4);
+  local_248 = *(undefined8 *)(param_1 + 0x2e8);
+  auStack_240[0] = *(uint *)(param_1 + 0x2f0);
+  auStack_240[1] = *(undefined4 *)(param_1 + 0x2f4);
+  auStack_240[2] = *(undefined4 *)(param_1 + 0x2f8);
+  auStack_240[3] = *(undefined4 *)(param_1 + 0x2fc);
+  auStack_240[4] = *(undefined4 *)(param_1 + 0x300);
+  auStack_240[5] = *(undefined4 *)(param_1 + 0x304);
+  auStack_240[6] = *(undefined4 *)(param_1 + 0x308);
+  uStack_224 = *(undefined4 *)(param_1 + 0x30c);
+  auStack_21f[0] = *(uint *)(param_1 + 0x311);
+  auStack_21f[1] = *(uint *)(param_1 + 0x315);
+  uStack_223._3_1_ = (undefined1)((uint)*(undefined4 *)(param_1 + 0x30d) >> 0x18);
+                    /* try { // try from 02e51a80 to 02e51b7c has its CatchHandler @ 02e52963 */
+  FUN_01cba9d0(local_210,param_1 + 800);
+  local_1d8 = *(int *)(param_1 + 0x358);
+  uStack_1d4 = *(undefined4 *)(param_1 + 0x35c);
+  uStack_1d0 = *(undefined8 *)(param_1 + 0x360);
+  local_1c8 = *(uint *)(param_1 + 0x368);
+  uStack_1c4 = *(undefined4 *)(param_1 + 0x36c);
+  uStack_1c0 = *(undefined4 *)(param_1 + 0x370);
+  uStack_1bc = *(undefined4 *)(param_1 + 0x374);
+  uStack_1b8 = *(undefined4 *)(param_1 + 0x378);
+  uStack_1b4 = *(undefined4 *)(param_1 + 0x37c);
+  uStack_1b0 = *(undefined4 *)(param_1 + 0x380);
+  uStack_1ac = *(undefined4 *)(param_1 + 900);
+  uStack_1a7 = *(undefined4 *)(param_1 + 0x389);
+  uStack_1a3 = *(uint *)(param_1 + 0x38d);
+  uStack_1a8 = (undefined1)((uint)*(undefined4 *)(param_1 + 0x385) >> 0x18);
+  FUN_01cba9d0(local_198,param_1 + 0x398);
+  local_160 = *(int *)(param_1 + 0x3d0);
+  uStack_15c = *(undefined4 *)(param_1 + 0x3d4);
+  uStack_158 = *(undefined8 *)(param_1 + 0x3d8);
+  local_150 = *(uint *)(param_1 + 0x3e0);
+  uStack_14c = *(undefined4 *)(param_1 + 0x3e4);
+  uStack_148 = *(undefined4 *)(param_1 + 1000);
+  uStack_144 = *(undefined4 *)(param_1 + 0x3ec);
+  uStack_140 = *(undefined4 *)(param_1 + 0x3f0);
+  uStack_13c = *(undefined4 *)(param_1 + 0x3f4);
+  uStack_138 = *(undefined4 *)(param_1 + 0x3f8);
+  uStack_134 = *(undefined4 *)(param_1 + 0x3fc);
+  uStack_12f = *(undefined4 *)(param_1 + 0x401);
+  uStack_12b = *(uint *)(param_1 + 0x405);
+  uStack_130 = (undefined1)((uint)*(undefined4 *)(param_1 + 0x3fd) >> 0x18);
+  FUN_01cba9d0(local_120,param_1 + 0x410);
+  local_e8 = *(int *)(param_1 + 0x448);
+  uStack_e4 = *(undefined4 *)(param_1 + 0x44c);
+  uStack_e0 = *(undefined8 *)(param_1 + 0x450);
+  local_d8 = *(uint *)(param_1 + 0x458);
+  uStack_d4 = *(undefined4 *)(param_1 + 0x45c);
+  uStack_d0 = *(undefined4 *)(param_1 + 0x460);
+  uStack_cc = *(undefined4 *)(param_1 + 0x464);
+  uStack_c8 = *(undefined4 *)(param_1 + 0x468);
+  uStack_c4 = *(undefined4 *)(param_1 + 0x46c);
+  uStack_c0 = *(undefined4 *)(param_1 + 0x470);
+  uStack_bc = *(undefined4 *)(param_1 + 0x474);
+  uStack_b7 = *(undefined4 *)(param_1 + 0x479);
+  uStack_b3 = *(uint *)(param_1 + 0x47d);
+  uStack_b8 = (undefined1)((uint)*(undefined4 *)(param_1 + 0x475) >> 0x18);
+  FUN_01cba9d0(local_a8,param_1 + 0x488);
+  uVar11 = *(ulong *)(param_1 + 0x2d0);
+  std::mutex::unlock(this);
+  local_348 = (char *)((ulong)local_348 & 0xffffffffffff0000);
+  uStack_340 = 0;
+  local_338 = (char *)((ulong)local_338 & 0xffffffffffffff00);
+  uStack_313 = uStack_313 & 0xffffff;
+  local_308[0] = 0;
+  local_2d8 = '\0';
+  local_418 = 0;
+                    /* try { // try from 02e51bd9 to 02e51bdd has its CatchHandler @ 02e5261e */
+  FUN_02eb1a40(&uStack_410);
+  lVar15 = DAT_030b0128;
+  uVar7 = (ulong)local_3f8._3_1_;
+  if (3 < uVar7) {
+                    /* try { // try from 02e52543 to 02e5255a has its CatchHandler @ 02e52922 */
+                    /* WARNING: Subroutine does not return */
+    FUN_01b22930("array::at");
+  }
+  lVar13 = uVar7 * 0x30;
+  lVar14 = param_1 + lVar13;
+  puVar12 = (undefined8 *)(lVar14 + 0x4d8);
+  if (uStack_3e0._0_1_ == (__shared_weak_count)0x0) {
+    if (*(char *)(param_1 + 0x500 + lVar13) != '\0') goto LAB_02e52013;
+    local_430 = (__shared_weak_count *)0x4e69b4;
+    uStack_428 = 0xfd;
+    local_420 = "HandleData";
+    iVar3 = *(int *)(DAT_030b0128 + 0x38);
+                    /* try { // try from 02e51efe to 02e51f02 has its CatchHandler @ 02e52922 */
+    bVar6 = FUN_02edfa80(DAT_030b0128 + 0x70);
+    if ((5 < iVar3 & (bVar6 ^ 1)) == 0) {
+      if ((*(byte *)(lVar15 + 8) & 1) == 0) {
+        lVar14 = lVar15 + 9;
+        uVar11 = (ulong)(*(byte *)(lVar15 + 8) >> 1);
+      }
+      else {
+        lVar14 = *(long *)(lVar15 + 0x18);
+        uVar11 = *(ulong *)(lVar15 + 0x10);
+      }
+                    /* try { // try from 02e523b6 to 02e52404 has its CatchHandler @ 02e52922 */
+      FUN_02ee25b0(&local_3b8,lVar14,uVar11,5,"Expected start packet",0x15,local_430._0_4_,
+                   uStack_428,local_420);
+      FUN_02ee4120(lVar15,&local_3b8,iVar3 < 6,bVar6);
+    }
+  }
+  else {
+    local_434 = uStack_3f0;
+    if (uVar11 != uStack_3f0) {
+      local_3b8 = (__shared_weak_count *)0x4e69b4;
+      uStack_3b0 = (__shared_weak_count *)CONCAT44(uStack_3b0._4_4_,0xde);
+      local_3a8 = "HandleData";
+                    /* try { // try from 02e51c56 to 02e51c89 has its CatchHandler @ 02e5255b */
+      FUN_02e56f50(DAT_030b0128,3,
+                   "Received start digital data for old configuration id: current={}, received={}",
+                   0x4d,param_1 + 0x2d0,&local_434,0x4e69b4,0xde,"HandleData");
+    }
+    lVar15 = local_3e8;
+    local_2d0 = local_3e8;
+                    /* try { // try from 02e51ca2 to 02e51cde has its CatchHandler @ 02e52665 */
+    local_3b8 = (__shared_weak_count *)FUN_02e10d70(*(undefined8 *)(param_1 + 0x80));
+    uStack_3b0._0_4_ = extraout_XMM0_Da;
+    uStack_3b0._4_4_ = extraout_XMM0_Db;
+    FUN_02eb1af0((int)DAT_0044deb0,&local_430,lVar15 + 0xa2,&local_3b8);
+    pcVar16 = (char *)(param_1 + lVar13 + 0x500);
+    if (*(char *)(param_1 + 0x500 + lVar13) == '\0') {
+      uStack_3b0 = (__shared_weak_count *)CONCAT44(uStack_424,uStack_428);
+LAB_02e51f44:
+      *puVar12 = 0x41d2a05f20000000;
+      plVar2 = (long *)(param_1 + 0x4e0 + lVar13);
+      *plVar2 = (long)local_430;
+      plVar2[1] = (long)uStack_3b0;
+      *(uint *)(param_1 + 0x4f0 + lVar13) = local_434;
+      *(undefined8 *)(param_1 + 0x4f8 + lVar13) = 0;
+      *pcVar16 = '\x01';
+    }
+    else {
+                    /* try { // try from 02e51d01 to 02e51d95 has its CatchHandler @ 02e52614 */
+      FUN_02eb1c30(local_3c8,*(undefined8 *)(param_1 + 0x4f8 + lVar13),puVar12);
+      cVar5 = FUN_02eb1e10(&local_430,local_3c8);
+      if (cVar5 != '\0') {
+        local_3b8 = (__shared_weak_count *)0x4e69b4;
+        uStack_3b0 = (__shared_weak_count *)CONCAT44(uStack_3b0._4_4_,0xef);
+        local_3a8 = "HandleData";
+        FUN_02e4c3b0(DAT_030b0128,5,
+                     "Jumped back in time - New start time starts before old end time. {} < {}",0x48
+                     ,&local_430,local_3c8,0x4e69b4,0xef,"HandleData");
+      }
+      uStack_3b0 = (__shared_weak_count *)CONCAT44(uStack_424,uStack_428);
+      if (*pcVar16 == '\0') goto LAB_02e51f44;
+      *puVar12 = 0x41d2a05f20000000;
+      plVar2 = (long *)(param_1 + 0x4e0 + lVar13);
+      *plVar2 = (long)local_430;
+      plVar2[1] = (long)uStack_3b0;
+      *(uint *)(param_1 + 0x4f0 + lVar13) = local_434;
+      *(undefined8 *)(param_1 + lVar13 + 0x4f8) = 0;
+    }
+    local_3b8 = (__shared_weak_count *)0x4e69b4;
+    uStack_3b0 = (__shared_weak_count *)CONCAT44(uStack_3b0._4_4_,0xf9);
+    local_3a8 = "HandleData";
+                    /* try { // try from 02e51fb4 to 02e52006 has its CatchHandler @ 02e52619 */
+    FUN_02e57230(DAT_030b0128,2,"Got start packet: ch={} timestamp={}, time={}, config_id={}",0x3b,
+                 (long)&local_3f8 + 3,&local_2d0,0x4e69b4,0xf9,"HandleData",param_1 + lVar13 + 0x4e0
+                 ,&local_434);
+    uVar7 = (ulong)local_3f8._3_1_;
+    if (3 < local_3f8._3_1_) {
+                    /* WARNING: Subroutine does not return */
+      FUN_01b22930("array::at");
+    }
+LAB_02e52013:
+    lVar15 = uVar7 * 0x78;
+    uStack_330 = auStack_240[uVar7 * 0x1e + 2];
+    uStack_32c = auStack_240[uVar7 * 0x1e + 3];
+    uStack_328 = auStack_240[uVar7 * 0x1e + 4];
+    uStack_324 = auStack_240[uVar7 * 0x1e + 5];
+    uStack_320 = auStack_240[uVar7 * 0x1e + 6];
+    uStack_31c = *(undefined4 *)((long)&stack0xfffffffffffffddc + lVar15);
+    uStack_317 = auStack_21f[uVar7 * 0x1e];
+    uStack_313 = auStack_21f[uVar7 * 0x1e + 1];
+    uStack_318 = (undefined1)(auStack_21f[uVar7 * 0x1e + -1] >> 0x18);
+    local_338 = (char *)CONCAT44(auStack_240[uVar7 * 0x1e + 1],auStack_240[uVar7 * 0x1e]);
+    local_348 = (char *)CONCAT44((&uStack_24c)[uVar7 * 0x1e],(&uStack_250)[uVar7 * 0x1e]);
+    uStack_340 = CONCAT44(*(undefined4 *)((long)&local_248 + lVar15 + 4),
+                          *(undefined4 *)(&local_248 + uVar7 * 0xf));
+                    /* try { // try from 02e52065 to 02e5206c has its CatchHandler @ 02e52922 */
+    FUN_01cba9d0(local_308,local_210 + lVar15);
+    local_408 = *(undefined8 *)(lVar14 + 0x4e8);
+    local_418 = *puVar12;
+    uStack_410 = *(undefined8 *)(lVar14 + 0x4e0);
+    if ((char)local_348 == '\0') {
+      local_3b8 = (__shared_weak_count *)0x4e69b4;
+      uStack_3b0 = (__shared_weak_count *)CONCAT44(uStack_3b0._4_4_,0x106);
+      local_3a8 = "HandleData";
+                    /* try { // try from 02e521ba to 02e521ed has its CatchHandler @ 02e52922 */
+      FUN_01d2b120(DAT_030b0128,3,"Received digital data for disabled channel {}",0x2d,
+                   (long)&local_3f8 + 3);
+    }
+    else {
+                    /* try { // try from 02e5208d to 02e52096 has its CatchHandler @ 02e5260f */
+      p_Var8 = (__shared_weak_count *)operator_new(0x58);
+      *(undefined8 *)(p_Var8 + 8) = 0;
+      *(undefined8 *)(p_Var8 + 0x10) = 0;
+      *(undefined ***)p_Var8 = &PTR_FUN_02fe46a8;
+      *(undefined8 *)(p_Var8 + 0x18) = 0;
+      *(undefined8 *)(p_Var8 + 0x20) = 0;
+      *(undefined8 *)(p_Var8 + 0x28) = 0;
+      *(undefined8 *)(p_Var8 + 0x30) = 0;
+      *(undefined8 *)(p_Var8 + 0x38) = 0;
+      *(undefined8 *)(p_Var8 + 0x40) = 0;
+      *(undefined8 *)(p_Var8 + 0x48) = 0;
+      *(undefined8 *)(p_Var8 + 0x50) = 0;
+                    /* try { // try from 02e520c0 to 02e520c4 has its CatchHandler @ 02e525f5 */
+      FUN_02eb1a40(p_Var8 + 0x38);
+      local_3b8 = p_Var8 + 0x18;
+      *(undefined8 *)(p_Var8 + 0x48) = 0;
+      *(undefined8 *)(p_Var8 + 0x50) = 0;
+      *(ulong *)(p_Var8 + 0x20) = (ulong)local_3f8._3_1_;
+      *(ulong *)(p_Var8 + 0x18) = (ulong)*(uint *)(param_1 + 0x4f0 + lVar13);
+      p_Var8[0x28] = uStack_3e0._0_1_;
+      *(undefined8 *)(p_Var8 + 0x30) = local_418;
+      *(undefined8 *)(p_Var8 + 0x38) = uStack_410;
+      *(undefined8 *)(p_Var8 + 0x40) = local_408;
+      uVar11 = (ulong)(ushort)local_3f8;
+      uStack_3b0 = p_Var8;
+                    /* try { // try from 02e52119 to 02e52138 has its CatchHandler @ 02e52623 */
+      pvVar9 = operator_new__(uVar11);
+      FUN_02edc4e0(param_3,pvVar9,local_3d8,uVar11);
+      local_68[0] = &DAT_02fe49f0;
+                    /* try { // try from 02e5215d to 02e5216c has its CatchHandler @ 02e525ce */
+      local_48 = local_68;
+      FUN_02eaaaa0(&local_430,pvVar9,(ushort)local_3f8,local_68);
+      if (local_68 == local_48) {
+        (**(code **)(*local_48 + 0x20))();
+      }
+      else if (local_48 != (undefined **)0x0) {
+        (**(code **)(*local_48 + 0x28))();
+      }
+      FUN_02eaab60(local_2c8,&local_430);
+                    /* try { // try from 02e52213 to 02e5222d has its CatchHandler @ 02e525b0 */
+      FUN_02ead8b0(local_3c8,local_2c8,local_3f8._2_1_,1,1);
+      FUN_02eaab30(local_2c8);
+      lVar15 = FUN_02ead9e0(local_3c8);
+      plVar2 = (long *)(param_1 + 0x4f8 + lVar13);
+      *plVar2 = *plVar2 + lVar15;
+                    /* try { // try from 02e52250 to 02e52259 has its CatchHandler @ 02e52579 */
+      pvVar9 = operator_new(0x40);
+                    /* try { // try from 02e5225d to 02e5226c has its CatchHandler @ 02e5256a */
+      FUN_01d87060(pvVar9,local_3c8);
+      *(long *)(local_3b8 + 0x30) = (long)pvVar9 + 0x18;
+      p_Var8 = *(__shared_weak_count **)(local_3b8 + 0x38);
+      *(void **)(local_3b8 + 0x38) = pvVar9;
+      if (p_Var8 != (__shared_weak_count *)0x0) {
+        LOCK();
+        p_Var1 = p_Var8 + 8;
+        lVar15 = *(long *)p_Var1;
+        *(long *)p_Var1 = *(long *)p_Var1 + -1;
+        UNLOCK();
+        if (lVar15 == 0) {
+          (**(code **)(*(long *)p_Var8 + 0x10))(p_Var8);
+          std::__shared_weak_count::__release_weak(p_Var8);
+        }
+      }
+                    /* try { // try from 02e522b5 to 02e522ce has its CatchHandler @ 02e52568 */
+      FUN_02e57540(*(undefined8 *)(param_1 + 0x70),&local_348,&local_418,&local_3b8);
+      if (local_3c0 != (__shared_weak_count *)0x0) {
+        LOCK();
+        p_Var8 = local_3c0 + 8;
+        lVar15 = *(long *)p_Var8;
+        *(long *)p_Var8 = *(long *)p_Var8 + -1;
+        UNLOCK();
+        if (lVar15 == 0) {
+          (**(code **)(*(long *)local_3c0 + 0x10))(local_3c0);
+          std::__shared_weak_count::__release_weak(local_3c0);
+        }
+      }
+      FUN_02eaab30(&local_430);
+      p_Var8 = uStack_3b0;
+      if (uStack_3b0 != (__shared_weak_count *)0x0) {
+        LOCK();
+        p_Var1 = uStack_3b0 + 8;
+        lVar15 = *(long *)p_Var1;
+        *(long *)p_Var1 = *(long *)p_Var1 + -1;
+        UNLOCK();
+        if (lVar15 == 0) {
+          (**(code **)(*(long *)uStack_3b0 + 0x10))(uStack_3b0);
+          std::__shared_weak_count::__release_weak(p_Var8);
+        }
+      }
+    }
+  }
+  if ((local_2d8 != '\0') && ((ulong)local_2e0 != 0xffffffff)) {
+                    /* try { // try from 02e52427 to 02e52434 has its CatchHandler @ 02e52560 */
+    (*(code *)(&PTR_FUN_02fe4800)[local_2e0])(&local_3b8,local_308);
+  }
+LAB_02e52435:
+  if (local_78 != '\0') {
+    if ((ulong)local_80 != 0xffffffff) {
+                    /* try { // try from 02e52457 to 02e52531 has its CatchHandler @ 02e5291a */
+      (*(code *)(&PTR_FUN_02fe4800)[local_80])(&local_348,local_a8);
+    }
+    local_80 = 0xffffffff;
+  }
+  if (local_f0 != '\0') {
+    if ((ulong)local_f8 != 0xffffffff) {
+      (*(code *)(&PTR_FUN_02fe4800)[local_f8])(&local_348,local_120);
+    }
+    local_f8 = 0xffffffff;
+  }
+  if (local_168 != '\0') {
+    if ((ulong)local_170 != 0xffffffff) {
+      (*(code *)(&PTR_FUN_02fe4800)[local_170])(&local_348,local_198);
+    }
+    local_170 = 0xffffffff;
+  }
+  if ((local_1e0 != '\0') && ((ulong)local_1e8 != 0xffffffff)) {
+    (*(code *)(&PTR_FUN_02fe4800)[local_1e8])(&local_348,local_210);
+  }
+  return;
+}
+
+
+
+=== FUN_02e4a280 @ 02e4a280 (queried: 0x2e4a280, size: 4594) ===
+
+
+void FUN_02e4a280(long param_1,undefined8 param_2)
+
+{
+  mutex *this;
+  uint uVar1;
+  byte bVar2;
+  char cVar3;
+  short sVar4;
+  int iVar5;
+  uint uVar6;
+  char *pcVar7;
+  undefined8 uVar8;
+  ulong uVar9;
+  long lVar10;
+  double *pdVar11;
+  short sVar12;
+  long lVar13;
+  ulong uVar14;
+  short sVar15;
+  ulong uVar16;
+  undefined *puVar17;
+  ulong uVar18;
+  long lVar19;
+  uint uVar20;
+  ulong uVar21;
+  ulong uVar22;
+  double *pdVar23;
+  long lVar24;
+  long lVar25;
+  long *plVar26;
+  undefined8 *puVar27;
+  bool bVar28;
+  double dVar29;
+  uint local_3f4;
+  long local_3f0;
+  undefined1 local_3e4 [2];
+  bool bStack_3e2;
+  bool bStack_3e1;
+  undefined8 local_3e0;
+  undefined8 local_3d8;
+  size_t sStack_3d0;
+  char *local_3c8;
+  undefined8 local_3c0;
+  undefined4 local_3b8;
+  undefined8 local_3b0;
+  undefined4 local_3a4;
+  undefined *local_3a0;
+  long *local_398;
+  undefined8 local_390;
+  undefined4 uStack_388;
+  char *local_380;
+  long local_378;
+  undefined8 local_370;
+  long local_368;
+  undefined8 local_360;
+  long local_318;
+  undefined8 local_310;
+  double local_308 [91];
+  
+  plVar26 = *(long **)(param_1 + 8);
+  local_310 = *(undefined8 *)(param_1 + 0x18);
+  local_3f0 = plVar26[2];
+  local_3b0 = param_2;
+  local_318 = param_1;
+                    /* try { // try from 02e4a2b2 to 02e4a678 has its CatchHandler @ 02e4b475 */
+  local_3e0 = FUN_02e39a60(param_2);
+  pcVar7 = (char *)*plVar26;
+  if (((((*pcVar7 != '\0') || (pcVar7[1] != '\0')) || (pcVar7[2] != '\0')) ||
+      ((pcVar7[3] != '\0' || (pcVar7[5] != '\0')))) || (pcVar7[4] != '\0')) {
+    FUN_02e65280(local_3e0);
+  }
+  FUN_02e650e0();
+  _local_3e4 = 0;
+  pcVar7 = (char *)*plVar26;
+  if ((pcVar7[6] == '\0') && (*pcVar7 == '\0')) {
+    if ((((pcVar7[7] != '\0') || (pcVar7[1] != '\0')) || (pcVar7[8] != '\0')) ||
+       (((pcVar7[2] != '\0' || (pcVar7[9] != '\0')) || (pcVar7[3] != '\0')))) {
+      local_3e4[0] = *(char *)(plVar26[1] + 0x40) != '\0';
+      if (pcVar7[7] == '\0') goto LAB_02e4a326;
+      goto LAB_02e4a386;
+    }
+    local_3a4 = 0;
+    cVar3 = *(char *)(local_3f0 + 0x1e8);
+  }
+  else {
+    local_3e4[0] = false;
+    if (pcVar7[7] == '\0') {
+LAB_02e4a326:
+      if (pcVar7[1] != '\0') goto LAB_02e4a386;
+      local_3e4[1] = *(char *)(plVar26[1] + 0x98) != '\0';
+      if (pcVar7[8] == '\0') goto LAB_02e4a392;
+LAB_02e4a398:
+      _local_3e4 = (uint3)(ushort)local_3e4;
+      if (pcVar7[9] != '\0') goto LAB_02e4a3d0;
+LAB_02e4a3a4:
+      if (pcVar7[3] != '\0') goto LAB_02e4a3d0;
+      bVar28 = *(char *)(plVar26[1] + 0x148) != '\0';
+    }
+    else {
+LAB_02e4a386:
+      local_3e4[1] = 0;
+      if (pcVar7[8] != '\0') goto LAB_02e4a398;
+LAB_02e4a392:
+      if (pcVar7[2] != '\0') goto LAB_02e4a398;
+      _local_3e4 = CONCAT12(*(char *)(plVar26[1] + 0xf0) != '\0',local_3e4);
+      if (pcVar7[9] == '\0') goto LAB_02e4a3a4;
+LAB_02e4a3d0:
+      bVar28 = false;
+    }
+    _local_3e4 = CONCAT13(bVar28,_local_3e4);
+    local_3a4 = _local_3e4;
+    FUN_02e66590();
+    cVar3 = *(char *)(local_3f0 + 0x1e8);
+  }
+  if (cVar3 != '\0') {
+    FUN_02e63f80(local_3e0,1,0);
+  }
+  pcVar7 = (char *)*plVar26;
+  if (pcVar7[5] != '\0') {
+    lVar10 = plVar26[1];
+    uStack_388 = 0;
+    uVar6 = *(uint *)(lVar10 + 0x170);
+    uVar1 = *(uint *)(lVar10 + 0x174);
+    if (((1 < uVar1) || (uVar20 = 1, uVar6 != 0)) &&
+       (((3 < uVar1 || (uVar20 = 2, 1 < uVar6)) &&
+        ((uVar20 = 4, 5 < uVar1 && (uVar20 = 6, 7 < uVar1)))))) {
+      uVar20 = 0x27ac4;
+      if (uVar1 >> 3 < 0x27ac4) {
+        uVar20 = uVar1 >> 3;
+      }
+      uVar20 = uVar20 << 3;
+    }
+    if (uVar1 != uVar20) {
+      local_3d8 = (char *)0x0;
+      sStack_3d0 = strlen((char *)0x0);
+                    /* WARNING: Subroutine does not return */
+      FUN_02eca300("new_sampling_config.mDownsampleRatio == Detail::DownsampleRatioFloor( new_sampling_config.mDownsampleMode, new_sampling_config.mDownsampleRatio )"
+                   ,0x91,
+                   "auto Saleae::MsoOscilloscopeInstrument::ProcessPendingConfiguration()::(anonymous class)::operator()(Saleae::MsoDeviceInterface &) const"
+                   ,0x88,
+                   "/workspace/monorepo/graph-io/devices/mso_device/src/mso_device/oscilloscope_instrument.cpp"
+                   ,0x5a,0x520,(undefined4)local_3d8,sStack_3d0);
+    }
+    local_390 = (char *)CONCAT44(uVar1,(undefined4)local_390);
+    local_380 = (char *)-*(long *)(lVar10 + 0x178);
+    local_378 = *(long *)(lVar10 + 0x180);
+    if (uVar6 == 2) {
+      local_3d8 = (char *)0x0;
+      sStack_3d0 = strlen((char *)0x0);
+                    /* WARNING: Subroutine does not return */
+      FUN_02eca300("new_sampling_config.mDownsampleMode != DownsampleMode::MinMax",0x3d,
+                   "auto Saleae::MsoOscilloscopeInstrument::ProcessPendingConfiguration()::(anonymous class)::operator()(Saleae::MsoDeviceInterface &) const"
+                   ,0x88,
+                   "/workspace/monorepo/graph-io/devices/mso_device/src/mso_device/oscilloscope_instrument.cpp"
+                   ,0x5a,0x526,(undefined4)local_3d8,sStack_3d0);
+    }
+    uStack_388 = uVar6;
+    local_390 = (char *)CONCAT71(local_390._1_7_,uVar1 < 1000);
+    if (uVar1 < 1000) {
+      lVar10 = -*(long *)(lVar10 + 0x178);
+      lVar13 = lVar10 + 0xff;
+      uVar21 = lVar13 + local_378;
+      uVar9 = lVar10 + 0x1fe + local_378;
+      if (-1 < (long)uVar21) {
+        uVar9 = uVar21;
+      }
+      local_378 = ((uVar9 & 0xffffffffffffff00) - lVar13) + 0xff;
+      local_3d8 = (char *)0x1900;
+      uVar6 = 0x100;
+    }
+    else {
+      local_3d8 = (char *)0x1ff0;
+      uVar6 = 2;
+    }
+    dVar29 = (*(double *)(local_3f0 + 0xb8) / (double)uVar1) / DAT_0044da50;
+    local_308[0] = (double)(long)dVar29;
+    if (DAT_0044e070 <= dVar29) {
+      local_308[0] = -(double)(long)(dVar29 - DAT_0044e070);
+    }
+    pdVar11 = (double *)&local_3d8;
+    if ((ulong)*(double *)(local_3f0 + 0xd0) < local_3d8) {
+      pdVar11 = (double *)(local_3f0 + 0xd0);
+    }
+    pdVar23 = local_308;
+    if ((ulong)*pdVar11 < (ulong)local_308[0]) {
+      pdVar23 = pdVar11;
+    }
+    if ((ulong)local_308[0] < (ulong)*(double *)(local_3f0 + 200)) {
+      pdVar23 = (double *)(local_3f0 + 200);
+    }
+    dVar29 = *pdVar23;
+    if ((ulong)dVar29 >> 0x20 == 0) {
+      iVar5 = (int)(((ulong)dVar29 & 0xffffffff) / (ulong)uVar6);
+    }
+    else {
+      iVar5 = (int)((ulong)dVar29 / (ulong)uVar6);
+    }
+    if (iVar5 == 0) {
+      iVar5 = 1;
+    }
+    local_370 = CONCAT44(local_370._4_4_,iVar5 * uVar6);
+    local_3d8 = 
+    "/workspace/monorepo/graph-io/devices/mso_device/src/mso_device/oscilloscope_instrument.cpp";
+    sStack_3d0 = CONCAT44(sStack_3d0._4_4_,0x536);
+    local_3c8 = "operator()";
+    FUN_02e4f880(DAT_030b0198,1,
+                 "Setting sampling config, downsample={}, pre={}, post={}, stats={}, chunk_size={}",
+                 0x50,(long)&local_390 + 4,&local_380,0x509bee,0x536,"operator()",&local_378,
+                 &local_390,&local_370);
+    FUN_02e64640(local_3e0,&local_390);
+    pcVar7 = (char *)*plVar26;
+  }
+  local_398 = plVar26;
+  if ((((*pcVar7 != '\0') || (pcVar7[1] != '\0')) || (pcVar7[2] != '\0')) || (pcVar7[3] != '\0')) {
+    local_3c0 = 0x101010101010101;
+    local_3b8 = 0x1010101;
+    local_3f4 = 0;
+    if (0 < *(long *)(local_3f0 + 0xa0)) {
+      uVar9 = 0;
+      do {
+        plVar26 = local_398;
+        if (3 < (uint)uVar9) {
+                    /* WARNING: Subroutine does not return */
+          FUN_01b22930("array::at");
+        }
+        lVar10 = local_398[1];
+        lVar25 = uVar9 * 0x40;
+        lVar13 = uVar9 * 3;
+        *(undefined1 *)((long)&local_3c0 + lVar13 + 1) = *(undefined1 *)(lVar10 + 0x1c8 + lVar25);
+        *(undefined1 *)((long)&local_3c0 + lVar13 + 2) = *(undefined1 *)(lVar10 + 0x1c9 + lVar25);
+        *(bool *)((long)&local_3c0 + lVar13) = *(int *)(lVar10 + 0x14 + uVar9 * 0x58) == 1;
+        lVar13 = *plVar26;
+        if (*(char *)(lVar13 + 0x16 + uVar9) != '\0') {
+          sVar15 = *(short *)(lVar10 + 0x1da + lVar25);
+          local_3d8 = (char *)CONCAT26(CONCAT11(local_3d8._7_1_,
+                                                *(undefined1 *)(lVar10 + 0x1d8 + lVar25)),
+                                       CONCAT42(0x40001,sVar15));
+          local_3a0 = &DAT_004f5234;
+          if (sVar15 == 0) {
+            local_3a0 = &DAT_004d1d39;
+          }
+          local_390 = 
+          "/workspace/monorepo/graph-io/devices/mso_device/src/mso_device/oscilloscope_instrument.cpp"
+          ;
+          uStack_388 = 0x556;
+          local_380 = "operator()";
+                    /* try { // try from 02e4a7ac to 02e4a926 has its CatchHandler @ 02e4b477 */
+          FUN_02e4fb90(DAT_030b0198,1,"Updating VGA ch {} gain={} attn={}",0x22,&local_3f4,
+                       &local_3a0,0x509bee,0x556,"operator()",(long)&local_3d8 + 6);
+          uVar8 = FUN_02e39a10(local_3b0,(undefined1)local_3f4);
+          FUN_02e6a1b0(uVar8,&local_3d8);
+          uVar9 = (ulong)local_3f4;
+          if (3 < local_3f4) {
+                    /* WARNING: Subroutine does not return */
+            FUN_01b22930("array::at");
+          }
+          lVar13 = *local_398;
+        }
+        if (*(char *)(lVar13 + 0x1a + (uVar9 & 0xffffffff)) != '\0') {
+          puVar27 = (undefined8 *)(lVar10 + lVar25 + 0x1e0);
+          local_390 = 
+          "/workspace/monorepo/graph-io/devices/mso_device/src/mso_device/oscilloscope_instrument.cpp"
+          ;
+          uStack_388 = 0x55d;
+          local_380 = "operator()";
+          FUN_02e4fe80(DAT_030b0198,1,"Updating DAC ch {} = {}",0x17,&local_3f4,puVar27,0x509bee,
+                       0x55d,"operator()");
+          uVar8 = FUN_02e39a40(local_3b0);
+          FUN_02e6a5f0((int)*puVar27,uVar8,(undefined1)local_3f4);
+        }
+        local_390 = 
+        "/workspace/monorepo/graph-io/devices/mso_device/src/mso_device/oscilloscope_instrument.cpp"
+        ;
+        uStack_388 = 0x562;
+        local_380 = "operator()";
+        FUN_02e50160(DAT_030b0198,1,"Ch {} transform, gain={}, offset={}",0x23,&local_3f4,
+                     lVar10 + lVar25 + 0x1f8,0x509bee,0x562,"operator()",lVar10 + 0x200 + lVar25);
+        uVar9 = (long)(int)local_3f4 + 1;
+        local_3f4 = (uint)uVar9;
+      } while ((long)uVar9 < *(long *)(local_3f0 + 0xa0));
+    }
+    lVar10 = DAT_030b0198;
+    local_3d8 = 
+    "/workspace/monorepo/graph-io/devices/mso_device/src/mso_device/oscilloscope_instrument.cpp";
+    sStack_3d0 = CONCAT44(sStack_3d0._4_4_,0x565);
+    local_3c8 = "operator()";
+    iVar5 = *(int *)(DAT_030b0198 + 0x38);
+                    /* try { // try from 02e4a978 to 02e4aa16 has its CatchHandler @ 02e4b475 */
+    bVar2 = FUN_02edfa80(DAT_030b0198 + 0x70);
+    plVar26 = local_398;
+    if ((1 < iVar5 & (bVar2 ^ 1)) == 0) {
+      if ((*(byte *)(lVar10 + 8) & 1) == 0) {
+        lVar13 = lVar10 + 9;
+        uVar9 = (ulong)(*(byte *)(lVar10 + 8) >> 1);
+      }
+      else {
+        lVar13 = *(long *)(lVar10 + 0x18);
+        uVar9 = *(ulong *)(lVar10 + 0x10);
+      }
+      FUN_02ee25b0(&local_390,lVar13,uVar9,1,"Updating AFE",0xc,(undefined4)local_3d8,
+                   (undefined4)sStack_3d0,local_3c8);
+      FUN_02ee4120(lVar10,&local_390,iVar5 < 2,bVar2);
+    }
+    FUN_02e39e80(local_3b0,local_3c0,local_3b8,0);
+    lVar10 = std::chrono::steady_clock::now();
+    pcVar7 = (char *)*plVar26;
+    if (*pcVar7 == '\0') {
+      uVar9 = 0;
+    }
+    else {
+      uVar22 = 0;
+      uVar21 = 500;
+      if (pcVar7[10] == '\0') {
+        uVar21 = uVar22;
+      }
+      uVar9 = 500;
+      if (pcVar7[0xe] == '\0') {
+        uVar9 = uVar22;
+      }
+      uVar18 = 500000;
+      if (pcVar7[0x12] == '\0') {
+        uVar18 = uVar22;
+      }
+      uVar16 = 0x5dc;
+      if (pcVar7[0x16] == '\0') {
+        uVar16 = uVar22;
+      }
+      uVar14 = 10000;
+      if (pcVar7[0x1a] == '\0') {
+        uVar14 = uVar22;
+      }
+      if (uVar9 <= uVar21) {
+        uVar9 = uVar21;
+      }
+      if (uVar9 < uVar18) {
+        uVar9 = uVar18;
+      }
+      if (uVar9 < uVar16) {
+        uVar9 = uVar16;
+      }
+      if (uVar9 < uVar14) {
+        uVar9 = uVar14;
+      }
+    }
+    lVar13 = uVar9 * 1000 + lVar10;
+    if (lVar13 <= *(long *)(local_3f0 + 0x1c8)) {
+      lVar13 = *(long *)(local_3f0 + 0x1c8);
+    }
+    *(long *)(local_3f0 + 0x1c8) = lVar13;
+    if (pcVar7[1] == '\0') {
+      uVar9 = 0;
+    }
+    else {
+      uVar22 = 0;
+      uVar21 = 500;
+      if (pcVar7[0xb] == '\0') {
+        uVar21 = uVar22;
+      }
+      uVar9 = 500;
+      if (pcVar7[0xf] == '\0') {
+        uVar9 = uVar22;
+      }
+      uVar18 = 500000;
+      if (pcVar7[0x13] == '\0') {
+        uVar18 = uVar22;
+      }
+      uVar16 = 0x5dc;
+      if (pcVar7[0x17] == '\0') {
+        uVar16 = uVar22;
+      }
+      uVar14 = 10000;
+      if (pcVar7[0x1b] == '\0') {
+        uVar14 = uVar22;
+      }
+      if (uVar9 <= uVar21) {
+        uVar9 = uVar21;
+      }
+      if (uVar9 < uVar18) {
+        uVar9 = uVar18;
+      }
+      if (uVar9 < uVar16) {
+        uVar9 = uVar16;
+      }
+      if (uVar9 < uVar14) {
+        uVar9 = uVar14;
+      }
+    }
+    lVar13 = uVar9 * 1000 + lVar10;
+    if (lVar13 <= *(long *)(local_3f0 + 0x1d0)) {
+      lVar13 = *(long *)(local_3f0 + 0x1d0);
+    }
+    *(long *)(local_3f0 + 0x1d0) = lVar13;
+    if (pcVar7[2] == '\0') {
+      lVar13 = 0;
+    }
+    else {
+      uVar21 = 0;
+      uVar9 = 500;
+      if (pcVar7[0xc] == '\0') {
+        uVar9 = uVar21;
+      }
+      uVar22 = 500;
+      if (pcVar7[0x10] == '\0') {
+        uVar22 = uVar21;
+      }
+      uVar18 = 500000;
+      if (pcVar7[0x14] == '\0') {
+        uVar18 = uVar21;
+      }
+      uVar16 = 0x5dc;
+      if (pcVar7[0x18] == '\0') {
+        uVar16 = uVar21;
+      }
+      uVar14 = 10000;
+      if (pcVar7[0x1c] == '\0') {
+        uVar14 = uVar21;
+      }
+      if (uVar22 <= uVar9) {
+        uVar22 = uVar9;
+      }
+      if (uVar22 < uVar18) {
+        uVar22 = uVar18;
+      }
+      if (uVar22 < uVar16) {
+        uVar22 = uVar16;
+      }
+      if (uVar22 < uVar14) {
+        uVar22 = uVar14;
+      }
+      lVar13 = uVar22 * 1000;
+    }
+    lVar25 = lVar13 + lVar10;
+    if (lVar13 + lVar10 <= *(long *)(local_3f0 + 0x1d8)) {
+      lVar25 = *(long *)(local_3f0 + 0x1d8);
+    }
+    *(long *)(local_3f0 + 0x1d8) = lVar25;
+    if (pcVar7[3] == '\0') {
+      lVar13 = 0;
+    }
+    else {
+      uVar21 = 0;
+      uVar9 = 500;
+      if (pcVar7[0xd] == '\0') {
+        uVar9 = uVar21;
+      }
+      uVar22 = 500;
+      if (pcVar7[0x11] == '\0') {
+        uVar22 = uVar21;
+      }
+      uVar18 = 500000;
+      if (pcVar7[0x15] == '\0') {
+        uVar18 = uVar21;
+      }
+      uVar16 = 0x5dc;
+      if (pcVar7[0x19] == '\0') {
+        uVar16 = uVar21;
+      }
+      uVar14 = 10000;
+      if (pcVar7[0x1d] == '\0') {
+        uVar14 = uVar21;
+      }
+      if (uVar22 <= uVar9) {
+        uVar22 = uVar9;
+      }
+      if (uVar22 < uVar18) {
+        uVar22 = uVar18;
+      }
+      if (uVar22 < uVar16) {
+        uVar22 = uVar16;
+      }
+      if (uVar22 < uVar14) {
+        uVar22 = uVar14;
+      }
+      lVar13 = uVar22 * 1000;
+    }
+    lVar25 = lVar13 + lVar10;
+    if (lVar13 + lVar10 <= *(long *)(local_3f0 + 0x1e0)) {
+      lVar25 = *(long *)(local_3f0 + 0x1e0);
+    }
+    *(long *)(local_3f0 + 0x1e0) = lVar25;
+  }
+  local_3c0 = local_3c0 & 0xffffffff00000000;
+  if (0 < *(long *)(local_3f0 + 0xa0)) {
+    uVar21 = 0;
+    uVar9 = 0;
+    do {
+      if (3 < (uint)uVar9) {
+                    /* WARNING: Subroutine does not return */
+        FUN_01b22930("array::at");
+      }
+      lVar10 = plVar26[1];
+      lVar13 = uVar21 * 0x58;
+      cVar3 = *(char *)(lVar10 + 0x40 + lVar13);
+      local_3e4[uVar21] = cVar3;
+      pcVar7 = (char *)*plVar26;
+      if (pcVar7[uVar21 + 6] != '\0') {
+        if (((*pcVar7 != '\0') || (pcVar7[1] != '\0')) ||
+           ((pcVar7[2] != '\0' || (pcVar7[3] != '\0')))) {
+          lVar25 = std::chrono::steady_clock::now();
+          lVar25 = (long)(((double)(*(long *)(local_3f0 + 0x1c8 + uVar21 * 8) - lVar25) /
+                          DAT_0044d7f8) * *(double *)(local_3f0 + 0xb8));
+          if (lVar25 < 0) {
+            lVar25 = 0;
+          }
+                    /* try { // try from 02e4ad2e to 02e4ade4 has its CatchHandler @ 02e4b473 */
+          FUN_02e668e0(local_3e0,lVar25);
+          cVar3 = *(char *)(lVar10 + lVar13 + 0x40);
+        }
+        if (cVar3 != '\0') {
+          local_3a0._0_4_ =
+               (int)(long)(*(double *)(lVar10 + 0x60 + lVar13) * *(double *)(local_3f0 + 0xc0));
+          uVar6 = FUN_02e62440();
+          local_3a0 = (undefined *)CONCAT44(local_3a0._4_4_,uVar6);
+          FUN_02e66870(local_3e0,local_3c0 & 0xff,
+                       (ulong)uVar6 << 0x20 | (ulong)*(byte *)(lVar10 + 0x58 + lVar13));
+          if (3 < (local_3c0 & 0xffffffff)) {
+                    /* WARNING: Subroutine does not return */
+            FUN_01b22930("array::at");
+          }
+          lVar25 = local_398[1];
+          lVar19 = (local_3c0 & 0xffffffff) * 0x40;
+          local_3b0 = *(undefined8 *)(lVar10 + 0x50 + lVar13);
+          FUN_02dfe360((int)*(undefined8 *)(lVar25 + 0x1f8 + lVar19),
+                       *(undefined8 *)(lVar25 + 0x200 + lVar19));
+          dVar29 = (double)FUN_02dfe390();
+          local_308[0] = round(dVar29);
+          local_390 = (char *)(double)(int)*(short *)(local_3f0 + 0x98);
+          pdVar11 = local_308;
+          if ((double)(int)*(short *)(local_3f0 + 0x9a) < local_308[0]) {
+            pdVar11 = (double *)&local_3d8;
+          }
+          if (local_308[0] < (double)(int)*(short *)(local_3f0 + 0x98)) {
+            pdVar11 = (double *)&local_390;
+          }
+          local_3d8 = (char *)(double)(int)*(short *)(local_3f0 + 0x9a);
+          local_3f4 = CONCAT22(local_3f4._2_2_,(short)(int)*pdVar11);
+          local_3b0 = *(undefined8 *)(lVar10 + 0x48 + lVar13);
+                    /* try { // try from 02e4ae68 to 02e4ae77 has its CatchHandler @ 02e4b473 */
+          FUN_02dfe360((int)*(undefined8 *)(lVar19 + lVar25 + 0x1f8),
+                       *(undefined8 *)(lVar19 + lVar25 + 0x200));
+          dVar29 = (double)FUN_02dfe390();
+          local_308[0] = round(dVar29);
+          local_390 = (char *)(double)(int)*(short *)(local_3f0 + 0x98);
+          dVar29 = (double)(int)*(short *)(local_3f0 + 0x9a);
+          pdVar11 = local_308;
+          if (dVar29 < local_308[0]) {
+            pdVar11 = (double *)&local_3d8;
+          }
+          if (local_308[0] < (double)(int)*(short *)(local_3f0 + 0x98)) {
+            pdVar11 = (double *)&local_390;
+          }
+          local_3d8 = (char *)dVar29;
+          local_3d8 = (char *)CONCAT62((int6)((ulong)dVar29 >> 0x10),(short)(int)*pdVar11);
+                    /* try { // try from 02e4aee7 to 02e4af70 has its CatchHandler @ 02e4b473 */
+          FUN_02e66a10(local_3e0,local_3c0 & 0xff,(int)(short)local_3f4,(int)(short)(int)*pdVar11);
+          local_390 = 
+          "/workspace/monorepo/graph-io/devices/mso_device/src/mso_device/oscilloscope_instrument.cpp"
+          ;
+          uStack_388 = 0x59c;
+          local_380 = "operator()";
+          FUN_02e50450(DAT_030b0198,1,"ch {} thresholds= {}, {}, pulse_width={}",0x28,&local_3c0,
+                       &local_3f4,0x509bee,0x59c,"operator()",&local_3d8,&local_3a0);
+        }
+      }
+      uVar21 = (long)(int)local_3c0 + 1;
+      local_3c0 = CONCAT44(local_3c0._4_4_,(int)uVar21);
+      uVar9 = uVar21 & 0xffffffff;
+      plVar26 = local_398;
+    } while ((long)uVar21 < *(long *)(local_3f0 + 0xa0));
+    local_3a4 = _local_3e4;
+  }
+                    /* try { // try from 02e4af87 to 02e4b210 has its CatchHandler @ 02e4b475 */
+  FUN_02e662c0(local_3e0,*(undefined4 *)plVar26[1]);
+  FUN_02e66590(local_3e0,local_3a4);
+  lVar13 = local_3f0;
+  lVar10 = plVar26[1];
+  if (*(char *)(lVar10 + 0x188) != '\0') {
+    local_390 = (char *)CONCAT71(local_390._1_7_,1);
+    uStack_388._0_3_ = CONCAT12(*(undefined1 *)(lVar10 + 0x189),(undefined2)uStack_388);
+    local_3c0 = 0;
+    lVar25 = *(long *)(local_3f0 + 0x1c8);
+    if (*(long *)(local_3f0 + 0x1c8) < *(long *)(local_3f0 + 0x1d0)) {
+      lVar25 = *(long *)(local_3f0 + 0x1d0);
+    }
+    if (lVar25 < *(long *)(local_3f0 + 0x1d8)) {
+      lVar25 = *(long *)(local_3f0 + 0x1d8);
+    }
+    if (lVar25 < *(long *)(local_3f0 + 0x1e0)) {
+      lVar25 = *(long *)(local_3f0 + 0x1e0);
+    }
+    lVar19 = std::chrono::steady_clock::now();
+    puVar17 = (undefined *)(lVar25 - lVar19);
+    if (puVar17 == (undefined *)0x0 || lVar25 < lVar19) {
+      uVar9 = 0;
+    }
+    else {
+      local_3c0 = (ulong)(((double)(long)puVar17 / DAT_0044d7f8) * *(double *)(lVar13 + 0xb8));
+      local_3d8 = 
+      "/workspace/monorepo/graph-io/devices/mso_device/src/mso_device/oscilloscope_instrument.cpp";
+      sStack_3d0 = CONCAT44(sStack_3d0._4_4_,0x5d2);
+      local_3c8 = "operator()";
+      local_3a0 = puVar17;
+      FUN_02e50760(DAT_030b0198,1,"AFE Settling Time: {} ns, {} samples",0x24,&local_3a0,&local_3c0,
+                   0x509bee,0x5d2,"operator()");
+      uVar9 = local_3c0;
+    }
+    lVar13 = plVar26[1];
+    lVar25 = *(long *)(lVar13 + 0x178);
+    lVar24 = lVar25 * (ulong)*(uint *)(lVar13 + 0x174);
+    lVar19 = -lVar24;
+    if (0 < lVar24) {
+      lVar19 = 0;
+    }
+    local_380 = (char *)(lVar19 + uVar9);
+    lVar19 = 0;
+    if (-1 < *(long *)(lVar13 + 0x180)) {
+      lVar19 = *(long *)(lVar13 + 0x180);
+    }
+    local_368 = (lVar19 + (lVar25 >> 0x3f & -lVar25)) * (ulong)*(uint *)(lVar13 + 0x174);
+    local_378 = *(long *)(lVar10 + 0x1b0);
+    if (*(long *)(lVar10 + 0x1b0) <= local_368) {
+      local_378 = local_368;
+    }
+    if (local_368 < *(long *)(lVar10 + 0x1c0)) {
+      local_368 = *(long *)(lVar10 + 0x1c0);
+    }
+    local_370 = *(undefined8 *)(lVar10 + 0x1a8);
+    local_360 = *(undefined8 *)(lVar10 + 0x1b8);
+    if (*(uint *)(lVar10 + 0x198) < 4) {
+      uStack_388 = CONCAT31(uStack_388._1_3_,(char)*(uint *)(lVar10 + 0x198));
+      uVar6 = *(uint *)(lVar10 + 0x18c);
+      if (uVar6 < 3) goto LAB_02e4b341;
+LAB_02e4b173:
+      bVar2 = *(byte *)(lVar10 + 0x189);
+    }
+    else {
+      uVar6 = *(uint *)(lVar10 + 0x18c);
+      if (2 < uVar6) goto LAB_02e4b173;
+LAB_02e4b341:
+      uStack_388._0_2_ = CONCAT11((char)uVar6 + '\x01',(undefined1)uStack_388);
+      bVar2 = *(byte *)(lVar10 + 0x189);
+    }
+    if (3 < (ulong)bVar2) {
+                    /* WARNING: Subroutine does not return */
+      FUN_01b22930("array::at");
+    }
+    lVar25 = (ulong)bVar2 * 0x40;
+    uVar8 = FUN_02e42610((int)*(undefined8 *)(lVar13 + 0x1f8 + lVar25),
+                         *(undefined8 *)(lVar13 + 0x200 + lVar25),local_3f0 + 0x98,lVar13 + 0x10);
+    sVar4 = (short)uVar8;
+    local_390._0_4_ = CONCAT22(sVar4,(undefined2)local_390);
+    sVar15 = (short)((ulong)uVar8 >> 0x10);
+    if (sVar15 < (short)(sVar4 + 1)) {
+      sVar15 = sVar4 + 1;
+    }
+    if (*(short *)(local_3f0 + 0x9a) <= sVar15) {
+      sVar15 = *(short *)(local_3f0 + 0x9a);
+    }
+    sVar12 = (short)((ulong)uVar8 >> 0x20);
+    if ((short)(sVar4 + -1) < sVar12) {
+      sVar12 = sVar4 + -1;
+    }
+    if (sVar12 <= *(short *)(local_3f0 + 0x98)) {
+      sVar12 = *(short *)(local_3f0 + 0x98);
+    }
+    local_390 = (char *)CONCAT26(sVar12,CONCAT24(sVar15,(undefined4)local_390));
+  }
+  this = (mutex *)(local_3f0 + 0x178);
+  std::mutex::lock(this);
+  memcpy(local_308,(void *)plVar26[1],0x2d8);
+  lVar25 = local_3f0;
+  memcpy((void *)((ulong)((uint)*(undefined8 *)(local_3f0 + 0x3248) & 0xf) * 0x2d8 + local_3f0 +
+                 0x4c8),local_308,0x2d8);
+  lVar13 = *(long *)(lVar25 + 0x3248);
+  *(long *)(lVar25 + 0x3248) = lVar13 + 1;
+  lVar13 = lVar13 + -0xf;
+  if (lVar13 < *(long *)(lVar25 + 0x3250)) {
+    lVar13 = *(long *)(lVar25 + 0x3250);
+  }
+  *(long *)(lVar25 + 0x3250) = lVar13;
+  std::mutex::unlock(this);
+                    /* try { // try from 02e4b29b to 02e4b472 has its CatchHandler @ 02e4b475 */
+  FUN_02e64230(local_3e0,CONCAT44(*(undefined4 *)plVar26[1],*(undefined4 *)plVar26[1]));
+  pcVar7 = local_3d8;
+  lVar13 = plVar26[1];
+  bVar28 = *(char *)(lVar13 + 0x10) == '\0';
+  if (((bVar28) && (bVar28 = *(char *)(lVar13 + 0x68) == '\0', bVar28)) &&
+     (bVar28 = *(char *)(lVar13 + 0xc0) == '\0', bVar28)) {
+    if (*(char *)(lVar13 + 0x118) == '\0') goto LAB_02e4b303;
+  }
+  else if (bVar28) goto LAB_02e4b303;
+  local_3d8._4_4_ = SUB84(pcVar7,4);
+  local_3d8._0_4_ =
+       CONCAT13(*(undefined1 *)(lVar13 + 0x118),
+                CONCAT12(*(undefined1 *)(lVar13 + 0xc0),
+                         CONCAT11(*(undefined1 *)(lVar13 + 0x68),*(undefined1 *)(lVar13 + 0x10))));
+  FUN_02e64550(local_3e0,&local_3d8);
+LAB_02e4b303:
+  if (*(char *)(lVar10 + 0x188) != '\0') {
+    FUN_02e654a0(local_3e0,&local_390);
+  }
+  return;
+}
+
+
+
+=== FUN_01ce63c0 @ 01ce63c0 (queried: 0x1ce63c0, size: 1456) ===
+
+
+undefined8 * FUN_01ce63c0(undefined8 *param_1,long param_2,long param_3)
+
+{
+  __shared_weak_count *p_Var1;
+  int iVar2;
+  undefined8 *puVar3;
+  __shared_weak_count *p_Var4;
+  char cVar5;
+  long lVar6;
+  long *plVar7;
+  ulong uVar8;
+  undefined8 *puVar9;
+  runtime_error *prVar10;
+  long lVar11;
+  undefined1 auVar12 [12];
+  undefined8 local_178;
+  undefined8 *local_170;
+  undefined8 local_168;
+  undefined4 uStack_160;
+  undefined4 uStack_15c;
+  char *local_158;
+  long local_150;
+  undefined8 local_148;
+  __shared_weak_count *p_Stack_140;
+  undefined8 local_138;
+  undefined8 uStack_130;
+  uint local_110;
+  undefined8 local_d8;
+  undefined4 local_d0;
+  undefined **local_c8;
+  long local_c0;
+  undefined ***local_a8;
+  undefined **local_98;
+  long local_90;
+  undefined ***local_78;
+  long local_68 [4];
+  long *local_48;
+  
+  local_170 = param_1;
+  local_150 = param_3;
+  if (*(char *)(param_2 + 0x431) == '\0') {
+    prVar10 = (runtime_error *)__cxa_allocate_exception(0x10);
+                    /* try { // try from 01ce68fb to 01ce6909 has its CatchHandler @ 01ce69a9 */
+    std::runtime_error::runtime_error(prVar10,"start capture: device is not currently acquired");
+    goto LAB_01ce6928;
+  }
+  lVar6 = FUN_02eddf70();
+  local_168 = 
+  "/workspace/monorepo/graph-io/nodes/logic_device_node/src/logic_device_node/logic_device_node.cpp"
+  ;
+  uStack_160 = 0x1c5;
+  local_158 = "HandleStartCapture";
+  iVar2 = *(int *)(lVar6 + 0x38);
+  cVar5 = FUN_02edfa80(lVar6 + 0x70);
+  if ((iVar2 < 3) || (cVar5 != '\0')) {
+    if ((*(byte *)(lVar6 + 8) & 1) == 0) {
+      lVar11 = lVar6 + 9;
+      uVar8 = (ulong)(*(byte *)(lVar6 + 8) >> 1);
+    }
+    else {
+      lVar11 = *(long *)(lVar6 + 0x18);
+      uVar8 = *(ulong *)(lVar6 + 0x10);
+    }
+    FUN_02ee25b0(&local_138,lVar11,uVar8,2,"start capture",0xd,(undefined4)local_168,uStack_160,
+                 local_158);
+    FUN_02ee4120(lVar6,&local_138,iVar2 < 3,cVar5);
+    lVar6 = *(long *)(param_2 + 0x140);
+    if (lVar6 != 0) goto LAB_01ce643c;
+LAB_01ce64d7:
+    plVar7 = (long *)0x0;
+  }
+  else {
+    lVar6 = *(long *)(param_2 + 0x140);
+    if (lVar6 == 0) goto LAB_01ce64d7;
+LAB_01ce643c:
+    plVar7 = (long *)__dynamic_cast(lVar6,&PTR_vtable_02fe5200,&PTR_vtable_02f49048,0);
+  }
+  FUN_02e90210(&local_138,plVar7);
+  if ((ulong)local_110 != 0xffffffff) {
+                    /* try { // try from 01ce64ff to 01ce650b has its CatchHandler @ 01ce69ee */
+    (*(code *)(&PTR_FUN_02f448c0)[local_110])(&local_168,&local_138);
+  }
+  if (local_110 != 1) {
+    prVar10 = (runtime_error *)__cxa_allocate_exception(0x10);
+                    /* try { // try from 01ce6919 to 01ce6927 has its CatchHandler @ 01ce69a7 */
+    std::runtime_error::runtime_error
+              (prVar10,"Cannot start capture while device is not in Ready state");
+LAB_01ce6928:
+                    /* WARNING: Subroutine does not return */
+    __cxa_throw(prVar10,PTR_typeinfo_02fe8e78,PTR__runtime_error_02fe8e80);
+  }
+  local_98 = &PTR_FUN_02f448e8;
+                    /* try { // try from 01ce653c to 01ce654b has its CatchHandler @ 01ce6a9c */
+  local_90 = param_2;
+  local_78 = &local_98;
+  FUN_01ce9980(&local_138,plVar7,&local_98);
+  uVar8 = *(ulong *)(param_2 + 0x168);
+  if (uVar8 < *(ulong *)(param_2 + 0x170)) {
+    FUN_02de3ec0(uVar8,&local_138);
+    *(ulong *)(param_2 + 0x168) = uVar8 + 0x30;
+  }
+  else {
+                    /* try { // try from 01ce657d to 01ce6589 has its CatchHandler @ 01ce6995 */
+    FUN_01cc7a90(param_2 + 0x160,&local_138);
+  }
+  FUN_02de4000(&local_138);
+  if (&local_98 == local_78) {
+    (*(code *)(*local_78)[4])();
+  }
+  else if (local_78 != (undefined ***)0x0) {
+    (*(code *)(*local_78)[5])();
+  }
+  local_c8 = &PTR_FUN_02f449e8;
+                    /* try { // try from 01ce65db to 01ce65ea has its CatchHandler @ 01ce6a71 */
+  local_c0 = param_2;
+  local_a8 = &local_c8;
+  FUN_01d4fab0(&local_138,plVar7,&local_c8);
+  uVar8 = *(ulong *)(param_2 + 0x168);
+  if (uVar8 < *(ulong *)(param_2 + 0x170)) {
+    FUN_02de3ec0(uVar8,&local_138);
+    *(ulong *)(param_2 + 0x168) = uVar8 + 0x30;
+  }
+  else {
+                    /* try { // try from 01ce6615 to 01ce6621 has its CatchHandler @ 01ce6983 */
+    FUN_01cc7a90(param_2 + 0x160,&local_138);
+  }
+  FUN_02de4000(&local_138);
+  if (&local_c8 == local_a8) {
+    (*(code *)(*local_a8)[4])();
+  }
+  else if (local_a8 != (undefined ***)0x0) {
+    (*(code *)(*local_a8)[5])();
+  }
+  uVar8 = FUN_01d4bbb0(param_2 + 0x178);
+  *(ulong *)(param_2 + 0x438) = uVar8 >> 3;
+  if ((((*(long *)(param_2 + 0x140) != 0) &&
+       (lVar6 = __dynamic_cast(*(long *)(param_2 + 0x140),&PTR_vtable_02fe5200,&PTR_vtable_02f47d58,
+                               0), lVar6 != 0)) && (*(char *)(param_2 + 0x448) != '\0')) &&
+     (cVar5 = FUN_01d241a0(lVar6), cVar5 != '\0')) {
+    FUN_01d24170((int)*(undefined8 *)(param_2 + 0x440),lVar6);
+  }
+  local_178 = std::chrono::system_clock::now();
+  if (*(char *)(param_2 + 0x408) == '\0') {
+    FUN_02eb1a50((undefined4 *)(param_2 + 0x3f8),&local_178);
+    *(undefined1 *)(param_2 + 0x408) = 1;
+  }
+  else {
+    FUN_02eb1a50(&local_138,&local_178);
+    *(undefined4 *)(param_2 + 0x3f8) = (undefined4)local_138;
+    *(undefined4 *)(param_2 + 0x3fc) = local_138._4_4_;
+    *(undefined4 *)(param_2 + 0x400) = (undefined4)uStack_130;
+    *(undefined4 *)(param_2 + 0x404) = uStack_130._4_4_;
+  }
+  FUN_02d91580(param_2);
+  FUN_02eb1a50(&local_d8,&local_178);
+  FUN_01ce7700(local_d0,&local_138,param_2,local_d8);
+  local_148 = local_138;
+  p_Stack_140 = uStack_130;
+  local_138 = 0;
+  uStack_130 = (__shared_weak_count *)0x0;
+                    /* try { // try from 01ce6749 to 01ce6763 has its CatchHandler @ 01ce6a12 */
+  FUN_02d910f0(param_2,&DAT_00462db2,3,0,&local_148);
+  p_Var4 = p_Stack_140;
+  if (p_Stack_140 != (__shared_weak_count *)0x0) {
+    LOCK();
+    p_Var1 = p_Stack_140 + 8;
+    lVar6 = *(long *)p_Var1;
+    *(long *)p_Var1 = *(long *)p_Var1 + -1;
+    UNLOCK();
+    if (lVar6 == 0) {
+      (**(code **)(*(long *)p_Stack_140 + 0x10))(p_Stack_140);
+      std::__shared_weak_count::__release_weak(p_Var4);
+      cVar5 = *(char *)(local_150 + 0x1c);
+      goto joined_r0x01ce682f;
+    }
+  }
+  cVar5 = *(char *)(local_150 + 0x1c);
+joined_r0x01ce682f:
+  if (cVar5 == '\0') {
+                    /* try { // try from 01ce6839 to 01ce6841 has its CatchHandler @ 01ce6aba */
+    (**(code **)(*plVar7 + 0x50))(plVar7,param_2 + 0x178);
+  }
+  else {
+    iVar2 = *(int *)(local_150 + 0x18);
+    if (iVar2 == 6) {
+      prVar10 = (runtime_error *)__cxa_allocate_exception(0x10);
+                    /* try { // try from 01ce694b to 01ce6959 has its CatchHandler @ 01ce6970 */
+      std::runtime_error::runtime_error(prVar10,"other error");
+                    /* try { // try from 01ce695a to 01ce696f has its CatchHandler @ 01ce6aba */
+                    /* WARNING: Subroutine does not return */
+      __cxa_throw(prVar10,PTR_typeinfo_02fe8e78,PTR__runtime_error_02fe8e80);
+    }
+                    /* try { // try from 01ce67a3 to 01ce67c3 has its CatchHandler @ 01ce6aba */
+    auVar12 = (**(code **)(*plVar7 + 0x28))(plVar7);
+    local_48 = (long *)0x0;
+    local_48 = (long *)operator_new(0x28);
+    *local_48 = (long)&PTR_FUN_02f44ae8;
+    local_48[1] = param_2;
+    *(int *)(local_48 + 2) = iVar2;
+    *(undefined1 (*) [12])(local_48 + 3) = auVar12;
+                    /* try { // try from 01ce67e4 to 01ce67fa has its CatchHandler @ 01ce69bc */
+    FUN_02d92050(param_2,local_68,0,0);
+    if (local_68 == local_48) {
+      (**(code **)(*local_48 + 0x20))();
+    }
+    else if (local_48 != (long *)0x0) {
+      (**(code **)(*local_48 + 0x28))();
+    }
+  }
+  *(undefined1 *)(param_2 + 0x430) = 1;
+                    /* try { // try from 01ce6852 to 01ce6859 has its CatchHandler @ 01ce6a0d */
+  FUN_02d91580(param_2);
+                    /* try { // try from 01ce685a to 01ce6863 has its CatchHandler @ 01ce6a0b */
+  puVar9 = (undefined8 *)operator_new(0x60);
+  puVar3 = local_170;
+  puVar9[1] = 0;
+  puVar9[2] = 0;
+  *puVar9 = &PTR_FUN_02f45848;
+                    /* try { // try from 01ce6885 to 01ce688c has its CatchHandler @ 01ce69f6 */
+  FUN_01cf3860(puVar9 + 3);
+  FUN_02eb1a50(&local_168,&local_178);
+  p_Var4 = uStack_130;
+  *(undefined4 *)(puVar9 + 6) = (undefined4)local_168;
+  *(undefined4 *)((long)puVar9 + 0x34) = local_168._4_4_;
+  *(undefined4 *)(puVar9 + 7) = uStack_160;
+  *(undefined4 *)((long)puVar9 + 0x3c) = uStack_15c;
+  *puVar3 = puVar9 + 3;
+  puVar3[1] = puVar9;
+  if (uStack_130 != (__shared_weak_count *)0x0) {
+    LOCK();
+    p_Var1 = uStack_130 + 8;
+    lVar6 = *(long *)p_Var1;
+    *(long *)p_Var1 = *(long *)p_Var1 + -1;
+    UNLOCK();
+    if (lVar6 == 0) {
+      (**(code **)(*(long *)uStack_130 + 0x10))(uStack_130);
+      std::__shared_weak_count::__release_weak(p_Var4);
+    }
+  }
+  return puVar3;
+}
+
+
+
+=== FUN_01d24fb9 @ 01d24fb9 (queried: 0x1d260d9, size: 5714) ===
+
+
+/* WARNING: Globals starting with '_' overlap smaller symbols at the same address */
+
+void FUN_01d24fb9(void)
+
+{
+  __shared_weak_count *p_Var1;
+  undefined8 uVar2;
+  char cVar3;
+  byte bVar4;
+  uint uVar5;
+  undefined2 *puVar6;
+  ulong uVar7;
+  long lVar8;
+  ushort *puVar9;
+  undefined1 *__dest;
+  undefined8 uVar10;
+  runtime_error *this;
+  ulong uVar11;
+  void *pvVar12;
+  uint unaff_EBP;
+  int iVar13;
+  ulong uVar14;
+  long lVar15;
+  ulong uVar16;
+  byte bVar17;
+  int unaff_R12D;
+  size_t sVar18;
+  ushort *puVar19;
+  __shared_weak_count *this_00;
+  undefined1 auVar20 [16];
+  ushort *puStack0000000000000020;
+  ushort *puStack0000000000000028;
+  ushort *in_stack_00000030;
+  uint uStack0000000000000044;
+  __shared_weak_count *in_stack_00000048;
+  char cStack0000000000000050;
+  ushort uStack0000000000000054;
+  int iStack0000000000000058;
+  char cStack000000000000005c;
+  long in_stack_00000060;
+  undefined8 in_stack_00000068;
+  undefined4 in_stack_00000070;
+  uint uStack0000000000000074;
+  uint uStack0000000000000078;
+  uint uStack000000000000007c;
+  char *in_stack_00000080;
+  long in_stack_00000088;
+  char *in_stack_00000090;
+  void *pvStack00000000000000a0;
+  undefined8 uStack00000000000000a8;
+  undefined8 in_stack_000000b0;
+  undefined8 in_stack_000000c0;
+  long in_stack_000000c8;
+  undefined1 *puStack00000000000000d0;
+  undefined4 uStack00000000000000d8;
+  undefined4 uStack00000000000000dc;
+  char *in_stack_000000e0;
+  undefined1 *in_stack_00000158;
+  undefined8 in_stack_00000160;
+  undefined8 in_stack_00000168;
+  size_t in_stack_00000170;
+  undefined8 in_stack_00000178;
+  size_t in_stack_00000180;
+  char *in_stack_00000188;
+  undefined8 in_stack_00000190;
+  
+  FUN_01d19fa0();
+  this_00 = in_stack_00000048;
+  if (0xff < (uStack000000000000007c | uStack0000000000000078)) {
+    in_stack_00000188 = "invalid mix ratio.";
+    in_stack_00000190 = 0x12;
+                    /* try { // try from 01d26371 to 01d263b0 has its CatchHandler @ 01d266ed */
+                    /* WARNING: Subroutine does not return */
+    FUN_02eca300("false",5,"void Logic2FpgaDevice::SetCaptureParameters(DeviceSettings &)",0x3d,
+                 "/workspace/monorepo/graph-io/devices/logic_interface/src/Logic2FpgaDevice.cpp",
+                 0x4d);
+  }
+  _puStack0000000000000020 = (undefined1  [16])0x0;
+  in_stack_00000030 = (ushort *)0x0;
+                    /* try { // try from 01d24fe9 to 01d24ff2 has its CatchHandler @ 01d266b9 */
+  puVar6 = (undefined2 *)operator_new(2);
+  in_stack_00000030 = puVar6 + 1;
+  *puVar6 = 0;
+  uStack0000000000000044 = unaff_EBP;
+  puStack0000000000000020 = puVar6;
+  puStack0000000000000028 = in_stack_00000030;
+                    /* try { // try from 01d25012 to 01d2501b has its CatchHandler @ 01d266b7 */
+  puStack0000000000000020 = (ushort *)operator_new(4);
+  puStack0000000000000020[1] = (ushort)(iStack0000000000000058 << 8) | 8;
+  auVar20._8_4_ = (int)puStack0000000000000020;
+  auVar20._0_8_ = puStack0000000000000020;
+  auVar20._12_4_ = (int)((ulong)puStack0000000000000020 >> 0x20);
+  puStack0000000000000028 = (ushort *)((long)puStack0000000000000020 + _DAT_0044bbf0);
+  in_stack_00000030 = (ushort *)(auVar20._8_8_ + _UNK_0044bbf8);
+  *puStack0000000000000020 = *puVar6;
+  operator_delete(puVar6);
+  uVar2 = puStack0000000000000020;
+  if (*(int *)(in_stack_00000060 + 400) == 0x10) {
+    if (puStack0000000000000028 < in_stack_00000030) {
+      *puStack0000000000000028 = (ushort)iStack0000000000000058 & 0xff00 | 9;
+      puStack0000000000000028 = (ushort *)((undefined8)puStack0000000000000028 + 1);
+    }
+    else {
+      sVar18 = (long)puStack0000000000000028 - (long)puStack0000000000000020;
+      if ((long)sVar18 < -2) {
+                    /* try { // try from 01d26565 to 01d2656e has its CatchHandler @ 01d266ad */
+                    /* WARNING: Subroutine does not return */
+        std::__vector_base_common<true>::__throw_length_error();
+      }
+      lVar15 = (long)sVar18 >> 1;
+      uVar11 = (long)in_stack_00000030 - (long)puStack0000000000000020;
+      uVar7 = uVar11;
+      if (uVar11 < lVar15 + 1U) {
+        uVar7 = lVar15 + 1U;
+      }
+      if (0x3ffffffffffffffe < (ulong)((long)uVar11 >> 1)) {
+        uVar7 = 0x7fffffffffffffff;
+      }
+      if (uVar7 == 0) {
+        puVar6 = (undefined2 *)0x0;
+      }
+      else {
+        if ((long)uVar7 < 0) {
+                    /* try { // try from 01d26643 to 01d2664e has its CatchHandler @ 01d266ad */
+                    /* WARNING: Subroutine does not return */
+          FUN_01b0c230("allocator<T>::allocate(size_t n) \'n\' exceeds maximum supported size");
+        }
+                    /* try { // try from 01d250f3 to 01d250f7 has its CatchHandler @ 01d266ad */
+        puVar6 = (undefined2 *)operator_new(uVar7 * 2);
+      }
+      puVar6[lVar15] = (ushort)iStack0000000000000058 & 0xff00 | 9;
+      if (0 < (long)sVar18) {
+        memcpy(puVar6,(void *)uVar2,sVar18);
+      }
+      this_00 = in_stack_00000048;
+      in_stack_00000030 = puVar6 + uVar7;
+      puStack0000000000000020 = puVar6;
+      puStack0000000000000028 = puVar6 + lVar15 + 1;
+      if ((undefined2 *)uVar2 != (undefined2 *)0x0) {
+        operator_delete((void *)uVar2);
+      }
+    }
+  }
+  uVar2 = puStack0000000000000020;
+  if (puStack0000000000000028 < in_stack_00000030) {
+    *puStack0000000000000028 = (ushort)(_uStack0000000000000054 << 8) | 6;
+    puStack0000000000000028 = (ushort *)((undefined8)puStack0000000000000028 + 1);
+  }
+  else {
+    sVar18 = (long)puStack0000000000000028 - (long)puStack0000000000000020;
+    if ((long)sVar18 < -2) {
+                    /* try { // try from 01d26428 to 01d26431 has its CatchHandler @ 01d266d6 */
+                    /* WARNING: Subroutine does not return */
+      std::__vector_base_common<true>::__throw_length_error();
+    }
+    lVar15 = (long)sVar18 >> 1;
+    uVar11 = (long)in_stack_00000030 - (long)puStack0000000000000020;
+    uVar7 = uVar11;
+    if (uVar11 < lVar15 + 1U) {
+      uVar7 = lVar15 + 1U;
+    }
+    if (0x3ffffffffffffffe < (ulong)((long)uVar11 >> 1)) {
+      uVar7 = 0x7fffffffffffffff;
+    }
+    if (uVar7 == 0) {
+      puVar6 = (undefined2 *)0x0;
+    }
+    else {
+      if ((long)uVar7 < 0) {
+                    /* try { // try from 01d26505 to 01d26510 has its CatchHandler @ 01d266d6 */
+                    /* WARNING: Subroutine does not return */
+        FUN_01b0c230("allocator<T>::allocate(size_t n) \'n\' exceeds maximum supported size");
+      }
+                    /* try { // try from 01d251dc to 01d251e0 has its CatchHandler @ 01d266d6 */
+      puVar6 = (undefined2 *)operator_new(uVar7 * 2);
+    }
+    puVar6[lVar15] = (ushort)(_uStack0000000000000054 << 8) | 6;
+    if (0 < (long)sVar18) {
+      memcpy(puVar6,(void *)uVar2,sVar18);
+    }
+    this_00 = in_stack_00000048;
+    in_stack_00000030 = puVar6 + uVar7;
+    puStack0000000000000020 = puVar6;
+    puStack0000000000000028 = puVar6 + lVar15 + 1;
+    if ((undefined2 *)uVar2 != (undefined2 *)0x0) {
+      operator_delete((void *)uVar2);
+    }
+  }
+  uVar2 = puStack0000000000000020;
+  if (*(int *)(in_stack_00000060 + 400) == 0x10) {
+    if (puStack0000000000000028 < in_stack_00000030) {
+      *puStack0000000000000028 = uStack0000000000000054 & 0xff00 | 7;
+      puStack0000000000000028 = (ushort *)((undefined8)puStack0000000000000028 + 1);
+    }
+    else {
+      sVar18 = (long)puStack0000000000000028 - (long)puStack0000000000000020;
+      if ((long)sVar18 < -2) {
+                    /* try { // try from 01d2656f to 01d26578 has its CatchHandler @ 01d266ab */
+                    /* WARNING: Subroutine does not return */
+        std::__vector_base_common<true>::__throw_length_error();
+      }
+      lVar15 = (long)sVar18 >> 1;
+      uVar11 = (long)in_stack_00000030 - (long)puStack0000000000000020;
+      uVar7 = uVar11;
+      if (uVar11 < lVar15 + 1U) {
+        uVar7 = lVar15 + 1U;
+      }
+      if (0x3ffffffffffffffe < (ulong)((long)uVar11 >> 1)) {
+        uVar7 = 0x7fffffffffffffff;
+      }
+      if (uVar7 == 0) {
+        puVar6 = (undefined2 *)0x0;
+      }
+      else {
+        if ((long)uVar7 < 0) {
+                    /* try { // try from 01d2664f to 01d2665a has its CatchHandler @ 01d266ab */
+                    /* WARNING: Subroutine does not return */
+          FUN_01b0c230("allocator<T>::allocate(size_t n) \'n\' exceeds maximum supported size");
+        }
+                    /* try { // try from 01d252d7 to 01d252db has its CatchHandler @ 01d266ab */
+        puVar6 = (undefined2 *)operator_new(uVar7 * 2);
+      }
+      puVar6[lVar15] = uStack0000000000000054 & 0xff00 | 7;
+      if (0 < (long)sVar18) {
+        memcpy(puVar6,(void *)uVar2,sVar18);
+      }
+      this_00 = in_stack_00000048;
+      in_stack_00000030 = puVar6 + uVar7;
+      puStack0000000000000020 = puVar6;
+      puStack0000000000000028 = puVar6 + lVar15 + 1;
+      if ((undefined2 *)uVar2 != (undefined2 *)0x0) {
+        operator_delete((void *)uVar2);
+      }
+    }
+  }
+  uVar2 = puStack0000000000000020;
+  if (puStack0000000000000028 < in_stack_00000030) {
+    *puStack0000000000000028 = (ushort)(unaff_R12D << 8) | 10;
+    puStack0000000000000028 = (ushort *)((undefined8)puStack0000000000000028 + 1);
+  }
+  else {
+    sVar18 = (long)puStack0000000000000028 - (long)puStack0000000000000020;
+    if ((long)sVar18 < -2) {
+                    /* try { // try from 01d26432 to 01d2643b has its CatchHandler @ 01d266d4 */
+                    /* WARNING: Subroutine does not return */
+      std::__vector_base_common<true>::__throw_length_error();
+    }
+    lVar15 = (long)sVar18 >> 1;
+    uVar11 = (long)in_stack_00000030 - (long)puStack0000000000000020;
+    uVar7 = uVar11;
+    if (uVar11 < lVar15 + 1U) {
+      uVar7 = lVar15 + 1U;
+    }
+    if (0x3ffffffffffffffe < (ulong)((long)uVar11 >> 1)) {
+      uVar7 = 0x7fffffffffffffff;
+    }
+    if (uVar7 == 0) {
+      puVar6 = (undefined2 *)0x0;
+    }
+    else {
+      if ((long)uVar7 < 0) {
+                    /* try { // try from 01d26511 to 01d2651c has its CatchHandler @ 01d266d4 */
+                    /* WARNING: Subroutine does not return */
+        FUN_01b0c230("allocator<T>::allocate(size_t n) \'n\' exceeds maximum supported size");
+      }
+                    /* try { // try from 01d253bf to 01d253c3 has its CatchHandler @ 01d266d4 */
+      puVar6 = (undefined2 *)operator_new(uVar7 * 2);
+    }
+    puVar6[lVar15] = (ushort)(unaff_R12D << 8) | 10;
+    if (0 < (long)sVar18) {
+      memcpy(puVar6,(void *)uVar2,sVar18);
+    }
+    this_00 = in_stack_00000048;
+    in_stack_00000030 = puVar6 + uVar7;
+    puStack0000000000000020 = puVar6;
+    puStack0000000000000028 = puVar6 + lVar15 + 1;
+    if ((undefined2 *)uVar2 != (undefined2 *)0x0) {
+      operator_delete((void *)uVar2);
+    }
+  }
+  uVar2 = puStack0000000000000020;
+  bVar4 = (byte)((uint)unaff_R12D >> 8);
+  if (*(int *)(in_stack_00000060 + 0x21c) == 0) {
+    if (bVar4 != 0) {
+      in_stack_00000178 = 0;
+      in_stack_00000180 = strlen((char *)0x0);
+                    /* try { // try from 01d254a1 to 01d254e0 has its CatchHandler @ 01d266d8 */
+                    /* WARNING: Subroutine does not return */
+      FUN_02eca300("analog_decimation_upper == 0",0x1c,
+                   "void Logic2FpgaDevice::SetCaptureParameters(DeviceSettings &)",0x3d,
+                   "/workspace/monorepo/graph-io/devices/logic_interface/src/Logic2FpgaDevice.cpp",
+                   0x4d);
+    }
+  }
+  else {
+    if (*(int *)(in_stack_00000060 + 0x21c) != 1) {
+      this = (runtime_error *)__cxa_allocate_exception(0x10);
+                    /* try { // try from 01d26449 to 01d26457 has its CatchHandler @ 01d2668d */
+      std::runtime_error::runtime_error(this,"unknown revision");
+                    /* try { // try from 01d26458 to 01d264c8 has its CatchHandler @ 01d266d8 */
+                    /* WARNING: Subroutine does not return */
+      __cxa_throw(this,PTR_typeinfo_02fe8e78,PTR__runtime_error_02fe8e80);
+    }
+    if (1 < bVar4) {
+      in_stack_00000168 = 0;
+      in_stack_00000170 = strlen((char *)0x0);
+                    /* WARNING: Subroutine does not return */
+      FUN_02eca300("analog_decimation_upper <= 1",0x1c,
+                   "void Logic2FpgaDevice::SetCaptureParameters(DeviceSettings &)",0x3d,
+                   "/workspace/monorepo/graph-io/devices/logic_interface/src/Logic2FpgaDevice.cpp",
+                   0x4d);
+    }
+    if (puStack0000000000000028 < in_stack_00000030) {
+      *puStack0000000000000028 = (ushort)unaff_R12D & 0xff00 | 0x1b;
+      puStack0000000000000028 = (ushort *)((undefined8)puStack0000000000000028 + 1);
+    }
+    else {
+      sVar18 = (long)puStack0000000000000028 - (long)puStack0000000000000020;
+      if ((long)sVar18 < -2) {
+                    /* try { // try from 01d26579 to 01d26582 has its CatchHandler @ 01d266a9 */
+                    /* WARNING: Subroutine does not return */
+        std::__vector_base_common<true>::__throw_length_error();
+      }
+      lVar15 = (long)sVar18 >> 1;
+      uVar11 = (long)in_stack_00000030 - (long)puStack0000000000000020;
+      uVar7 = uVar11;
+      if (uVar11 < lVar15 + 1U) {
+        uVar7 = lVar15 + 1U;
+      }
+      if (0x3ffffffffffffffe < (ulong)((long)uVar11 >> 1)) {
+        uVar7 = 0x7fffffffffffffff;
+      }
+      if (uVar7 == 0) {
+        puVar6 = (undefined2 *)0x0;
+      }
+      else {
+        if ((long)uVar7 < 0) {
+                    /* try { // try from 01d2665b to 01d26666 has its CatchHandler @ 01d266a9 */
+                    /* WARNING: Subroutine does not return */
+          FUN_01b0c230("allocator<T>::allocate(size_t n) \'n\' exceeds maximum supported size");
+        }
+                    /* try { // try from 01d2553a to 01d2553e has its CatchHandler @ 01d266a9 */
+        puVar6 = (undefined2 *)operator_new(uVar7 * 2);
+      }
+      puVar6[lVar15] = (ushort)unaff_R12D & 0xff00 | 0x1b;
+      if (0 < (long)sVar18) {
+        memcpy(puVar6,(void *)uVar2,sVar18);
+      }
+      this_00 = in_stack_00000048;
+      in_stack_00000030 = puVar6 + uVar7;
+      puStack0000000000000020 = puVar6;
+      puStack0000000000000028 = puVar6 + lVar15 + 1;
+      if ((undefined2 *)uVar2 != (undefined2 *)0x0) {
+        operator_delete((void *)uVar2);
+      }
+    }
+  }
+  uVar2 = puStack0000000000000020;
+  if (puStack0000000000000028 < in_stack_00000030) {
+    *puStack0000000000000028 = (ushort)(uStack0000000000000044 << 8) | 0xb;
+    puStack0000000000000028 = (ushort *)((undefined8)puStack0000000000000028 + 1);
+  }
+  else {
+    sVar18 = (long)puStack0000000000000028 - (long)puStack0000000000000020;
+    if ((long)sVar18 < -2) {
+                    /* try { // try from 01d264c9 to 01d264d2 has its CatchHandler @ 01d266d2 */
+                    /* WARNING: Subroutine does not return */
+      std::__vector_base_common<true>::__throw_length_error();
+    }
+    lVar15 = (long)sVar18 >> 1;
+    uVar11 = (long)in_stack_00000030 - (long)puStack0000000000000020;
+    uVar7 = uVar11;
+    if (uVar11 < lVar15 + 1U) {
+      uVar7 = lVar15 + 1U;
+    }
+    if (0x3ffffffffffffffe < (ulong)((long)uVar11 >> 1)) {
+      uVar7 = 0x7fffffffffffffff;
+    }
+    if (uVar7 == 0) {
+      puVar6 = (undefined2 *)0x0;
+    }
+    else {
+      if ((long)uVar7 < 0) {
+                    /* try { // try from 01d2651d to 01d26528 has its CatchHandler @ 01d266d2 */
+                    /* WARNING: Subroutine does not return */
+        FUN_01b0c230("allocator<T>::allocate(size_t n) \'n\' exceeds maximum supported size");
+      }
+                    /* try { // try from 01d25621 to 01d25625 has its CatchHandler @ 01d266d2 */
+      puVar6 = (undefined2 *)operator_new(uVar7 * 2);
+    }
+    puVar6[lVar15] = (ushort)(uStack0000000000000044 << 8) | 0xb;
+    if (0 < (long)sVar18) {
+      memcpy(puVar6,(void *)uVar2,sVar18);
+    }
+    this_00 = in_stack_00000048;
+    in_stack_00000030 = puVar6 + uVar7;
+    puStack0000000000000020 = puVar6;
+    puStack0000000000000028 = puVar6 + lVar15 + 1;
+    if ((undefined2 *)uVar2 != (undefined2 *)0x0) {
+      operator_delete((void *)uVar2);
+    }
+  }
+  uVar2 = puStack0000000000000020;
+  uVar5 = uStack0000000000000044 & 0xff00;
+  if (puStack0000000000000028 < in_stack_00000030) {
+    *puStack0000000000000028 = (ushort)uVar5 | 0xc;
+    puStack0000000000000028 = (ushort *)((undefined8)puStack0000000000000028 + 1);
+  }
+  else {
+    sVar18 = (long)puStack0000000000000028 - (long)puStack0000000000000020;
+    uStack0000000000000044 = uVar5;
+    if ((long)sVar18 < -2) {
+                    /* try { // try from 01d264d3 to 01d264dc has its CatchHandler @ 01d266d0 */
+                    /* WARNING: Subroutine does not return */
+      std::__vector_base_common<true>::__throw_length_error();
+    }
+    lVar15 = (long)sVar18 >> 1;
+    uVar11 = (long)in_stack_00000030 - (long)puStack0000000000000020;
+    uVar7 = uVar11;
+    if (uVar11 < lVar15 + 1U) {
+      uVar7 = lVar15 + 1U;
+    }
+    if (0x3ffffffffffffffe < (ulong)((long)uVar11 >> 1)) {
+      uVar7 = 0x7fffffffffffffff;
+    }
+    if (uVar7 == 0) {
+      puVar6 = (undefined2 *)0x0;
+    }
+    else {
+      if ((long)uVar7 < 0) {
+                    /* try { // try from 01d26529 to 01d26534 has its CatchHandler @ 01d266d0 */
+                    /* WARNING: Subroutine does not return */
+        FUN_01b0c230("allocator<T>::allocate(size_t n) \'n\' exceeds maximum supported size");
+      }
+                    /* try { // try from 01d25706 to 01d2570a has its CatchHandler @ 01d266d0 */
+      puVar6 = (undefined2 *)operator_new(uVar7 * 2);
+    }
+    puVar6[lVar15] = (ushort)uStack0000000000000044 | 0xc;
+    if (0 < (long)sVar18) {
+      memcpy(puVar6,(void *)uVar2,sVar18);
+    }
+    this_00 = in_stack_00000048;
+    in_stack_00000030 = puVar6 + uVar7;
+    puStack0000000000000020 = puVar6;
+    puStack0000000000000028 = puVar6 + lVar15 + 1;
+    if ((undefined2 *)uVar2 != (undefined2 *)0x0) {
+      operator_delete((void *)uVar2);
+    }
+  }
+  uVar2 = puStack0000000000000020;
+  if (cStack000000000000005c != '\0') {
+    uVar5 = 1;
+    if (cStack0000000000000050 == '\0') {
+      uVar5 = (uint)(byte)((char)in_stack_00000070 * '\x02');
+    }
+    if (puStack0000000000000028 < in_stack_00000030) {
+      *puStack0000000000000028 = (ushort)(uVar5 << 8) | 0x1a;
+      puStack0000000000000028 = (ushort *)((undefined8)puStack0000000000000028 + 1);
+    }
+    else {
+      sVar18 = (long)puStack0000000000000028 - (long)puStack0000000000000020;
+      if ((long)sVar18 < -2) {
+                    /* try { // try from 01d26583 to 01d2658c has its CatchHandler @ 01d266a7 */
+                    /* WARNING: Subroutine does not return */
+        std::__vector_base_common<true>::__throw_length_error();
+      }
+      lVar15 = (long)sVar18 >> 1;
+      uVar11 = (long)in_stack_00000030 - (long)puStack0000000000000020;
+      uVar7 = uVar11;
+      if (uVar11 < lVar15 + 1U) {
+        uVar7 = lVar15 + 1U;
+      }
+      if (0x3ffffffffffffffe < (ulong)((long)uVar11 >> 1)) {
+        uVar7 = 0x7fffffffffffffff;
+      }
+      if (uVar7 == 0) {
+        puVar6 = (undefined2 *)0x0;
+      }
+      else {
+        if ((long)uVar7 < 0) {
+                    /* try { // try from 01d26667 to 01d26672 has its CatchHandler @ 01d266a7 */
+                    /* WARNING: Subroutine does not return */
+          FUN_01b0c230("allocator<T>::allocate(size_t n) \'n\' exceeds maximum supported size");
+        }
+                    /* try { // try from 01d25804 to 01d25808 has its CatchHandler @ 01d266a7 */
+        puVar6 = (undefined2 *)operator_new(uVar7 * 2);
+      }
+      puVar6[lVar15] = (ushort)(uVar5 << 8) | 0x1a;
+      if (0 < (long)sVar18) {
+        memcpy(puVar6,(void *)uVar2,sVar18);
+      }
+      this_00 = in_stack_00000048;
+      in_stack_00000030 = puVar6 + uVar7;
+      puStack0000000000000020 = puVar6;
+      puStack0000000000000028 = puVar6 + lVar15 + 1;
+      if ((undefined2 *)uVar2 != (undefined2 *)0x0) {
+        operator_delete((void *)uVar2);
+      }
+    }
+  }
+  uVar5 = uStack0000000000000078;
+  uVar2 = puStack0000000000000020;
+  if (puStack0000000000000028 < in_stack_00000030) {
+    *puStack0000000000000028 = (ushort)(uStack0000000000000078 << 8) | 0xd;
+    puStack0000000000000028 = (ushort *)((undefined8)puStack0000000000000028 + 1);
+  }
+  else {
+    sVar18 = (long)puStack0000000000000028 - (long)puStack0000000000000020;
+    if ((long)sVar18 < -2) {
+                    /* try { // try from 01d264dd to 01d264e6 has its CatchHandler @ 01d266ce */
+                    /* WARNING: Subroutine does not return */
+      std::__vector_base_common<true>::__throw_length_error();
+    }
+    lVar15 = (long)sVar18 >> 1;
+    uVar11 = (long)in_stack_00000030 - (long)puStack0000000000000020;
+    uVar7 = uVar11;
+    if (uVar11 < lVar15 + 1U) {
+      uVar7 = lVar15 + 1U;
+    }
+    if (0x3ffffffffffffffe < (ulong)((long)uVar11 >> 1)) {
+      uVar7 = 0x7fffffffffffffff;
+    }
+    if (uVar7 == 0) {
+      puVar6 = (undefined2 *)0x0;
+    }
+    else {
+      if ((long)uVar7 < 0) {
+                    /* try { // try from 01d26535 to 01d26540 has its CatchHandler @ 01d266ce */
+                    /* WARNING: Subroutine does not return */
+        FUN_01b0c230("allocator<T>::allocate(size_t n) \'n\' exceeds maximum supported size");
+      }
+                    /* try { // try from 01d258ef to 01d258f3 has its CatchHandler @ 01d266ce */
+      puVar6 = (undefined2 *)operator_new(uVar7 * 2);
+    }
+    puVar6[lVar15] = (ushort)(uVar5 << 8) | 0xd;
+    if (0 < (long)sVar18) {
+      memcpy(puVar6,(void *)uVar2,sVar18);
+    }
+    this_00 = in_stack_00000048;
+    in_stack_00000030 = puVar6 + uVar7;
+    puStack0000000000000020 = puVar6;
+    puStack0000000000000028 = puVar6 + lVar15 + 1;
+    if ((undefined2 *)uVar2 != (undefined2 *)0x0) {
+      operator_delete((void *)uVar2);
+    }
+  }
+  uVar2 = puStack0000000000000020;
+  if (puStack0000000000000028 < in_stack_00000030) {
+    *puStack0000000000000028 = (ushort)(uStack000000000000007c << 8) | 0xe;
+    puStack0000000000000028 = (ushort *)((undefined8)puStack0000000000000028 + 1);
+  }
+  else {
+    sVar18 = (long)puStack0000000000000028 - (long)puStack0000000000000020;
+    if ((long)sVar18 < -2) {
+                    /* try { // try from 01d264e7 to 01d264f0 has its CatchHandler @ 01d266cc */
+                    /* WARNING: Subroutine does not return */
+      std::__vector_base_common<true>::__throw_length_error();
+    }
+    lVar15 = (long)sVar18 >> 1;
+    uVar11 = (long)in_stack_00000030 - (long)puStack0000000000000020;
+    uVar7 = uVar11;
+    if (uVar11 < lVar15 + 1U) {
+      uVar7 = lVar15 + 1U;
+    }
+    if (0x3ffffffffffffffe < (ulong)((long)uVar11 >> 1)) {
+      uVar7 = 0x7fffffffffffffff;
+    }
+    if (uVar7 == 0) {
+      pvVar12 = (void *)0x0;
+    }
+    else {
+      if ((long)uVar7 < 0) {
+                    /* try { // try from 01d26541 to 01d2654c has its CatchHandler @ 01d266cc */
+                    /* WARNING: Subroutine does not return */
+        FUN_01b0c230("allocator<T>::allocate(size_t n) \'n\' exceeds maximum supported size");
+      }
+                    /* try { // try from 01d259cd to 01d259d1 has its CatchHandler @ 01d266cc */
+      pvVar12 = operator_new(uVar7 * 2);
+    }
+    puVar9 = (ushort *)((long)pvVar12 + uVar7 * 2);
+    *(ushort *)((long)pvVar12 + lVar15 * 2) = (ushort)(uStack000000000000007c << 8) | 0xe;
+    if (0 < (long)sVar18) {
+      memcpy(pvVar12,(void *)uVar2,sVar18);
+    }
+    this_00 = in_stack_00000048;
+    puStack0000000000000028 = (ushort *)((long)pvVar12 + lVar15 * 2 + 2);
+    puStack0000000000000020 = (ushort *)pvVar12;
+    in_stack_00000030 = puVar9;
+    if ((undefined2 *)uVar2 != (undefined2 *)0x0) {
+      operator_delete((void *)uVar2);
+    }
+  }
+  _pvStack00000000000000a0 = (undefined1  [16])0x0;
+  in_stack_000000b0 = 0;
+                    /* try { // try from 01d25a3e to 01d25a4f has its CatchHandler @ 01d266b5 */
+  FUN_01d4bea0(in_stack_00000068,&stack0x000000a0);
+  if ((void *)uStack00000000000000a8 != pvStack00000000000000a0) {
+                    /* try { // try from 01d25a6e to 01d25a7f has its CatchHandler @ 01d266af */
+    FUN_01d4bee0(&stack0x000000d0,in_stack_00000068);
+    if ((void *)uStack00000000000000a8 != pvStack00000000000000a0) {
+      uVar7 = 0;
+      do {
+                    /* try { // try from 01d25ab8 to 01d25abf has its CatchHandler @ 01d266f9 */
+        cVar3 = FUN_01d4c510((long)pvStack00000000000000a0 + uVar7 * 0x18,&stack0x000000d0);
+        if (cVar3 != '\0') {
+          if (2 < (uint)uVar7) {
+            in_stack_00000158 = &DAT_005202e4;
+            in_stack_00000160 = 0;
+                    /* try { // try from 01d265a8 to 01d265e7 has its CatchHandler @ 01d26689 */
+                    /* WARNING: Subroutine does not return */
+            FUN_02eca300("false",5,"void Logic2FpgaDevice::SetCaptureParameters(DeviceSettings &)",
+                         0x3d,
+                         "/workspace/monorepo/graph-io/devices/logic_interface/src/Logic2FpgaDevice.cpp"
+                         ,0x4d);
+          }
+          iVar13 = 1 << ((byte)uVar7 & 0x1f);
+          uVar2 = puStack0000000000000020;
+          if (puStack0000000000000028 < in_stack_00000030) {
+            *puStack0000000000000028 = (ushort)(iVar13 << 8) | 0x12;
+            puStack0000000000000028 = (ushort *)((undefined8)puStack0000000000000028 + 1);
+          }
+          else {
+            sVar18 = (long)puStack0000000000000028 - (long)puStack0000000000000020;
+            if ((long)sVar18 < -2) {
+                    /* try { // try from 01d26673 to 01d26688 has its CatchHandler @ 01d2668b */
+                    /* WARNING: Subroutine does not return */
+              std::__vector_base_common<true>::__throw_length_error();
+            }
+            lVar15 = (long)sVar18 >> 1;
+            uVar11 = (long)in_stack_00000030 - (long)puStack0000000000000020;
+            uVar7 = uVar11;
+            if (uVar11 < lVar15 + 1U) {
+              uVar7 = lVar15 + 1U;
+            }
+            if (0x3ffffffffffffffe < (ulong)((long)uVar11 >> 1)) {
+              uVar7 = 0x7fffffffffffffff;
+            }
+            if (uVar7 == 0) {
+              pvVar12 = (void *)0x0;
+            }
+            else {
+              if ((long)uVar7 < 0) {
+                    /* WARNING: Subroutine does not return */
+                FUN_01b0c230("allocator<T>::allocate(size_t n) \'n\' exceeds maximum supported size"
+                            );
+              }
+                    /* try { // try from 01d25b7c to 01d25b80 has its CatchHandler @ 01d2668b */
+              pvVar12 = operator_new(uVar7 * 2);
+            }
+            puVar9 = (ushort *)((long)pvVar12 + uVar7 * 2);
+            *(ushort *)((long)pvVar12 + lVar15 * 2) = (ushort)(iVar13 << 8) | 0x12;
+            if (0 < (long)sVar18) {
+              memcpy(pvVar12,(void *)uVar2,sVar18);
+            }
+            this_00 = in_stack_00000048;
+            puStack0000000000000028 = (ushort *)((long)pvVar12 + lVar15 * 2 + 2);
+            puStack0000000000000020 = (ushort *)pvVar12;
+            in_stack_00000030 = puVar9;
+            if ((void *)uVar2 != (void *)0x0) {
+              operator_delete((void *)uVar2);
+            }
+          }
+          break;
+        }
+        uVar7 = (ulong)((uint)uVar7 + 1);
+        uVar11 = (uStack00000000000000a8 - (long)pvStack00000000000000a0 >> 3) * -0x5555555555555555
+        ;
+      } while (uVar7 <= uVar11 && uVar11 - uVar7 != 0);
+    }
+    FUN_01d4c500(&stack0x000000d0);
+  }
+                    /* try { // try from 01d25be9 to 01d25bf2 has its CatchHandler @ 01d266b3 */
+  lVar15 = in_stack_000000c8;
+  uVar7 = FUN_01d4bbb0(in_stack_00000068);
+  if (uVar7 >> 0x20 == 0) {
+    uVar7 = uVar7 & 0xffffffff;
+  }
+  uVar7 = uVar7 / in_stack_000000c0._4_4_;
+  lVar8 = 39999999;
+  if (cStack000000000000005c != '\0') {
+    lVar8 = 99999999;
+  }
+  uVar11 = lVar8 + uVar7;
+  if ((uVar11 | uVar7) >> 0x20 == 0) {
+    uVar5 = (uint)((uVar11 & 0xffffffff) / (uVar7 & 0xffffffff));
+  }
+  else {
+    uVar5 = (uint)(uVar11 / uVar7);
+  }
+  uStack0000000000000074 = 0xff;
+  if (uVar5 < 0xff) {
+    uStack0000000000000074 = uVar5;
+  }
+  if (*(int *)(in_stack_00000060 + 0x250) == 2) {
+    bVar17 = 1;
+    bVar4 = bVar17;
+    if (lVar15 != 0) {
+      if (*(char *)(lVar15 + 0x78) != '\0') {
+        uStack0000000000000074 = *(uint *)(lVar15 + 0x74);
+        uStack00000000000000d8 = 0x60b;
+        puStack00000000000000d0 =
+             "/workspace/monorepo/graph-io/devices/logic_interface/src/Logic2FpgaDevice.cpp";
+        in_stack_000000e0 = "SetCaptureParameters";
+                    /* try { // try from 01d25caf to 01d25dc1 has its CatchHandler @ 01d266e5 */
+        FUN_01d2b6e0(DAT_030b0128,2,"applying user provided test decimation factor {}",0x30,
+                     &stack0x00000074);
+      }
+LAB_01d25cf3:
+      lVar8 = DAT_030b0128;
+      bVar4 = bVar17;
+      if (*(char *)(lVar15 + 0x7c) != '\0') {
+        in_stack_00000080 =
+             "/workspace/monorepo/graph-io/devices/logic_interface/src/Logic2FpgaDevice.cpp";
+        in_stack_00000088 = CONCAT44(in_stack_00000088._4_4_,0x611);
+        in_stack_00000090 = "SetCaptureParameters";
+        iVar13 = *(int *)(DAT_030b0128 + 0x38);
+        bVar4 = FUN_02edfa80(DAT_030b0128 + 0x70);
+        if ((2 < iVar13 & (bVar4 ^ 1)) == 0) {
+          if ((*(byte *)(lVar8 + 8) & 1) == 0) {
+            lVar15 = lVar8 + 9;
+            uVar7 = (ulong)(*(byte *)(lVar8 + 8) >> 1);
+          }
+          else {
+            lVar15 = *(long *)(lVar8 + 0x18);
+            uVar7 = *(ulong *)(lVar8 + 0x10);
+          }
+          FUN_02ee25b0(&stack0x000000d0,lVar15,uVar7,2,"setting ignore FPGA errors flag",0x1f);
+          FUN_02ee4120(lVar8,&stack0x000000d0,iVar13 < 3,bVar4);
+        }
+        bVar4 = bVar17 | 2;
+      }
+    }
+  }
+  else {
+    bVar17 = 0;
+    bVar4 = 0;
+    if (lVar15 != 0) goto LAB_01d25cf3;
+  }
+  uVar2 = puStack0000000000000020;
+  if (puStack0000000000000028 < in_stack_00000030) {
+    *puStack0000000000000028 = (ushort)bVar4 << 8 | 0x13;
+    puStack0000000000000028 = (ushort *)((undefined8)puStack0000000000000028 + 1);
+  }
+  else {
+    sVar18 = (long)puStack0000000000000028 - (long)puStack0000000000000020;
+    if ((long)sVar18 < -2) {
+                    /* try { // try from 01d264f1 to 01d264fa has its CatchHandler @ 01d266ca */
+                    /* WARNING: Subroutine does not return */
+      std::__vector_base_common<true>::__throw_length_error();
+    }
+    lVar15 = (long)sVar18 >> 1;
+    uVar11 = (long)in_stack_00000030 - (long)puStack0000000000000020;
+    uVar7 = uVar11;
+    if (uVar11 < lVar15 + 1U) {
+      uVar7 = lVar15 + 1U;
+    }
+    if (0x3ffffffffffffffe < (ulong)((long)uVar11 >> 1)) {
+      uVar7 = 0x7fffffffffffffff;
+    }
+    if (uVar7 == 0) {
+      puVar9 = (ushort *)0x0;
+    }
+    else {
+      if ((long)uVar7 < 0) {
+                    /* try { // try from 01d2654d to 01d26558 has its CatchHandler @ 01d266ca */
+                    /* WARNING: Subroutine does not return */
+        FUN_01b0c230("allocator<T>::allocate(size_t n) \'n\' exceeds maximum supported size");
+      }
+                    /* try { // try from 01d25e4b to 01d25e4f has its CatchHandler @ 01d266ca */
+      puVar9 = (ushort *)operator_new(uVar7 * 2);
+    }
+    puVar9[lVar15] = (ushort)bVar4 << 8 | 0x13;
+    if (0 < (long)sVar18) {
+      memcpy(puVar9,(void *)uVar2,sVar18);
+    }
+    this_00 = in_stack_00000048;
+    in_stack_00000030 = puVar9 + uVar7;
+    puStack0000000000000020 = puVar9;
+    puStack0000000000000028 = puVar9 + lVar15 + 1;
+    if ((ushort *)uVar2 != (ushort *)0x0) {
+      operator_delete((void *)uVar2);
+    }
+  }
+  uVar5 = uStack0000000000000074;
+  uVar2 = puStack0000000000000020;
+  if (puStack0000000000000028 < in_stack_00000030) {
+    *puStack0000000000000028 = (ushort)(uStack0000000000000074 << 8) | 0x14;
+    puStack0000000000000028 = (ushort *)((undefined8)puStack0000000000000028 + 1);
+  }
+  else {
+    sVar18 = (long)puStack0000000000000028 - (long)puStack0000000000000020;
+    if ((long)sVar18 < -2) {
+                    /* try { // try from 01d264fb to 01d26504 has its CatchHandler @ 01d266c8 */
+                    /* WARNING: Subroutine does not return */
+      std::__vector_base_common<true>::__throw_length_error();
+    }
+    lVar15 = (long)sVar18 >> 1;
+    uVar11 = (long)in_stack_00000030 - (long)puStack0000000000000020;
+    uVar7 = uVar11;
+    if (uVar11 < lVar15 + 1U) {
+      uVar7 = lVar15 + 1U;
+    }
+    if (0x3ffffffffffffffe < (ulong)((long)uVar11 >> 1)) {
+      uVar7 = 0x7fffffffffffffff;
+    }
+    if (uVar7 == 0) {
+      puVar9 = (ushort *)0x0;
+    }
+    else {
+      if ((long)uVar7 < 0) {
+                    /* try { // try from 01d26559 to 01d26564 has its CatchHandler @ 01d266c8 */
+                    /* WARNING: Subroutine does not return */
+        FUN_01b0c230("allocator<T>::allocate(size_t n) \'n\' exceeds maximum supported size");
+      }
+                    /* try { // try from 01d25f2b to 01d25f2f has its CatchHandler @ 01d266c8 */
+      puVar9 = (ushort *)operator_new(uVar7 * 2);
+    }
+    puVar9[lVar15] = (ushort)(uVar5 << 8) | 0x14;
+    if (0 < (long)sVar18) {
+      memcpy(puVar9,(void *)uVar2,sVar18);
+    }
+    this_00 = in_stack_00000048;
+    in_stack_00000030 = puVar9 + uVar7;
+    puStack0000000000000020 = puVar9;
+    puStack0000000000000028 = puVar9 + lVar15 + 1;
+    if ((ushort *)uVar2 != (ushort *)0x0) {
+      operator_delete((void *)uVar2);
+    }
+  }
+                    /* try { // try from 01d25f92 to 01d25fa0 has its CatchHandler @ 01d266e5 */
+  (**(code **)(**(long **)(in_stack_00000060 + 0x180) + 0x18))
+            (*(long **)(in_stack_00000060 + 0x180),&stack0x00000020,"setting capture settings");
+  puStack00000000000000d0 = (undefined1 *)0x0;
+  _uStack00000000000000d8 = (undefined1 *)0x0;
+  in_stack_000000e0 = (undefined1 *)0x0;
+  if (puStack0000000000000020 != puStack0000000000000028) {
+    puVar9 = (ushort *)((undefined8)puStack0000000000000020 + 1);
+    do {
+      uVar2 = puStack00000000000000d0;
+      uVar11 = (long)in_stack_000000e0 - (long)puStack00000000000000d0;
+      uVar7 = uVar11 + 1;
+      if ((long)uVar7 < 0) {
+                    /* try { // try from 01d26349 to 01d26355 has its CatchHandler @ 01d2670e */
+                    /* WARNING: Subroutine does not return */
+        std::__vector_base_common<true>::__throw_length_error();
+      }
+      uVar14 = uVar11 * 2;
+      if (uVar11 * 2 < uVar7) {
+        uVar14 = uVar7;
+      }
+      if (0x3ffffffffffffffe < uVar11) {
+        uVar14 = 0x7fffffffffffffff;
+      }
+      if (uVar14 == 0) {
+        __dest = (undefined1 *)0x0;
+      }
+      else {
+                    /* try { // try from 01d26062 to 01d26069 has its CatchHandler @ 01d266f7 */
+        __dest = (undefined1 *)operator_new(uVar14);
+      }
+      __dest[uVar11] = (char)puVar9[-1];
+      if (0 < (long)uVar11) {
+        memcpy(__dest,(void *)uVar2,uVar11);
+      }
+      _uStack00000000000000d8 = __dest + uVar11 + 1;
+      puVar19 = puVar9;
+      in_stack_000000e0 = __dest + uVar14;
+      puStack00000000000000d0 = __dest;
+      if ((undefined1 *)uVar2 != (undefined1 *)0x0) {
+        operator_delete((void *)uVar2);
+      }
+      while( true ) {
+        if (puVar19 == puStack0000000000000028) goto LAB_01d260ca;
+        puVar9 = puVar19 + 1;
+        if (_uStack00000000000000d8 == in_stack_000000e0) break;
+        *_uStack00000000000000d8 = (char)*puVar19;
+        _uStack00000000000000d8 = (undefined1 *)((undefined8)_uStack00000000000000d8 + 1);
+        puVar19 = puVar9;
+      }
+    } while( true );
+  }
+LAB_01d260ca:
+                    /* try { // try from 01d260d9 to 01d260f2 has its CatchHandler @ 01d266b1 */
+  (**(code **)(**(long **)(in_stack_00000060 + 0x180) + 0x28))
+            (&stack0x00000080,*(long **)(in_stack_00000060 + 0x180),&stack0x000000d0,
+             "reading back capture settings");
+  uVar7 = (long)puStack0000000000000028 - (long)puStack0000000000000020;
+  if ((long)uVar7 >> 1 != in_stack_00000088 - (long)in_stack_00000080) {
+    uVar10 = __cxa_allocate_exception(0x20);
+                    /* try { // try from 01d263be to 01d263c7 has its CatchHandler @ 01d266a2 */
+    in_stack_00000090 = (char *)operator_new(0x20);
+    uVar2 = s_Failed_to_set_capture_settings_0044ed9c._22_8_;
+    in_stack_00000080 = (char *)ram0x0044bd40;
+    in_stack_00000088 = _UNK_0044bd48;
+    *(ulong *)(in_stack_00000090 + 0xe) =
+         CONCAT62(s_Failed_to_set_capture_settings_0044ed9c._16_6_,
+                  s_Failed_to_set_capture_settings_0044ed9c._14_2_);
+    *(undefined8 *)(in_stack_00000090 + 0x16) = uVar2;
+    uVar2 = CONCAT26(s_Failed_to_set_capture_settings_0044ed9c._14_2_,
+                     s_Failed_to_set_capture_settings_0044ed9c._8_6_);
+    *(undefined8 *)in_stack_00000090 = s_Failed_to_set_capture_settings_0044ed9c._0_8_;
+    *(undefined8 *)(in_stack_00000090 + 8) = uVar2;
+    in_stack_00000090[0x1e] = '\0';
+                    /* try { // try from 01d263fd to 01d26425 has its CatchHandler @ 01d2669d */
+    FUN_02e9a860(uVar10,&stack0x00000080);
+                    /* WARNING: Subroutine does not return */
+    __cxa_throw(uVar10,&PTR_vtable_02f479d0,FUN_01b0dd70);
+  }
+  uVar11 = (long)puStack0000000000000020 - (long)puStack0000000000000028;
+  if (uVar11 == 0) {
+    if (in_stack_00000080 == (char *)0x0) goto LAB_01d26191;
+  }
+  else {
+    uVar14 = 0xffffffffffffffff;
+    if (-1 < (long)uVar7) {
+      uVar14 = uVar7;
+    }
+    uVar16 = 1;
+    if ((long)uVar14 < 1) {
+      uVar16 = uVar14;
+    }
+    if ((long)uVar11 <= (long)uVar7) {
+      uVar11 = uVar7;
+    }
+    lVar15 = 0;
+    do {
+      if ((uVar11 >> 1) * uVar16 - lVar15 == 0) {
+        uVar10 = __cxa_allocate_exception(0x20);
+                    /* try { // try from 01d26257 to 01d26260 has its CatchHandler @ 01d2680c */
+        in_stack_00000090 = (char *)operator_new(0x20);
+        uVar2 = s_Failed_to_set_capture_settings_0044ed9c._22_8_;
+        in_stack_00000080 = (char *)ram0x0044bd40;
+        in_stack_00000088 = _UNK_0044bd48;
+        *(ulong *)(in_stack_00000090 + 0xe) =
+             CONCAT62(s_Failed_to_set_capture_settings_0044ed9c._16_6_,
+                      s_Failed_to_set_capture_settings_0044ed9c._14_2_);
+        *(undefined8 *)(in_stack_00000090 + 0x16) = uVar2;
+        uVar2 = CONCAT26(s_Failed_to_set_capture_settings_0044ed9c._14_2_,
+                         s_Failed_to_set_capture_settings_0044ed9c._8_6_);
+        *(undefined8 *)in_stack_00000090 = s_Failed_to_set_capture_settings_0044ed9c._0_8_;
+        *(undefined8 *)(in_stack_00000090 + 8) = uVar2;
+        in_stack_00000090[0x1e] = '\0';
+                    /* try { // try from 01d26296 to 01d262be has its CatchHandler @ 01d26757 */
+        FUN_02e9a860(uVar10,&stack0x00000080);
+                    /* WARNING: Subroutine does not return */
+        __cxa_throw(uVar10,&PTR_vtable_02f479d0,FUN_01b0dd70);
+      }
+      if (*(char *)((long)puStack0000000000000020 + lVar15 * 2 + 1) != in_stack_00000080[lVar15]) {
+        uVar10 = __cxa_allocate_exception(0x20);
+                    /* try { // try from 01d262d1 to 01d262da has its CatchHandler @ 01d26747 */
+        in_stack_00000090 = (char *)operator_new(0x30);
+        uVar2 = s_Capture_parameter_failed_to_down_0050361c._38_8_;
+        in_stack_00000080 = (char *)ram0x0044a710;
+        in_stack_00000088 = _UNK_0044a718;
+        *(ulong *)(in_stack_00000090 + 0x1e) =
+             CONCAT62(s_Capture_parameter_failed_to_down_0050361c._32_6_,
+                      s_Capture_parameter_failed_to_down_0050361c._30_2_);
+        *(undefined8 *)(in_stack_00000090 + 0x26) = uVar2;
+        uVar2 = CONCAT26(s_Capture_parameter_failed_to_down_0050361c._30_2_,
+                         s_Capture_parameter_failed_to_down_0050361c._24_6_);
+        *(undefined8 *)(in_stack_00000090 + 0x10) =
+             s_Capture_parameter_failed_to_down_0050361c._16_8_;
+        *(undefined8 *)(in_stack_00000090 + 0x18) = uVar2;
+        uVar2 = s_Capture_parameter_failed_to_down_0050361c._8_8_;
+        *(undefined8 *)in_stack_00000090 = s_Capture_parameter_failed_to_down_0050361c._0_8_;
+        *(undefined8 *)(in_stack_00000090 + 8) = uVar2;
+        in_stack_00000090[0x2e] = '\0';
+                    /* try { // try from 01d2631b to 01d26343 has its CatchHandler @ 01d26723 */
+        FUN_02e9a860(uVar10,&stack0x00000080);
+                    /* WARNING: Subroutine does not return */
+        __cxa_throw(uVar10,&PTR_vtable_02f479d0,FUN_01b0dd70);
+      }
+      lVar15 = lVar15 + 1;
+      uVar7 = uVar7 - 2;
+    } while (uVar7 != 0);
+  }
+  operator_delete(in_stack_00000080);
+LAB_01d26191:
+  if (puStack00000000000000d0 != (undefined1 *)0x0) {
+    _uStack00000000000000d8 = puStack00000000000000d0;
+    operator_delete(puStack00000000000000d0);
+  }
+  uVar2 = pvStack00000000000000a0;
+  if (pvStack00000000000000a0 != (void *)0x0) {
+    pvVar12 = (void *)uStack00000000000000a8;
+    while (pvVar12 != (void *)uVar2) {
+      pvVar12 = (void *)((long)pvVar12 + -0x18);
+      FUN_01d4c500(pvVar12);
+    }
+    uStack00000000000000a8 = uVar2;
+    operator_delete(pvStack00000000000000a0);
+  }
+  if (puStack0000000000000020 != (ushort *)0x0) {
+    puStack0000000000000028 = puStack0000000000000020;
+    operator_delete(puStack0000000000000020);
+  }
+  if (this_00 != (__shared_weak_count *)0x0) {
+    LOCK();
+    p_Var1 = this_00 + 8;
+    lVar15 = *(long *)p_Var1;
+    *(long *)p_Var1 = *(long *)p_Var1 + -1;
+    UNLOCK();
+    if (lVar15 == 0) {
+      (**(code **)(*(long *)this_00 + 0x10))(this_00);
+      std::__shared_weak_count::__release_weak(this_00);
+    }
+  }
+  return;
+}
+
+
+

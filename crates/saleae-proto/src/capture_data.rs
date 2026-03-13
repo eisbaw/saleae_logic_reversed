@@ -80,6 +80,32 @@ pub const MAX_DIGITAL_CHANNELS: usize = 4;
 /// [15:10] reserved
 /// [31:16] config_id   -- configuration ID for stream sync
 /// ```
+///
+/// # config_id semantics
+///
+/// The `config_id` is a **monotonically incrementing counter** assigned by
+/// `MsoOscilloscopeInstrument::SetConfiguration()` (ELF VA 0x2d477d0).
+/// Each call to `SetConfiguration` increments a counter at object offset
+/// 0x1f0 by 1 and returns the new value as `ConfigurationId`.
+///
+/// On MSO-class FPGAs, the host writes the config_id to FPGA registers
+/// `SCOPE_CONFIG_ID_0..3` (addresses 0x0044-0x0050) via
+/// `SetConfigurationIds` (ELF VA 0x2d64230). The FPGA then embeds this
+/// value in bits [31:16] of every chunk header in the EP2 data stream.
+///
+/// On Logic2FpgaDevice (Spartan-6, used by Logic Pro 8), the 8-bit
+/// register interface does **not** include config_id registers.
+/// `SetCaptureParameters` writes registers 0x06-0x14 and 0x1A-0x1B but
+/// no config_id. The config_id in chunk headers from these devices is
+/// expected to be 0 (or a fixed value from the FPGA bitstream).
+///
+/// The host compares each packet's config_id against a stored "current"
+/// value. On mismatch it logs a warning ("Received start digital data for
+/// old configuration id") but does **not** drop the packet.
+///
+/// **Confidence: High** -- decompiled `SetConfiguration` (counter at
+/// offset 0x1f0), `SetConfigurationIds` (FPGA register writes), and
+/// `DigitalCreatorNode::HandleData` (comparison + warning log).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ChunkHeader {
     /// Channel number (0-3).
@@ -89,6 +115,12 @@ pub struct ChunkHeader {
     /// When true, start packet fields (timestamp + time) follow.
     pub is_start: bool,
     /// Configuration ID for stream synchronization.
+    ///
+    /// Monotonically incrementing counter set by the host at capture
+    /// start. On MSO FPGAs, written to SCOPE_CONFIG_ID registers
+    /// (0x0044-0x0050). On Spartan-6 (Logic Pro 8), this field is
+    /// expected to be 0 since no config_id registers exist in the
+    /// 8-bit register space.
     pub config_id: u16,
 }
 
@@ -134,7 +166,33 @@ impl ChunkHeader {
 /// `is_start` is set.
 ///
 /// The start packet establishes the beginning of a channel's data stream.
-/// The host rejects data that arrives without a preceding start packet.
+/// The host rejects data that arrives without a preceding start packet
+/// ("Received digital data without ever receiving a start packet").
+///
+/// # Emission timing
+///
+/// Start packets are emitted **once per channel at the beginning of each
+/// capture** (or configuration change). Each enabled channel gets its own
+/// start packet with `is_start=1` in the chunk header.
+///
+/// If a second start packet arrives for a channel that already has one,
+/// the host checks time ordering ("Jumped back in time - New start time
+/// starts before old end time") and resets the per-channel state:
+/// time_reference, timestamp/time, config_id, and sample counter.
+///
+/// The per-channel state layout (stride 0x30 bytes, base offset 0x4d8
+/// in `DigitalCreatorNode`):
+///
+/// ```text
+/// +0x00  f64  time_reference (initialized to 1.25e9)
+/// +0x08  16B  start timestamp + time (copied from start packet)
+/// +0x18  u32  config_id (from chunk header)
+/// +0x20  u64  sample_counter (reset to 0)
+/// +0x28  bool has_start_packet
+/// ```
+///
+/// **Confidence: High** -- decompiled `DigitalCreatorNode::HandleData`
+/// (ELF VA 0x2d51710), log strings, per-channel state layout.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct StartPacketFields {
     /// 32-bit device-side timestamp (FPGA clock).
