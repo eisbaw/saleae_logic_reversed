@@ -238,26 +238,22 @@ pub fn eeprom_read_register_poll(
                 );
                 return Ok(data);
             }
-            other => {
-                return Err(DriverError::CommandFailed {
+            _other => {
+                return Err(DriverError::UnexpectedResponse {
                     command: "EepromPolledRead",
-                    detail: format!(
-                        "unexpected EEPROM status byte: {other:#04x} \
-                         (expected {EEPROM_STATUS_NOT_READY:#04x}=not-ready \
-                         or {EEPROM_STATUS_READY:#04x}=ready) \
-                         on attempt {attempt}, response: {response:02x?}"
+                    expected: format!(
+                        "EEPROM status {EEPROM_STATUS_NOT_READY:#04x}=not-ready \
+                         or {EEPROM_STATUS_READY:#04x}=ready"
                     ),
+                    actual: response.clone(),
                 });
             }
         }
     }
 
-    Err(DriverError::CommandFailed {
-        command: "EepromPolledRead",
-        detail: format!(
-            "EEPROM at {i2c_addr:#04x} register {register:#04x} did not become ready \
-             after {MAX_POLL_ATTEMPTS} attempts"
-        ),
+    Err(DriverError::PollTimeout {
+        operation: "EepromPolledRead",
+        attempts: MAX_POLL_ATTEMPTS,
     })
 }
 
@@ -275,9 +271,10 @@ pub fn eeprom_read_device_id(channel: &mut Ep1CommandChannel) -> DriverResult<Ve
     let data = eeprom_read_register(channel, EEPROM_I2C_ADDR, EEPROM_REG_DEVICE_ID, 0)?;
 
     if data.is_empty() {
-        return Err(DriverError::CommandFailed {
+        return Err(DriverError::WrongResponseLength {
             command: "EepromReadDeviceId",
-            detail: "empty response from EEPROM device ID read".into(),
+            expected: 5,
+            actual: 0,
         });
     }
 
@@ -674,7 +671,8 @@ mod tests {
 
         let mut channel = mock_channel(&mock);
         let err = eeprom_read_device_id(&mut channel).unwrap_err();
-        assert!(err.to_string().contains("empty response"));
+        assert!(err.to_string().contains("expected 5") && err.to_string().contains("got 0"),
+            "error should mention expected and actual length: {}", err);
     }
 
     // -------------------------------------------------------------------
@@ -747,8 +745,8 @@ mod tests {
                 .unwrap_err();
 
         let msg = err.to_string();
-        assert!(msg.contains("unexpected EEPROM status byte"), "error should mention unexpected status: {msg}");
-        assert!(msg.contains("0x03"), "error should include the status byte value: {msg}");
+        assert!(msg.contains("unexpected response"), "error should mention unexpected response: {msg}");
+        assert!(msg.contains("03"), "error should include the status byte value: {msg}");
     }
 
     // -------------------------------------------------------------------

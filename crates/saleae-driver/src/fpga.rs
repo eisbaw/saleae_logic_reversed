@@ -1268,8 +1268,8 @@ mod tests {
         let err = common_device_init(&mut channel, true).unwrap_err();
         let msg = err.to_string();
         assert!(
-            msg.contains("expected at least 8 bytes"),
-            "error should mention expected bytes: {msg}"
+            msg.contains("expected 8") && msg.contains("got 4"),
+            "error should mention expected and actual length: {msg}"
         );
     }
 
@@ -1482,7 +1482,11 @@ mod tests {
 
         let mut channel = mock_channel(&mock);
         let err = channel.read_eeprom_device_id().unwrap_err();
-        assert!(err.to_string().contains("expected at least 8 bytes"));
+        let msg = err.to_string();
+        assert!(
+            msg.contains("expected 8") && msg.contains("got 7"),
+            "error should mention expected and actual length: {msg}"
+        );
     }
 
     #[test]

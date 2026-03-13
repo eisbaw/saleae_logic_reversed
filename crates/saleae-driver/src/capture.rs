@@ -625,11 +625,10 @@ pub fn configure_capture(ep1: &mut Ep1CommandChannel, config: &CaptureConfig) ->
     for (i, &(addr, expected)) in reg_pairs.iter().enumerate() {
         let actual = readback.get(i).copied().unwrap_or(0xFF);
         if actual != expected {
-            return Err(DriverError::CommandFailed {
-                command: "SetCaptureParameters",
-                detail: format!(
-                    "register readback mismatch at r{addr:#04x}: wrote {expected:#04x}, read {actual:#04x}"
-                ),
+            return Err(DriverError::ReadbackMismatch {
+                register: addr,
+                expected,
+                actual,
             });
         }
     }

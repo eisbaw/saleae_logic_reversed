@@ -49,7 +49,7 @@ pub fn download_calibration(
         tracing::debug!(path = %cache_path.display(), "loading calibration from cache");
         let data = fs::read(&cache_path)?;
         return calibration::parse_calibration(&data).map_err(|e| {
-            DriverError::CalibrationDownload(format!(
+            DriverError::CalibrationError(format!(
                 "cached file {} is corrupt: {}",
                 cache_path.display(),
                 e
@@ -87,7 +87,7 @@ pub fn download_calibration(
 
     // Parse before caching to ensure the data is valid.
     let cal_data = calibration::parse_calibration(&body).map_err(|e| {
-        DriverError::CalibrationDownload(format!("downloaded file is corrupt: {}", e))
+        DriverError::CalibrationError(format!("downloaded file is corrupt: {}", e))
     })?;
 
     // Cache the raw XML for future use.
@@ -116,7 +116,7 @@ pub fn download_calibration(
 pub fn load_calibration_file(path: &Path) -> DriverResult<CalibrationData> {
     let data = fs::read(path)?;
     calibration::parse_calibration(&data).map_err(|e| {
-        DriverError::CalibrationDownload(format!("failed to parse {}: {}", path.display(), e))
+        DriverError::CalibrationError(format!("failed to parse {}: {}", path.display(), e))
     })
 }
 

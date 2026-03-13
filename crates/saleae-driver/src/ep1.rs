@@ -184,21 +184,19 @@ impl Ep1CommandChannel {
         let n = self.recv_response(&mut resp_buf)?;
 
         if n < 1 {
-            return Err(DriverError::CommandFailed {
+            return Err(DriverError::WrongResponseLength {
                 command: "Ping",
-                detail: "no response received (0 bytes)".into(),
+                expected: 1,
+                actual: 0,
             });
         }
 
         let response = resp_buf[0];
         if !validate_ping_response(PING_TEST_BYTE, response) {
-            return Err(DriverError::CommandFailed {
+            return Err(DriverError::UnexpectedResponse {
                 command: "Ping",
-                detail: format!(
-                    "ping response mismatch: sent {PING_TEST_BYTE:#04x}, \
-                     expected {PING_EXPECTED_RESPONSE:#04x}, got {response:#04x}. \
-                     This likely means the LFSR implementation is wrong."
-                ),
+                expected: format!("ping response {PING_EXPECTED_RESPONSE:#04x} (complement of {PING_TEST_BYTE:#04x})"),
+                actual: vec![response],
             });
         }
 
@@ -262,19 +260,18 @@ impl Ep1CommandChannel {
         let n = self.recv_response(&mut buf)?;
 
         if n < 1 {
-            return Err(DriverError::CommandFailed {
+            return Err(DriverError::WrongResponseLength {
                 command: "Ping",
-                detail: "no response received".into(),
+                expected: 1,
+                actual: 0,
             });
         }
 
         if !validate_ping_response(PING_TEST_BYTE, buf[0]) {
-            return Err(DriverError::CommandFailed {
+            return Err(DriverError::UnexpectedResponse {
                 command: "Ping",
-                detail: format!(
-                    "expected {PING_EXPECTED_RESPONSE:#04x}, got {:#04x}",
-                    buf[0]
-                ),
+                expected: format!("{PING_EXPECTED_RESPONSE:#04x}"),
+                actual: vec![buf[0]],
             });
         }
 
@@ -330,9 +327,9 @@ impl Ep1CommandChannel {
             );
 
             if n >= 1 && ack[0] != 0x00 {
-                return Err(DriverError::CommandFailed {
+                return Err(DriverError::NackResponse {
                     command: "WriteRegisters",
-                    detail: format!("expected 0x00 ack, got {:#04x}", ack[0]),
+                    actual: ack[0],
                 });
             }
         } else {
@@ -459,12 +456,9 @@ impl Ep1CommandChannel {
                 let n = self.recv_response(&mut ack)?;
 
                 if n >= 1 && ack[0] != 0x00 {
-                    return Err(DriverError::CommandFailed {
+                    return Err(DriverError::NackResponse {
                         command: "WriteConfigurationData",
-                        detail: format!(
-                            "expected 0x00 ack, got {:#04x} at offset {offset}",
-                            ack[0]
-                        ),
+                        actual: ack[0],
                     });
                 }
             }
@@ -694,9 +688,10 @@ impl Ep1CommandChannel {
         let n = self.recv_response(&mut buf)?;
 
         if n < 4 {
-            return Err(DriverError::CommandFailed {
+            return Err(DriverError::WrongResponseLength {
                 command: "ReadRegister16",
-                detail: format!("expected 4 bytes, got {n}"),
+                expected: 4,
+                actual: n,
             });
         }
 
@@ -725,9 +720,10 @@ impl Ep1CommandChannel {
     pub fn read_register_8(&mut self, addr: u8) -> DriverResult<u8> {
         let values = self.read_registers(&[addr])?;
         if values.is_empty() {
-            return Err(DriverError::CommandFailed {
+            return Err(DriverError::WrongResponseLength {
                 command: "ReadRegister8",
-                detail: "no value returned".into(),
+                expected: 1,
+                actual: 0,
             });
         }
         Ok(values[0])
@@ -846,9 +842,10 @@ impl Ep1CommandChannel {
         let n = self.recv_response(&mut buf)?;
 
         if n < 8 {
-            return Err(DriverError::CommandFailed {
+            return Err(DriverError::WrongResponseLength {
                 command: "ReadEepromDeviceId",
-                detail: format!("expected at least 8 bytes for device ID, got {n}"),
+                expected: 8,
+                actual: n,
             });
         }
 
@@ -964,9 +961,8 @@ impl Ep1CommandChannel {
     pub fn write_eeprom(&mut self, address: u16, data: &[u8]) -> DriverResult<()> {
         let count = data.len();
         if count > 256 {
-            return Err(DriverError::CommandFailed {
-                command: "WriteEeprom",
-                detail: format!("data too large: {count} bytes (max 256)"),
+            return Err(DriverError::InvalidArgument {
+                message: format!("WriteEeprom data too large: {count} bytes (max 256)"),
             });
         }
         debug!(
@@ -1438,8 +1434,8 @@ mod tests {
         let err = channel.read_register_16(0x0104).unwrap_err();
         let msg = err.to_string();
         assert!(
-            msg.contains("expected 4 bytes"),
-            "error should mention expected bytes: {msg}"
+            msg.contains("expected 4") && msg.contains("got 2"),
+            "error should mention expected and actual length: {msg}"
         );
     }
 
@@ -1637,8 +1633,8 @@ mod tests {
         let err = channel.read_eeprom_device_id().unwrap_err();
         let msg = err.to_string();
         assert!(
-            msg.contains("expected at least 8 bytes"),
-            "error should mention expected bytes: {msg}"
+            msg.contains("expected 8") && msg.contains("got 4"),
+            "error should mention expected and actual length: {msg}"
         );
     }
 

@@ -502,7 +502,7 @@ fn ep1_initialize_fails_on_wrong_ping_response() {
 
     let msg = err.to_string();
     assert!(
-        msg.contains("ping") || msg.contains("mismatch"),
+        msg.contains("Ping") || msg.contains("unexpected response"),
         "error should describe ping failure: {msg}"
     );
 }

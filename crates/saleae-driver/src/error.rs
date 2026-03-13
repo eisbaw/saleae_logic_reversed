@@ -36,19 +36,58 @@ pub enum DriverError {
     #[error("invalid capture config: {reason}")]
     InvalidCaptureConfig { reason: String },
 
-    /// An EP1 command failed.
+    /// An EP1 command failed (catch-all for miscellaneous failures).
     #[error("{command} failed: {detail}")]
     CommandFailed {
         command: &'static str,
         detail: String,
     },
 
+    /// Device returned a NACK (non-zero acknowledgment byte).
+    #[error("{command}: NACK response {actual:#04x} (expected 0x00)")]
+    NackResponse { command: &'static str, actual: u8 },
+
+    /// Response had the wrong number of bytes.
+    #[error("{command}: wrong response length: expected {expected}, got {actual}")]
+    WrongResponseLength {
+        command: &'static str,
+        expected: usize,
+        actual: usize,
+    },
+
+    /// Response content did not match the expected value.
+    #[error("{command}: unexpected response: expected {expected}, got {actual:02x?}")]
+    UnexpectedResponse {
+        command: &'static str,
+        expected: String,
+        actual: Vec<u8>,
+    },
+
+    /// FPGA register readback did not match the written value.
+    #[error("register r{register:#04x} readback mismatch: wrote {expected:#04x}, read {actual:#04x}")]
+    ReadbackMismatch {
+        register: u8,
+        expected: u8,
+        actual: u8,
+    },
+
+    /// A polled operation did not complete within the allowed attempts.
+    #[error("{operation}: poll timeout after {attempts} attempts")]
+    PollTimeout {
+        operation: &'static str,
+        attempts: usize,
+    },
+
     /// FPGA programming or post-init failed.
     #[error("FPGA programming failed: {context}")]
     FpgaProgramming { context: String },
 
+    /// Calibration data could not be loaded or parsed.
+    #[error("calibration error: {0}")]
+    CalibrationError(String),
+
     /// HTTP error during calibration download.
-    #[error("calibration download failed: {0}")]
+    #[error("calibration download: HTTP error: {0}")]
     CalibrationDownload(String),
 
     /// I/O error (file read/write during calibration caching).
