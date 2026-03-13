@@ -8,8 +8,8 @@
 //! Unlike unit tests inside each module, these tests:
 //! - Only use public API (no `pub(crate)` access)
 //! - Exercise multi-module sequences (firmware -> FPGA -> capture)
-//! - Use `EncryptionMode::None` to test protocol flow without encryption
-//!   (encryption correctness is separately tested in `obfuscation.rs`)
+//! - Test both `EncryptionMode::None` (protocol flow) and `EncryptionMode::XorAll`
+//!   (encrypted roundtrip through the full Ep1CommandChannel stack)
 
 use std::sync::Arc;
 
@@ -20,7 +20,9 @@ use saleae_driver::fpga::{common_device_init, fpga_post_init, program_fpga};
 use saleae_proto::capture_data::{ChunkHeader, StartPacketFields};
 use saleae_proto::device::{endpoint, UsbSpeed, LOGIC_PRO_8_PROFILE};
 use saleae_proto::firmware::fx3::{Fx3Header, Fx3Image, Fx3Section, IMAGE_TYPE_NORMAL};
-use saleae_proto::obfuscation::EncryptionMode;
+use saleae_proto::obfuscation::{
+    EncryptionMode, SimpleEncryption, DEFAULT_INITIAL_SEED, PING_EXPECTED_RESPONSE,
+};
 use saleae_usb::mock::{MockTransport, UsbOperation};
 use saleae_usb::transport::UsbTransport;
 use saleae_usb::UsbError;
@@ -1014,4 +1016,348 @@ fn capture_config_rejects_channel_out_of_range() {
     assert!(result.is_err(), "channel 16 should be rejected");
     let err = result.err().unwrap();
     assert!(err.to_string().contains("16"));
+}
+
+// ===========================================================================
+// Test 9: Encrypted EP1 channel (EncryptionMode::XorAll)
+// ===========================================================================
+
+/// Fixed seed used for all encrypted integration tests. Chosen to be
+/// non-zero and have varied bits across all 4 bytes so XOR patterns
+/// are non-trivial.
+const TEST_SEED: u32 = 0xCAFE_BABE;
+
+/// Simulate the firmware side of the encryption protocol.
+///
+/// The firmware maintains its own LFSR state in lockstep with the host.
+/// After the host sends a command (encrypted with seed S, then advances),
+/// the firmware decrypts (with seed S, then advances) -- so both sides
+/// advance together.
+///
+/// This helper computes the encrypted response bytes that the firmware
+/// would send back, given the firmware's current seed state.
+///
+/// Returns the encrypted response bytes (ready to queue in the mock).
+fn firmware_encrypt_response(fw: &mut SimpleEncryption, plaintext: &[u8]) -> Vec<u8> {
+    // The firmware encrypts responses by simple cyclic XOR with seed
+    // bytes (same as decrypt_response but applied in reverse -- XOR is
+    // its own inverse). After encrypting, the firmware advances its LFSR.
+    let seed_bytes = fw.seed().to_le_bytes();
+    let mut encrypted = plaintext.to_vec();
+    for (i, byte) in encrypted.iter_mut().enumerate() {
+        *byte ^= seed_bytes[i % 4];
+    }
+    fw.advance_seed();
+    encrypted
+}
+
+/// Create an Ep1CommandChannel with EncryptionMode::XorAll and a known seed.
+///
+/// Uses `initialize_with_seed` to avoid randomness. Returns the channel
+/// and a firmware-side `SimpleEncryption` instance that mirrors the host's
+/// LFSR state after initialization (reseed + ping handshake).
+///
+/// The firmware simulator is advanced through the same steps as the host:
+/// 1. Reseed sets both sides to TEST_SEED
+/// 2. Host encrypts ping command -> both advance
+/// 3. Firmware encrypts ping response -> both advance
+fn make_encrypted_channel(mock: &Arc<MockTransport>) -> (Ep1CommandChannel, SimpleEncryption) {
+    // Create a firmware simulator starting at the same seed.
+    let mut fw = SimpleEncryption::new(TEST_SEED, EncryptionMode::XorAll);
+
+    // The host will:
+    //   1. Send encrypted reseed (no response needed)
+    //   2. Encrypt and send ping command -> advances host seed
+    //   3. Read encrypted ping response -> advances host seed again
+    //
+    // The firmware side (simulated):
+    //   1. Receives reseed, sets seed = TEST_SEED
+    //   2. Decrypts ping command -> advances fw seed
+    //   3. Encrypts response 0xAA -> advances fw seed
+    //
+    // After step 2, fw seed has advanced once (matching host after encrypt).
+    // We advance fw once to match the host's post-encrypt state.
+    fw.advance_seed(); // matches host's advance after encrypt_command(ping)
+
+    // Now fw.seed() is the seed used for the ping response encryption.
+    let encrypted_ping_response = firmware_encrypt_response(&mut fw, &[PING_EXPECTED_RESPONSE]);
+
+    // Queue the encrypted ping response for initialize_with_seed.
+    mock.push_bulk_in_response(endpoint::BULK_IN, encrypted_ping_response);
+
+    let transport: Box<dyn UsbTransport> = Box::new(mock.clone());
+    let mut channel = Ep1CommandChannel::new(transport, EncryptionMode::XorAll, true);
+    channel
+        .initialize_with_seed(TEST_SEED)
+        .expect("encrypted initialize should succeed");
+    assert!(channel.is_initialized());
+
+    // Clear recorded operations so tests only see subsequent commands.
+    mock.clear();
+
+    (channel, fw)
+}
+
+#[test]
+fn encrypted_initialize_sends_reseed_then_encrypted_ping() {
+    let mock = Arc::new(MockTransport::new());
+
+    // Set up firmware simulator for the ping response.
+    let mut fw = SimpleEncryption::new(TEST_SEED, EncryptionMode::XorAll);
+    fw.advance_seed(); // host advances after encrypting ping
+    let encrypted_ping_resp = firmware_encrypt_response(&mut fw, &[PING_EXPECTED_RESPONSE]);
+
+    mock.push_bulk_in_response(endpoint::BULK_IN, encrypted_ping_resp);
+
+    let transport = Box::new(mock.clone()) as Box<dyn UsbTransport>;
+    let mut channel = Ep1CommandChannel::new(transport, EncryptionMode::XorAll, true);
+
+    assert!(!channel.is_initialized());
+    channel
+        .initialize_with_seed(TEST_SEED)
+        .expect("initialize_with_seed should succeed");
+    assert!(channel.is_initialized());
+
+    let ops = mock.operations();
+
+    // With EncryptionMode::XorAll:
+    //   Op 0: BulkOut - 5-byte encrypted reseed (control byte + 4 XOR'd seed bytes)
+    //   Op 1: BulkOut - 3-byte encrypted ping (control byte + encrypted opcode + encrypted payload)
+    //   Op 2: BulkIn - 1-byte encrypted ping response
+    assert_eq!(ops.len(), 3, "initialize: reseed OUT + ping OUT + ping IN");
+
+    // Verify reseed is 5 bytes (encrypted mode adds control byte).
+    match &ops[0] {
+        UsbOperation::BulkOut { endpoint: ep, data } => {
+            assert_eq!(*ep, endpoint::BULK_OUT);
+            assert_eq!(data.len(), 5, "encrypted reseed should be 5 bytes");
+        }
+        other => panic!("expected BulkOut for reseed, got {other:?}"),
+    }
+
+    // Verify ping command is 3 bytes (control byte + encrypted opcode + encrypted payload).
+    match &ops[1] {
+        UsbOperation::BulkOut { endpoint: ep, data } => {
+            assert_eq!(*ep, endpoint::BULK_OUT);
+            assert_eq!(data.len(), 3, "encrypted ping should be 3 bytes");
+            // In encrypted mode, the raw bytes should NOT be [0x7D, 0x55].
+            assert_ne!(
+                &data[1..],
+                &[0x7D, 0x55],
+                "encrypted ping bytes must differ from plaintext"
+            );
+        }
+        other => panic!("expected BulkOut for ping, got {other:?}"),
+    }
+}
+
+#[test]
+fn encrypted_ping_roundtrip() {
+    let mock = Arc::new(MockTransport::new());
+    let (mut channel, mut fw) = make_encrypted_channel(&mock);
+
+    // Simulate firmware handling a ping: host sends encrypted ping,
+    // firmware decrypts, computes !0x55 = 0xAA, encrypts response.
+    fw.advance_seed(); // firmware advances after decrypting the ping command
+    let encrypted_resp = firmware_encrypt_response(&mut fw, &[PING_EXPECTED_RESPONSE]);
+    mock.push_bulk_in_response(endpoint::BULK_IN, encrypted_resp);
+
+    channel.ping().expect("encrypted ping should succeed");
+
+    let ops = mock.operations();
+    assert_eq!(count_bulk_out(&ops), 1, "one ping OUT");
+    assert_eq!(count_bulk_in(&ops), 1, "one ping IN");
+
+    // Verify the wire bytes are encrypted (not plaintext).
+    let out_data = extract_bulk_out_data(&ops);
+    // Encrypted ping: 3 bytes (control + encrypted opcode + encrypted payload).
+    assert_eq!(out_data[0].len(), 3, "encrypted ping should be 3 bytes on wire");
+    // The second byte (encrypted opcode) should NOT be the raw 0x7D.
+    // With a non-trivial seed, this is extremely likely to differ.
+    assert_ne!(
+        out_data[0][1], 0x7D,
+        "encrypted opcode should differ from plaintext 0x7D"
+    );
+}
+
+#[test]
+fn encrypted_register_write_then_read_roundtrip() {
+    let mock = Arc::new(MockTransport::new());
+    let (mut channel, mut fw) = make_encrypted_channel(&mock);
+
+    // WriteRegisters: firmware decrypts command, sends encrypted 0x00 ACK.
+    fw.advance_seed(); // fw advances after decrypting write command
+    let encrypted_ack = firmware_encrypt_response(&mut fw, &[0x00]);
+    mock.push_bulk_in_response(endpoint::BULK_IN, encrypted_ack);
+
+    // ReadRegisters: firmware decrypts command, sends encrypted register value.
+    fw.advance_seed(); // fw advances after decrypting read command
+    let encrypted_value = firmware_encrypt_response(&mut fw, &[0x42]);
+    mock.push_bulk_in_response(endpoint::BULK_IN, encrypted_value);
+
+    channel
+        .write_registers(&[(0x20, 0x42)])
+        .expect("encrypted write_registers should succeed");
+    let values = channel
+        .read_registers(&[0x20])
+        .expect("encrypted read_registers should succeed");
+
+    assert_eq!(values, vec![0x42], "decrypted register value should be 0x42");
+
+    let ops = mock.operations();
+    assert_eq!(count_bulk_out(&ops), 2, "write + read commands");
+    assert_eq!(count_bulk_in(&ops), 2, "write ACK + read response");
+
+    // Verify wire bytes are encrypted.
+    let out_data = extract_bulk_out_data(&ops);
+    // WriteRegisters command in encrypted mode: control byte + encrypted payload.
+    // The first data byte (after control) should not be the raw opcode 0x80.
+    assert_ne!(
+        out_data[0][1], 0x80,
+        "encrypted WriteRegisters opcode should differ from plaintext"
+    );
+}
+
+#[test]
+fn encrypted_multiple_pings_stay_in_sync() {
+    let mock = Arc::new(MockTransport::new());
+    let (mut channel, mut fw) = make_encrypted_channel(&mock);
+
+    // Send 5 consecutive pings to verify LFSR stays in lockstep.
+    for i in 0..5 {
+        fw.advance_seed(); // fw decrypts ping command
+        let encrypted_resp = firmware_encrypt_response(&mut fw, &[PING_EXPECTED_RESPONSE]);
+        mock.push_bulk_in_response(endpoint::BULK_IN, encrypted_resp);
+
+        channel
+            .ping()
+            .unwrap_or_else(|e| panic!("ping {i} failed: {e}"));
+    }
+
+    let ops = mock.operations();
+    assert_eq!(count_bulk_out(&ops), 5, "5 ping OUTs");
+    assert_eq!(count_bulk_in(&ops), 5, "5 ping INs");
+
+    // Verify each ping command has different wire bytes (seed changes each time).
+    let out_data = extract_bulk_out_data(&ops);
+    for i in 1..out_data.len() {
+        assert_ne!(
+            out_data[i], out_data[i - 1],
+            "consecutive encrypted pings should have different wire bytes (ping {i} vs {})",
+            i - 1
+        );
+    }
+}
+
+#[test]
+fn encrypted_seed_desync_causes_ping_failure() {
+    let mock = Arc::new(MockTransport::new());
+    let (mut channel, _fw) = make_encrypted_channel(&mock);
+
+    // Queue a response encrypted with the WRONG seed state.
+    // Use a completely different seed to simulate desync.
+    let mut wrong_fw = SimpleEncryption::new(0xDEAD_BEEF, EncryptionMode::XorAll);
+    let wrong_resp = firmware_encrypt_response(&mut wrong_fw, &[PING_EXPECTED_RESPONSE]);
+    mock.push_bulk_in_response(endpoint::BULK_IN, wrong_resp);
+
+    let result = channel.ping();
+    assert!(
+        result.is_err(),
+        "ping with desynced encryption should fail"
+    );
+
+    let msg = result.unwrap_err().to_string();
+    assert!(
+        msg.contains("ping") || msg.contains("mismatch") || msg.contains("expected"),
+        "error should describe ping failure: {msg}"
+    );
+}
+
+#[test]
+fn encrypted_initialize_rejects_zero_seed() {
+    let mock = Arc::new(MockTransport::new());
+    let transport = Box::new(mock.clone()) as Box<dyn UsbTransport>;
+    let mut channel = Ep1CommandChannel::new(transport, EncryptionMode::XorAll, true);
+
+    let result = channel.initialize_with_seed(0);
+    assert!(result.is_err(), "zero seed should be rejected");
+    let msg = result.unwrap_err().to_string();
+    assert!(
+        msg.contains("zero") || msg.contains("LFSR"),
+        "error should mention zero seed: {msg}"
+    );
+    assert!(
+        !channel.is_initialized(),
+        "channel should not be initialized after failed init"
+    );
+}
+
+#[test]
+fn encrypted_reseed_wire_bytes_match_protocol() {
+    // Verify that initialize_with_seed produces the correct reseed wire
+    // format: 5-byte encrypted packet using DEFAULT_INITIAL_SEED as the
+    // encryption key (not the new seed).
+    let mock = Arc::new(MockTransport::new());
+
+    // Pre-compute expected reseed wire bytes.
+    let mut enc = SimpleEncryption::new(DEFAULT_INITIAL_SEED, EncryptionMode::XorAll);
+    let expected_reseed = enc.encrypt_reseed(&TEST_SEED.to_le_bytes());
+
+    // Set up firmware sim for the ping response.
+    let mut fw = SimpleEncryption::new(TEST_SEED, EncryptionMode::XorAll);
+    fw.advance_seed();
+    let encrypted_ping_resp = firmware_encrypt_response(&mut fw, &[PING_EXPECTED_RESPONSE]);
+
+    mock.push_bulk_in_response(endpoint::BULK_IN, encrypted_ping_resp);
+
+    let transport = Box::new(mock.clone()) as Box<dyn UsbTransport>;
+    let mut channel = Ep1CommandChannel::new(transport, EncryptionMode::XorAll, true);
+    channel
+        .initialize_with_seed(TEST_SEED)
+        .expect("initialize should succeed");
+
+    let ops = mock.operations();
+    match &ops[0] {
+        UsbOperation::BulkOut { data, .. } => {
+            assert_eq!(
+                data, &expected_reseed,
+                "reseed wire bytes should match protocol (encrypted with DEFAULT_INITIAL_SEED)"
+            );
+        }
+        other => panic!("expected BulkOut for reseed, got {other:?}"),
+    }
+}
+
+#[test]
+fn encrypted_write_read_mixed_sequence() {
+    // Exercise a realistic sequence: write multiple registers, read them back,
+    // then ping -- all through the encrypted channel.
+    let mock = Arc::new(MockTransport::new());
+    let (mut channel, mut fw) = make_encrypted_channel(&mock);
+
+    // Write 3 registers.
+    fw.advance_seed(); // fw decrypts write command
+    let ack = firmware_encrypt_response(&mut fw, &[0x00]);
+    mock.push_bulk_in_response(endpoint::BULK_IN, ack);
+
+    channel
+        .write_registers(&[(0x20, 0x11), (0x24, 0x22), (0xE0, 0x33)])
+        .expect("batch write should succeed");
+
+    // Read them back (3 registers -> 3-byte response).
+    fw.advance_seed(); // fw decrypts read command
+    let read_resp = firmware_encrypt_response(&mut fw, &[0x11, 0x22, 0x33]);
+    mock.push_bulk_in_response(endpoint::BULK_IN, read_resp);
+
+    let values = channel
+        .read_registers(&[0x20, 0x24, 0xE0])
+        .expect("batch read should succeed");
+    assert_eq!(values, vec![0x11, 0x22, 0x33]);
+
+    // Ping to confirm encryption is still in sync.
+    fw.advance_seed();
+    let ping_resp = firmware_encrypt_response(&mut fw, &[PING_EXPECTED_RESPONSE]);
+    mock.push_bulk_in_response(endpoint::BULK_IN, ping_resp);
+
+    channel.ping().expect("ping after write/read should succeed");
 }

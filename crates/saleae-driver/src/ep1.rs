@@ -122,7 +122,7 @@ impl Ep1CommandChannel {
     /// `libgraph_server_shared.so`. The reseed is encrypted with the
     /// current LFSR state (validated against pcap frame 15).
     pub fn initialize(&mut self) -> DriverResult<()> {
-        // Step 1: Generate random seed.
+        // Generate random seed.
         let mut seed_bytes = [0u8; 4];
         getrandom::fill(&mut seed_bytes).map_err(|e| DriverError::CommandFailed {
             command: "ReseedDevice",
@@ -132,6 +132,25 @@ impl Ep1CommandChannel {
 
         // Avoid seed of 0 -- the LFSR gets stuck at 0.
         let seed = if seed == 0 { 0x0000_0001 } else { seed };
+
+        self.initialize_with_seed(seed)
+    }
+
+    /// Initialize the command channel with a specific seed.
+    ///
+    /// Same as [`initialize`](Self::initialize) but uses the provided seed
+    /// instead of generating one randomly. This is useful for deterministic
+    /// testing where the mock transport must pre-compute encrypted responses.
+    ///
+    /// The seed must not be zero (the LFSR gets stuck at zero). Returns
+    /// [`DriverError::InvalidArgument`] if zero is passed.
+    pub fn initialize_with_seed(&mut self, seed: u32) -> DriverResult<()> {
+        if seed == 0 {
+            return Err(DriverError::InvalidArgument {
+                message: "seed must not be zero (LFSR gets stuck)".into(),
+            });
+        }
+
         let seed_bytes = seed.to_le_bytes();
 
         info!(
@@ -139,12 +158,12 @@ impl Ep1CommandChannel {
             "ReseedDevice: sending seed"
         );
 
-        // Step 2: Encrypt the reseed command with current LFSR state.
+        // Step 1: Encrypt the reseed command with current LFSR state.
         // For XorAll mode, this produces a 5-byte packet (control byte +
         // 4 XOR'd seed bytes). For None mode, this returns raw 4 bytes.
         let encrypted = self.encryption.encrypt_reseed(&seed_bytes);
 
-        // Step 3: Send encrypted reseed on EP1 OUT.
+        // Step 2: Send encrypted reseed on EP1 OUT.
         self.transport
             .bulk_transfer_out(endpoint::BULK_OUT, &encrypted)
             .map_err(|e| DriverError::CommandFailed {
@@ -152,15 +171,15 @@ impl Ep1CommandChannel {
                 detail: format!("bulk OUT failed: {e}"),
             })?;
 
-        // Step 4: Set LFSR state to the new seed (discards the advance_seed
+        // Step 3: Set LFSR state to the new seed (discards the advance_seed
         // result from encrypt_reseed).
         self.encryption.reseed(seed);
 
-        // Step 5: Send encrypted Ping.
+        // Step 4: Send encrypted Ping.
         debug!("ReseedDevice: sending Ping");
         self.send_command(PING_OPCODE, &[PING_TEST_BYTE])?;
 
-        // Step 6: Read and decrypt response.
+        // Step 5: Read and decrypt response.
         let mut resp_buf = [0u8; 64];
         let n = self.recv_response(&mut resp_buf)?;
 
