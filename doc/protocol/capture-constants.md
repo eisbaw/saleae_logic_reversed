@@ -14,14 +14,21 @@ based on the FPGA type in the device.
 
 | Constant | Value | Hex | Notes |
 |----------|-------|-----|-------|
-| MinSamplesPerPacket_Xilinx | 256 | 0x100 | Xilinx Spartan-6 FPGAs |
+| MinSamplesPerPacket_Xilinx | 256 | 0x100 | Xilinx Spartan-6 / 7-Series FPGAs |
 | MaxSamplesPerPacket_Xilinx | 7680 | 0x1E00 | 30 x 256 |
-| MinSamplesPerPacket_Altera | 64 | 0x40 | Altera FPGAs |
+| MinSamplesPerPacket_Altera | 64 | 0x40 | Legacy Xilinx FPGAs (see note below) |
 | MaxSamplesPerPacket_Altera | 6016 | 0x1780 | Not a multiple of 256 |
 | SamplesPerPacketMultiple_WithStats | 256 | 0x100 | Alignment when stats enabled |
 
 Extraction method: CMP instruction immediates in the `ValidateConfig`
 function at VA 0x02d64640 in `mso_fpga.cpp`.
+
+**Note on "Altera" naming**: The Saleae binary uses "Altera" in these constant
+names, but no Altera bitstreams exist in the firmware. The firmware contains
+only Xilinx (Spartan-6, 7-Series) and Lattice (ECP5) bitstreams. "Altera"
+likely refers to an earlier/legacy Xilinx FPGA variant used in older hardware
+revisions (device type 0/1). We preserve the original names here since they
+are extracted identifiers from the binary.
 
 ### Validation Rules
 
@@ -35,14 +42,14 @@ mSamplesPerChunk % SamplesPerPacketMultiple_WithStats == 0
 ```
 
 When stats are enabled, `mSamplesPerChunk` must be a multiple of 256.
-This means the effective maximum for Altera with stats is 5888 (23 x 256),
-since 6016 is not a multiple of 256.
+This means the effective maximum for "Altera" (legacy Xilinx) with stats is
+5888 (23 x 256), since 6016 is not a multiple of 256.
 
 ### FPGA Type Selection
 
 The device type byte determines which limits apply:
 - Device type >= 2: Xilinx limits (larger packets, higher min)
-- Device type <= 1: Altera limits (smaller packets, lower min)
+- Device type <= 1: "Altera" limits (legacy Xilinx; smaller packets, lower min)
 
 Evidence: `test $0xfe, %al; je` at VA 0x2d64750 selects the code path.
 
@@ -56,7 +63,7 @@ for trigger buffer and hardware configuration limits.
 |----------|-------|-----|-------|
 | MinTriggerBufferSamples | 8 | 0x8 | Common to both FPGA types |
 | MaxTriggerBufferSamples_Xilinx | 1,073,725,440 | 0x3FFFC000 | ~1 billion samples |
-| MaxTriggerBufferSamples_Altera | 805,289,984 | 0x2FFFC000 | ~805 million samples |
+| MaxTriggerBufferSamples_Altera | 805,289,984 | 0x2FFFC000 | ~805 million samples (legacy Xilinx) |
 | MaxScopeChannels | 4 | 0x4 | Oscilloscope analog channels |
 | TotalAfeConfigurations | 66 | 0x42 | AFE config numbers 0-66 |
 
@@ -174,17 +181,18 @@ Fixed list for devices supporting downsampling (Logic 4/8/Pro 8/Pro 16):
    their actual numeric values depend on the device model and firmware
    version. Need USB capture or runtime instrumentation to observe.
 
-2. **MinTriggerBufferIndex values**: The Altera and Xilinx
+2. **MinTriggerBufferIndex values**: The "Altera" (legacy Xilinx) and Xilinx
    MinTriggerBufferIndex values were not extracted as clear immediates.
    The MaxTriggerBufferIndex is likely the same as MaxTriggerBufferSamples
    but needs verification.
 
-3. **Altera vs Xilinx device type mapping**: Device type 0/1 = Altera,
-   type >= 2 = Xilinx. The meaning of the specific type values (0, 1, 2,
-   3, ...) and which hardware revisions they correspond to is unknown.
-   See `doc/protocol/fpga-registers.md` for FPGA variant constraints on
-   SamplesPerChunk and MaxTriggerBuffer (Xilinx: 0x100-0x1E00 / 0x3FFFC000,
-   Altera: 0x40-0x1780 / 0x2FFFC000).
+3. **"Altera" vs Xilinx device type mapping**: Device type 0/1 = "Altera"
+   (legacy Xilinx), type >= 2 = Xilinx. The meaning of the specific type
+   values (0, 1, 2, 3, ...) and which hardware revisions they correspond to
+   is unknown. No Altera bitstreams exist in the firmware -- only Xilinx
+   (Spartan-6, 7-Series) and Lattice (ECP5). See `doc/protocol/fpga-registers.md`
+   for FPGA variant constraints on SamplesPerChunk and MaxTriggerBuffer
+   (Xilinx: 0x100-0x1E00 / 0x3FFFC000, "Altera": 0x40-0x1780 / 0x2FFFC000).
 
 4. **SamplesPerPacketMultiple without stats**: When stats collection is
    disabled, what alignment (if any) is required? The code only checks

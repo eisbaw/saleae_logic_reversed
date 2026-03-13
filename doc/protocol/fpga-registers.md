@@ -122,9 +122,10 @@ void WriteConfigurationData(const U8 *data, U32 len);  // opcode 0x7F
 | 0x0064 | ANALOG_TRIGGER_HI | Upper bits: `(pre_hi & 0xFFFF) | (post_hi & 0xFFFF) << 16`. |
 | 0x0068 | ANALOG_SAMPLES_PER_CHUNK | Samples per chunk from config struct. |
 
-FPGA variant constraints:
+FPGA variant constraints (names from Saleae source; "Altera" = legacy Xilinx,
+no Altera bitstreams exist in the firmware):
 - Xilinx: SamplesPerChunk 0x100-0x1E00, MaxTriggerBuffer 0x3FFFC000
-- Altera: SamplesPerChunk 0x40-0x1780, MaxTriggerBuffer 0x2FFFC000
+- "Altera" (legacy Xilinx): SamplesPerChunk 0x40-0x1780, MaxTriggerBuffer 0x2FFFC000
 
 ### Trigger Registers
 
@@ -212,6 +213,7 @@ Same bit layout as DIGITAL_CH_CONFIG: `enabled<<20 | pulseWidth[19:0]`.
 | 0x0E | MIX_RATIO_B | Analog/digital mix ratio B. |
 | 0x13 | CAPTURE_CONTROL | bit 0=enabled, bit 1=ignore errors. |
 | 0x14 | DECIMATION_FACTOR | Computed decimation factor (max 0xFF). |
+| 0x15 | BANK_POWER | IO bank power control. 0x03 = enable both banks, 0x00 = off. Written during SetBankPower before capture; cleared during power-down. |
 | 0x1A | ADC_CONFIG | ADC configuration (Pro/JESD devices only). |
 | 0x1B | ANALOG_DEC_UPPER | Upper analog decimation (board rev 1 only). |
 
@@ -285,6 +287,7 @@ FpgaDeviceFeatures (8-bit addresses, 8-bit values):
   0x0D-0x0E      Analog/digital mix ratios
   0x13           Capture control flags
   0x14           Decimation factor
+  0x15           IO bank power control
   0x16           ADC SPI extended address
   0x1A           ADC configuration (Pro/JESD only)
   0x1B           Upper analog decimation (board rev 1 only)
