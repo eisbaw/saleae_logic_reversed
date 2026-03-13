@@ -188,13 +188,12 @@ Fixed list for devices supporting downsampling (Logic 4/8/Pro 8/Pro 16):
    but needs verification. (Related: TASK-0034)
 
 3. **"Altera" vs Xilinx device type mapping**: Device type 0/1 = "Altera"
-   (legacy Xilinx), type >= 2 = Xilinx. The meaning of the specific type
-   values (0, 1, 2, 3, ...) and which hardware revisions they correspond to
-   is unknown. No Altera bitstreams exist in the firmware -- only Xilinx
-   (Spartan-6, 7-Series) and Lattice (ECP5). See `doc/protocol/fpga-registers.md`
-   for FPGA variant constraints on SamplesPerChunk and MaxTriggerBuffer
-   (Xilinx: 0x100-0x1E00 / 0x3FFFC000, "Altera": 0x40-0x1780 / 0x2FFFC000).
-   (Related: TASK-0032, TASK-0027)
+   (legacy Xilinx), type >= 2 = Xilinx. No Altera bitstreams exist in the
+   firmware -- only Xilinx (Spartan-6, 7-Series) and Lattice (ECP5). The
+   Rust codebase models this as `DeviceFeatureClass` (NonPro / Pro / Mso)
+   in `crates/saleae-proto/src/device.rs`. Hardware revision major byte
+   determines `FpgaVariant` and `AdcType` -- see `doc/protocol/eeprom.md`
+   for the full mapping table. (Related: TASK-0032, TASK-0027)
 
 4. **SamplesPerPacketMultiple without stats**: When stats collection is
    disabled, what alignment (if any) is required? The code only checks

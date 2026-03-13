@@ -4,7 +4,9 @@ Status: High confidence (static analysis of libgraph_server_shared.so v2.4.40)
 Corroboration: Ghidra decompilation of 59 functions, format string analysis,
 assertion string cross-reference, function signature matching, SetField template
 instantiation tracing
-Awaiting: USB capture validation for register value verification
+Partially validated: FpgaDeviceFeatures registers confirmed via USB pcap
+(Phase 7 capture parameters) and Rust driver implementation. MsoFpga
+registers are from Ghidra only.
 
 
 ## Overview
@@ -321,3 +323,13 @@ FpgaDeviceFeatures (8-bit addresses, 8-bit values):
   0x40           PLL/DCM lock status
   0x4A           Secondary PLL status
 ```
+
+
+## Cross-References
+
+- `doc/protocol/ep1-commands.md` -- opcodes 0x80 (WriteRegisters), 0x81 (ReadRegisters)
+- `doc/protocol/capture-sequence.md` -- SetCaptureParameters writes these registers
+- `doc/protocol/capture-constants.md` -- packet size and trigger buffer constraints
+- `doc/protocol/overflow-handling.md` -- overflow flags from stats in EP2 stream
+- `crates/saleae-proto/src/fpga_regs.rs` -- Rust register address constants (consolidated, TASK-0170)
+- `crates/saleae-proto/src/device.rs` -- `DeviceFeatureClass`, `FpgaVariant`, `AdcType`

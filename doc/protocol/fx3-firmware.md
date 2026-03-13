@@ -120,3 +120,12 @@ returns the device to its bootloader state.
 The MSO device (`MsoSpiFlash::WriteFirmware`) is a different and more
 dangerous path -- it writes to non-volatile SPI flash. That device type
 is out of scope for this analysis.
+
+
+## Cross-References
+
+- `doc/protocol/ep1-commands.md` -- EP1 command protocol (available after firmware upload)
+- `doc/protocol/fpga-bitstream.md` -- FPGA programming (next step after firmware upload)
+- `doc/protocol/eeprom.md` -- EEPROM layout (read after firmware upload)
+- `crates/saleae-proto/src/firmware/fx3.rs` -- FX3 firmware image parser
+- `crates/saleae-driver/src/firmware.rs` -- firmware upload implementation

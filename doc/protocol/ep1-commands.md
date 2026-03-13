@@ -3,8 +3,10 @@
 Status: High confidence (static analysis of libgraph_server_shared.so v2.4.40)
 Corroboration: RIP-relative LEA cross-reference to string constants, vtable
 offset pattern matching at 3 independent call sites, immediate value extraction,
-firmware source file path cross-reference (CommandProcessing.c)
-Awaiting: USB capture validation, Ghidra decompilation for remaining opcodes
+firmware source file path cross-reference (CommandProcessing.c).
+Hardware-validated: Reseed, Ping (0x7D), ReadVersion (0x07), ReadRegisters
+(0x81), WriteRegisters (0x80), WriteConfigurationData (0x7F), ResetFpga
+(0x7E), StartRead (0x01), StopStream (0x02) all tested on Logic Pro 8.
 
 
 ## Overview
@@ -32,6 +34,7 @@ access, capture start/stop, EEPROM access, I2C tunneling, and diagnostics.
 |--------|------|-----------|---------|----------|
 | 0x01 | COMMAND_START_READ | OUT | None | 2 bytes: `[0x07, 0x00]` |
 | 0x02 | COMMAND_STOP_STREAM | OUT | None | 2 bytes: `[0x07, 0x00]` |
+| 0x07 | ReadVersion (I2C tunnel) | OUT | I2C params | Variable (see `doc/protocol/eeprom.md`) |
 | 0x55 | WriteEeprom | OUT | Address + data | Read-back confirmation |
 | 0x7D | Ping | OUT | 1 byte | 1 byte: complement of input |
 | 0x7E | ResetFpga | OUT | None | 1 byte: `0x00` |
@@ -307,3 +310,14 @@ Unrecognized opcodes produce: "unrecognized command"
 | EP1 OUT (0x01) | Command protocol | All device control |
 | EP1 IN (0x81) | Command protocol | All device responses |
 | EP2 IN (0x82) | Raw bulk stream | Sample data during capture |
+
+
+## Cross-References
+
+- `doc/protocol/eeprom.md` -- EEPROM access via ReadVersion (0x07) I2C tunnel
+- `doc/protocol/fpga-registers.md` -- FPGA registers accessed via opcodes 0x80/0x81
+- `doc/protocol/fpga-bitstream.md` -- FPGA programming via opcodes 0x7E/0x7F
+- `doc/protocol/capture-sequence.md` -- capture start/stop using opcodes 0x01/0x02
+- `crates/saleae-proto/src/ep1_opcodes.rs` -- Rust opcode constants
+- `crates/saleae-proto/src/obfuscation.rs` -- XOR obfuscation (SimpleEncryption)
+- `crates/saleae-driver/src/ep1.rs` -- EP1 command channel implementation

@@ -2,8 +2,9 @@
 
 Confidence: **High** -- findings are from direct binary analysis of
 libgraph_server_shared.so v2.4.40, including embedded bitstream headers,
-string references, and mangled C++ symbol names. Not yet validated against
-USB captures.
+string references, and mangled C++ symbol names. Programming sequence
+validated against USB pcap and hardware-tested on a Logic Pro 8
+(Xilinx Spartan-6, Rev 1.02).
 
 ## Overview
 
@@ -121,11 +122,12 @@ Selection is based on:
 1. **USB PID** determines device type (Logic 4/8/Pro 8/Pro 16)
 2. **EEPROM** stores board revision (`ParseBoardRevision`)
    - `FPGA HW Revision: {}.{}`
-   - Includes ADC type: HMCAD1100 vs AD9637
-3. **RevisionDetail** struct determines:
-   - Which FPGA part is on this board
+   - Includes ADC type: HMCAD1100 vs AD9637 vs ADS528x
+   - Rust: `HardwareRevision::parse()` in `crates/saleae-proto/src/device.rs`
+3. **RevisionDetail** struct (Rust: `HardwareRevision`) determines:
+   - Which FPGA variant is on this board (`FpgaVariant` enum)
+   - Which ADC type (`AdcType` enum)
    - Which crypto interface to use
-   - Whether new features are available
 
 Override: `SALEAE_FPGA_IMAGE` env var loads bitstream from file path.
 
@@ -151,3 +153,11 @@ Devices include a hardware crypto IC (likely Microchip ATECC508A/608A):
 - `CryptoInterfacePro` -- Pro device variant
 - Uses ECDSA signing (`SignDigest`, `GetPublicKey`)
 - `RevisionDetail::UsesNewCryptoInterface()` selects variant
+
+
+## Cross-References
+
+- `doc/protocol/eeprom.md` -- hardware revision determines bitstream selection
+- `doc/protocol/ep1-commands.md` -- ResetFpga (0x7E), WriteConfigurationData (0x7F)
+- `doc/protocol/fpga-registers.md` -- post-programming register initialization
+- `crates/saleae-proto/src/device.rs` -- `HardwareRevision`, `FpgaVariant`, `AdcType` types

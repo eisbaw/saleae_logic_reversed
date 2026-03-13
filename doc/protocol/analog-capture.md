@@ -3,9 +3,9 @@
 Status: High confidence (static analysis of libgraph_server_shared.so v2.4.40)
 Corroboration: Multiple independent evidence sources (string analysis,
 RTTI/mangled symbols, assertion messages, source file paths, Lattice
-bitstream metadata)
-Awaiting: USB capture validation and Ghidra decompilation for exact
-constants and interleaving format
+bitstream metadata). Interleaving format resolved (see
+`crates/saleae-proto/src/disaggregator.rs`).
+Awaiting: USB capture validation for remaining analog-specific constants
 
 
 ## Overview
@@ -15,10 +15,10 @@ stream as digital data. The interleaved byte stream is split by the
 `DisaggregatorNode` into per-channel data: digital channels produce
 `VectorData<uint8_t>`, analog channels produce `VectorData<int16_t>`.
 
-The analog data pipeline applies calibration (FIR filtering), optional
-downsampling, and stores samples as `AnalogData` objects containing
-raw ADC codes (int16_t). Conversion to voltages happens at display/export
-time using a linear `AdcToVoltageTransform`.
+The analog data pipeline applies calibration (IIR biquad filtering),
+optional downsampling, and stores samples as `AnalogData` objects
+containing raw ADC codes (int16_t). Conversion to voltages happens at
+display/export time using a linear `AdcToVoltageTransform`.
 
 ```
 FPGA -> FX3 EP2 IN -> TransferQueue -> OnDataBuffer
@@ -27,7 +27,7 @@ FPGA -> FX3 EP2 IN -> TransferQueue -> OnDataBuffer
        +-> VectorData<int16_t> per analog channel
              |
              v
-       AnalogCalibrationFilter (FIR filter, per-channel, per-sample-rate)
+       AnalogCalibrationFilter (IIR biquad, per-channel, per-sample-rate)
              |
              v
        AnalogCreatorNode -> AnalogData
@@ -150,7 +150,7 @@ Evidence:
 
 ```
 Input -> Attenuator Stage 1 (attn1) -> Attenuator Stage 2 (attn2)
-  -> LMH6518 VGA (preamp + ladder + gain) -> ADC
+  -> LMH6518 VGA (variable-gain amplifier) -> ADC
        ^-- DC offset via DAC
 ```
 
@@ -160,8 +160,13 @@ Four channels per device (Pro 8 uses channels 0-7 of Pro 16):
 
 ```
 enabled, coupling (AC/DC), probe_attenuation, afe_config
-attn1, attn2, vga_gain, vga_preamp, vga_ladder, dac (V), min (V), max (V)
+attn1, attn2, lmh6518_config (preamp|ladder|aux_hi_z|power_mode), dac (V), min (V), max (V)
 ```
+
+The LMH6518 VGA register layout is a single 10-bit word packed as:
+`preamp[1:0] | ladder[3:0] | aux_hi_z[1] | power_mode[2:0]`.
+See `crates/saleae-driver/src/capture.rs` for the `AfeChannelConfig` Rust
+implementation.
 
 ### AFE Config Numbering
 
@@ -282,9 +287,30 @@ USB capture validation
 
 ## Open Questions
 
-1. Exact interleaving format in the USB bulk transfer (sample-level vs
-   block-level interleaving)
-2. Exact values of minAnalogSamplesPerPacket and maxAnalogSamplesPerPacket
-3. AnalogStats format (what fields are in per-packet stats)
-4. HMCAD1100 multi-channel mode selection logic
-5. Logic 4 and Logic 8 analog channel counts
+1. Exact values of minAnalogSamplesPerPacket and maxAnalogSamplesPerPacket
+2. AnalogStats format (what fields are in per-packet stats)
+3. HMCAD1100 multi-channel mode selection logic
+4. Logic 4 and Logic 8 analog channel counts
+
+## Resolved Questions
+
+- **Interleaving format**: Resolved in TASK-0141. Block-level interleaving
+  with per-channel sample counts derived from GPIF width and channel
+  configuration. See `crates/saleae-proto/src/disaggregator.rs`.
+- **DisaggregatorSettingsData**: The disaggregator configuration is derived
+  from sample rate, channel enables, and GPIF bus width. Implemented in
+  `crates/saleae-proto/src/disaggregator.rs`.
+
+
+## Cross-References
+
+- `doc/protocol/overflow-handling.md` -- overflow metadata in EP2 stats stream
+- `doc/protocol/fpga-registers.md` -- FPGA register interface for ADC/AFE control
+- `doc/protocol/capture-constants.md` -- packet size constraints
+- `doc/protocol/capture-sequence.md` -- capture start/stop sequence
+- `doc/calibration/calibration-format.md` -- .cal file format, IIR filter coefficients,
+  ADC-to-voltage transform
+- `crates/saleae-proto/src/disaggregator.rs` -- EP2 stream disaggregation
+- `crates/saleae-proto/src/calibration.rs` -- .cal file parser
+- `crates/saleae-proto/src/biquad.rs` -- IIR biquad filter implementation
+- `crates/saleae-driver/src/capture.rs` -- AFE channel config (LMH6518)

@@ -265,3 +265,13 @@ Smart cables add external digital channels via probe accessories:
 - Configuration via `SetEnabledSmartCableDigitalChannels(int port, std::array<bool, 4>)`
 - Separate FPGA register space per port
 - Smart cable metadata includes VID, PID, hardware/firmware versions
+
+
+## Cross-References
+
+- `doc/protocol/overflow-handling.md` -- overflow metadata format in EP2 stats stream
+- `doc/protocol/capture-constants.md` -- packet size constraints (FpgaConstants)
+- `doc/protocol/capture-sequence.md` -- capture start/stop sequence
+- `doc/protocol/fpga-registers.md` -- digital channel config registers
+- `doc/protocol/ep1-commands.md` -- EP1 command protocol
+- `crates/saleae-proto/src/disaggregator.rs` -- EP2 stream disaggregation implementation

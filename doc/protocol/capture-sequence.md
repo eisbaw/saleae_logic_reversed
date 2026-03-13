@@ -375,24 +375,17 @@ is terminal -- the device must be physically reconnected.
 - **EP1 command protocol**: `doc/protocol/ep1-commands.md`
 - **FPGA register interface**: `doc/protocol/fpga-registers.md`
 - **Capture constants**: `doc/protocol/capture-constants.md`
+- **Overflow handling**: `doc/protocol/overflow-handling.md`
+- **Disaggregator**: `crates/saleae-proto/src/disaggregator.rs`
 
 
 ## Open Questions
 
-1. **Exact start/stop command bytes**: What is the binary format of
-   SendStartCommand and COMMAND_STOP_STREAM? Are these specific byte
-   values on EP1 OUT, or structured packets with headers?
-   (Related: TASK-0014)
-
-2. **FPGA register map for triggers**: The MsoFpga path uses 16-bit
-   addresses and 32-bit values (`FPGA WriteRegister 0x{:04x} = 0x{:08x}`).
-   The FpgaDeviceFeatures capture config registers (0x06-0x14) are
-   documented in `doc/protocol/fpga-registers.md`, but the MsoFpga
-   trigger register exact values per device type are not yet observed
-   in USB captures. (Related: TASK-0031)
-
-3. **DisaggregatorSettingsData format**: How does this struct describe the
-   channel interleaving layout in the USB stream? (Related: TASK-0038)
+1. **MsoFpga trigger register values per device type**: The MsoFpga path
+   uses 16-bit addresses and 32-bit values (`FPGA WriteRegister
+   0x{:04x} = 0x{:08x}`). The trigger register addresses are documented
+   in `doc/protocol/fpga-registers.md`, but the exact values per device
+   type are not yet observed in USB captures. (Related: TASK-0031)
 
 ## Resolved Questions
 
@@ -404,3 +397,13 @@ is terminal -- the device must be physically reconnected.
 
 - **Exact FpgaConstants values**: Resolved in TASK-0023. See
   `doc/protocol/capture-constants.md` for all extracted values.
+
+- **Exact start/stop command bytes**: COMMAND_START_READ is opcode `0x01`
+  (no payload, response `[0x07, 0x00]`). COMMAND_STOP_STREAM is opcode
+  `0x02` (no payload, response `[0x07, 0x00]`). Both are single-byte
+  opcodes on EP1 OUT. Documented in `doc/protocol/ep1-commands.md` and
+  hardware-validated.
+
+- **DisaggregatorSettingsData format**: Resolved in TASK-0141. The
+  disaggregator configuration is derived from sample rate, channel enables,
+  and GPIF bus width. Implemented in `crates/saleae-proto/src/disaggregator.rs`.
