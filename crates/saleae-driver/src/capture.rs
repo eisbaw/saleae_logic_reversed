@@ -62,8 +62,31 @@ const ADC_BYTES_PER_SAMPLE: u8 = 2;
 /// These come from the device profile and EEPROM hardware revision.
 #[derive(Debug, Clone)]
 pub struct CaptureConfig {
-    /// Sample rate in Hz.
+    /// Digital sample rate in Hz.
+    ///
+    /// This is the primary sample rate. When `analog_sample_rate` is `None`,
+    /// analog channels also sample at this rate.
     pub sample_rate: u64,
+    /// Analog sample rate in Hz, if different from the digital rate.
+    ///
+    /// When `Some(rate)`, analog channels sample at `rate` while digital
+    /// channels sample at `sample_rate`. The FPGA uses separate clock
+    /// dividers for digital and analog, so they can run independently.
+    ///
+    /// Constraints:
+    /// - Must be <= `sample_rate` (analog cannot exceed digital rate).
+    /// - Must divide evenly into the effective analog clock
+    ///   (`base_analog_rate * 4` for Pro devices).
+    /// - The digital/analog rate ratio must produce an integer GCD-based
+    ///   interleaving ratio for the disaggregator.
+    ///
+    /// When `None`, defaults to `sample_rate` (equal-rate mode).
+    ///
+    /// **Not yet hardware-validated for non-equal rates.** The register
+    /// computation uses the same formulas as equal-rate mode (derived from
+    /// `SetCaptureParameters` decompilation), but no pcap data exists for
+    /// non-equal rate configurations.
+    pub analog_sample_rate: Option<u64>,
     /// Enabled digital channel indices (0-based).
     pub digital_channels: Vec<u8>,
     /// Enabled analog channel indices (0-based). Empty for digital-only.
@@ -111,6 +134,7 @@ impl Default for CaptureConfig {
     fn default() -> Self {
         Self {
             sample_rate: 1_000_000,
+            analog_sample_rate: None,
             digital_channels: vec![0, 1, 2, 3],
             analog_channels: vec![],
             duration_samples: 0,
@@ -153,6 +177,38 @@ impl CaptureConfig {
         }
     }
 
+    /// Create a `CaptureConfig` for Logic Pro 8 with independent sample rates.
+    ///
+    /// Like [`pro8`](Self::pro8) but allows specifying a separate analog
+    /// sample rate. Use this for mixed-mode captures where analog channels
+    /// run at a lower rate than digital channels.
+    ///
+    /// **Not yet hardware-validated for non-equal rates.**
+    pub fn pro8_mixed_rate(
+        digital_sample_rate: u64,
+        analog_sample_rate: u64,
+        digital_channels: Vec<u8>,
+        analog_channels: Vec<u8>,
+    ) -> Self {
+        let analog_rate = if analog_sample_rate == digital_sample_rate {
+            None
+        } else {
+            Some(analog_sample_rate)
+        };
+        Self {
+            sample_rate: digital_sample_rate,
+            analog_sample_rate: analog_rate,
+            digital_channels,
+            analog_channels,
+            ..Self::default()
+        }
+    }
+
+    /// Effective analog sample rate: `analog_sample_rate` if set, else `sample_rate`.
+    pub fn effective_analog_rate(&self) -> u64 {
+        self.analog_sample_rate.unwrap_or(self.sample_rate)
+    }
+
     /// Validate the capture configuration.
     pub fn validate(&self) -> DriverResult<()> {
         if self.sample_rate == 0 {
@@ -172,6 +228,30 @@ impl CaptureConfig {
                 return Err(DriverError::InvalidCaptureConfig {
                     reason: format!("channel {ch} out of range (max 15)"),
                 });
+            }
+        }
+
+        // Validate analog sample rate constraints.
+        if let Some(analog_rate) = self.analog_sample_rate {
+            if analog_rate == 0 {
+                return Err(DriverError::InvalidCaptureConfig {
+                    reason: "analog_sample_rate must be > 0".into(),
+                });
+            }
+            if analog_rate > self.sample_rate {
+                return Err(DriverError::InvalidCaptureConfig {
+                    reason: format!(
+                        "analog_sample_rate ({analog_rate} Hz) exceeds digital sample_rate ({} Hz); \
+                         analog rate must be <= digital rate",
+                        self.sample_rate,
+                    ),
+                });
+            }
+            if !self.analog_channels.is_empty() && analog_rate == self.sample_rate {
+                // Not an error, but normalize: clear the redundant field.
+                // We only warn here since CaptureConfig is not &mut.
+                // The compute_capture_registers function handles this via
+                // effective_analog_rate().
             }
         }
 
@@ -211,10 +291,12 @@ impl CaptureConfig {
     /// # Bandwidth formula
     ///
     /// ```text
-    /// digital_bw   = sample_rate * digital_channels * 1 byte
-    /// analog_bw    = sample_rate * analog_channels  * 2 bytes (12-bit -> 16-bit)
+    /// digital_bw   = digital_sample_rate * digital_channels * 1 byte
+    /// analog_bw    = analog_sample_rate  * analog_channels  * 2 bytes (12-bit -> 16-bit)
     /// total_bw     = digital_bw + analog_bw
     /// ```
+    ///
+    /// When `analog_sample_rate` is `None`, it defaults to `sample_rate`.
     ///
     /// USB limits (practical sustained throughput, not raw signaling rate):
     /// - USB 2.0 High Speed: 37.5 MB/s (300 Mbit/s)
@@ -228,15 +310,16 @@ impl CaptureConfig {
 
         let digital_count = self.digital_channels.len() as u64;
         let analog_count = self.analog_channels.len() as u64;
+        let analog_rate = self.effective_analog_rate();
 
         // Digital: 1 byte per sample per channel.
         // Analog: 2 bytes per sample per channel (12-bit ADC packed to 16-bit).
         let bytes_per_sample_digital = 1u64;
         let bytes_per_sample_analog = 2u64;
 
-        let total_bandwidth = self.sample_rate.saturating_mul(
-            digital_count * bytes_per_sample_digital + analog_count * bytes_per_sample_analog,
-        );
+        let digital_bw = self.sample_rate.saturating_mul(digital_count * bytes_per_sample_digital);
+        let analog_bw = analog_rate.saturating_mul(analog_count * bytes_per_sample_analog);
+        let total_bandwidth = digital_bw.saturating_add(analog_bw);
 
         let max_bandwidth: u64 = match self.usb_speed {
             UsbSpeed::Super | UsbSpeed::SuperPlus => 375_000_000, // 375 MB/s
@@ -249,14 +332,12 @@ impl CaptureConfig {
         };
 
         if total_bandwidth > max_bandwidth {
-            let digital_bw = self.sample_rate * digital_count * bytes_per_sample_digital;
-            let analog_bw = self.sample_rate * analog_count * bytes_per_sample_analog;
             return Err(DriverError::InvalidCaptureConfig {
                 reason: format!(
                     "capture bandwidth {total_bandwidth} B/s exceeds {} limit of {max_bandwidth} B/s \
                      (digital: {digital_count} ch x {} Hz = {digital_bw} B/s, \
                      analog: {analog_count} ch x {} Hz x 2 = {analog_bw} B/s)",
-                    self.usb_speed, self.sample_rate, self.sample_rate,
+                    self.usb_speed, self.sample_rate, analog_rate,
                 ),
             });
         }
@@ -690,7 +771,8 @@ pub fn configure_capture(ep1: &mut Ep1CommandChannel, config: &CaptureConfig) ->
     config.validate_bandwidth()?;
 
     info!(
-        sample_rate = config.sample_rate,
+        digital_sample_rate = config.sample_rate,
+        analog_sample_rate = config.effective_analog_rate(),
         digital_channels = ?config.digital_channels,
         analog_channels = ?config.analog_channels,
         samples_per_chunk = config.samples_per_chunk,
@@ -939,9 +1021,19 @@ impl CaptureRegisters {
 /// (ELF 0x1c24ca0) and validated against the single known pcap reference
 /// (Logic Pro 8, 12.5 MSa/s, all channels).
 ///
+/// # Non-equal sample rates
+///
+/// When `config.analog_sample_rate` is set, `analog_decimation` is computed
+/// from the analog rate and `digital_divider` from the digital rate. The
+/// `digital_ratio` (digital groups per analog group) is derived from the
+/// GCD of the effective rates, matching the `DeviceCalculateMixRate`
+/// algorithm from `re/notes/device-helpers.md`.
+///
+/// **Non-equal rate register values are NOT yet hardware-validated.**
+///
 /// # Pcap validation
 ///
-/// For the reference config (12.5 MSa/s, 8 digital + 8 analog, Pro 8):
+/// For the reference config (12.5 MSa/s both, 8 digital + 8 analog, Pro 8):
 /// - analog_decimation = (100 MHz * 4) / 12.5 MHz = 32 = 0x20
 /// - digital_divider = 200 MHz / 12.5 MHz = 16 = 0x10
 /// - mix_ratio_a = (12 * 8) / 4 = 24 = 0x18
@@ -976,15 +1068,23 @@ pub fn compute_capture_registers(config: &CaptureConfig) -> CaptureRegisters {
 
     // Analog decimation.
     // For Pro devices with ADC in 4x interleaved mode:
-    //   analog_decimation = (base_analog_rate * 4) / sample_rate
+    //   analog_decimation = (base_analog_rate * 4) / analog_sample_rate
     // Validated: (100 MHz * 4) / 12.5 MHz = 32 = 0x20 (matches pcap r0x0a).
+    //
+    // When analog_sample_rate differs from sample_rate, the FPGA's analog
+    // clock divider runs at the analog rate while the digital divider runs
+    // at the digital rate. This produces a non-unity digital_ratio below.
+    //
+    // NOT YET HARDWARE-VALIDATED for non-equal rates. The formula is the
+    // same as equal-rate mode (from SetCaptureParameters decompilation).
+    let analog_rate = config.effective_analog_rate();
     let analog_decimation: u16 = if analog_count > 0 && config.base_analog_rate > 0 {
         let effective_analog_clock = if config.is_pro {
             config.base_analog_rate * ADC_4X_INTERLEAVE_FACTOR
         } else {
             config.base_analog_rate
         };
-        (effective_analog_clock / config.sample_rate.max(1)) as u16
+        (effective_analog_clock / analog_rate.max(1)) as u16
     } else {
         0
     };
@@ -1009,30 +1109,29 @@ pub fn compute_capture_registers(config: &CaptureConfig) -> CaptureRegisters {
     };
 
     // Digital ratio: how many digital packet groups per analog group.
-    // For equal digital/analog rate: 1. For digital=2x analog: 2.
-    // Digital-only: 1 (one digital group, no analog).
+    //
+    // This is the key value that changes with non-equal sample rates.
+    // For equal digital/analog rate: ratio = 1.
+    // For digital=2x analog (e.g. 25 MHz digital, 12.5 MHz analog): ratio = 2.
+    // Digital-only: ratio = 1.
+    //
+    // Algorithm: compute effective digital and analog rates from the FPGA
+    // dividers, then find the integer ratio via GCD.
+    //
+    //   digital_rate = fpga_clock / digital_divider
+    //   analog_rate  = effective_analog_clock / analog_decimation
+    //   digital_ratio = digital_rate / analog_rate (reduced via GCD)
+    //
+    // Pcap reference (12.5 MSa/s both): 200/16 = 12.5, 400/32 = 12.5 -> ratio 1.
+    //
+    // NOT YET HARDWARE-VALIDATED for non-equal rates. The GCD-based ratio
+    // computation matches the DeviceCalculateMixRate decompilation (see
+    // re/notes/device-helpers.md), which takes separate digital and analog
+    // sample rates as parameters.
     let digital_ratio: u32 = if analog_count > 0 && digital_count > 0 {
-        // Both rates are the same in the pcap reference (12.5 MSa/s).
-        // digital_ratio = digital_divider / analog_decimation scaled to
-        // common rate. For equal rates: 1.
-        // TODO: More pcap data needed for non-equal rate configs.
         let analog_dec = analog_decimation as u32;
         let digital_div = digital_divider as u32;
         if analog_dec > 0 && digital_div > 0 {
-            // The ratio of analog samples to digital samples per cycle.
-            // analog_decimation / digital_divider gives the ratio.
-            // For pcap: 32 / 16 = 2... but digital_ratio should be 1?
-            // Actually: digital rate is higher, so digital_ratio = analog_dec / digital_div
-            // when they sample at same effective rate, this gives how many
-            // digital groups fit in one analog group.
-            // For pcap: digital captures at fpga_clock/divider = 200/16 = 12.5 MSa/s
-            // analog captures at effective_clock/decimation = 400/32 = 12.5 MSa/s
-            // Same rate -> ratio 1.
-            //
-            // More generally: digital_rate = fpga_clock / digital_divider
-            //                 analog_rate = effective_analog_clock / analog_decimation
-            // digital_ratio = digital_rate / analog_rate
-            // But we need integer ratios via GCD.
             let d_rate = fpga_clock / digital_divider.max(1) as u64;
             let a_rate = if config.is_pro {
                 (config.base_analog_rate * ADC_4X_INTERLEAVE_FACTOR)
@@ -1118,17 +1217,24 @@ pub fn compute_capture_registers(config: &CaptureConfig) -> CaptureRegisters {
 
     // Warn for unvalidated configurations.
     let is_pcap_reference = config.sample_rate == 12_500_000
+        && analog_rate == 12_500_000
         && digital_count == 8
         && analog_count == 8
         && config.is_pro
         && config.total_device_channels == 8;
 
     if !is_pcap_reference {
+        let non_equal_note = if config.analog_sample_rate.is_some() {
+            " (NON-EQUAL RATES: needs hardware validation)"
+        } else {
+            ""
+        };
         warn!(
-            sample_rate = config.sample_rate,
+            digital_sample_rate = config.sample_rate,
+            analog_sample_rate = analog_rate,
             digital = digital_count,
             analog = analog_count,
-            "Capture register values not hardware-validated for this configuration"
+            "Capture register values not hardware-validated for this configuration{non_equal_note}"
         );
     }
 
@@ -1395,7 +1501,8 @@ pub fn start_digital_capture(
     config.validate()?;
 
     info!(
-        sample_rate = config.sample_rate,
+        digital_sample_rate = config.sample_rate,
+        analog_sample_rate = config.effective_analog_rate(),
         channels = ?config.digital_channels,
         duration_samples = config.duration_samples,
         "Starting digital capture"
@@ -3511,5 +3618,233 @@ mod tests {
         let (sel, div) = compute_low_speed_divider(150_000);
         assert_eq!(sel, 0);
         assert_eq!(div, 1);
+    }
+
+    // -------------------------------------------------------------------
+    // Non-equal digital/analog sample rate tests
+    //
+    // These tests validate the register computation for mixed-mode captures
+    // where digital and analog channels run at different sample rates.
+    //
+    // NOT YET HARDWARE-VALIDATED. The register values are derived from the
+    // same formulas as equal-rate mode (decompiled SetCaptureParameters),
+    // applied with independent rates per DeviceCalculateMixRate's design.
+    // -------------------------------------------------------------------
+
+    #[test]
+    fn effective_analog_rate_defaults_to_sample_rate() {
+        let config = CaptureConfig::pro8(12_500_000, vec![0], vec![0]);
+        assert_eq!(config.effective_analog_rate(), 12_500_000);
+    }
+
+    #[test]
+    fn effective_analog_rate_uses_override() {
+        let config = CaptureConfig {
+            analog_sample_rate: Some(6_250_000),
+            ..CaptureConfig::pro8(12_500_000, vec![0], vec![0])
+        };
+        assert_eq!(config.effective_analog_rate(), 6_250_000);
+    }
+
+    #[test]
+    fn pro8_mixed_rate_constructor() {
+        let config = CaptureConfig::pro8_mixed_rate(
+            25_000_000,
+            6_250_000,
+            vec![0, 1, 2, 3],
+            vec![0, 1],
+        );
+        assert_eq!(config.sample_rate, 25_000_000);
+        assert_eq!(config.analog_sample_rate, Some(6_250_000));
+        assert_eq!(config.effective_analog_rate(), 6_250_000);
+    }
+
+    #[test]
+    fn pro8_mixed_rate_same_rate_normalizes_to_none() {
+        // When analog == digital, constructor should set analog_sample_rate = None.
+        let config = CaptureConfig::pro8_mixed_rate(
+            12_500_000,
+            12_500_000,
+            vec![0],
+            vec![0],
+        );
+        assert_eq!(config.analog_sample_rate, None);
+    }
+
+    #[test]
+    fn validate_rejects_analog_rate_exceeding_digital() {
+        let config = CaptureConfig {
+            analog_sample_rate: Some(50_000_000),
+            ..CaptureConfig::pro8(12_500_000, vec![0], vec![0])
+        };
+        let err = config.validate().unwrap_err();
+        assert!(
+            err.to_string().contains("exceeds"),
+            "expected analog rate rejection, got: {err}"
+        );
+    }
+
+    #[test]
+    fn validate_rejects_zero_analog_rate() {
+        let config = CaptureConfig {
+            analog_sample_rate: Some(0),
+            ..CaptureConfig::pro8(12_500_000, vec![0], vec![0])
+        };
+        let err = config.validate().unwrap_err();
+        assert!(err.to_string().contains("analog_sample_rate"));
+    }
+
+    #[test]
+    fn registers_25mhz_digital_6_25mhz_analog() {
+        // Pro 8: 25 MHz digital, 6.25 MHz analog, all channels.
+        // NOT HARDWARE-VALIDATED.
+        //
+        // Expected computation:
+        //   digital_divider = 200 MHz / 25 MHz = 8
+        //   analog_decimation = (100 MHz * 4) / 6.25 MHz = 64 = 0x40
+        //   d_rate = 200 / 8 = 25 MHz
+        //   a_rate = 400 / 64 = 6.25 MHz
+        //   digital_ratio = 25 / 6.25 = 4
+        //   mix_ratio_a = (12 * 8) / 4 = 24 = 0x18
+        //   mix_ratio_b = 4 * 8 = 32 = 0x20
+        let config = CaptureConfig {
+            analog_sample_rate: Some(6_250_000),
+            ..CaptureConfig::pro8(25_000_000, (0..8).collect(), (0..8).collect())
+        };
+        let regs = compute_capture_registers(&config);
+
+        assert_eq!(regs.digital_divider_lo, 8, "200M / 25M = 8");
+        assert_eq!(regs.digital_divider_hi, 0);
+        assert_eq!(regs.analog_decimation, 0x40, "(100M * 4) / 6.25M = 64");
+        assert_eq!(regs.digital_ratio, 4, "25M / 6.25M = 4");
+        assert_eq!(regs.mix_ratio_a, 0x18, "(12 * 8) / 4 = 24");
+        assert_eq!(regs.mix_ratio_b, 0x20, "4 * 8 = 32");
+    }
+
+    #[test]
+    fn registers_50mhz_digital_12_5mhz_analog() {
+        // Pro 8: 50 MHz digital, 12.5 MHz analog, 4 digital + 2 analog.
+        // NOT HARDWARE-VALIDATED.
+        //
+        // Expected computation:
+        //   digital_divider = 200 MHz / 50 MHz = 4
+        //   analog_decimation = (100 MHz * 4) / 12.5 MHz = 32 = 0x20
+        //   d_rate = 200 / 4 = 50 MHz
+        //   a_rate = 400 / 32 = 12.5 MHz
+        //   digital_ratio = 50 / 12.5 = 4
+        //   mix_ratio_a = (12 * 2) / 4 = 6
+        //   mix_ratio_b = 4 * 4 = 16 = 0x10
+        let config = CaptureConfig {
+            analog_sample_rate: Some(12_500_000),
+            ..CaptureConfig::pro8(50_000_000, vec![0, 1, 2, 3], vec![0, 1])
+        };
+        let regs = compute_capture_registers(&config);
+
+        assert_eq!(regs.digital_divider_lo, 4, "200M / 50M = 4");
+        assert_eq!(regs.analog_decimation, 0x20, "(100M * 4) / 12.5M = 32");
+        assert_eq!(regs.digital_ratio, 4, "50M / 12.5M = 4");
+        assert_eq!(regs.mix_ratio_a, 6, "(12 * 2) / 4 = 6");
+        assert_eq!(regs.mix_ratio_b, 16, "4 * 4 = 16");
+    }
+
+    #[test]
+    fn registers_equal_rate_same_as_no_override() {
+        // Setting analog_sample_rate = Some(same_value) should produce
+        // identical registers to not setting it.
+        let config_default = CaptureConfig::pro8(
+            12_500_000,
+            (0..8).collect(),
+            (0..8).collect(),
+        );
+        let config_explicit = CaptureConfig {
+            analog_sample_rate: Some(12_500_000),
+            ..CaptureConfig::pro8(12_500_000, (0..8).collect(), (0..8).collect())
+        };
+
+        let regs_default = compute_capture_registers(&config_default);
+        let regs_explicit = compute_capture_registers(&config_explicit);
+
+        assert_eq!(regs_default, regs_explicit);
+    }
+
+    #[test]
+    fn registers_digital_only_ignores_analog_rate() {
+        // When no analog channels are enabled, analog_sample_rate is irrelevant.
+        let config = CaptureConfig {
+            analog_sample_rate: Some(6_250_000),
+            ..CaptureConfig::pro8(25_000_000, (0..8).collect(), vec![])
+        };
+        let regs = compute_capture_registers(&config);
+
+        assert_eq!(regs.analog_decimation, 0, "no analog -> no decimation");
+        assert_eq!(regs.digital_ratio, 1, "digital-only -> ratio 1");
+    }
+
+    #[test]
+    fn registers_2x_rate_ratio() {
+        // Pro 8: 12.5 MHz digital, 6.25 MHz analog.
+        // digital_ratio should be 2.
+        //
+        //   digital_divider = 200 / 12.5 = 16
+        //   analog_decimation = 400 / 6.25 = 64
+        //   d_rate = 200 / 16 = 12.5
+        //   a_rate = 400 / 64 = 6.25
+        //   digital_ratio = 12.5 / 6.25 = 2
+        let config = CaptureConfig {
+            analog_sample_rate: Some(6_250_000),
+            ..CaptureConfig::pro8(12_500_000, (0..4).collect(), (0..4).collect())
+        };
+        let regs = compute_capture_registers(&config);
+
+        assert_eq!(regs.digital_divider_lo, 16);
+        assert_eq!(regs.analog_decimation, 64);
+        assert_eq!(regs.digital_ratio, 2, "12.5M / 6.25M = 2");
+    }
+
+    #[test]
+    fn disaggregator_non_equal_rates() {
+        // Verify the disaggregator can be created from non-equal rate registers.
+        let config = CaptureConfig {
+            analog_sample_rate: Some(6_250_000),
+            ..CaptureConfig::pro8(25_000_000, (0..8).collect(), (0..8).collect())
+        };
+        let disagg = config.disaggregator().unwrap();
+
+        assert_eq!(disagg.num_digital(), 8);
+        assert_eq!(disagg.num_analog(), 8);
+        // digital_ratio=4, so digital: 4*4*8=128 bytes, analog: 12*8=96 bytes
+        // total cycle = 224 bytes
+        assert_eq!(disagg.cycle_bytes(), 224);
+    }
+
+    #[test]
+    fn bandwidth_validation_non_equal_rates() {
+        // With non-equal rates, bandwidth should be computed from each
+        // subsystem's own rate, not a single rate for both.
+        //
+        // 25 MHz * 8 ch * 1 B = 200 MB/s digital
+        //  6.25 MHz * 8 ch * 2 B = 100 MB/s analog
+        // Total = 300 MB/s, within SuperSpeed 375 MB/s limit.
+        let config = CaptureConfig {
+            analog_sample_rate: Some(6_250_000),
+            ..CaptureConfig::pro8(25_000_000, (0..8).collect(), (0..8).collect())
+        };
+        config.validate_bandwidth().unwrap();
+    }
+
+    #[test]
+    fn bandwidth_validation_would_fail_at_single_rate() {
+        // If bandwidth were computed using the digital rate for both
+        // (the old behavior), this config would be rejected:
+        // 25 MHz * 8 * 1 + 25 MHz * 8 * 2 = 600 MB/s > 375 MB/s
+        //
+        // With correct per-subsystem rates:
+        // 25 MHz * 8 * 1 + 6.25 MHz * 8 * 2 = 300 MB/s <= 375 MB/s
+        let config = CaptureConfig {
+            analog_sample_rate: Some(6_250_000),
+            ..CaptureConfig::pro8(25_000_000, (0..8).collect(), (0..8).collect())
+        };
+        // Should pass with non-equal rate bandwidth computation.
+        assert!(config.validate_bandwidth().is_ok());
     }
 }
