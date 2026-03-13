@@ -1,10 +1,17 @@
 //! Analog sample processing pipeline.
 //!
 //! Converts raw ADC codes from the device into calibrated voltage samples
-//! by chaining:
+//! by chaining (matching the binary's processing order):
 //!
-//! 1. [`VoltageTransform`]: linear ADC code -> voltage conversion
-//! 2. [`BiquadFilter`]: IIR biquad cascade for calibration compensation
+//! 1. [`BiquadFilter`]: IIR biquad cascade on raw i16 ADC codes
+//! 2. [`VoltageTransform`]: linear ADC code -> voltage conversion
+//!
+//! The binary (`libgraph_server_shared.so`) applies the IIR biquad filter
+//! to raw i16 ADC samples first (converting to float, filtering, converting
+//! back to i16 via truncation + saturation), then applies the voltage
+//! transform in a separate graph node. Since the biquad filter is linear,
+//! the order does not affect the final result for DC/steady-state signals,
+//! but we match the binary's order for bit-exact consistency.
 //!
 //! The processor is stateful (the IIR filter has delay lines), so one
 //! processor instance should be used per channel for the duration of a
@@ -37,9 +44,10 @@ use crate::calibration::VoltageTransform;
 
 /// Analog sample processor: ADC codes -> calibrated voltages.
 ///
-/// Chains a linear voltage transform with an IIR biquad calibration
-/// filter. The filter state is maintained across calls, so samples
-/// must be fed in temporal order.
+/// Applies IIR biquad filter to raw i16 ADC codes first (matching the
+/// binary's processing order), then converts filtered codes to voltages
+/// via a linear transform. The filter state is maintained across calls,
+/// so samples must be fed in temporal order.
 #[derive(Debug, Clone)]
 pub struct AnalogProcessor {
     transform: VoltageTransform,
@@ -54,17 +62,20 @@ impl AnalogProcessor {
 
     /// Process a block of raw ADC samples into calibrated voltages.
     ///
-    /// Each sample is first converted to a voltage via the linear
-    /// transform, then passed through the IIR biquad cascade.
+    /// Each sample is first filtered as an i16 ADC code through the IIR
+    /// biquad cascade (matching the binary's processing order), then
+    /// converted to a voltage via the linear transform.
     ///
     /// Returns a new `Vec<f64>` of calibrated voltage values.
     pub fn process(&mut self, raw_samples: &[i16]) -> Vec<f64> {
-        raw_samples
+        // Step 1: Filter raw i16 codes (binary-compatible order).
+        let mut filtered = raw_samples.to_vec();
+        self.filter.process_block_i16(&mut filtered);
+
+        // Step 2: Convert filtered i16 codes to voltages.
+        filtered
             .iter()
-            .map(|&code| {
-                let voltage = self.transform.apply(code);
-                self.filter.process_sample(voltage)
-            })
+            .map(|&code| self.transform.apply(code))
             .collect()
     }
 
@@ -84,10 +95,14 @@ impl AnalogProcessor {
             raw_samples.len()
         );
 
-        for (i, &code) in raw_samples.iter().enumerate() {
+        // Step 1: Filter raw i16 codes (binary-compatible order).
+        let mut filtered = raw_samples.to_vec();
+        self.filter.process_block_i16(&mut filtered);
+
+        // Step 2: Convert filtered i16 codes to voltages.
+        for (i, &code) in filtered.iter().enumerate() {
             output[i] = self.transform.apply(code);
         }
-        self.filter.process_block(&mut output[..raw_samples.len()]);
     }
 
     /// Reset the IIR filter state.
