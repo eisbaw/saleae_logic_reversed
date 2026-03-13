@@ -235,10 +235,6 @@ enum Command {
         #[arg(long)]
         bitstream: Option<String>,
 
-        /// EP2 read buffer size in bytes.
-        #[arg(long, default_value = "16384")]
-        buf_size: usize,
-
         /// Save raw EP2 data to this file.
         #[arg(long)]
         output: Option<String>,
@@ -368,7 +364,6 @@ fn main() -> anyhow::Result<()> {
             digital_mask,
             analog_mask,
             bitstream,
-            buf_size,
             output,
             firmware,
         } => {
@@ -378,7 +373,6 @@ fn main() -> anyhow::Result<()> {
                 &digital_mask,
                 &analog_mask,
                 bitstream.as_deref(),
-                buf_size,
                 output.as_deref(),
                 fw_path.as_deref(),
                 serial,

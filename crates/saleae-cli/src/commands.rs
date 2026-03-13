@@ -688,7 +688,6 @@ pub fn full_init(
         &mut dev.channel,
         &capture_config,
         Duration::from_secs(2),
-        16384,
         None,
     )
     .context("capture failed")?;
@@ -939,7 +938,6 @@ pub fn capture_digital(
         &mut dev.channel,
         &config,
         capture_duration,
-        16 * 1024,
         Some(stop_flag),
     )
     .context("capture failed")?;
@@ -1055,7 +1053,6 @@ pub fn capture_quick(
     digital_mask_str: &str,
     analog_mask_str: &str,
     bitstream_path: Option<&str>,
-    buf_size: usize,
     output_path: Option<&str>,
     firmware_path: Option<&str>,
     serial_filter: Option<&str>,
@@ -1085,7 +1082,7 @@ pub fn capture_quick(
         "  Bitstream:     {}",
         bitstream_path.unwrap_or("(skip FPGA programming)")
     );
-    println!("  EP2 buf size:  {buf_size}");
+
     if let Some(p) = output_path {
         println!("  Output file:   {p}");
     }
@@ -1224,7 +1221,6 @@ pub fn capture_quick(
         &mut dev.channel,
         &quick_config,
         capture_duration,
-        buf_size,
         Some(stop_flag),
     )
     .context("capture failed")?;
@@ -1471,7 +1467,6 @@ pub fn capture_analog(
         &mut dev.channel,
         &config,
         capture_duration,
-        16 * 1024,
         Some(stop_flag),
     )
     .context("capture failed")?;

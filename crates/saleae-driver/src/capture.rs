@@ -28,6 +28,7 @@ use tracing::{debug, info, warn};
 
 use crate::ep1::Ep1CommandChannel;
 use crate::error::{DriverError, DriverResult};
+use crate::transfer_queue::TransferConfig;
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -36,21 +37,19 @@ use crate::error::{DriverError, DriverResult};
 /// EP2 IN endpoint for capture data.
 pub const EP2_CAPTURE_IN: u8 = endpoint::CAPTURE_IN;
 
-/// Default USB bulk transfer size for EP2 reads (16 x 1024 = 16 KiB).
+/// Default samples per chunk (256 = minimum for Xilinx with stats enabled).
 ///
-/// This is a placeholder. The correct transfer size should be computed
-/// using [`crate::transfer_queue::TransferConfig::from_capture`], which
-/// implements the Saleae formula: bandwidth/240 rounded to block size,
-/// capped at 1.6 MB. At high sample rates the computed size can be up
-/// to 1,638,400 bytes (100 x 16 KiB blocks). Using 16 KiB here limits
-/// throughput to ~3.75 MB/s (240 completions/s * 16 KiB).
-pub const DEFAULT_TRANSFER_SIZE: usize = 16 * 1024;
-
-/// Default samples per chunk. Must be a multiple of 256 (WithStats).
-///
-/// PLACEHOLDER: The actual value depends on sample rate, channel count,
-/// and FPGA type. 256 is the minimum for Xilinx.
+/// The Saleae firmware requires `samples_per_chunk` to be a multiple of 256
+/// when per-packet stats collection is enabled on Xilinx Spartan-6 FPGAs.
+/// Higher values reduce per-chunk overhead but increase latency; 256 is the
+/// safe default for all supported devices and sample rates.
 pub const DEFAULT_SAMPLES_PER_CHUNK: u32 = 256;
+
+/// Analog ADC bytes per sample used for bandwidth calculation.
+///
+/// The Logic Pro's AD9637 ADC produces 12-bit samples packed into 16-bit
+/// (2-byte) words on the USB bus.
+const ADC_BYTES_PER_SAMPLE: u8 = 2;
 
 // ---------------------------------------------------------------------------
 // CaptureConfig
@@ -279,6 +278,22 @@ impl CaptureConfig {
         }
 
         Ok(())
+    }
+
+    /// Compute the USB transfer configuration for this capture.
+    ///
+    /// Delegates to [`TransferConfig::from_capture`] using this config's
+    /// sample rate, channel counts, and USB speed. The returned transfer
+    /// size is bandwidth-appropriate and block-aligned, matching the
+    /// Saleae formula: `bandwidth / 240` rounded to USB block size.
+    pub fn transfer_config(&self) -> TransferConfig {
+        TransferConfig::from_capture(
+            self.sample_rate,
+            self.digital_channels.len() as u8,
+            self.analog_channels.len() as u8,
+            ADC_BYTES_PER_SAMPLE,
+            self.usb_speed,
+        )
     }
 
     /// Number of digital channel groups (2 or 4).
@@ -1093,7 +1108,6 @@ fn gcd(mut a: u64, mut b: u64) -> u64 {
 ///
 /// Missing edge cases from the original:
 /// - No transfer queue (single-buffered reads -> FIFO overflow risk)
-/// - No transfer size computation (hardcoded 16 KiB vs computed size)
 /// - No stall recovery (original clears halt and retries)
 /// - No timeout classification (timeout vs stale-data-timeout)
 /// - No short transfer detection (original checks actual <= expected)
@@ -1120,8 +1134,9 @@ pub struct CaptureStream {
 
 impl CaptureStream {
     fn new(config: &CaptureConfig) -> Self {
+        let transfer_size = config.transfer_config().transfer_size;
         Self {
-            read_buf: vec![0u8; DEFAULT_TRANSFER_SIZE],
+            read_buf: vec![0u8; transfer_size],
             channel_started: [false; capture_data::MAX_DIGITAL_CHANNELS],
             total_samples: 0,
             target_samples: config.duration_samples,
@@ -1348,7 +1363,12 @@ impl CaptureResult {
 /// - `ep1`: Initialized EP1 command channel (firmware loaded, FPGA programmed).
 /// - `config`: Capture configuration (sample rate, channels, etc.).
 /// - `duration`: How long to read EP2 data.
-/// - `buf_size`: Size of the EP2 read buffer (typically 16384).
+/// - `stop_flag`: Optional atomic flag checked each iteration; when set to
+///   `true` (e.g. by a Ctrl-C handler), capture stops gracefully.
+///
+/// The EP2 read buffer size is computed from capture bandwidth using
+/// [`CaptureConfig::transfer_config`], which implements the Saleae formula:
+/// `bandwidth / 240` rounded to USB block alignment, capped at 1.6 MB.
 ///
 /// # Errors
 ///
@@ -1359,11 +1379,15 @@ pub fn run_capture(
     ep1: &mut Ep1CommandChannel,
     config: &CaptureConfig,
     duration: std::time::Duration,
-    buf_size: usize,
     stop_flag: Option<&std::sync::atomic::AtomicBool>,
 ) -> DriverResult<CaptureResult> {
     // Step 1: Configure FPGA registers + readback verify.
     configure_capture(ep1, config)?;
+
+    // Compute transfer size from capture bandwidth. The sync path uses only
+    // the transfer_size (single-buffered), not the full queue_depth.
+    let transfer_config = config.transfer_config();
+    let buf_size = transfer_config.transfer_size;
 
     // Step 2: Start sampling.
     info!("Sending StartSampling (0x01)");
@@ -1464,7 +1488,7 @@ pub fn run_capture(
 /// Run the capture pipeline using queued bulk transfers for sustained throughput.
 ///
 /// This is the streaming counterpart to [`run_capture`]. Instead of single-buffered
-/// synchronous EP2 reads (one 16 KiB transfer at a time), it uses a
+/// synchronous EP2 reads, it uses a
 /// [`BulkStreamReader`](saleae_usb::BulkStreamReader) with multiple outstanding
 /// transfers to keep the USB pipe saturated and prevent FPGA FIFO overflow.
 ///
@@ -1498,13 +1522,7 @@ pub fn run_capture_streaming(
     configure_capture(ep1, config)?;
 
     // Step 2: Compute transfer sizing from capture bandwidth.
-    let transfer_config = crate::transfer_queue::TransferConfig::from_capture(
-        config.sample_rate,
-        config.digital_channels.len() as u8,
-        config.analog_channels.len() as u8,
-        2, // 12-bit ADC packed as int16
-        config.usb_speed,
-    );
+    let transfer_config = config.transfer_config();
 
     info!(
         transfer_size = transfer_config.transfer_size,
