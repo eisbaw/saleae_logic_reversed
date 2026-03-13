@@ -518,6 +518,124 @@ hw-smoke: _build-release
     echo "Digital output: /tmp/saleae-smoke-digital/"
     echo "Analog output:  /tmp/saleae-smoke-analog/"
 
+# Comprehensive capture matrix: digital, analog, mixed at various rates and channel configs
+hw-capture-matrix: _build-release
+    #!/usr/bin/env bash
+    set -euo pipefail
+    CLI="target/release/saleae-cli"
+    FW="{{ fw_path }}"
+    BS="{{ bs_path }}"
+    OUT="/tmp/saleae-capture-matrix"
+    rm -rf "$OUT"
+    mkdir -p "$OUT"
+    PASS=0; FAIL=0; SKIP=0
+    run_test() {
+        local name="$1"; shift
+        echo "--- $name ---"
+        local dir="$OUT/$name"
+        mkdir -p "$dir"
+        if "$CLI" -v "$@" --output "$dir" --format csv 2>&1 | tail -5; then
+            echo "  PASS"
+            PASS=$((PASS + 1))
+        else
+            echo "  FAIL (exit $?)"
+            FAIL=$((FAIL + 1))
+        fi
+        echo ""
+    }
+
+    echo "=== Capture Matrix Test ==="
+    echo "Output: $OUT"
+    echo ""
+
+    # --- Digital captures ---
+    echo "==== Digital Captures ===="
+    run_test "digital-1ch-1mhz" \
+        capture-digital --firmware "$FW" --bitstream "$BS" \
+        --sample-rate 1000000 --duration 1.0 --channels 0
+
+    run_test "digital-4ch-1mhz" \
+        capture-digital --firmware "$FW" --bitstream "$BS" \
+        --sample-rate 1000000 --duration 1.0 --channels 0,1,2,3
+
+    run_test "digital-8ch-1mhz" \
+        capture-digital --firmware "$FW" --bitstream "$BS" \
+        --sample-rate 1000000 --duration 1.0 --channels 0,1,2,3,4,5,6,7
+
+    run_test "digital-8ch-5mhz" \
+        capture-digital --firmware "$FW" --bitstream "$BS" \
+        --sample-rate 5000000 --duration 1.0 --channels 0,1,2,3,4,5,6,7
+
+    run_test "digital-8ch-10mhz" \
+        capture-digital --firmware "$FW" --bitstream "$BS" \
+        --sample-rate 10000000 --duration 1.0 --channels 0,1,2,3,4,5,6,7
+
+    run_test "digital-2ch-25mhz" \
+        capture-digital --firmware "$FW" --bitstream "$BS" \
+        --sample-rate 25000000 --duration 1.0 --channels 0,1
+
+    # --- Analog captures ---
+    echo "==== Analog Captures ===="
+    run_test "analog-1ch-1mhz" \
+        capture-analog --firmware "$FW" --bitstream "$BS" \
+        --sample-rate 1000000 --duration 1.0 --channels 0
+
+    run_test "analog-2ch-1mhz" \
+        capture-analog --firmware "$FW" --bitstream "$BS" \
+        --sample-rate 1000000 --duration 1.0 --channels 0,1
+
+    run_test "analog-4ch-1mhz" \
+        capture-analog --firmware "$FW" --bitstream "$BS" \
+        --sample-rate 1000000 --duration 1.0 --channels 0,1,2,3
+
+    run_test "analog-2ch-5mhz" \
+        capture-analog --firmware "$FW" --bitstream "$BS" \
+        --sample-rate 5000000 --duration 1.0 --channels 0,1
+
+    run_test "analog-1ch-10mhz" \
+        capture-analog --firmware "$FW" --bitstream "$BS" \
+        --sample-rate 10000000 --duration 1.0 --channels 0
+
+    # --- Quick captures (mixed digital+analog) ---
+    # capture-quick uses --output for raw file (not dir) and has no --format
+    echo "==== Quick Captures (Mixed) ===="
+    run_quick() {
+        local name="$1"; shift
+        echo "--- $name ---"
+        if "$CLI" -v "$@" --output "$OUT/$name.raw" 2>&1 | tail -5; then
+            echo "  PASS"
+            PASS=$((PASS + 1))
+        else
+            echo "  FAIL (exit $?)"
+            FAIL=$((FAIL + 1))
+        fi
+        echo ""
+    }
+
+    run_quick "quick-digital-only" \
+        capture-quick --firmware "$FW" --bitstream "$BS" \
+        --duration 1.0 --digital-mask 0xff --analog-mask 0x00
+
+    run_quick "quick-mixed-d8a2" \
+        capture-quick --firmware "$FW" --bitstream "$BS" \
+        --duration 1.0 --digital-mask 0xff --analog-mask 0x03
+
+    run_quick "quick-mixed-d4a4" \
+        capture-quick --firmware "$FW" --bitstream "$BS" \
+        --duration 1.0 --digital-mask 0x0f --analog-mask 0x0f
+
+    # --- Summary ---
+    echo "==============================="
+    echo "Capture Matrix Results:"
+    echo "  PASS: $PASS"
+    echo "  FAIL: $FAIL"
+    echo "  Output: $OUT"
+    echo "==============================="
+    if [ "$FAIL" -gt 0 ]; then
+        echo "Some captures failed. Check output above."
+        exit 1
+    fi
+
 # List connected Saleae devices with USB state
 hw-list: _build-release
     target/release/saleae-cli list-devices
