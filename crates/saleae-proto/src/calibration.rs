@@ -164,6 +164,10 @@ pub fn parse_calibration(xml_data: &[u8]) -> ProtoResult<CalibrationData> {
     let mut item_group_delay: Option<f64> = None;
     let mut item_impulse_length: Option<u64> = None;
     let mut in_sos_coefficients = false;
+    // mFirTaps is a historical artifact: in every real .cal file examined,
+    // it contains an exact copy of mDf1SosCoefficients.  The Saleae JS
+    // parser also ignores it.  We track nesting to skip its <item> values
+    // but do not store them.  See re/notes/calibration-validation.md §3.
     let mut in_fir_taps = false;
 
     // Per-item state (voltage range)
