@@ -322,7 +322,13 @@ fn main() -> anyhow::Result<()> {
             let fw_path = firmware
                 .or(cli.firmware.clone())
                 .unwrap_or_else(|| commands::DEFAULT_FIRMWARE_PATH.to_string());
-            commands::full_init(&fw_path, &bitstream, auto_bitstream, cal_file.as_deref(), serial)?
+            commands::full_init(
+                &fw_path,
+                &bitstream,
+                auto_bitstream,
+                cal_file.as_deref(),
+                serial,
+            )?
         }
         Command::CaptureAnalog {
             sample_rate,

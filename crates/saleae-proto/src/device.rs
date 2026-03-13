@@ -1090,7 +1090,10 @@ mod tests {
     fn from_usb_id_wrong_vid_with_valid_pid_rejected() {
         // Saleae PID but wrong VID
         let result = DeviceType::from_usb_id(UsbId::new(0x0925, 0x1005));
-        assert!(result.is_err(), "Saleae PID with legacy VID should be rejected");
+        assert!(
+            result.is_err(),
+            "Saleae PID with legacy VID should be rejected"
+        );
     }
 
     #[test]
@@ -1119,10 +1122,14 @@ mod tests {
     fn unknown_device_error_contains_vid_pid() {
         let err = DeviceType::from_usb_id(UsbId::new(0xBEEF, 0xCAFE)).unwrap_err();
         let msg = err.to_string();
-        assert!(msg.contains("beef") || msg.contains("BEEF") || msg.contains("0xbeef"),
-            "error should contain VID: {msg}");
-        assert!(msg.contains("cafe") || msg.contains("CAFE") || msg.contains("0xcafe"),
-            "error should contain PID: {msg}");
+        assert!(
+            msg.contains("beef") || msg.contains("BEEF") || msg.contains("0xbeef"),
+            "error should contain VID: {msg}"
+        );
+        assert!(
+            msg.contains("cafe") || msg.contains("CAFE") || msg.contains("0xcafe"),
+            "error should contain PID: {msg}"
+        );
     }
 
     #[test]
@@ -1134,7 +1141,10 @@ mod tests {
         // Other PIDs with legacy VID should fail
         for pid in [0x1001, 0x1003, 0x1004, 0x1005, 0x1006] {
             let result = DeviceType::from_usb_id(UsbId::new(VID_SALEAE_LEGACY, pid));
-            assert!(result.is_err(), "legacy VID with PID {pid:#06x} should fail");
+            assert!(
+                result.is_err(),
+                "legacy VID with PID {pid:#06x} should fail"
+            );
         }
     }
 

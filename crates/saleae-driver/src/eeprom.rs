@@ -671,8 +671,11 @@ mod tests {
 
         let mut channel = mock_channel(&mock);
         let err = eeprom_read_device_id(&mut channel).unwrap_err();
-        assert!(err.to_string().contains("expected 5") && err.to_string().contains("got 0"),
-            "error should mention expected and actual length: {}", err);
+        assert!(
+            err.to_string().contains("expected 5") && err.to_string().contains("got 0"),
+            "error should mention expected and actual length: {}",
+            err
+        );
     }
 
     // -------------------------------------------------------------------
@@ -792,8 +795,14 @@ mod tests {
                 .unwrap_err();
 
         let msg = err.to_string();
-        assert!(msg.contains("unexpected response"), "error should mention unexpected response: {msg}");
-        assert!(msg.contains("03"), "error should include the status byte value: {msg}");
+        assert!(
+            msg.contains("unexpected response"),
+            "error should mention unexpected response: {msg}"
+        );
+        assert!(
+            msg.contains("03"),
+            "error should include the status byte value: {msg}"
+        );
     }
 
     // -------------------------------------------------------------------

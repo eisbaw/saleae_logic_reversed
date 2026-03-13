@@ -317,7 +317,9 @@ impl CaptureConfig {
         let bytes_per_sample_digital = 1u64;
         let bytes_per_sample_analog = 2u64;
 
-        let digital_bw = self.sample_rate.saturating_mul(digital_count * bytes_per_sample_digital);
+        let digital_bw = self
+            .sample_rate
+            .saturating_mul(digital_count * bytes_per_sample_digital);
         let analog_bw = analog_rate.saturating_mul(analog_count * bytes_per_sample_analog);
         let total_bandwidth = digital_bw.saturating_add(analog_bw);
 
@@ -346,7 +348,7 @@ impl CaptureConfig {
 
         let (min_chunk, max_chunk) = match self.feature_class {
             DeviceFeatureClass::NonPro | DeviceFeatureClass::Pro => (256u32, 7680u32), // Xilinx
-            DeviceFeatureClass::Mso => (64u32, 6016u32),                     // Altera
+            DeviceFeatureClass::Mso => (64u32, 6016u32),                               // Altera
         };
 
         if self.samples_per_chunk < min_chunk || self.samples_per_chunk > max_chunk {
@@ -1644,8 +1646,7 @@ pub fn run_capture(
     let capture_indefinitely = duration.is_zero();
     info!(
         duration_ms = duration.as_millis(),
-        capture_indefinitely,
-        buf_size, "Reading EP2 capture data"
+        capture_indefinitely, buf_size, "Reading EP2 capture data"
     );
 
     // Assume ~1 USB transfer completes per 10ms (conservative for SuperSpeed).
@@ -1801,8 +1802,8 @@ pub fn run_capture_streaming(
     let estimated_capacity = if capture_indefinitely {
         16 * 1024 * 1024 // 16 MiB starting point for indefinite capture
     } else {
-        (transfer_config.transfer_size as u128 * duration.as_millis() / 10)
-            .min(256 * 1024 * 1024) as usize
+        (transfer_config.transfer_size as u128 * duration.as_millis() / 10).min(256 * 1024 * 1024)
+            as usize
     };
     let mut raw_data = Vec::with_capacity(estimated_capacity);
     let mut read_count: u64 = 0;
@@ -1812,8 +1813,7 @@ pub fn run_capture_streaming(
 
     info!(
         duration_ms = duration.as_millis(),
-        capture_indefinitely,
-        "Reading EP2 capture data (streaming)"
+        capture_indefinitely, "Reading EP2 capture data (streaming)"
     );
 
     let should_stop = |start: &std::time::Instant| -> bool {
@@ -1852,8 +1852,7 @@ pub fn run_capture_streaming(
             Err(e) => {
                 // Timeout is expected at the end of capture when data stops flowing,
                 // or when stopped by Ctrl-C during indefinite capture.
-                let timed_capture_done =
-                    !capture_indefinitely && start.elapsed() >= duration;
+                let timed_capture_done = !capture_indefinitely && start.elapsed() >= duration;
                 let stopped_by_signal = stop_flag
                     .map(|f| f.load(std::sync::atomic::Ordering::Relaxed))
                     .unwrap_or(false);
@@ -3648,12 +3647,8 @@ mod tests {
 
     #[test]
     fn pro8_mixed_rate_constructor() {
-        let config = CaptureConfig::pro8_mixed_rate(
-            25_000_000,
-            6_250_000,
-            vec![0, 1, 2, 3],
-            vec![0, 1],
-        );
+        let config =
+            CaptureConfig::pro8_mixed_rate(25_000_000, 6_250_000, vec![0, 1, 2, 3], vec![0, 1]);
         assert_eq!(config.sample_rate, 25_000_000);
         assert_eq!(config.analog_sample_rate, Some(6_250_000));
         assert_eq!(config.effective_analog_rate(), 6_250_000);
@@ -3662,12 +3657,7 @@ mod tests {
     #[test]
     fn pro8_mixed_rate_same_rate_normalizes_to_none() {
         // When analog == digital, constructor should set analog_sample_rate = None.
-        let config = CaptureConfig::pro8_mixed_rate(
-            12_500_000,
-            12_500_000,
-            vec![0],
-            vec![0],
-        );
+        let config = CaptureConfig::pro8_mixed_rate(12_500_000, 12_500_000, vec![0], vec![0]);
         assert_eq!(config.analog_sample_rate, None);
     }
 
@@ -3751,11 +3741,7 @@ mod tests {
     fn registers_equal_rate_same_as_no_override() {
         // Setting analog_sample_rate = Some(same_value) should produce
         // identical registers to not setting it.
-        let config_default = CaptureConfig::pro8(
-            12_500_000,
-            (0..8).collect(),
-            (0..8).collect(),
-        );
+        let config_default = CaptureConfig::pro8(12_500_000, (0..8).collect(), (0..8).collect());
         let config_explicit = CaptureConfig {
             analog_sample_rate: Some(12_500_000),
             ..CaptureConfig::pro8(12_500_000, (0..8).collect(), (0..8).collect())

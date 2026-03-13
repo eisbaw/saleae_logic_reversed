@@ -125,8 +125,9 @@ pub fn upload_firmware(firmware_path: &str, serial_filter: Option<&str>) -> Resu
     let device = match serial_filter {
         Some(serial) => saleae_usb::discovery::find_saleae_by_serial(serial)
             .context("failed to find Saleae device matching serial filter")?,
-        None => saleae_usb::discovery::find_first_saleae()
-            .context("failed to find Saleae device")?,
+        None => {
+            saleae_usb::discovery::find_first_saleae().context("failed to find Saleae device")?
+        }
     };
 
     println!("Found device: {device}");
@@ -205,8 +206,9 @@ pub fn reset_device(serial_filter: Option<&str>) -> Result<()> {
     let device = match serial_filter {
         Some(serial) => saleae_usb::discovery::find_saleae_by_serial(serial)
             .context("failed to find Saleae device matching serial filter")?,
-        None => saleae_usb::discovery::find_first_saleae()
-            .context("failed to find Saleae device")?,
+        None => {
+            saleae_usb::discovery::find_first_saleae().context("failed to find Saleae device")?
+        }
     };
 
     println!("Found device: {device}");
@@ -263,7 +265,11 @@ pub fn ping(serial_filter: Option<&str>) -> Result<()> {
 /// Reads the bitstream from disk, opens the device, performs the
 /// ReseedDevice + Ping handshake, then programs the FPGA and runs
 /// the post-init sequence.
-pub fn program_fpga(bitstream_path: &str, skip_post_init: bool, serial_filter: Option<&str>) -> Result<()> {
+pub fn program_fpga(
+    bitstream_path: &str,
+    skip_post_init: bool,
+    serial_filter: Option<&str>,
+) -> Result<()> {
     // Read bitstream file.
     let bitstream = std::fs::read(bitstream_path)
         .with_context(|| format!("failed to read bitstream file: {bitstream_path}"))?;
@@ -317,7 +323,11 @@ pub fn program_fpga(bitstream_path: &str, skip_post_init: bool, serial_filter: O
 /// Run CommonDeviceInit: ADC initialization, JESD link, EEPROM device ID.
 ///
 /// Optionally programs the FPGA first if a bitstream path is provided.
-pub fn device_init(bitstream_path: Option<&str>, skip_fpga: bool, serial_filter: Option<&str>) -> Result<()> {
+pub fn device_init(
+    bitstream_path: Option<&str>,
+    skip_fpga: bool,
+    serial_filter: Option<&str>,
+) -> Result<()> {
     // Open device and create initialized EP1 channel.
     let mut dev = saleae_driver::facade::open_and_connect_with_serial(serial_filter)
         .context("failed to connect to device")?;
@@ -456,24 +466,37 @@ pub fn full_init(
     // Step 4: FPGA program + verify
     if auto_bitstream {
         println!("Auto-detecting bitstream...");
-        let (_bitstream_data, found_path) =
-            try_bitstreams(&mut dev.channel, SLX9_BITSTREAMS, dev.profile, dev.usb_speed)?;
+        let (_bitstream_data, found_path) = try_bitstreams(
+            &mut dev.channel,
+            SLX9_BITSTREAMS,
+            dev.profile,
+            dev.usb_speed,
+        )?;
         println!("Using bitstream: {found_path}");
     } else {
         let bitstream = std::fs::read(bitstream_path)
             .with_context(|| format!("failed to read bitstream: {bitstream_path}"))?;
         println!("Programming FPGA ({} bytes)...", bitstream.len());
-        saleae_driver::fpga::program_fpga(&mut dev.channel, &bitstream, dev.profile, dev.usb_speed)?;
+        saleae_driver::fpga::program_fpga(
+            &mut dev.channel,
+            &bitstream,
+            dev.profile,
+            dev.usb_speed,
+        )?;
         println!("FPGA programmed and verified.");
     }
     println!();
 
     // Read EEPROM device ID (offset 0x08, 8 bytes LE) for calibration file lookup.
-    let device_id_bytes = dev.channel
+    let device_id_bytes = dev
+        .channel
         .read_version(&saleae_driver::ep1::EEPROM_DEVICE_ID_I2C_PARAMS)
         .context("failed to read EEPROM device ID")?;
     if device_id_bytes.len() != 8 {
-        eprintln!("WARNING: EEPROM device ID response has unexpected length: {} (expected 8)", device_id_bytes.len());
+        eprintln!(
+            "WARNING: EEPROM device ID response has unexpected length: {} (expected 8)",
+            device_id_bytes.len()
+        );
     }
     let device_id = {
         let mut buf = [0u8; 8];
@@ -492,7 +515,9 @@ pub fn full_init(
     println!("AD9637 ADC init...");
 
     // Read calibration from EEPROM (offset 0x10, 16 bytes)
-    let cal_data = dev.channel.read_version(&[0x33, 0x81, 0x10, 0x00, 0x10, 0x00])?;
+    let cal_data = dev
+        .channel
+        .read_version(&[0x33, 0x81, 0x10, 0x00, 0x10, 0x00])?;
     println!(
         "  Calibration: {}",
         cal_data
@@ -502,8 +527,8 @@ pub fn full_init(
             .join(" ")
     );
 
-    let dcm_result =
-        saleae_driver::adc::init_ad9637(&mut dev.channel, &cal_data).context("AD9637 init failed")?;
+    let dcm_result = saleae_driver::adc::init_ad9637(&mut dev.channel, &cal_data)
+        .context("AD9637 init failed")?;
     println!(
         "  DCM locked: {} (r0x40={:#04x})",
         dcm_result.locked, dcm_result.status_40
@@ -512,7 +537,8 @@ pub fn full_init(
 
     // Re-init EP1 (reseed + ping for next phase)
     dev.channel.initialize().context("EP1 re-init failed")?;
-    dev.channel.write_registers(&[(0x0f, 0x00), (0x10, 0x0f), (0x11, 0x00)])?;
+    dev.channel
+        .write_registers(&[(0x0f, 0x00), (0x10, 0x0f), (0x11, 0x00)])?;
     println!("Channel enables set.");
 
     // Step 6: Pre-capture ADC power on
@@ -576,7 +602,10 @@ pub fn full_init(
 
     // Print digital channel summary.
     println!();
-    println!("Digital channels ({} channels):", output.digital_samples.len());
+    println!(
+        "Digital channels ({} channels):",
+        output.digital_samples.len()
+    );
     for (ch, data) in output.digital_samples.iter().enumerate() {
         // Count ones and zeros across all bytes.
         let total_bits = data.len() * 8;
@@ -987,7 +1016,8 @@ pub fn capture_quick(
         println!("Mixed mode: running ADC init...");
 
         // Read calibration from EEPROM (offset 0x10, 16 bytes).
-        let cal_data = dev.channel
+        let cal_data = dev
+            .channel
             .read_version(&[0x33, 0x81, 0x10, 0x00, 0x10, 0x00])
             .context("failed to read EEPROM calibration")?;
         println!(
@@ -1018,7 +1048,8 @@ pub fn capture_quick(
             .context("EP1 re-init after ADC failed")?;
 
         // Channel enables.
-        dev.channel.write_registers(&[(0x0f, 0x00), (0x10, 0x0f), (0x11, 0x00)])?;
+        dev.channel
+            .write_registers(&[(0x0f, 0x00), (0x10, 0x0f), (0x11, 0x00)])?;
         println!("  Channel enables set.");
 
         // Pre-capture ADC power on.
@@ -1355,9 +1386,9 @@ pub fn capture_analog(
         // Disaggregate raw EP2 data into per-channel analog samples.
         let disaggregator = saleae_proto::Disaggregator::new(
             dev.profile,
-            &[],              // no digital channels
+            &[], // no digital channels
             &channel_list,
-            0,                // no digital rate
+            0, // no digital rate
             sample_rate,
         )
         .context("failed to create disaggregator")?;
@@ -1411,7 +1442,12 @@ pub fn capture_analog(
                 disagg
                     .analog_samples
                     .iter()
-                    .map(|ch_samples| ch_samples.iter().map(|&code| transform.apply(code)).collect())
+                    .map(|ch_samples| {
+                        ch_samples
+                            .iter()
+                            .map(|&code| transform.apply(code))
+                            .collect()
+                    })
                     .collect()
             };
 

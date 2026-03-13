@@ -39,9 +39,7 @@ pub use device::{
     HardwareRevision, SaleaeDevice, UsbId, UsbSpeed, LOGIC_4_PROFILE, LOGIC_8_PROFILE,
     LOGIC_PRO_16_PROFILE, LOGIC_PRO_8_PROFILE,
 };
-pub use disaggregator::{
-    contract_read_data, DisaggregatedData, Disaggregator, MixRateResult,
-};
+pub use disaggregator::{contract_read_data, DisaggregatedData, Disaggregator, MixRateResult};
 pub use error::{ProtoError, ProtoResult};
 pub use export::{
     AnalogBinaryWriter, AnalogCsvWriter, AnalogExporter, DigitalBinaryWriter, DigitalCsvWriter,

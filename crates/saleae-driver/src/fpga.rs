@@ -400,7 +400,11 @@ pub fn common_device_init(
     // Read EEPROM device ID (offset 0x08, 8 bytes LE) via ReadVersion.
     let id_bytes = ep1.read_version(&crate::ep1::EEPROM_DEVICE_ID_I2C_PARAMS)?;
     if id_bytes.len() != 8 {
-        warn!(expected = 8, actual = id_bytes.len(), "EEPROM device ID response has unexpected length");
+        warn!(
+            expected = 8,
+            actual = id_bytes.len(),
+            "EEPROM device ID response has unexpected length"
+        );
     }
     let device_id = {
         let mut buf = [0u8; 8];
@@ -1247,7 +1251,10 @@ mod tests {
             .collect();
         // With seed=0 and XorAll: data[1] is the opcode byte.
         let last_out = out_ops.last().unwrap();
-        assert_eq!(last_out[1], 0x07, "EEPROM read should use ReadVersion (0x07)");
+        assert_eq!(
+            last_out[1], 0x07,
+            "EEPROM read should use ReadVersion (0x07)"
+        );
     }
 
     #[test]
@@ -1278,7 +1285,8 @@ mod tests {
         let mut channel = mock_channel(&mock);
         let result = common_device_init(&mut channel, true).unwrap();
         // Short response is zero-padded: 0x04030201 in LE
-        assert_eq!(result.device_id, 0x04030201,
+        assert_eq!(
+            result.device_id, 0x04030201,
             "short EEPROM response should be zero-padded to 8 bytes"
         );
     }

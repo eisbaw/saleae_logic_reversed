@@ -513,7 +513,10 @@ mod tests {
         }];
         let mut filter = BiquadFilter::new(&sections);
         let y = filter.process_sample(1.0);
-        assert!((y - 1e15).abs() < 1.0, "extreme gain: expected ~1e15, got {y}");
+        assert!(
+            (y - 1e15).abs() < 1.0,
+            "extreme gain: expected ~1e15, got {y}"
+        );
     }
 
     #[test]

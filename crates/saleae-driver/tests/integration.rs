@@ -888,7 +888,10 @@ fn common_device_init_non_lattice_reads_eeprom() {
     let ops = mock.operations();
     let out_data = extract_bulk_out_data(&ops);
     let last = out_data.last().unwrap();
-    assert_eq!(last[0], 0x07, "last command should be ReadVersion (0x07) for EEPROM read");
+    assert_eq!(
+        last[0], 0x07,
+        "last command should be ReadVersion (0x07) for EEPROM read"
+    );
 }
 
 // ===========================================================================
@@ -1171,7 +1174,11 @@ fn encrypted_ping_roundtrip() {
     // Verify the wire bytes are encrypted (not plaintext).
     let out_data = extract_bulk_out_data(&ops);
     // Encrypted ping: 3 bytes (control + encrypted opcode + encrypted payload).
-    assert_eq!(out_data[0].len(), 3, "encrypted ping should be 3 bytes on wire");
+    assert_eq!(
+        out_data[0].len(),
+        3,
+        "encrypted ping should be 3 bytes on wire"
+    );
     // The second byte (encrypted opcode) should NOT be the raw 0x7D.
     // With a non-trivial seed, this is extremely likely to differ.
     assert_ne!(
@@ -1202,7 +1209,11 @@ fn encrypted_register_write_then_read_roundtrip() {
         .read_registers(&[0x20])
         .expect("encrypted read_registers should succeed");
 
-    assert_eq!(values, vec![0x42], "decrypted register value should be 0x42");
+    assert_eq!(
+        values,
+        vec![0x42],
+        "decrypted register value should be 0x42"
+    );
 
     let ops = mock.operations();
     assert_eq!(count_bulk_out(&ops), 2, "write + read commands");
@@ -1242,7 +1253,8 @@ fn encrypted_multiple_pings_stay_in_sync() {
     let out_data = extract_bulk_out_data(&ops);
     for i in 1..out_data.len() {
         assert_ne!(
-            out_data[i], out_data[i - 1],
+            out_data[i],
+            out_data[i - 1],
             "consecutive encrypted pings should have different wire bytes (ping {i} vs {})",
             i - 1
         );
@@ -1261,10 +1273,7 @@ fn encrypted_seed_desync_causes_ping_failure() {
     mock.push_bulk_in_response(endpoint::BULK_IN, wrong_resp);
 
     let result = channel.ping();
-    assert!(
-        result.is_err(),
-        "ping with desynced encryption should fail"
-    );
+    assert!(result.is_err(), "ping with desynced encryption should fail");
 
     let msg = result.unwrap_err().to_string();
     assert!(
@@ -1359,7 +1368,9 @@ fn encrypted_write_read_mixed_sequence() {
     let ping_resp = firmware_encrypt_response(&mut fw, &[PING_EXPECTED_RESPONSE]);
     mock.push_bulk_in_response(endpoint::BULK_IN, ping_resp);
 
-    channel.ping().expect("ping after write/read should succeed");
+    channel
+        .ping()
+        .expect("ping after write/read should succeed");
 }
 
 // ===========================================================================
@@ -1689,10 +1700,7 @@ fn capture_pipeline_no_teardown_warnings_on_success() {
     // without consuming the EP1 teardown responses that follow.
     let ep2_data = build_digital_only_ep2_data(2, 1, 4);
     mock.push_bulk_in_response(EP2_CAPTURE_IN, ep2_data);
-    mock.push_bulk_in_error(
-        EP2_CAPTURE_IN,
-        UsbError::Timeout { timeout_ms: 100 },
-    );
+    mock.push_bulk_in_error(EP2_CAPTURE_IN, UsbError::Timeout { timeout_ms: 100 });
 
     // Queue successful teardown responses:
     // write_registers r0x00=0x00 ACK

@@ -445,8 +445,7 @@ impl Disaggregator {
         // For 12-bit ADC with 32-bit GPIF: 12 bytes per channel.
         // For 12-bit ADC with 16-bit GPIF: 6 bytes per channel.
         let digital_bytes = digital_ratio * packet_size * num_digital as u32;
-        let analog_channel_bytes =
-            (packing.bytes_per_group * packing.samples_per_group) / 2;
+        let analog_channel_bytes = (packing.bytes_per_group * packing.samples_per_group) / 2;
         let analog_bytes = analog_channel_bytes * num_analog as u32;
 
         let mix_rate = MixRateResult {
@@ -462,7 +461,9 @@ impl Disaggregator {
         };
 
         if mix_rate.cycle_bytes == 0 && (num_digital > 0 || num_analog > 0) {
-            return Err(ProtoError::parse("cycle_bytes is 0 but channels are enabled"));
+            return Err(ProtoError::parse(
+                "cycle_bytes is 0 but channels are enabled",
+            ));
         }
 
         Ok(Self {
@@ -872,8 +873,7 @@ impl Disaggregator {
         let num_groups = data.len() / GROUP_SIZE;
 
         // After transpose, each group produces 1 byte per channel.
-        let mut digital_out: Vec<Vec<u8>> =
-            vec![Vec::with_capacity(num_groups); self.num_digital];
+        let mut digital_out: Vec<Vec<u8>> = vec![Vec::with_capacity(num_groups); self.num_digital];
 
         for group_idx in 0..num_groups {
             let offset = group_idx * GROUP_SIZE;

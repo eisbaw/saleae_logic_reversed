@@ -86,9 +86,8 @@ pub fn download_calibration(
     }
 
     // Parse before caching to ensure the data is valid.
-    let cal_data = calibration::parse_calibration(&body).map_err(|e| {
-        DriverError::CalibrationError(format!("downloaded file is corrupt: {}", e))
-    })?;
+    let cal_data = calibration::parse_calibration(&body)
+        .map_err(|e| DriverError::CalibrationError(format!("downloaded file is corrupt: {}", e)))?;
 
     // Cache the raw XML for future use.
     if let Err(e) = fs::create_dir_all(&cache_dir) {

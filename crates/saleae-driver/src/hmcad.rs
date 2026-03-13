@@ -309,10 +309,7 @@ pub fn init_hmcad1100(
     }
     if settings.lvds_misc >= 0x0D {
         return Err(DriverError::InvalidArgument {
-            message: format!(
-                "HMCAD LVDS misc must be < 13, got {}",
-                settings.lvds_misc
-            ),
+            message: format!("HMCAD LVDS misc must be < 13, got {}", settings.lvds_misc),
         });
     }
 
@@ -558,7 +555,8 @@ mod tests {
     fn defaults_returns_error_for_pro() {
         let err = Hmcad1100Settings::defaults(DeviceType::LogicPro8).unwrap_err();
         assert!(
-            err.to_string().contains("HMCAD1100 is only used by Logic4/Logic8"),
+            err.to_string()
+                .contains("HMCAD1100 is only used by Logic4/Logic8"),
             "unexpected error: {err}"
         );
     }

@@ -101,11 +101,12 @@ pub fn open_and_connect_with_serial(serial_filter: Option<&str>) -> DriverResult
     let encryption_mode = encryption_mode_for_device(&device);
 
     // Step 4: Get profile and USB speed.
-    let profile = device.device_type.profile().ok_or_else(|| {
-        DriverError::InvalidArgument {
+    let profile = device
+        .device_type
+        .profile()
+        .ok_or_else(|| DriverError::InvalidArgument {
             message: format!("no device profile for {}", device.device_type),
-        }
-    })?;
+        })?;
     let usb_speed = device
         .usb_speed
         .unwrap_or_else(|| profile.default_forced_usb_speed());
@@ -161,11 +162,12 @@ pub fn reconnect_with_channel(
         None => saleae_usb::discovery::find_first_saleae()?,
     };
 
-    let profile = device.device_type.profile().ok_or_else(|| {
-        DriverError::InvalidArgument {
+    let profile = device
+        .device_type
+        .profile()
+        .ok_or_else(|| DriverError::InvalidArgument {
             message: format!("no device profile for {}", device.device_type),
-        }
-    })?;
+        })?;
     let usb_speed = device
         .usb_speed
         .unwrap_or_else(|| profile.default_forced_usb_speed());
@@ -230,7 +232,13 @@ pub fn connect_or_recover(
         BootState::Bootloader => {
             // Device is in bootloader -- upload firmware directly.
             status("Device in bootloader mode. Uploading firmware...");
-            upload_firmware_and_wait(firmware_image, timeout, poll_interval, serial_filter, &status)?;
+            upload_firmware_and_wait(
+                firmware_image,
+                timeout,
+                poll_interval,
+                serial_filter,
+                &status,
+            )?;
         }
         BootState::FirmwareRunning => {
             // Firmware running -- try a quick ping to see if EP1 thread is alive.
@@ -262,7 +270,13 @@ pub fn connect_or_recover(
 
                 // Upload firmware.
                 status("Uploading firmware...");
-                upload_firmware_and_wait(firmware_image, timeout, poll_interval, serial_filter, &status)?;
+                upload_firmware_and_wait(
+                    firmware_image,
+                    timeout,
+                    poll_interval,
+                    serial_filter,
+                    &status,
+                )?;
             }
         }
         BootState::Unknown(bcd) => {
@@ -344,7 +358,9 @@ fn attempt_reset_to_bootloader(serial_filter: Option<&str>, on_status: &dyn Fn(&
         Ok(d) => d,
         Err(e) => {
             warn!("Could not connect for reset (expected if EP1 dead): {e}");
-            on_status(&format!("  Could not connect for reset (expected if EP1 dead): {e}"));
+            on_status(&format!(
+                "  Could not connect for reset (expected if EP1 dead): {e}"
+            ));
             return;
         }
     };
@@ -378,10 +394,7 @@ fn attempt_reset_to_bootloader(serial_filter: Option<&str>, on_status: &dyn Fn(&
 /// calibration.
 pub fn init_for_capture(dev: &mut ConnectedDevice, bitstream: &[u8]) -> DriverResult<Vec<u8>> {
     // Step 1: FPGA program.
-    info!(
-        bitstream_len = bitstream.len(),
-        "Programming FPGA"
-    );
+    info!(bitstream_len = bitstream.len(), "Programming FPGA");
     crate::fpga::program_fpga(&mut dev.channel, bitstream, dev.profile, dev.usb_speed)?;
     info!("FPGA programmed and verified");
 

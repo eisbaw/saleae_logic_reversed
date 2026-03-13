@@ -64,7 +64,9 @@ pub enum DriverError {
     },
 
     /// FPGA register readback did not match the written value.
-    #[error("register r{register:#04x} readback mismatch: wrote {expected:#04x}, read {actual:#04x}")]
+    #[error(
+        "register r{register:#04x} readback mismatch: wrote {expected:#04x}, read {actual:#04x}"
+    )]
     ReadbackMismatch {
         register: u8,
         expected: u8,

@@ -1003,7 +1003,10 @@ mod tests {
         let result = parse_calibration(xml.as_bytes());
         assert!(result.is_err(), "should reject wrong coefficient count");
         let err_msg = result.unwrap_err().to_string();
-        assert!(err_msg.contains("30"), "error should mention expected count: {err_msg}");
+        assert!(
+            err_msg.contains("30"),
+            "error should mention expected count: {err_msg}"
+        );
     }
 
     #[test]
@@ -1081,7 +1084,10 @@ mod tests {
 </DeviceCalibrationSet>
 </boost_serialization>"#;
         let result = parse_calibration(xml.as_bytes());
-        assert!(result.is_err(), "non-numeric coefficient should be rejected");
+        assert!(
+            result.is_err(),
+            "non-numeric coefficient should be rejected"
+        );
     }
 
     #[test]
@@ -1121,8 +1127,14 @@ mod tests {
         let result = parse_calibration(xml.as_bytes());
         assert!(result.is_err(), "NaN coefficient should be rejected");
         let err_msg = result.unwrap_err().to_string();
-        assert!(err_msg.contains("non-finite"), "error should mention non-finite: {err_msg}");
-        assert!(err_msg.contains("b0"), "error should identify b0: {err_msg}");
+        assert!(
+            err_msg.contains("non-finite"),
+            "error should mention non-finite: {err_msg}"
+        );
+        assert!(
+            err_msg.contains("b0"),
+            "error should identify b0: {err_msg}"
+        );
     }
 
     #[test]
@@ -1162,8 +1174,14 @@ mod tests {
         let result = parse_calibration(xml.as_bytes());
         assert!(result.is_err(), "NaN a0 should be rejected as non-finite");
         let err_msg = result.unwrap_err().to_string();
-        assert!(err_msg.contains("non-finite"), "error should mention non-finite: {err_msg}");
-        assert!(err_msg.contains("a0"), "error should identify a0: {err_msg}");
+        assert!(
+            err_msg.contains("non-finite"),
+            "error should mention non-finite: {err_msg}"
+        );
+        assert!(
+            err_msg.contains("a0"),
+            "error should identify a0: {err_msg}"
+        );
     }
 
     #[test]
@@ -1203,8 +1221,14 @@ mod tests {
         let result = parse_calibration(xml.as_bytes());
         assert!(result.is_err(), "inf coefficient should be rejected");
         let err_msg = result.unwrap_err().to_string();
-        assert!(err_msg.contains("non-finite"), "error should mention non-finite: {err_msg}");
-        assert!(err_msg.contains("a1"), "error should identify a1: {err_msg}");
+        assert!(
+            err_msg.contains("non-finite"),
+            "error should mention non-finite: {err_msg}"
+        );
+        assert!(
+            err_msg.contains("a1"),
+            "error should identify a1: {err_msg}"
+        );
     }
 
     #[test]
@@ -1337,15 +1361,21 @@ mod tests {
         // This test documents the behavior.
         let tx = VoltageTransform::from_range(-10.0, 10.0, 0, 0);
         // scale = (10 - (-10)) / (0 - 0) = 20/0 = inf
-        assert!(tx.scale.is_infinite() || tx.scale.is_nan(),
-            "adc_min==adc_max should produce inf or NaN scale, got {}", tx.scale);
+        assert!(
+            tx.scale.is_infinite() || tx.scale.is_nan(),
+            "adc_min==adc_max should produce inf or NaN scale, got {}",
+            tx.scale
+        );
     }
 
     #[test]
     fn voltage_transform_inverted_range() {
         // min_voltage > max_voltage: should produce negative scale
         let tx = VoltageTransform::from_range(10.0, -10.0, -2048, 2047);
-        assert!(tx.scale < 0.0, "inverted voltage range should give negative scale");
+        assert!(
+            tx.scale < 0.0,
+            "inverted voltage range should give negative scale"
+        );
     }
 
     #[test]
@@ -1421,6 +1451,9 @@ mod tests {
 </boost_serialization>"#;
 
         let cal = parse_calibration(xml.as_bytes()).expect("parse without mAdcGain");
-        assert!((cal.adc_gain - 0.0).abs() < 1e-10, "adc_gain should default to 0.0");
+        assert!(
+            (cal.adc_gain - 0.0).abs() < 1e-10,
+            "adc_gain should default to 0.0"
+        );
     }
 }

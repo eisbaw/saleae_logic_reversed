@@ -584,7 +584,10 @@ mod tests {
     #[test]
     fn empty_input_rejected() {
         let err = Fx3Image::parse(&[]).unwrap_err();
-        assert!(matches!(err, ProtoError::BufferTooShort { need: 4, have: 0 }));
+        assert!(matches!(
+            err,
+            ProtoError::BufferTooShort { need: 4, have: 0 }
+        ));
     }
 
     #[test]
@@ -643,7 +646,7 @@ mod tests {
         buf.push(IMAGE_TYPE_NORMAL);
         buf.extend_from_slice(&0u32.to_le_bytes()); // dLength = 0 (terminator)
         buf.extend_from_slice(&0x4000_0000u32.to_le_bytes()); // entry addr
-        // Missing checksum bytes
+                                                              // Missing checksum bytes
 
         let err = Fx3Image::parse(&buf).unwrap_err();
         assert!(matches!(err, ProtoError::BufferTooShort { .. }));
@@ -684,7 +687,11 @@ mod tests {
         raw.extend_from_slice(&[0xDE, 0xAD, 0xBE, 0xEF]); // trailing garbage
 
         let (image, consumed) = Fx3Image::parse(&raw).unwrap();
-        assert_eq!(consumed, raw.len() - 4, "should not consume trailing garbage");
+        assert_eq!(
+            consumed,
+            raw.len() - 4,
+            "should not consume trailing garbage"
+        );
         assert_eq!(image.sections.len(), 1);
     }
 
@@ -735,10 +742,38 @@ mod tests {
     #[test]
     fn spi_width_values() {
         // Verify all SPI width decodings from image_ctl bits 1-2
-        assert_eq!(Fx3Header { image_ctl: 0b000, image_type: IMAGE_TYPE_NORMAL }.spi_width(), 1);
-        assert_eq!(Fx3Header { image_ctl: 0b010, image_type: IMAGE_TYPE_NORMAL }.spi_width(), 2);
-        assert_eq!(Fx3Header { image_ctl: 0b100, image_type: IMAGE_TYPE_NORMAL }.spi_width(), 4);
-        assert_eq!(Fx3Header { image_ctl: 0b110, image_type: IMAGE_TYPE_NORMAL }.spi_width(), 4);
+        assert_eq!(
+            Fx3Header {
+                image_ctl: 0b000,
+                image_type: IMAGE_TYPE_NORMAL
+            }
+            .spi_width(),
+            1
+        );
+        assert_eq!(
+            Fx3Header {
+                image_ctl: 0b010,
+                image_type: IMAGE_TYPE_NORMAL
+            }
+            .spi_width(),
+            2
+        );
+        assert_eq!(
+            Fx3Header {
+                image_ctl: 0b100,
+                image_type: IMAGE_TYPE_NORMAL
+            }
+            .spi_width(),
+            4
+        );
+        assert_eq!(
+            Fx3Header {
+                image_ctl: 0b110,
+                image_type: IMAGE_TYPE_NORMAL
+            }
+            .spi_width(),
+            4
+        );
     }
 
     #[test]

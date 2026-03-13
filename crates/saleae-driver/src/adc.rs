@@ -519,7 +519,7 @@ mod tests {
     fn push_enabled_true_responses(mock: &MockTransport, r40: u8, r4a: u8) {
         push_write_acks(mock, 3); // 3 write_adc_register calls
         push_dcm_cascade_responses(mock, r40, r4a); // reset_main_dcm
-        // Post-enable status reads: r0x19, r0x40, r0x4a
+                                                    // Post-enable status reads: r0x19, r0x40, r0x4a
         mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]); // r0x19
         mock.push_bulk_in_response(endpoint::BULK_IN, vec![r40]); // r0x40
         mock.push_bulk_in_response(endpoint::BULK_IN, vec![r4a]); // r0x4a
@@ -569,10 +569,7 @@ mod tests {
     /// Wire format: [0x81, 0x01, addr]
     fn assert_single_read(payloads: &[Vec<u8>], idx: usize, addr: u8) {
         let p = &payloads[idx];
-        assert_eq!(
-            p[0], 0x81,
-            "payload[{idx}] opcode should be ReadRegisters"
-        );
+        assert_eq!(p[0], 0x81, "payload[{idx}] opcode should be ReadRegisters");
         assert_eq!(p[1], 0x01, "payload[{idx}] count should be 1");
         assert_eq!(
             p[2], addr,
@@ -596,7 +593,11 @@ mod tests {
         configure_ad9637(&mut ep1).unwrap();
 
         let payloads = extract_out_payloads(&mock);
-        assert_eq!(payloads.len(), 9, "configure_ad9637 must send exactly 9 ADC register writes");
+        assert_eq!(
+            payloads.len(),
+            9,
+            "configure_ad9637 must send exactly 9 ADC register writes"
+        );
 
         // Verify exact sequence from decompiled FUN_01d20d90:
         // 1. reset+standby (0x08=0x03)
@@ -827,7 +828,10 @@ mod tests {
 
         let mut ep1 = mock_channel_none(&mock);
         let result = power_down(&mut ep1);
-        assert!(result.is_err(), "should propagate error from write_register_8");
+        assert!(
+            result.is_err(),
+            "should propagate error from write_register_8"
+        );
     }
 
     // -------------------------------------------------------------------
@@ -868,7 +872,11 @@ mod tests {
 
         let payloads = extract_out_payloads(&mock);
         // 9 + 1 + 8 + 13 + 2 + 16 + 8 + 1 + 1 = 59
-        assert_eq!(payloads.len(), 59, "init_ad9637 full sequence command count");
+        assert_eq!(
+            payloads.len(),
+            59,
+            "init_ad9637 full sequence command count"
+        );
     }
 
     #[test]
@@ -951,7 +959,10 @@ mod tests {
         let mut ep1 = mock_channel_none(&mock);
         let result = reset_main_dcm(&mut ep1).unwrap();
 
-        assert!(!result.locked, "0x80 should NOT be considered locked (missing main DCM bit)");
+        assert!(
+            !result.locked,
+            "0x80 should NOT be considered locked (missing main DCM bit)"
+        );
     }
 
     #[test]

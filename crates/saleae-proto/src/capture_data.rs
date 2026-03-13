@@ -1311,11 +1311,7 @@ mod tests {
         ];
         for i in 0..all.len() {
             for j in (i + 1)..all.len() {
-                assert_eq!(
-                    all[i] & all[j], 0,
-                    "flag constants {} and {} overlap",
-                    i, j
-                );
+                assert_eq!(all[i] & all[j], 0, "flag constants {} and {} overlap", i, j);
             }
         }
         // Verify they cover exactly the high byte

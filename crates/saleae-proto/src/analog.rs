@@ -525,8 +525,14 @@ mod tests {
         let filter = BiquadFilter::new(&set.sections);
         let settling = set.settling_samples();
 
-        assert!(settling > 0, "calibration should have non-zero settling time");
-        assert_eq!(settling, 3381, "expected 3381 settling samples for ch0 @ 50MHz");
+        assert!(
+            settling > 0,
+            "calibration should have non-zero settling time"
+        );
+        assert_eq!(
+            settling, 3381,
+            "expected 3381 settling samples for ch0 @ 50MHz"
+        );
 
         let proc = AnalogProcessor::with_settling(transform, filter, settling);
         assert_eq!(proc.settling_samples(), settling);
