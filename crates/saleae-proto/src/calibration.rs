@@ -445,6 +445,18 @@ fn parse_sections(coeffs: &[f64]) -> ProtoResult<[BiquadSection; NUM_SECTIONS]> 
         let a1 = coeffs[base + 4];
         let a2 = coeffs[base + 5];
 
+        // Reject non-finite coefficients (NaN, +inf, -inf) from corrupted data.
+        let all_coeffs = [b0, b1, b2, a0, a1, a2];
+        let names = ["b0", "b1", "b2", "a0", "a1", "a2"];
+        for (coeff, name) in all_coeffs.iter().zip(names.iter()) {
+            if !coeff.is_finite() {
+                return Err(ProtoError::parse(format!(
+                    "section {} has non-finite {} = {}",
+                    i, name, coeff
+                )));
+            }
+        }
+
         // a0 must always be 1.0 (normalized SOS form).
         if (a0 - 1.0).abs() > 1e-10 {
             return Err(ProtoError::parse(format!(
@@ -1044,12 +1056,8 @@ mod tests {
     }
 
     #[test]
-    fn parse_nan_coefficient_accepted_by_parser() {
-        // Rust's str::parse::<f64>() accepts "NaN" -- this documents
-        // that the parser does NOT reject NaN coefficients. The a0
-        // check will catch NaN in the a0 position (since NaN != 1.0),
-        // but NaN in other positions silently passes through.
-        // This is a known limitation.
+    fn parse_nan_coefficient_rejected() {
+        // NaN in b0 position must be rejected as non-finite.
         let xml = r#"<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
 <boost_serialization signature="serialization::archive" version="10">
 <DeviceCalibrationSet>
@@ -1081,20 +1089,16 @@ mod tests {
   </px>
 </DeviceCalibrationSet>
 </boost_serialization>"#;
-        // NaN parses as f64, but the resulting section has NaN b0.
-        // The parser currently accepts this. Document the behavior.
         let result = parse_calibration(xml.as_bytes());
-        assert!(result.is_ok(), "NaN parses as f64 -- parser accepts it (known limitation)");
-        let cal = result.unwrap();
-        assert!(cal.calibration_sets[0].sections[0].b0.is_nan());
+        assert!(result.is_err(), "NaN coefficient should be rejected");
+        let err_msg = result.unwrap_err().to_string();
+        assert!(err_msg.contains("non-finite"), "error should mention non-finite: {err_msg}");
+        assert!(err_msg.contains("b0"), "error should identify b0: {err_msg}");
     }
 
     #[test]
     fn parse_nan_in_a0_position_rejected() {
-        // NaN in the a0 position (index 3) should be rejected because
-        // (NaN - 1.0).abs() > 1e-10 is false (NaN comparisons are always false).
-        // Wait -- actually (NaN - 1.0).abs() returns NaN, and NaN > 1e-10 is false.
-        // So the a0 check does NOT catch NaN! This is a real bug to document.
+        // NaN in a0 is caught by the is_finite() check before the a0==1.0 check.
         let xml = r#"<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
 <boost_serialization signature="serialization::archive" version="10">
 <DeviceCalibrationSet>
@@ -1127,10 +1131,51 @@ mod tests {
 </DeviceCalibrationSet>
 </boost_serialization>"#;
         let result = parse_calibration(xml.as_bytes());
-        // BUG: NaN in a0 passes the check because (NaN - 1.0).abs() > 1e-10
-        // evaluates to false (NaN comparisons always return false).
-        // This documents the bug for a future fix.
-        assert!(result.is_ok(), "BUG: NaN a0 passes the check due to NaN comparison semantics");
+        assert!(result.is_err(), "NaN a0 should be rejected as non-finite");
+        let err_msg = result.unwrap_err().to_string();
+        assert!(err_msg.contains("non-finite"), "error should mention non-finite: {err_msg}");
+        assert!(err_msg.contains("a0"), "error should identify a0: {err_msg}");
+    }
+
+    #[test]
+    fn parse_inf_coefficient_rejected() {
+        // Infinity in a1 position must be rejected as non-finite.
+        let xml = r#"<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<boost_serialization signature="serialization::archive" version="10">
+<DeviceCalibrationSet>
+  <px>
+    <mDeviceId><mDeviceId>12345</mDeviceId><mDeviceType>6</mDeviceType></mDeviceId>
+    <mCalibrationDate>1/1/2020</mCalibrationDate>
+    <mCalibrationData>
+      <count>1</count><item_version>21</item_version>
+      <item>
+        <mChannel><mDeviceId>12345</mDeviceId><mChannelIndex>0</mChannelIndex><mDataType>0</mDataType></mChannel>
+        <mSampleRate>1000000</mSampleRate>
+        <mDf1SosCoefficients><count>30</count><item_version>0</item_version>
+          <item>1.0</item><item>0.0</item><item>0.0</item><item>1</item><item>inf</item><item>0.0</item>
+          <item>1.0</item><item>0.0</item><item>0.0</item><item>1</item><item>0.0</item><item>0.0</item>
+          <item>1.0</item><item>0.0</item><item>0.0</item><item>1</item><item>0.0</item><item>0.0</item>
+          <item>1.0</item><item>0.0</item><item>0.0</item><item>1</item><item>0.0</item><item>0.0</item>
+          <item>1.0</item><item>0.0</item><item>0.0</item><item>1</item><item>0.0</item><item>0.0</item>
+        </mDf1SosCoefficients>
+        <mFirTaps><count>0</count></mFirTaps>
+        <mGroupDelay>0</mGroupDelay>
+        <mImpulseLength>1</mImpulseLength>
+      </item>
+    </mCalibrationData>
+    <mFullScaleVoltageRanges>
+      <count>1</count><item_version>21</item_version>
+      <item><mChannel><mDeviceId>12345</mDeviceId><mChannelIndex>0</mChannelIndex><mDataType>0</mDataType></mChannel>
+        <mFullScaleMinVoltage>-10.0</mFullScaleMinVoltage><mFullScaleMaxVoltage>10.0</mFullScaleMaxVoltage></item>
+    </mFullScaleVoltageRanges>
+  </px>
+</DeviceCalibrationSet>
+</boost_serialization>"#;
+        let result = parse_calibration(xml.as_bytes());
+        assert!(result.is_err(), "inf coefficient should be rejected");
+        let err_msg = result.unwrap_err().to_string();
+        assert!(err_msg.contains("non-finite"), "error should mention non-finite: {err_msg}");
+        assert!(err_msg.contains("a1"), "error should identify a1: {err_msg}");
     }
 
     #[test]
