@@ -157,15 +157,15 @@ Fixed list for devices supporting downsampling (Logic 4/8/Pro 8/Pro 16):
 
 | Finding | Confidence | Method |
 |---------|-----------|--------|
-| FpgaConstants packet size limits | **Confirmed** | CMP immediates in binary |
+| FpgaConstants packet size limits | **High** | CMP immediates in binary (Ghidra only, not yet hardware-validated) |
 | SamplesPerPacketMultiple_WithStats = 256 | **High** | test %cl,%cl pattern; consistent with Xilinx max=7680=30x256 |
-| MsoConstants trigger buffer limits | **Confirmed** | CMP immediates in binary |
-| MaxScopeChannels = 4 | **Confirmed** | CMP immediate in binary |
-| TotalAfeConfigurations = 66 | **Confirmed** | CMP immediate in binary |
-| Glitch filter: 5 or multiple of 10 | **Confirmed** | Assertion string text in binary |
+| MsoConstants trigger buffer limits | **High** | CMP immediates in binary (Ghidra only) |
+| MaxScopeChannels = 4 | **High** | CMP immediate in binary (Ghidra only) |
+| TotalAfeConfigurations = 66 | **High** | CMP immediate in binary (Ghidra only) |
+| Glitch filter: 5 or multiple of 10 | **High** | Assertion string in binary + fpga-registers.md documents same constraint |
 | MsoDeviceConstants struct layout | **High** | Serialization function disassembly |
-| Downsample ratio quantization | **Confirmed** | JS bundle source code |
-| analogLimit_* are runtime values | **Confirmed** | JSON serialization, not CMP immediates |
+| Downsample ratio quantization | **High** | JS bundle source code (single source, not hardware-validated) |
+| analogLimit_* are runtime values | **High** | JSON serialization + Ghidra (2 of 3 sources) |
 
 
 ## Open Questions
@@ -182,7 +182,19 @@ Fixed list for devices supporting downsampling (Logic 4/8/Pro 8/Pro 16):
 3. **Altera vs Xilinx device type mapping**: Device type 0/1 = Altera,
    type >= 2 = Xilinx. The meaning of the specific type values (0, 1, 2,
    3, ...) and which hardware revisions they correspond to is unknown.
+   See `doc/protocol/fpga-registers.md` for FPGA variant constraints on
+   SamplesPerChunk and MaxTriggerBuffer (Xilinx: 0x100-0x1E00 / 0x3FFFC000,
+   Altera: 0x40-0x1780 / 0x2FFFC000).
 
 4. **SamplesPerPacketMultiple without stats**: When stats collection is
    disabled, what alignment (if any) is required? The code only checks
    the modulo when the withStats flag is set.
+
+
+## Cross-References
+
+- **FPGA register interface**: `doc/protocol/fpga-registers.md` -- documents
+  the FpgaDeviceFeatures register map including capture config registers
+  (0x06-0x14) and FPGA variant constraints that correspond to the constants here.
+- **Capture sequence**: `doc/protocol/capture-sequence.md` -- uses these
+  constants for validation during SetCaptureParameters.

@@ -152,6 +152,19 @@ Opcode `0x7D` is not in the known command table -- it appears to be
 a dedicated ping/echo command not documented elsewhere.
 
 
+## Initial Seed Constant
+
+The default/initial LFSR seed is **0x354b248e**. This constant is used:
+
+1. As the initial state of the LFSR when the driver starts (before any reseed).
+2. As the encryption key for all reseed packets -- reseed packets are ALWAYS
+   encrypted with this initial seed, not the current rolling LFSR state.
+3. In the Rust driver: `saleae_proto::obfuscation::DEFAULT_INITIAL_SEED`.
+
+See `re/notes/init-sequence-pcap.md` for validation across all 4 reseeds in the
+pcap capture.
+
+
 ## SimpleEncryption (XOR Obfuscation)
 
 Source: `SimpleEncryption.cpp`
@@ -213,8 +226,8 @@ prevent casual USB sniffing of commands.
 | Used by SimpleEncryption | High | Same source file, SetControlByte function |
 | XOR-based obfuscation | Medium | "SimpleEncryption.cpp" name + SetControlByte signature |
 | Ping command 0x7D returns complement | High | Sends 0x55, expects 0xAA (complement), clear code path |
-| Not PID patching | Confirmed | No PID-related code in ReseedDevice function |
-| Not serial number assignment | Confirmed | Seed is random, not device-specific |
+| Not PID patching | High | No PID-related code in ReseedDevice function (Ghidra only) |
+| Not serial number assignment | High | Seed is random, not device-specific (Ghidra only) |
 | Called before each capture | High | In TestFirmwareResponsivnessAndReseed, which is step 3 of capture start |
 
 

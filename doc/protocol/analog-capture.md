@@ -54,7 +54,7 @@ Three ADC families are used, selected by hardware revision:
 | AD9637 | 12-bit | Logic Pro 8/16 (old rev) | Xilinx Spartan-6/7-Series | Parallel LVDS |
 | ADS5282/5287 | 12-bit | All devices (new rev) | Lattice ECP5 | JESD204B serial |
 
-**Confidence: Confirmed** -- Three independent sources agree:
+**Confidence: High** -- Three independent Ghidra sources agree (not yet hardware-validated):
 1. Mangled function names: `InitHmcad1100`, `SetAd9637Enabled`, `SetAds528xEnabled`
 2. Board revision enum: `RevisionDetail::AdcType::{HMCAD1100, AD9637}`
 3. Lattice bitstream design names: all contain `ADS528x`
@@ -76,7 +76,7 @@ Three ADC families are used, selected by hardware revision:
 - `SetAds528xDrive` -- drive strength config
 - JESD204B link management with retries and bitslip detection
 
-**Confidence: Confirmed** -- Function signatures extracted from mangled symbols
+**Confidence: High** -- Function signatures extracted from mangled symbols (Ghidra only)
 
 
 ## Raw ADC Data Format
@@ -119,18 +119,21 @@ This means raw ADC codes are preserved through the storage layer.
 Voltage conversion uses a linear transform:
 
 ```
-voltage = adc_code * scale + offset  (hypothesis)
+voltage = adc_code * scale + offset
 ```
 
 Evidence:
-- `cal.mAdcToVoltageTransform.mScale != 0.0` -- assertion
-- `isfinite(hw_channel.mAdcToVoltageTransform.mScale)` -- validation
-- `cal.mAdcToDacVoltageScale != 0.0` -- DAC voltage scaling
+- `cal.mAdcToVoltageTransform.mScale != 0.0` -- assertion (Ghidra)
+- `isfinite(hw_channel.mAdcToVoltageTransform.mScale)` -- validation (Ghidra)
+- `cal.mAdcToDacVoltageScale != 0.0` -- DAC voltage scaling (Ghidra)
 - JSON fields: `/adcToVoltageTransform`, `/adcTransform`,
   `/voltageTransform`
 - Error: `MissingVoltageTransform` when data is absent
+- Real .cal file: `mFullScaleMinVoltage`/`mFullScaleMaxVoltage` per channel (validated)
+- `doc/calibration/calibration-format.md`: fully documents the transform
+  formula `voltage = adc_code * m + b` with real calibration data
 
-**Confidence: High** -- Multiple assertions confirm the transform structure
+**Confidence: Confirmed** -- Ghidra assertions + real .cal file data + Rust implementation
 
 
 ## Analog Front-End (AFE)

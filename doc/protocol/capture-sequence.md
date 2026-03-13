@@ -2,9 +2,9 @@
 
 Status: High confidence (static analysis of libgraph_server_shared.so v2.4.40)
 Corroboration: Multiple independent evidence sources (RTTI/mangled symbols,
-assertion messages, format strings, function signatures, IPC protocol analysis)
-Awaiting: USB capture validation, Ghidra decompilation for exact command bytes
-and register values
+assertion messages, format strings, function signatures, IPC protocol analysis).
+Partially validated against USB pcap (`re/notes/init-sequence-pcap.md`).
+Awaiting: Full hardware validation of all steps in Rust driver
 
 
 ## Overview
@@ -356,15 +356,26 @@ is terminal -- the device must be physically reconnected.
 
 | Finding | Confidence | Sources |
 |---------|-----------|---------|
-| Start sequence: validate -> config -> start -> stream | **Confirmed** | Multiple correlated string sequences + mangled symbols |
-| SetCaptureParameters writes via WriteConfigurationData | **Confirmed** | Function signatures + error strings + 62/509 limit |
-| SendStartCommand / COMMAND_STOP_STREAM commands | **Confirmed** | Literal strings in binary |
-| EP1 OUT for commands, EP2 IN for data | **Confirmed** | lsusb + binary analysis + burst config |
-| 5 device-specific StartSampling variants | **Confirmed** | Virtual function signature strings |
-| SamplingConfigurationData format fields | **Confirmed** | Format string in binary |
+| Start sequence: validate -> config -> start -> stream | **High** | Multiple correlated string sequences + mangled symbols (Ghidra) + pcap validation (re/notes/init-sequence-pcap.md) |
+| SetCaptureParameters writes via WriteConfigurationData | **High** | Function signatures + error strings + 62/509 limit (Ghidra) + pcap validation |
+| SendStartCommand / COMMAND_STOP_STREAM commands | **Confirmed** | Literal strings in binary + pcap validation + tested in Rust driver |
+| EP1 OUT for commands, EP2 IN for data | **Confirmed** | lsusb + binary analysis + burst config + hardware-tested |
+| 5 device-specific StartSampling variants | **High** | Virtual function signature strings (Ghidra only) |
+| SamplingConfigurationData format fields | **High** | Format string in binary (Ghidra only) |
 | CaptureCompleteData end signal | **High** | Type name + pipe handler registration |
-| WriteConfigurationData chunk sizes (62/509) | **Confirmed** | Assertion string in binary |
-| PLL lock check during SetBankPower | **Confirmed** | Both success/failure strings present |
+| WriteConfigurationData chunk sizes (62/509) | **High** | Assertion string in binary + pcap validation (2 of 3 sources) |
+| PLL lock check during SetBankPower | **High** | Both success/failure strings present (Ghidra only) |
+
+
+## Cross-References
+
+- **Hardware-validated init sequence**: `re/notes/init-sequence-pcap.md` contains
+  a complete 8-phase initialization and capture sequence decoded from a real USB
+  capture of a Logic Pro 8. It validates the start/stop sequence described above
+  and documents exact register values, timing, and JESD link establishment.
+- **EP1 command protocol**: `doc/protocol/ep1-commands.md`
+- **FPGA register interface**: `doc/protocol/fpga-registers.md`
+- **Capture constants**: `doc/protocol/capture-constants.md`
 
 
 ## Open Questions

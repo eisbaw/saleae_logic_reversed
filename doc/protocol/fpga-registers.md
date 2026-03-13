@@ -184,7 +184,7 @@ Same bit layout as DIGITAL_CH_CONFIG: `enabled<<20 | pulseWidth[19:0]`.
 
 | Address | Name | Description |
 |---------|------|-------------|
-| 0x0194 | SCOPE_CHANNEL_CONFIG | Scope channel configuration (purpose TBD). |
+| 0x0194 | SCOPE_CHANNEL_CONFIG | Scope channel configuration. Written by function at ELF 0x02d662c0 with a single uint32 parameter. Exact bit fields unknown -- possibly scope-mode channel select or test pattern config. See `re/notes/fpga-glitch-filter.md`. |
 
 ### Control Registers
 
