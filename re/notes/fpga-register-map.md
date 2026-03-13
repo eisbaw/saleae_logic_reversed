@@ -1,9 +1,9 @@
 # FPGA Register Map Analysis
 
-Analysis date: 2026-03-10
+Analysis date: 2026-03-10 (updated 2026-03-13)
 Binary: libgraph_server_shared.so (48MB, stripped, ELF 64-bit x86-64)
 Source: Saleae Logic 2 v2.4.40
-Tasks: TASK-0031, TASK-0068
+Tasks: TASK-0031, TASK-0068, TASK-0193
 
 
 ## Summary
@@ -73,8 +73,13 @@ Source file:
 
 | Address | Name | Description |
 |---------|------|-------------|
-| 0x0020 | GPIF_ENABLE | Enables GPIF data interface between FX3 and FPGA. |
+| 0x0020 | GPIF_ENABLE | Enables GPIF data interface. Value: 0x10000. |
 | 0x0024 | GPIF_FLUSH_TIMEOUT | GPIF flush timeout in 100MHz clock ticks. |
+
+**EnableGpif** (from FUN_02e62480, ELF VA 0x2d62480):
+- Reg 0x0024 = `param_2 / 10` (converts nanoseconds to 100MHz ticks)
+- Reg 0x0020 = `0x10000` (constant enable value)
+- Logged as: "Enabling GPIF, Flush timeout set to {}ns (every {} ticks @ 100Mhz)"
 
 #### Test Data Configuration (0x0030-0x0034)
 
@@ -99,27 +104,44 @@ Constraint: Only one of TestPattern and DataObject may be enabled at a time.
 |---------|------|-------------|
 | 0x0040 | CAPTURE_CONTROL | Master capture control. See bit-field layout below. |
 
-**CAPTURE_CONTROL (0x0040) bit fields** (from SetAnalogChannelConfiguration):
+**CAPTURE_CONTROL (0x0040) bit fields** (fully resolved from 4 writers):
 ```
-bit  4:       Capture mode (from config byte 0)
+bit  0:       Analog channel 0 enabled
+bit  1:       Analog channel 1 enabled (shifted left by 1 in assembly)
+bit  2:       Analog channel 2 enabled (shifted left by 2)
+bit  3:       Analog channel 3 enabled (shifted left by 3)
+bit  4:       Capture mode (from config.mCaptureMode byte 0)
 bits [6:5]:   DownsampleMode (2 bits, via SetField<DownsampleMode>)
-bits [3:0]:   Preserved from previous value (masked with 0x8F)
-bits [31:7]:  Other configuration (preserved/set elsewhere)
+bits [31:7]:  Preserved / unused
 ```
 
-The field assembly is:
-`value = (config.mCaptureMode << 4) | (DownsampleMode & 3) << 5 | (prev_value & 0x8F)`
+Confirmed writers:
+- **Init** (FUN_02e62140): Writes 0 (clears all bits during init sequence)
+- **DisableAnalogChannels** (FUN_02e650e0): Writes 0 (disables all channels)
+- **SetCaptureChannels** (FUN_02e64550): Sets bits [3:0] from 4 channel-enable bytes:
+  `value = byte0 | byte1*2 | byte2<<2 | byte3<<3 | (prev & 0xFFFFFFF0)`
+- **SetAnalogChannelConfiguration** (FUN_02e64640): Sets bits [6:4]:
+  `value = (config.mCaptureMode << 4) | (DownsampleMode & 3) << 5 | (prev & 0xFFFFFF8F)`
+
+The register is a read-modify-write target: new values merge with the stored
+copy at `*(this + 8)` using bitwise masks.
 
 #### Scope Configuration IDs (0x0044-0x0050)
 
 | Address | Name | Description |
 |---------|------|-------------|
-| 0x0044 | SCOPE_CONFIG_ID_0 | Configuration ID 0. |
-| 0x0048 | SCOPE_CONFIG_ID_1 | Configuration ID 1. |
-| 0x004C | SCOPE_CONFIG_ID_2 | Configuration ID 2. |
-| 0x0050 | SCOPE_CONFIG_ID_3 | Configuration ID 3. |
+| 0x0044 | SCOPE_CONFIG_ID_0 | Configuration ID 0 -- param_2 low 32 bits. |
+| 0x0048 | SCOPE_CONFIG_ID_1 | Configuration ID 1 -- param_2 high 32 bits. |
+| 0x004C | SCOPE_CONFIG_ID_2 | Configuration ID 2 -- param_3 low 32 bits. |
+| 0x0050 | SCOPE_CONFIG_ID_3 | Configuration ID 3 -- param_3 high 32 bits. |
 
-Logged as: "Setting scope configuration IDs: {} {} {} {}"
+Confirmed from decompiled `SetConfigurationIds` (FUN_02e64230, ELF VA 0x2d64230):
+- Takes two 64-bit integer parameters (packed as two uint32 pairs)
+- Writes 4 sequential FPGA registers from these values
+- Source: `mso_fpga.cpp` line 0x240
+- Logged as: "Setting scope configuration IDs: {} {} {} {}"
+- The 4 IDs are opaque uint32 values passed from the configuration layer;
+  their semantic meaning is determined by the caller (ProcessPendingConfiguration)
 
 #### Analog Channel Configuration (0x0054-0x0068)
 
@@ -156,12 +178,21 @@ The FPGA variant (Xilinx vs Altera) is detected via `FUN_02e62780()`: return val
 | 0x0088 | TRIGGER_AUTO_TIMEOUT | Auto-mode timeout: `SamplesToTicks(auto_timeout_samples)`. |
 | 0x008C | TRIGGER_HOLDOFF_TIMEOUT_HI | Packed high bits: `timeout_hi[11:0] << 16 | holdoff_hi[11:0]`. |
 | 0x0090 | TRIGGER_INITIAL_HOLDOFF_HI | Initial holdoff high: `(holdoff >> 35) & 0x1FFF` (13 bits). |
-| 0x0094 | TRIGGER_TICK_SIZE | SamplesToTicks conversion factor (written near holdoff computation). |
+| 0x0094 | TRIGGER_TICK_SIZE | Per-channel tick size for SamplesToTicks conversion. See details below. |
 | 0x0098 | SW_TRIGGER_LO | Software trigger timestamp, low 32 bits. |
 | 0x009C | SW_TRIGGER_HI | Software trigger timestamp, high 32 bits. |
 
 **SamplesToTicks conversion**: `ticks = (samples + 7) >> 3` (divide by 8, round up).
 Holdoff/timeout values must be multiples of 8 samples (warning logged if not).
+
+**TRIGGER_TICK_SIZE (0x0094) details** (from FUN_02e668e0, ELF VA 0x2d668e0):
+The value written is `SamplesToTicks(param_2)` = `(param_2 + 7) >> 3`.
+The caller (ProcessPendingConfiguration, FUN_02e4a280) computes param_2 as a
+time delta derived from `steady_clock::now()` differences scaled by the sample
+rate: `(elapsed_ns / clock_period) * sample_rate`. This encodes a per-channel
+timing constant that translates wall-clock holdoff/timeout durations into FPGA
+tick counts at the current sample rate.
+Source: `mso_fpga.cpp`, function `SamplesToTicks` (line 0x2ba).
 
 **TRIGGER_CONTROL (0x0070) bit fields** (from decompiled SetAnalogTriggerConfiguration):
 ```
@@ -205,7 +236,25 @@ Constraint: holdoff and timeout high values must be < 0x1000 (12 bits).
 
 | Address | Name | Description |
 |---------|------|-------------|
-| 0x00E0 | INIT_CONFIG | Post-programming initialization register. |
+| 0x00E0 | INIT_CONFIG | Post-programming initialization register. See details below. |
+
+**INIT_CONFIG (0x00E0) value computation** (from FUN_02e62140, ELF VA 0x2d62140):
+```
+value = (param_2 >> 5) - 0x200
+```
+
+The init function writes three registers in sequence:
+1. Reg 0x01C0 = 0 (COMMIT_BANK_CONTROL, clear all)
+2. Reg 0x0040 = `*(this + 4)` (CAPTURE_CONTROL, from stored state)
+3. Reg 0x00E0 = `(param_2 >> 5) - 0x200` (INIT_CONFIG)
+
+`param_2` is a `ulong` passed from the caller and represents a configuration
+parameter that encodes the FPGA base clock or DDR configuration. The shift-by-5
+divides by 32 and the subtraction of 0x200 (512) adjusts to a signed offset
+relative to a base frequency or timing constant.
+
+Source: `mso_fpga.cpp` line 0x422 (WriteRegister).
+Confirmed: This is the only writer of register 0x00E0.
 
 #### JESD BER Test (0x00FC)
 
@@ -213,14 +262,33 @@ Constraint: holdoff and timeout high values must be < 0x1000 (12 bits).
 |---------|------|-------------|
 | 0x00FC | JESD_BER_TEST | JESD204B Bit Error Rate test control. |
 
-#### Digital Voltage Threshold (0x0104)
+#### Digital Voltage Threshold (0x0104, 0x01B0-0x01BC)
 
 | Address | Name | Description |
 |---------|------|-------------|
-| 0x0104 | DIGITAL_VOLTAGE_THRESHOLD | Sets digital logic voltage threshold. |
+| 0x0104 | DIGITAL_VOLTAGE_THRESHOLD | Digital threshold enable. Always written as 1. |
+| 0x01B0 | DIGITAL_THRESHOLD_CH[0] | Channel 0 voltage threshold value. |
+| 0x01B4 | DIGITAL_THRESHOLD_CH[1] | Channel 1 voltage threshold value. |
+| 0x01B8 | DIGITAL_THRESHOLD_CH[2] | Channel 2 voltage threshold value. |
+| 0x01BC | DIGITAL_THRESHOLD_CH[3] | Channel 3 voltage threshold value. |
 
-Referenced by `SetDigitalDerivedVoltageThresholds` with an additional
-secondary write via a different mechanism (possibly I2C DAC).
+**Register 0x0104** (from FUN_02e66c60, ELF VA 0x2d66c60):
+Simple enable flag. Always writes value `1`. Called during MSO init
+(Initialize_PostWallPowerDetected) after FPGA programming and JESD setup.
+
+**Per-channel threshold registers 0x01B0-0x01BC** (from FUN_02e66a10, ELF VA 0x2d66a10):
+`SetDigitalDerivedVoltageThresholds(mso_fpga, channel, threshold_lo, threshold_hi)`
+- `channel`: 0-3 (bounds-checked, throws on >= 4)
+- Address lookup table at DAT_0089ad8a: `{0x01B0, 0x01B4, 0x01B8, 0x01BC}`
+- Value packed: `(threshold_lo & 0xFFFF) | (threshold_hi << 16)`
+- Written via the standard FPGA WriteRegister path (byte-swapped 16-bit address,
+  32-bit value, 6-byte EP1 packet)
+- Logged as: "Write 0x{:x} to 0x{:x}" (secondary format, at log level 2)
+  then "FPGA WriteRegister 0x{:04x} = 0x{:08x}" (standard format)
+
+The "secondary write mechanism" is NOT I2C -- it is standard FPGA register
+writes to previously undocumented per-channel registers 0x01B0-0x01BC.
+Source: `mso_fpga.cpp` line 0x33e.
 
 #### Smart Cable Digital Configuration (0x0120-0x016F)
 
@@ -293,19 +361,20 @@ using SetField<bool> at positions port*4+0..port*4+3.
 0x0004-0x0008  SPI / Status / JESD control
 0x0020-0x0024  GPIF (FX3 data interface) control
 0x0030-0x0034  Test data generation
-0x0040         Capture control (mode, downsample)
-0x0044-0x0050  Scope configuration IDs (4 registers)
+0x0040         Capture control (channel enable [3:0], mode [4], downsample [6:5])
+0x0044-0x0050  Scope configuration IDs (4 x uint32 from 2 packed uint64)
 0x0054-0x0068  Analog channel configuration (6 registers)
 0x0070-0x009C  Trigger configuration (12 registers)
-0x00E0         Post-programming initialization
+0x00E0         Post-programming initialization (value = (param >> 5) - 0x200)
 0x00FC         JESD BER test
-0x0104         Digital voltage threshold
+0x0104         Digital voltage threshold enable (value = 1)
 0x0120-0x016F  Smart cable digital config (5 ports x 4 ch, MSO only)
 0x0170-0x017C  Per-channel digital config (4 channels, stride 4)
+0x01B0-0x01BC  Per-channel digital voltage threshold (4 channels, stride 4)
 0x01C0-0x01C4  Commit/bank control, digital test pattern
 ```
 
-Total: 39 unique 16-bit register addresses confirmed from MsoFpga code region.
+Total: 43 unique 16-bit register addresses confirmed from MsoFpga code region.
 
 
 ## FpgaDeviceFeatures Register Interface (8-bit address)
@@ -524,15 +593,16 @@ For Altera FPGA:
 
 ## Initialization Sequence
 
-Post-FPGA-programming register write sequence (MsoFpga):
+Post-FPGA-programming register write sequence (MsoFpga, FUN_02e62140):
 ```
-1. Write 0x01C0 (COMMIT_BANK_CONTROL) -- initial bank/commit config
-2. Write 0x0040 (CAPTURE_CONTROL) -- initial capture config
-3. Write 0x00E0 (INIT_CONFIG) -- init-specific config
-4. Write 0x0024 (GPIF_FLUSH_TIMEOUT) -- set GPIF flush timeout
-5. Write 0x0020 (GPIF_ENABLE) -- enable GPIF data interface
+1. Write 0x01C0 = 0 (COMMIT_BANK_CONTROL, clear all)
+2. Write 0x0040 = *(this + 4) (CAPTURE_CONTROL, from stored state -- typically 0 at init)
+3. Write 0x00E0 = (param >> 5) - 0x200 (INIT_CONFIG, computed from config param)
+4. Write 0x0024 = timeout_ns / 10 (GPIF_FLUSH_TIMEOUT, ns to 100MHz ticks)
+5. Write 0x0020 = 0x10000 (GPIF_ENABLE, fixed constant)
 6. [Lattice devices]: ResetJesdPhyTransceivers (writes reg 0x0008 in loop)
 7. [Lattice devices]: WaitForDdrReady (polls reg 0x0008 for bits [4:3])
+8. Write 0x0104 = 1 (DIGITAL_VOLTAGE_THRESHOLD enable)
 ```
 
 
@@ -571,7 +641,7 @@ function is used to pack bit fields into registers. All observed instantiations:
 
 | Finding | Confidence | Source |
 |---------|-----------|--------|
-| MsoFpga register addresses (39 addresses) | **Confirmed** | Direct from 49 movw immediates + decompilation |
+| MsoFpga register addresses (43 addresses) | **Confirmed** | Direct from 49 movw immediates + decompilation + TASK-0193 |
 | FpgaDeviceFeatures register addresses (14 addresses) | **Confirmed** | Decompilation of SetCaptureParameters |
 | DigitalDerived address = 0x170 + ch*4 | **Confirmed** | Decompiled CalculateDigitalConfigurationAddress |
 | SmartCable address = 0x120 + port*16 + sub_ch*4 | **Confirmed** | Decompiled CalculateDigitalConfigurationAddress_SmartCable |
@@ -584,7 +654,13 @@ function is used to pack bit fields into registers. All observed instantiations:
 | WriteAd9637Register multi-step protocol | **Confirmed** | Decompiled WriteAd9637Register |
 | SetCaptureParameters register list | **Confirmed** | Decompiled Logic2FpgaDevice::SetCaptureParameters |
 | PLL_STATUS bit 5=Main DCM, bit 6=Slow DCM | **Confirmed** | Decompiled SetAd9637Enabled |
-| CAPTURE_CONTROL bit 4=mode, [6:5]=downsample | **High** | Decompiled SetAnalogChannelConfiguration, some bit ambiguity |
+| CAPTURE_CONTROL bits [3:0]=ch enable, [4]=mode, [6:5]=downsample | **Confirmed** | Decompiled 4 writers: init, disable, set channels, set config |
+| SCOPE_CONFIG_ID values (0x44-0x50) = 4 x uint32 from 2 x uint64 | **Confirmed** | Decompiled SetConfigurationIds |
+| INIT_CONFIG (0xE0) = (param >> 5) - 0x200 | **Confirmed** | Decompiled FUN_02e62140 (init sequence) |
+| TRIGGER_TICK_SIZE (0x94) = SamplesToTicks(time_delta) | **Confirmed** | Decompiled FUN_02e668e0 + caller |
+| DIGITAL_VOLTAGE_THRESHOLD (0x104) = 1 (enable flag) | **Confirmed** | Decompiled FUN_02e66c60 |
+| Per-channel threshold regs 0x1B0-0x1BC | **Confirmed** | Decompiled SetDigitalDerivedVoltageThresholds + DAT table |
+| GPIF_ENABLE (0x20) = 0x10000, GPIF_TIMEOUT (0x24) = ns/10 | **Confirmed** | Decompiled EnableGpif |
 | Analog channel reg semantics (0x54-0x68) | **High** | Decompiled with struct offset correlation |
 | Register name assignments | **Hypothesis** | Inferred from function context, not from binary symbols |
 
@@ -611,25 +687,45 @@ function is used to pack bit fields into registers. All observed instantiations:
    always writes value 2 to register 0x0008 (not computed addresses).
 
 
+## Resolved Open Questions (from TASK-0193)
+
+8. **Register 0x00E0 (INIT_CONFIG)**: RESOLVED. Value = `(param >> 5) - 0x200`.
+   Written by FUN_02e62140 during post-programming init. The param encodes a
+   clock/timing configuration; the formula divides by 32 and offsets by -512.
+
+9. **CAPTURE_CONTROL (0x0040) full bit layout**: RESOLVED. Bits [3:0] are
+   per-channel analog enable flags (ch0 at bit 0, ch1 at bit 1, etc.).
+   Written by FUN_02e64550 (SetCaptureChannels). Bit 4 is capture mode,
+   bits [6:5] are downsample mode. Bits [31:7] are unused/reserved.
+
+10. **SCOPE_CONFIG_ID registers (0x0044-0x0050)**: RESOLVED. SetConfigurationIds
+    takes two uint64 parameters and writes them as 4 x uint32 values to
+    registers 0x0044-0x0050. The values are opaque configuration IDs
+    passed from the scope configuration layer.
+
+11. **Register 0x0094 (TRIGGER_TICK_SIZE)**: RESOLVED. Value =
+    `SamplesToTicks(param)` = `(param + 7) >> 3`. The param is a time delta
+    computed from steady_clock differences scaled by sample rate.
+
+12. **DIGITAL_VOLTAGE_THRESHOLD (0x0104)**: RESOLVED. Register 0x0104 is a
+    simple enable flag (always 1). The "secondary write mechanism" is NOT I2C --
+    it writes to newly discovered per-channel registers 0x01B0-0x01BC through
+    the standard FPGA register path. Value = `(threshold_lo & 0xFFFF) |
+    (threshold_hi << 16)`.
+
+
 ## Remaining Open Questions
 
-1. **Register 0x00E0 (INIT_CONFIG)**: What specific value is written during init?
-   Need decompilation of the init function to determine.
-
-2. **CAPTURE_CONTROL (0x0040) full bit layout**: The SetAnalogChannelConfiguration
-   only modifies bits [6:4]. What are bits [3:0], [7], and [31:8]?
-
-3. **SCOPE_CONFIG_ID registers (0x0044-0x0050)**: What values are written? Need
-   decompilation of SetConfigurationIds.
-
-4. **Register 0x0094 (TRIGGER_TICK_SIZE)**: What value is written? This appears to
-   be a clock rate configuration for the sample-to-tick conversion.
-
-5. **FpgaDeviceFeatures registers above 0x1B**: Are there undiscovered 8-bit
+1. **FpgaDeviceFeatures registers above 0x1B**: Are there undiscovered 8-bit
    registers beyond 0x1B? SetCaptureParameters only covers the known set.
 
-6. **DIGITAL_VOLTAGE_THRESHOLD (0x0104)**: What is the secondary write mechanism?
-   The code also writes via "Write 0x{:x} to 0x{:x}" format, possibly I2C DAC.
-
-7. **HMCAD1100 initialization registers**: InitHmcad1100 uses a different register
+2. **HMCAD1100 initialization registers**: InitHmcad1100 uses a different register
    set than AD9637. Need decompilation to document HMCAD1100-specific registers.
+
+3. **INIT_CONFIG param origin**: What specific value is passed to FUN_02e62140
+   as param_2? Need to trace the caller to determine the actual constant.
+
+4. **StopJesdBerTest register selection**: FUN_02e67a20 writes value 0 to
+   register 0x0008 (Altera) or 0x00FC (Xilinx), selected by `FUN_02e62780() & 0xFE`.
+   The Altera path reuses the STATUS_DDR_JESD register while Xilinx uses a
+   dedicated JESD_BER_TEST register.
