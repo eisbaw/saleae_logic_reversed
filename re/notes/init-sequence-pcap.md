@@ -183,37 +183,41 @@ Channel config updated to enable all channels (0x0f in all three regs).
 |-----|-------|---------|---------|
 | 149 | 1651 | RESEED #4 | -> 0x44faeb97 |
 | 150 | 1653 | Ping | test=0x55, response=0xAA |
-| 152 | 1657 | Device2_1 | response=0x00 (configure EEPROM access?) |
+| 152 | 1657 | Device2_1 | response=0x00 (I2C wake for ATECC crypto IC) |
 
-Then extensive EEPROM/I2C operations at I2C address 0xC0:
+Then ATECC508A/608A crypto authentication via I2C address 0xC0:
 
-#### EEPROM Device ID Read
+#### ATECC Wake + Status Read
 ```
-ReadI2C addr=0xC0 reg=0x04 count=0  -> [0x02, 0x04, 0x11, 0x33, 0x43]
+Device2_1                           -> wake ATECC from sleep
+WriteI2C addr=0xC0 [0x01,0x00,0x02] -> idle/status command
 ```
-This reads the EEPROM device ID. Values 0x02041133 match an EEPROM device.
 
-#### EEPROM Calibration Data Operations
+#### ATECC Nonce Command (Challenge-Response Step 1)
+```
+Device2_1                           -> wake ATECC
+WriteI2C addr=0xC0 [0x1C,...26B...] -> Nonce command with host random nonce
+Device2_1                           -> wake for read
+ReadI2C  addr=0xC0 [0x23,0x00]      -> poll 35-byte Nonce response
+  -> 0x01 (not ready, 3 attempts)
+  -> 0x02 + 34 bytes (nonce result)
+WriteI2C addr=0xC0 [0x01,0x00,0x02] -> idle command
+```
 
-Pattern repeated multiple times:
-1. `WriteI2C addr=0xC0 reg=0x08` -- set read address/command
-2. `ReadI2C addr=0xC0 reg=0x23 count=0` -- read 35 bytes (polls until ready)
-3. Multiple read attempts return status 0x01 (not ready)
-4. Final read returns status 0x02 + 34 bytes of calibration data
-5. `WriteI2C addr=0xC0 reg=0x01` -- acknowledge/reset
+#### ATECC Sign Command (Challenge-Response Step 2)
+```
+Device2_1                           -> wake for Sign command
+WriteI2C addr=0xC0 [0x08,...10B...] -> Sign command (sign digest with slot key)
+Device2_1                           -> wake for read
+ReadI2C  addr=0xC0 [0x43,0x00]      -> poll 67-byte Sign response
+  -> 0x01 (not ready, 5 attempts)
+  -> 0x02 + 66 bytes (64B ECDSA signature + CRC)
+WriteI2C addr=0xC0 [0x01,0x00,0x02] -> idle command
+```
 
-Second calibration block:
-1. Read device ID (0xC0, reg 0x04)
-2. `WriteI2C addr=0xC0 reg=0x1C` -- write 26 bytes of calibration parameters
-3. `ReadI2C addr=0xC0 reg=0x23` -- read result
-4. Acknowledge
-
-Third calibration block (larger):
-1. Read device ID again
-2. `WriteI2C addr=0xC0 reg=0x08` -- set command (larger block: 0x80 bytes)
-3. `ReadI2C addr=0xC0 reg=0x43 count=0` -- read 67 bytes (multiple attempts)
-4. 6 attempts before data is ready
-5. Acknowledge
+The host verifies the ECDSA signature using OpenSSL (host-side), not on
+the ATECC IC. See `re/notes/crypto-authentication.md` for details. Our
+Rust driver skips this entire phase.
 
 
 ### Phase 7: Capture Configuration (36.809s-36.873s, frames 1753-1846)
@@ -336,20 +340,25 @@ established). The first attempt after FPGA load fails (returns 0x00),
 but after a ~50ms delay and second attempt, the link establishes.
 
 
-## I2C EEPROM (Address 0xC0)
+## I2C Crypto IC (ATECC508A/608A, Address 0xC0)
 
-The device communicates with an EEPROM at I2C address 0xC0 (7-bit: 0x60).
-Operations include:
+The device communicates with an ATECC508A/608A crypto authentication IC at
+I2C address 0xC0 (7-bit: 0x60). This is NOT an EEPROM -- it is a crypto
+IC for anti-clone authentication (see `re/notes/i2c-0xC0-identification.md`).
 
-- **Register 0x04**: Device ID read (returns 5 bytes: 0x02, 0x04, 0x11, 0x33, 0x43)
-- **Register 0x08**: Command/address register for reading calibration blocks
-- **Register 0x1C**: Write calibration parameters
-- **Register 0x01**: Acknowledge/status reset
-- **Register 0x23**: Read 35-byte calibration block (with polling)
-- **Register 0x43**: Read 67-byte calibration block (with polling)
+The bytes previously labeled as "register addresses" are actually ATECC
+protocol fields (command word addresses and response lengths):
 
-Read operations require polling: first reads return status 0x01 (not ready),
-final read returns status 0x02 + data.
+- **0x01**: Idle command -- put ATECC to sleep between operations
+- **0x04**: Info command response read (4 bytes of device revision info)
+- **0x08**: Command word address with Sign/GenKey params
+- **0x1C**: Nonce command with 28-byte payload (host nonce for challenge)
+- **0x23**: Read 35-byte Nonce response (32b nonce + count + CRC)
+- **0x43**: Read 67-byte Sign response (64b ECDSA signature + count + CRC)
+
+Read operations require polling: status 0x01 = ATECC still computing,
+status 0x02 = result ready + data. This matches ATECC command execution
+latency (crypto operations take milliseconds).
 
 
 ## Confidence Assessment
@@ -362,7 +371,7 @@ final read returns status 0x02 + data.
 | JESD link status in r0x40 | High | Consistent 0x00->0xe0 transition after power cycle |
 | Channel enable in r0x0f-0x11 | Medium | Values change between reseeds, correlate with config changes |
 | Calibration in r0x17 | Medium | 16 sequential writes after version read, plausible pattern |
-| EEPROM at I2C 0xC0 | High | Consistent polling pattern, device ID read |
+| Crypto IC (ATECC) at I2C 0xC0 | High | I2C address, polling pattern, response sizes match ATECC protocol |
 
 
 ## References
