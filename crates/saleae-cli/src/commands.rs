@@ -1098,10 +1098,13 @@ pub fn capture_quick(
     Ok(())
 }
 
-/// Print a warning if the capture ended early due to EP2 error.
+/// Print a warning if the capture ended early or teardown had errors.
 fn warn_if_partial(result: &saleae_driver::capture::CaptureResult) {
     if !result.completed_normally {
         println!("WARNING: capture ended early due to EP2 read error (data may be partial)");
+    }
+    for w in &result.teardown_warnings {
+        println!("WARNING: teardown: {w}");
     }
 }
 

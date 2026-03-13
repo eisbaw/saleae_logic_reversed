@@ -1294,6 +1294,13 @@ pub struct CaptureResult {
     /// `false` if the EP2 read loop broke out early due to a USB transfer
     /// error. Callers should treat partial captures with caution.
     pub completed_normally: bool,
+    /// Warnings from the capture teardown phase.
+    ///
+    /// Teardown sends `write_registers(r0x00=0x00)` to clear the trigger
+    /// and `StopStream(0x02)` to halt the FPGA. Failures here do not
+    /// prevent data from being returned, but indicate the device may be
+    /// in an inconsistent state (requiring power cycle before next capture).
+    pub teardown_warnings: Vec<String>,
 }
 
 impl CaptureResult {
@@ -1325,6 +1332,14 @@ impl CaptureResult {
         } else {
             0.0
         }
+    }
+
+    /// Whether teardown encountered any errors.
+    ///
+    /// When true, the device may be in an inconsistent state and could
+    /// require a power cycle before the next capture.
+    pub fn has_teardown_warnings(&self) -> bool {
+        !self.teardown_warnings.is_empty()
     }
 }
 
@@ -1448,11 +1463,16 @@ pub fn run_capture(
         elapsed_ms = elapsed.as_millis(),
         "Stopping capture"
     );
+    let mut teardown_warnings = Vec::new();
     if let Err(e) = ep1.write_registers(&[(0x00, 0x00)]) {
-        warn!("Failed to clear trigger register: {e}");
+        let msg = format!("Failed to clear trigger register: {e}");
+        warn!("{msg}");
+        teardown_warnings.push(msg);
     }
     if let Err(e) = ep1.stop_stream() {
-        warn!("Failed to send StopStream: {e}");
+        let msg = format!("Failed to send StopStream: {e}");
+        warn!("{msg}");
+        teardown_warnings.push(msg);
     }
 
     let result = CaptureResult {
@@ -1460,6 +1480,7 @@ pub fn run_capture(
         read_count,
         elapsed,
         completed_normally,
+        teardown_warnings,
     };
     info!(
         throughput_mbps = format_args!("{:.1}", result.throughput_mbps()),
@@ -1608,8 +1629,11 @@ pub fn run_capture_streaming(
     let elapsed = start.elapsed();
 
     // Step 7: Stop the stream reader (cancel pending transfers).
+    let mut teardown_warnings = Vec::new();
     if let Err(e) = stream_reader.stop() {
-        warn!("Failed to stop stream reader: {e}");
+        let msg = format!("Failed to stop stream reader: {e}");
+        warn!("{msg}");
+        teardown_warnings.push(msg);
     }
 
     // Step 8: Stop capture. Warn on failure but don't lose collected data.
@@ -1620,10 +1644,14 @@ pub fn run_capture_streaming(
         "Stopping capture"
     );
     if let Err(e) = ep1.write_registers(&[(0x00, 0x00)]) {
-        warn!("Failed to clear trigger register: {e}");
+        let msg = format!("Failed to clear trigger register: {e}");
+        warn!("{msg}");
+        teardown_warnings.push(msg);
     }
     if let Err(e) = ep1.stop_stream() {
-        warn!("Failed to send StopStream: {e}");
+        let msg = format!("Failed to send StopStream: {e}");
+        warn!("{msg}");
+        teardown_warnings.push(msg);
     }
 
     let result = CaptureResult {
@@ -1631,6 +1659,7 @@ pub fn run_capture_streaming(
         read_count,
         elapsed,
         completed_normally,
+        teardown_warnings,
     };
     info!(
         throughput_mbps = format_args!("{:.1}", result.throughput_mbps()),

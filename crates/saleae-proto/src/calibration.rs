@@ -45,7 +45,32 @@ pub struct CalibrationSet {
     pub sample_rate: u64,
     pub sections: [BiquadSection; NUM_SECTIONS],
     pub group_delay: f64,
+    /// Number of samples in the filter's impulse response.
+    ///
+    /// The IIR biquad cascade has a non-zero impulse response that decays
+    /// over approximately this many samples. The first `impulse_length`
+    /// samples after filter reset (or capture start) contain transient
+    /// artifacts from the filter settling. Callers that need clean data
+    /// should be aware of this settling period but are not required to
+    /// discard samples -- the decision depends on the application.
+    ///
+    /// Typical values: ~3000-4000 samples depending on channel and rate.
     pub impulse_length: u64,
+}
+
+impl CalibrationSet {
+    /// Number of samples the IIR filter needs to settle after reset.
+    ///
+    /// Returns [`impulse_length`](Self::impulse_length), which is the
+    /// number of samples over which the biquad cascade's impulse response
+    /// is non-negligible. Output samples before this point contain
+    /// transient artifacts from zeroed delay lines.
+    ///
+    /// This does **not** automatically discard samples -- callers decide
+    /// whether to skip, fade-in, or ignore the settling period.
+    pub fn settling_samples(&self) -> u64 {
+        self.impulse_length
+    }
 }
 
 /// Per-channel full-scale voltage range.
