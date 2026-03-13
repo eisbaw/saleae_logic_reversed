@@ -41,6 +41,10 @@ pub enum ProtoError {
     #[error("invalid sample rate: {reason}")]
     InvalidSampleRate { reason: String },
 
+    /// A selection was attempted on an empty list of available rates.
+    #[error("empty selection list: no available rates to choose from")]
+    EmptySelection,
+
     /// Generic parse error with context.
     #[error("parse error: {context}")]
     Parse { context: String },

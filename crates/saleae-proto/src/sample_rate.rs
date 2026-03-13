@@ -631,36 +631,27 @@ pub fn compute_advanced_options(
 /// difference; we use a simpler linear scan since the arrays are small
 /// (< 20 elements).
 ///
-/// # Panics
-///
-/// Panics if `available` is empty (mirrors the binary's assertion:
-/// "selections can not be empty").
-pub fn select_closest_rate(available: &[u64], requested: u64) -> u64 {
-    assert!(!available.is_empty(), "selections can not be empty");
-
+/// Returns `ProtoError::EmptySelection` if `available` is empty.
+pub fn select_closest_rate(available: &[u64], requested: u64) -> Result<u64, ProtoError> {
     available
         .iter()
         .copied()
         .min_by_key(|&rate| rate.abs_diff(requested))
-        .unwrap()
+        .ok_or(ProtoError::EmptySelection)
 }
 
 /// Find the index of the closest rate in a sorted array.
 ///
 /// Same as [`select_closest_rate`] but returns the index.
 ///
-/// # Panics
-///
-/// Panics if `available` is empty.
-pub fn select_closest_index(available: &[u64], requested: u64) -> usize {
-    assert!(!available.is_empty(), "selections can not be empty");
-
+/// Returns `ProtoError::EmptySelection` if `available` is empty.
+pub fn select_closest_index(available: &[u64], requested: u64) -> Result<usize, ProtoError> {
     available
         .iter()
         .enumerate()
         .min_by_key(|&(_, &rate)| rate.abs_diff(requested))
         .map(|(idx, _)| idx)
-        .unwrap()
+        .ok_or(ProtoError::EmptySelection)
 }
 
 // ---------------------------------------------------------------------------
@@ -946,7 +937,7 @@ mod tests {
     #[test]
     fn select_closest_exact_match() {
         assert_eq!(
-            select_closest_rate(PRO_DIGITAL_RATES, 100_000_000),
+            select_closest_rate(PRO_DIGITAL_RATES, 100_000_000).unwrap(),
             100_000_000
         );
     }
@@ -955,7 +946,7 @@ mod tests {
     fn select_closest_between_values() {
         // 75 MHz is between 100 MHz and 50 MHz -- closer to 100 MHz
         assert_eq!(
-            select_closest_rate(PRO_DIGITAL_RATES, 75_000_000),
+            select_closest_rate(PRO_DIGITAL_RATES, 75_000_000).unwrap(),
             100_000_000
         );
     }
@@ -963,14 +954,17 @@ mod tests {
     #[test]
     fn select_closest_below_minimum() {
         // 500 kHz is below the minimum 1 MHz
-        assert_eq!(select_closest_rate(PRO_DIGITAL_RATES, 500_000), 1_000_000);
+        assert_eq!(
+            select_closest_rate(PRO_DIGITAL_RATES, 500_000).unwrap(),
+            1_000_000
+        );
     }
 
     #[test]
     fn select_closest_above_maximum() {
         // 1 GHz is above the maximum 500 MHz
         assert_eq!(
-            select_closest_rate(PRO_DIGITAL_RATES, 1_000_000_000),
+            select_closest_rate(PRO_DIGITAL_RATES, 1_000_000_000).unwrap(),
             500_000_000
         );
     }
@@ -979,26 +973,29 @@ mod tests {
     fn select_closest_equidistant_picks_lower() {
         // 37.5 MHz is equidistant between 25 MHz and 50 MHz.
         // min_by_key picks the first minimum, which is 50 MHz (earlier in array).
-        let result = select_closest_rate(PRO_DIGITAL_RATES, 37_500_000);
+        let result = select_closest_rate(PRO_DIGITAL_RATES, 37_500_000).unwrap();
         assert!(result == 50_000_000 || result == 25_000_000);
     }
 
     #[test]
     fn select_closest_index_returns_correct_index() {
-        let idx = select_closest_index(PRO_DIGITAL_RATES, 100_000_000);
+        let idx = select_closest_index(PRO_DIGITAL_RATES, 100_000_000).unwrap();
         assert_eq!(idx, 3); // 100 MHz is at index 3
         assert_eq!(PRO_DIGITAL_RATES[idx], 100_000_000);
     }
 
     #[test]
-    #[should_panic(expected = "selections can not be empty")]
-    fn select_closest_rate_panics_on_empty() {
-        select_closest_rate(&[], 100_000_000);
+    fn select_closest_rate_errors_on_empty() {
+        let err = select_closest_rate(&[], 100_000_000).unwrap_err();
+        assert!(
+            matches!(err, ProtoError::EmptySelection),
+            "expected EmptySelection, got {err:?}"
+        );
     }
 
     #[test]
     fn select_closest_single_element() {
-        assert_eq!(select_closest_rate(&[42], 100), 42);
+        assert_eq!(select_closest_rate(&[42], 100).unwrap(), 42);
     }
 
     // -----------------------------------------------------------------------

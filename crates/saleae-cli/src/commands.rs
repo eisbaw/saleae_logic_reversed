@@ -1238,7 +1238,10 @@ pub fn capture_analog(
             for &ch in &channel_list {
                 match create_channel_processor(&cal, ch, sample_rate) {
                     Ok(proc) => {
-                        let vr = cal.find_voltage_range(ch).unwrap();
+                        let Some(vr) = cal.find_voltage_range(ch) else {
+                            println!("  Channel {ch}: no voltage range in calibration data");
+                            continue;
+                        };
                         println!("  Channel {ch}:");
                         println!(
                             "    Voltage range: [{:.3}, {:.3}] V",
