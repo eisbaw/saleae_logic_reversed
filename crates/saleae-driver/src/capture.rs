@@ -1654,7 +1654,7 @@ pub fn run_capture_streaming(
 ///
 /// ```rust,no_run
 /// # use saleae_driver::capture::StreamingCapture;
-/// # use saleae_driver::transfer_queue::TransferConfig;
+/// # use saleae_driver::TransferConfig;
 /// # fn example(reader: Box<dyn saleae_usb::BulkStreamReader>) {
 /// let config = TransferConfig {
 ///     transfer_size: 16384,
