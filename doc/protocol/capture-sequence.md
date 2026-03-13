@@ -93,20 +93,19 @@ The PLL must lock before capture can proceed.
 **Function**: `Logic2FpgaDevice::SetCaptureParameters(DeviceSettings &)`
 
 Programs the FPGA with the capture configuration:
-1. Serializes configuration into a binary blob
-2. Writes blob to FPGA via `WriteConfigurationData(const U8 *, U32)`
-3. WriteConfigurationData sends data in chunks via EP1 OUT bulk writes
-4. Reads back configuration to verify
-5. Logs: "setting capture settings" / "reading back capture settings"
+1. Computes register values from DeviceSettings (sample rate, channels, triggers)
+2. Writes FPGA registers via `WriteRegisters` (opcode 0x80) on EP1 OUT
+3. Reads back registers to verify
+4. Logs: "setting capture settings" / "reading back capture settings"
 
-**Chunk size limits** (per USB speed):
-- USB 2.0: max 62 bytes per WriteConfigurationData call
-- USB 3.0: max 509 bytes per WriteConfigurationData call
+Note: `WriteRegisters` (0x80) writes 8-bit FPGA configuration registers
+(e.g. sample rate divisor, channel enables, trigger config). This is distinct
+from `WriteConfigurationData` (0x7F), which is used only for FPGA bitstream
+upload during device initialization.
 
 **Failures**:
 - "Capture parameter failed to download to device"
 - "Failed to set capture settings"
-- "Failed to write configuration data"
 
 ### 4. TestFirmwareResponsivnessAndReseed (Device Layer)
 
@@ -357,13 +356,13 @@ is terminal -- the device must be physically reconnected.
 | Finding | Confidence | Sources |
 |---------|-----------|---------|
 | Start sequence: validate -> config -> start -> stream | **High** | Multiple correlated string sequences + mangled symbols (Ghidra) + pcap validation (re/notes/init-sequence-pcap.md) |
-| SetCaptureParameters writes via WriteConfigurationData | **High** | Function signatures + error strings + 62/509 limit (Ghidra) + pcap validation |
+| SetCaptureParameters writes via WriteRegisters (0x80) | **High** | Function signatures + error strings (Ghidra) + pcap Phase 7 validation + Rust driver implementation |
 | SendStartCommand / COMMAND_STOP_STREAM commands | **Confirmed** | Literal strings in binary + pcap validation + tested in Rust driver |
 | EP1 OUT for commands, EP2 IN for data | **Confirmed** | lsusb + binary analysis + burst config + hardware-tested |
 | 5 device-specific StartSampling variants | **High** | Virtual function signature strings (Ghidra only) |
 | SamplingConfigurationData format fields | **High** | Format string in binary (Ghidra only) |
 | CaptureCompleteData end signal | **High** | Type name + pipe handler registration |
-| WriteConfigurationData chunk sizes (62/509) | **High** | Assertion string in binary + pcap validation (2 of 3 sources) |
+| WriteConfigurationData chunk sizes (62/509) for FPGA bitstream | **High** | Assertion string in binary + pcap validation (2 of 3 sources) |
 | PLL lock check during SetBankPower | **High** | Both success/failure strings present (Ghidra only) |
 
 
@@ -384,10 +383,11 @@ is terminal -- the device must be physically reconnected.
    SendStartCommand and COMMAND_STOP_STREAM? Are these specific byte
    values on EP1 OUT, or structured packets with headers?
 
-2. **Configuration blob format**: What is the binary layout of the data
-   written by SetCaptureParameters via WriteConfigurationData? This
-   determines how sample rate, channel mask, and trigger config are
-   encoded for the FPGA.
+2. ~~**Configuration blob format**~~: RESOLVED. SetCaptureParameters uses
+   WriteRegisters (opcode 0x80) to write individual 8-bit FPGA registers,
+   not a monolithic blob via WriteConfigurationData. Register addresses
+   and values are documented in `doc/protocol/fpga-registers.md` and
+   validated in pcap Phase 7.
 
 3. **FPGA register map**: Which specific register addresses control
    sample rate, channel enables, and trigger configuration? The format
