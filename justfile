@@ -408,9 +408,9 @@ build: _require-cargo
 test: _require-cargo
     cargo nextest run
 
-# Run clippy lints
+# Run clippy lints (allow dead_code for staged-but-unwired modules)
 clippy: _require-cargo
-    cargo clippy --all-targets --all-features -- -D warnings
+    cargo clippy --all-targets --all-features -- -D warnings -A dead_code
 
 # Format all code
 fmt: _require-cargo
@@ -439,12 +439,92 @@ doc: _require-cargo
 
 # ─── Hardware ──────────────────────────────────────────────────────────────
 
+# Default paths for firmware and bitstream blobs
+fw_path     := "firmware/fw-fx3-pro8.img"
+bs_path     := "firmware/bitstream-spartan6-slx9-02.bin"
+
+# Build release binary (shared dependency for hw recipes)
+_build-release: _require-cargo
+    cargo build --release --bin saleae-cli
+
 # Build release binary and run against local hardware
-run-hw *ARGS: _require-cargo
+run-hw *ARGS: _build-release
+    sudo target/release/saleae-cli {{ ARGS }}
+
+# Ping the device (verify firmware is running and EP1 is alive)
+hw-ping: _build-release
+    sudo target/release/saleae-cli -v ping
+
+# Full device init: firmware upload + FPGA program + ADC init + test capture
+hw-init: _build-release
+    sudo target/release/saleae-cli -vv full-init \
+        --firmware {{ fw_path }} --bitstream {{ bs_path }}
+
+# Digital capture (default: all 8 channels, 1MHz, 2s, CSV output)
+hw-capture-digital RATE="1000000" DURATION="2.0" CHANNELS="0,1,2,3,4,5,6,7" OUTPUT="capture-out": _build-release
+    sudo target/release/saleae-cli -v capture-digital \
+        --firmware {{ fw_path }} --bitstream {{ bs_path }} \
+        --sample-rate {{ RATE }} --duration {{ DURATION }} \
+        --channels {{ CHANNELS }} --output {{ OUTPUT }} --format csv
+
+# Analog capture (default: channels 0,1, 1MHz, 2s, CSV output)
+hw-capture-analog RATE="1000000" DURATION="2.0" CHANNELS="0,1" OUTPUT="capture-out": _build-release
+    sudo target/release/saleae-cli -v capture-analog \
+        --firmware {{ fw_path }} --bitstream {{ bs_path }} \
+        --sample-rate {{ RATE }} --duration {{ DURATION }} \
+        --channels {{ CHANNELS }} --output {{ OUTPUT }} --format csv
+
+# Quick capture (minimal init, digital-only, raw EP2 dump)
+hw-capture-quick DURATION="2.0" OUTPUT="": _build-release
     #!/usr/bin/env bash
     set -euo pipefail
-    cargo build --release --bin saleae-cli
-    target/release/saleae-cli {{ ARGS }}
+    ARGS="-v capture-quick --firmware {{ fw_path }} --bitstream {{ bs_path }} --duration {{ DURATION }}"
+    if [ -n "{{ OUTPUT }}" ]; then
+        ARGS="$ARGS --output {{ OUTPUT }}"
+    fi
+    sudo target/release/saleae-cli $ARGS
+
+# Reset device to bootloader mode (requires power cycle after)
+hw-reset: _build-release
+    sudo target/release/saleae-cli reset-device
+
+# Upload firmware only (no FPGA/ADC init)
+hw-upload-fw: _build-release
+    sudo target/release/saleae-cli upload-firmware --firmware {{ fw_path }}
+
+# Program FPGA only (assumes firmware already running)
+hw-program-fpga: _build-release
+    sudo target/release/saleae-cli -v program-fpga --bitstream {{ bs_path }}
+
+# Full hardware smoke test: init + short digital capture + short analog capture
+hw-smoke: _build-release
+    #!/usr/bin/env bash
+    set -euo pipefail
+    CLI="sudo target/release/saleae-cli"
+    echo "=== Full Init ==="
+    $CLI -vv full-init --firmware {{ fw_path }} --bitstream {{ bs_path }}
+    echo ""
+    echo "=== Digital Capture (1s, 1MHz, all channels) ==="
+    $CLI -v capture-digital --firmware {{ fw_path }} --bitstream {{ bs_path }} \
+        --sample-rate 1000000 --duration 1.0 --channels 0,1,2,3,4,5,6,7 \
+        --output /tmp/saleae-smoke-digital --format csv
+    echo ""
+    echo "=== Analog Capture (1s, 1MHz, ch 0,1) ==="
+    $CLI -v capture-analog --firmware {{ fw_path }} --bitstream {{ bs_path }} \
+        --sample-rate 1000000 --duration 1.0 --channels 0,1 \
+        --output /tmp/saleae-smoke-analog --format csv
+    echo ""
+    echo "=== Smoke Test Complete ==="
+    echo "Digital output: /tmp/saleae-smoke-digital/"
+    echo "Analog output:  /tmp/saleae-smoke-analog/"
+
+# List connected Saleae devices with USB state
+hw-list: _build-release
+    sudo target/release/saleae-cli list-devices
+
+# Monitor USB bus for Saleae connect/disconnect events
+hw-monitor: _build-release
+    sudo target/release/saleae-cli monitor
 
 # Run cargo-fuzz on packet parsers (requires nightly)
 fuzz TARGET="": _require-cargo
