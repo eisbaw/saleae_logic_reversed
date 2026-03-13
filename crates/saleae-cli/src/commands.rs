@@ -469,9 +469,18 @@ pub fn full_init(
     println!();
 
     // Read EEPROM device ID (offset 0x08, 8 bytes LE) for calibration file lookup.
-    let device_id = dev.channel
-        .read_eeprom_device_id()
+    let device_id_bytes = dev.channel
+        .read_version(&saleae_driver::ep1::EEPROM_DEVICE_ID_I2C_PARAMS)
         .context("failed to read EEPROM device ID")?;
+    if device_id_bytes.len() != 8 {
+        eprintln!("WARNING: EEPROM device ID response has unexpected length: {} (expected 8)", device_id_bytes.len());
+    }
+    let device_id = {
+        let mut buf = [0u8; 8];
+        let len = device_id_bytes.len().min(8);
+        buf[..len].copy_from_slice(&device_id_bytes[..len]);
+        u64::from_le_bytes(buf)
+    };
     println!("Device ID: {:#018x} ({:x})", device_id, device_id);
     println!(
         "Calibration URL: https://downloads.saleae.com/calibration/{:x}.cal",

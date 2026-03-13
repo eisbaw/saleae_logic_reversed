@@ -9,7 +9,6 @@ use std::sync::Arc;
 use clap::{Parser, Subcommand};
 
 mod commands;
-mod diag;
 
 /// Saleae Logic analyzer CLI tool.
 ///
@@ -133,12 +132,6 @@ enum Command {
         #[arg(long, default_value = "1000")]
         interval_ms: u64,
     },
-
-    /// Raw EP1 diagnostic test (bypasses encryption).
-    ///
-    /// Sends raw bytes on EP1 OUT/IN to test if the endpoints are
-    /// responsive at all. Used for debugging.
-    Ep1Test,
 
     /// Reset and re-enumerate the device (returns to bootloader).
     ///
@@ -294,7 +287,6 @@ fn main() -> anyhow::Result<()> {
             skip_fpga,
         } => commands::device_init(bitstream.as_deref(), skip_fpga, serial)?,
         Command::Monitor { interval_ms } => commands::monitor(interval_ms)?,
-        Command::Ep1Test => diag::raw_ep1_test(serial)?,
         Command::CaptureDigital {
             sample_rate,
             duration,

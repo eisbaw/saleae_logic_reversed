@@ -883,12 +883,12 @@ fn common_device_init_non_lattice_reads_eeprom() {
     assert!(!result.ddr_ready, "non-Lattice: no DDR check");
     assert!(result.dcm_locked, "Xilinx: DCM should be locked");
 
-    // Verify the EEPROM device ID read opcode (0x88) was sent.
+    // Verify the EEPROM device ID read uses ReadVersion (opcode 0x07).
     // It's the last OUT transfer in the sequence.
     let ops = mock.operations();
     let out_data = extract_bulk_out_data(&ops);
     let last = out_data.last().unwrap();
-    assert_eq!(last[0], 0x88, "last command should be EEPROM read (0x88)");
+    assert_eq!(last[0], 0x07, "last command should be ReadVersion (0x07) for EEPROM read");
 }
 
 // ===========================================================================

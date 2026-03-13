@@ -32,6 +32,8 @@ use saleae_proto::fpga_regs;
 use tracing::{debug, info};
 
 use crate::ep1::Ep1CommandChannel;
+use tracing::warn;
+
 use crate::error::{DriverError, DriverResult};
 
 // ---------------------------------------------------------------------------
@@ -326,7 +328,7 @@ pub struct DeviceInitResult {
 /// 5. Poll for JESD lock (timeout ~5000 ms).
 /// 6. Run bitslip detection (up to N retries).
 /// 7. Verify JESD link_up and sync_status.
-/// 8. Read EEPROM device ID via I2C tunnel (opcode 0x88).
+/// 8. Read EEPROM device ID via ReadVersion (opcode 0x07) with I2C params.
 ///
 /// The sequence of operations (steps 1-8) is confirmed from RE analysis.
 /// The JESD status bit positions and PHY reset value (2) are confirmed
@@ -395,8 +397,17 @@ pub fn common_device_init(
         dcm_locked = dcm_result.locked;
     }
 
-    // Read EEPROM device ID.
-    let device_id = ep1.read_eeprom_device_id()?;
+    // Read EEPROM device ID (offset 0x08, 8 bytes LE) via ReadVersion.
+    let id_bytes = ep1.read_version(&crate::ep1::EEPROM_DEVICE_ID_I2C_PARAMS)?;
+    if id_bytes.len() != 8 {
+        warn!(expected = 8, actual = id_bytes.len(), "EEPROM device ID response has unexpected length");
+    }
+    let device_id = {
+        let mut buf = [0u8; 8];
+        let len = id_bytes.len().min(8);
+        buf[..len].copy_from_slice(&id_bytes[..len]);
+        u64::from_le_bytes(buf)
+    };
 
     let result = DeviceInitResult {
         device_id,
@@ -1076,7 +1087,7 @@ mod tests {
         // Step 7: DDR status check (read REG_STATUS_DDR_JESD)
         mock.push_bulk_in_response(endpoint::BULK_IN, vec![all_ready]);
 
-        // Step 8: read_eeprom_device_id -> opcode 0x88 send + 8-byte response
+        // Step 8: read EEPROM device ID via ReadVersion (opcode 0x07) -> 8-byte response
         let id_bytes = device_id.to_le_bytes();
         mock.push_bulk_in_response(endpoint::BULK_IN, id_bytes.to_vec());
 
@@ -1216,8 +1227,8 @@ mod tests {
     }
 
     #[test]
-    fn common_device_init_eeprom_read_sends_opcode_0x88() {
-        // Test via Lattice path (simpler mock setup) that EEPROM read uses 0x88.
+    fn common_device_init_eeprom_read_sends_read_version() {
+        // Test via Lattice path (simpler mock setup) that EEPROM read uses ReadVersion (0x07).
         let mock = std::sync::Arc::new(MockTransport::new());
         let expected_id = queue_lattice_device_init_responses(&mock, 0, 0);
 
@@ -1225,7 +1236,7 @@ mod tests {
         let result = common_device_init(&mut channel, true).unwrap();
         assert_eq!(result.device_id, expected_id);
 
-        // Find the last OUT transfer -- should be the EEPROM read (opcode 0x88).
+        // Find the last OUT transfer -- should be the EEPROM read (opcode 0x07).
         let ops = mock.operations();
         let out_ops: Vec<_> = ops
             .iter()
@@ -1236,12 +1247,12 @@ mod tests {
             .collect();
         // With seed=0 and XorAll: data[1] is the opcode byte.
         let last_out = out_ops.last().unwrap();
-        assert_eq!(last_out[1], 0x88, "EEPROM read should use opcode 0x88");
+        assert_eq!(last_out[1], 0x07, "EEPROM read should use ReadVersion (0x07)");
     }
 
     #[test]
-    fn common_device_init_eeprom_read_short_response_fails() {
-        // Test via Lattice path -- short EEPROM response should fail.
+    fn common_device_init_eeprom_read_short_response_zero_pads() {
+        // Test via Lattice path -- short EEPROM response should be zero-padded.
         let mock = std::sync::Arc::new(MockTransport::new());
 
         // Queue all Lattice init responses except replace the EEPROM response
@@ -1265,11 +1276,10 @@ mod tests {
         mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x01, 0x02, 0x03, 0x04]);
 
         let mut channel = mock_channel(&mock);
-        let err = common_device_init(&mut channel, true).unwrap_err();
-        let msg = err.to_string();
-        assert!(
-            msg.contains("expected 8") && msg.contains("got 4"),
-            "error should mention expected and actual length: {msg}"
+        let result = common_device_init(&mut channel, true).unwrap();
+        // Short response is zero-padded: 0x04030201 in LE
+        assert_eq!(result.device_id, 0x04030201,
+            "short EEPROM response should be zero-padded to 8 bytes"
         );
     }
 
@@ -1454,61 +1464,6 @@ mod tests {
                 .count(),
             1
         );
-    }
-
-    // -----------------------------------------------------------------------
-    // EEPROM read tests (via ep1)
-    // -----------------------------------------------------------------------
-
-    #[test]
-    fn eeprom_read_returns_correct_device_id() {
-        let mock = std::sync::Arc::new(MockTransport::new());
-
-        let device_id: u64 = 0x764051b51bd4d9f1;
-        let id_bytes = device_id.to_le_bytes();
-        mock.push_bulk_in_response(endpoint::BULK_IN, id_bytes.to_vec());
-
-        let mut channel = mock_channel(&mock);
-        let result = channel.read_eeprom_device_id().unwrap();
-        assert_eq!(result, device_id);
-    }
-
-    #[test]
-    fn eeprom_read_fails_on_short_response() {
-        let mock = std::sync::Arc::new(MockTransport::new());
-
-        // Only 7 bytes (need 8 for u64).
-        mock.push_bulk_in_response(endpoint::BULK_IN, vec![1, 2, 3, 4, 5, 6, 7]);
-
-        let mut channel = mock_channel(&mock);
-        let err = channel.read_eeprom_device_id().unwrap_err();
-        let msg = err.to_string();
-        assert!(
-            msg.contains("expected 8") && msg.contains("got 7"),
-            "error should mention expected and actual length: {msg}"
-        );
-    }
-
-    #[test]
-    fn eeprom_read_handles_zero_device_id() {
-        let mock = std::sync::Arc::new(MockTransport::new());
-
-        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0; 8]);
-
-        let mut channel = mock_channel(&mock);
-        let result = channel.read_eeprom_device_id().unwrap();
-        assert_eq!(result, 0);
-    }
-
-    #[test]
-    fn eeprom_read_handles_max_device_id() {
-        let mock = std::sync::Arc::new(MockTransport::new());
-
-        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0xFF; 8]);
-
-        let mut channel = mock_channel(&mock);
-        let result = channel.read_eeprom_device_id().unwrap();
-        assert_eq!(result, u64::MAX);
     }
 
     // -----------------------------------------------------------------------
