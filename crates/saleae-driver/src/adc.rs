@@ -491,6 +491,469 @@ mod tests {
             .collect()
     }
 
+    /// Push `n` ACK responses (0x00) for write commands.
+    fn push_write_acks(mock: &MockTransport, n: usize) {
+        for _ in 0..n {
+            mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
+        }
+    }
+
+    /// Push responses for a full dcm_cascade call:
+    /// 5 write ACKs (JESD power sequence) + 2 register reads (r0x40, r0x4a).
+    fn push_dcm_cascade_responses(mock: &MockTransport, r40: u8, r4a: u8) {
+        push_write_acks(mock, 5); // JESD 5-step writes
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![r40]); // r0x40
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![r4a]); // r0x4a
+    }
+
+    /// Push responses for set_ad9637_enabled_false:
+    /// 1 write_adc_register ACK + dcm_cascade (5 write ACKs + 2 reads).
+    fn push_enabled_false_responses(mock: &MockTransport, r40: u8, r4a: u8) {
+        push_write_acks(mock, 1); // write_adc_register (SPI transfer)
+        push_dcm_cascade_responses(mock, r40, r4a);
+    }
+
+    /// Push responses for set_ad9637_enabled_true (happy path, all DCMs locked):
+    /// 3 write_adc_register ACKs + dcm_cascade (5 ACKs + 2 reads) +
+    /// 3 read_register_8 reads (r0x19, r0x40, r0x4a).
+    fn push_enabled_true_responses(mock: &MockTransport, r40: u8, r4a: u8) {
+        push_write_acks(mock, 3); // 3 write_adc_register calls
+        push_dcm_cascade_responses(mock, r40, r4a); // reset_main_dcm
+        // Post-enable status reads: r0x19, r0x40, r0x4a
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]); // r0x19
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![r40]); // r0x40
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![r4a]); // r0x4a
+    }
+
+    /// Assert that an outbound payload is a write_adc_register batch
+    /// with the expected bank and value.
+    ///
+    /// Wire format: [0x80, 0x04, r0x03, bank, r0x16, 0x00, r0x04, value, r0x05, 0x00]
+    fn assert_adc_write(payloads: &[Vec<u8>], idx: usize, bank: u8, value: u8) {
+        let p = &payloads[idx];
+        assert_eq!(p[0], 0x80, "payload[{idx}] opcode should be WriteRegisters");
+        assert_eq!(p[1], 0x04, "payload[{idx}] count should be 4");
+        assert_eq!(
+            p[3], bank,
+            "payload[{idx}] ADC bank should be {bank:#04x}, got {:#04x}",
+            p[3]
+        );
+        assert_eq!(
+            p[7], value,
+            "payload[{idx}] ADC value should be {value:#04x}, got {:#04x}",
+            p[7]
+        );
+    }
+
+    /// Assert that an outbound payload is a single write_register_8 call.
+    ///
+    /// Wire format: [0x80, 0x01, addr, value]
+    fn assert_single_write(payloads: &[Vec<u8>], idx: usize, addr: u8, value: u8) {
+        let p = &payloads[idx];
+        assert_eq!(p[0], 0x80, "payload[{idx}] opcode should be WriteRegisters");
+        assert_eq!(p[1], 0x01, "payload[{idx}] count should be 1");
+        assert_eq!(
+            p[2], addr,
+            "payload[{idx}] addr should be {addr:#04x}, got {:#04x}",
+            p[2]
+        );
+        assert_eq!(
+            p[3], value,
+            "payload[{idx}] value should be {value:#04x}, got {:#04x}",
+            p[3]
+        );
+    }
+
+    /// Assert that an outbound payload is a single read_register_8 call.
+    ///
+    /// Wire format: [0x81, 0x01, addr]
+    fn assert_single_read(payloads: &[Vec<u8>], idx: usize, addr: u8) {
+        let p = &payloads[idx];
+        assert_eq!(
+            p[0], 0x81,
+            "payload[{idx}] opcode should be ReadRegisters"
+        );
+        assert_eq!(p[1], 0x01, "payload[{idx}] count should be 1");
+        assert_eq!(
+            p[2], addr,
+            "payload[{idx}] addr should be {addr:#04x}, got {:#04x}",
+            p[2]
+        );
+    }
+
+    // -------------------------------------------------------------------
+    // configure_ad9637 tests
+    // -------------------------------------------------------------------
+
+    #[test]
+    fn configure_ad9637_sends_9_adc_register_writes_in_order() {
+        let mock = std::sync::Arc::new(MockTransport::new());
+
+        // 9 write_adc_register calls, each = 1 batch write ACK
+        push_write_acks(&mock, 9);
+
+        let mut ep1 = mock_channel_none(&mock);
+        configure_ad9637(&mut ep1).unwrap();
+
+        let payloads = extract_out_payloads(&mock);
+        assert_eq!(payloads.len(), 9, "configure_ad9637 must send exactly 9 ADC register writes");
+
+        // Verify exact sequence from decompiled FUN_01d20d90:
+        // 1. reset+standby (0x08=0x03)
+        assert_adc_write(&payloads, 0, 0x08, 0x03);
+        // 2. power normal (0x08=0x00)
+        assert_adc_write(&payloads, 1, 0x08, 0x00);
+        // 3. test mode off (0x0D=0x00)
+        assert_adc_write(&payloads, 2, 0x0D, 0x00);
+        // 4. output adjust (0x15=0x21)
+        assert_adc_write(&payloads, 3, 0x15, 0x21);
+        // 5. DCO config (0x21=0xC2)
+        assert_adc_write(&payloads, 4, 0x21, 0xC2);
+        // 6. output mode 2 (0x05=0x0F)
+        assert_adc_write(&payloads, 5, 0x05, 0x0F);
+        // 7. output mode 1 (0x04=0x0F)
+        assert_adc_write(&payloads, 6, 0x04, 0x0F);
+        // 8. clock config (0x10=0x00)
+        assert_adc_write(&payloads, 7, 0x10, 0x00);
+        // 9. VREF config (0x18=0x04)
+        assert_adc_write(&payloads, 8, 0x18, 0x04);
+    }
+
+    #[test]
+    fn configure_ad9637_error_propagation_on_third_write() {
+        use saleae_usb::error::UsbError;
+
+        let mock = std::sync::Arc::new(MockTransport::new());
+
+        // First 2 writes succeed, third fails
+        push_write_acks(&mock, 2);
+        mock.push_bulk_in_error(endpoint::BULK_IN, UsbError::Timeout { timeout_ms: 1000 });
+
+        let mut ep1 = mock_channel_none(&mock);
+        let result = configure_ad9637(&mut ep1);
+        assert!(result.is_err(), "should propagate error from third write");
+    }
+
+    // -------------------------------------------------------------------
+    // set_ad9637_enabled_false tests
+    // -------------------------------------------------------------------
+
+    #[test]
+    fn set_ad9637_enabled_false_sends_spi_transfer_then_cascade() {
+        let mock = std::sync::Arc::new(MockTransport::new());
+
+        // r0x40=0x00 is normal after disabling (DCM not locked)
+        push_enabled_false_responses(&mock, 0x00, 0x00);
+
+        let mut ep1 = mock_channel_none(&mock);
+        set_ad9637_enabled_false(&mut ep1).unwrap();
+
+        let payloads = extract_out_payloads(&mock);
+        // 1 write_adc_register + 5 JESD writes + 2 reads = 8
+        assert_eq!(payloads.len(), 8);
+
+        // First: SPI transfer (ADC reg 0x08 = 0x01)
+        assert_adc_write(&payloads, 0, 0x08, 0x01);
+
+        // Then: JESD 5-step power sequence (r0x00 = 0x1E, 0x1C, 0x18, 0x08, 0x00)
+        assert_single_write(&payloads, 1, 0x00, 0x1E);
+        assert_single_write(&payloads, 2, 0x00, 0x1C);
+        assert_single_write(&payloads, 3, 0x00, 0x18);
+        assert_single_write(&payloads, 4, 0x00, 0x08);
+        assert_single_write(&payloads, 5, 0x00, 0x00);
+
+        // Then: 2 status register reads
+        assert_single_read(&payloads, 6, 0x40);
+        assert_single_read(&payloads, 7, 0x4A);
+    }
+
+    // -------------------------------------------------------------------
+    // set_ad9637_enabled_true tests
+    // -------------------------------------------------------------------
+
+    #[test]
+    fn set_ad9637_enabled_true_happy_path_all_dcms_locked() {
+        let mock = std::sync::Arc::new(MockTransport::new());
+
+        push_enabled_true_responses(&mock, 0xE0, 0x00);
+
+        let mut ep1 = mock_channel_none(&mock);
+        let result = set_ad9637_enabled_true(&mut ep1).unwrap();
+
+        assert!(result.locked);
+        assert_eq!(result.status_40, 0xE0);
+        assert_eq!(result.status_4a, 0x00);
+
+        let payloads = extract_out_payloads(&mock);
+        // 3 write_adc_register + 5 JESD writes + 2 reads + 3 reads = 13
+        assert_eq!(payloads.len(), 13);
+
+        // ADC power-on sequence:
+        // 1. Power normal (0x08=0x00)
+        assert_adc_write(&payloads, 0, 0x08, 0x00);
+        // 2. Reset+standby (0x08=0x03)
+        assert_adc_write(&payloads, 1, 0x08, 0x03);
+        // 3. Power normal again (0x08=0x00)
+        assert_adc_write(&payloads, 2, 0x08, 0x00);
+
+        // JESD cascade (r0x00 = 0x1E, 0x1C, 0x18, 0x08, 0x00)
+        assert_single_write(&payloads, 3, 0x00, 0x1E);
+        assert_single_write(&payloads, 4, 0x00, 0x1C);
+        assert_single_write(&payloads, 5, 0x00, 0x18);
+        assert_single_write(&payloads, 6, 0x00, 0x08);
+        assert_single_write(&payloads, 7, 0x00, 0x00);
+
+        // DCM status reads from cascade
+        assert_single_read(&payloads, 8, 0x40);
+        assert_single_read(&payloads, 9, 0x4A);
+
+        // Post-enable status reads (r0x19, r0x40, r0x4a)
+        assert_single_read(&payloads, 10, 0x19);
+        assert_single_read(&payloads, 11, 0x40);
+        assert_single_read(&payloads, 12, 0x4A);
+    }
+
+    #[test]
+    fn set_ad9637_enabled_true_errors_if_main_dcm_not_locked() {
+        let mock = std::sync::Arc::new(MockTransport::new());
+
+        // r0x40=0x40 means slow DCM locked but main DCM NOT locked (bit 5 = 0)
+        push_write_acks(&mock, 3);
+        push_dcm_cascade_responses(&mock, 0x40, 0x00);
+
+        let mut ep1 = mock_channel_none(&mock);
+        let err = set_ad9637_enabled_true(&mut ep1).unwrap_err();
+        assert!(
+            err.to_string().contains("Main DCM didn't lock"),
+            "expected main DCM error, got: {err}"
+        );
+    }
+
+    #[test]
+    fn set_ad9637_enabled_true_errors_if_slow_dcm_not_locked() {
+        let mock = std::sync::Arc::new(MockTransport::new());
+
+        // r0x40=0xA0 means main DCM + system PLL locked, but slow DCM NOT locked
+        // Main check passes (0xA0 & 0x20 = 0x20), slow check fails (0xA0 & 0x40 = 0)
+        push_write_acks(&mock, 3);
+        push_dcm_cascade_responses(&mock, 0xA0, 0x00);
+
+        let mut ep1 = mock_channel_none(&mock);
+        let err = set_ad9637_enabled_true(&mut ep1).unwrap_err();
+        assert!(
+            err.to_string().contains("Slow DCM didn't lock"),
+            "expected slow DCM error, got: {err}"
+        );
+    }
+
+    #[test]
+    fn set_ad9637_enabled_true_errors_on_bitslip() {
+        let mock = std::sync::Arc::new(MockTransport::new());
+
+        // DCM locks fine but bitslip detected on r0x4a
+        push_write_acks(&mock, 3);
+        push_dcm_cascade_responses(&mock, 0xE0, 0x00);
+        // Post-enable reads: r0x19=0x00, r0x40=0xE0, r0x4a=0x02 (BITSLIP_ADC0)
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]); // r0x19
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0xE0]); // r0x40
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x02]); // r0x4a (bitslip!)
+
+        let mut ep1 = mock_channel_none(&mock);
+        let err = set_ad9637_enabled_true(&mut ep1).unwrap_err();
+        assert!(
+            err.to_string().contains("bitslip"),
+            "expected bitslip error, got: {err}"
+        );
+    }
+
+    // -------------------------------------------------------------------
+    // power_on_for_capture tests
+    // -------------------------------------------------------------------
+
+    #[test]
+    fn power_on_for_capture_writes_bank_power_then_enables_adc() {
+        let mock = std::sync::Arc::new(MockTransport::new());
+
+        // 1 write_register_8 ACK (r0x15=0x03) + set_ad9637_enabled_true
+        push_write_acks(&mock, 1);
+        push_enabled_true_responses(&mock, 0xE0, 0x00);
+
+        let mut ep1 = mock_channel_none(&mock);
+        let result = power_on_for_capture(&mut ep1).unwrap();
+
+        assert!(result.locked);
+        assert_eq!(result.status_40, 0xE0);
+
+        let payloads = extract_out_payloads(&mock);
+        // 1 + 13 = 14
+        assert_eq!(payloads.len(), 14);
+
+        // First command: bank power on (r0x15=0x03)
+        assert_single_write(&payloads, 0, 0x15, 0x03);
+    }
+
+    // -------------------------------------------------------------------
+    // power_down tests
+    // -------------------------------------------------------------------
+
+    #[test]
+    fn power_down_writes_bank_power_off_then_disables_adc() {
+        let mock = std::sync::Arc::new(MockTransport::new());
+
+        // 1 write_register_8 ACK (r0x15=0x00) + set_ad9637_enabled_false
+        push_write_acks(&mock, 1);
+        push_enabled_false_responses(&mock, 0x00, 0x00);
+
+        let mut ep1 = mock_channel_none(&mock);
+        power_down(&mut ep1).unwrap();
+
+        let payloads = extract_out_payloads(&mock);
+        // 1 + 8 = 9
+        assert_eq!(payloads.len(), 9);
+
+        // First command: bank power off (r0x15=0x00)
+        assert_single_write(&payloads, 0, 0x15, 0x00);
+
+        // Second: SPI transfer via write_adc_register
+        assert_adc_write(&payloads, 1, 0x08, 0x01);
+    }
+
+    #[test]
+    fn power_down_propagates_write_error() {
+        use saleae_usb::error::UsbError;
+
+        let mock = std::sync::Arc::new(MockTransport::new());
+        mock.push_bulk_in_error(endpoint::BULK_IN, UsbError::Timeout { timeout_ms: 1000 });
+
+        let mut ep1 = mock_channel_none(&mock);
+        let result = power_down(&mut ep1);
+        assert!(result.is_err(), "should propagate error from write_register_8");
+    }
+
+    // -------------------------------------------------------------------
+    // init_ad9637 tests
+    // -------------------------------------------------------------------
+
+    #[test]
+    fn init_ad9637_full_sequence_command_count() {
+        let mock = std::sync::Arc::new(MockTransport::new());
+        let cal = [0xAA; 16];
+
+        // configure_ad9637: 9 ACKs
+        push_write_acks(&mock, 9);
+        // write_register_8 (r0x15=0x00): 1 ACK
+        push_write_acks(&mock, 1);
+        // set_ad9637_enabled_false: 1 + 5 + 2 = 8
+        push_enabled_false_responses(&mock, 0x00, 0x00);
+        // set_ad9637_enabled_true: 3 + 5 + 2 + 3 = 13
+        push_enabled_true_responses(&mock, 0xE0, 0x00);
+        // write_calibration_and_cascade:
+        //   2 write_register_8 ACKs (r0x00=0x00, r0x00=0x40)
+        push_write_acks(&mock, 2);
+        //   16 write_register_8 ACKs (calibration coefficients)
+        push_write_acks(&mock, 16);
+        //   set_ad9637_enabled_false: 1 + 5 + 2 = 8
+        push_enabled_false_responses(&mock, 0x00, 0x00);
+        //   1 read_register_8 (r0x40)
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
+        //   1 write_register_8 (r0x12=0x04)
+        push_write_acks(&mock, 1);
+
+        let mut ep1 = mock_channel_none(&mock);
+        let result = init_ad9637(&mut ep1, &cal).unwrap();
+
+        // The result comes from set_ad9637_enabled_true (before calibration)
+        assert!(result.locked);
+        assert_eq!(result.status_40, 0xE0);
+
+        let payloads = extract_out_payloads(&mock);
+        // 9 + 1 + 8 + 13 + 2 + 16 + 8 + 1 + 1 = 59
+        assert_eq!(payloads.len(), 59, "init_ad9637 full sequence command count");
+    }
+
+    #[test]
+    fn init_ad9637_starts_with_configure_ad9637_sequence() {
+        let mock = std::sync::Arc::new(MockTransport::new());
+        let cal = [0xBB; 16];
+
+        // Full init responses (same as above)
+        push_write_acks(&mock, 9);
+        push_write_acks(&mock, 1);
+        push_enabled_false_responses(&mock, 0x00, 0x00);
+        push_enabled_true_responses(&mock, 0xE0, 0x00);
+        push_write_acks(&mock, 2);
+        push_write_acks(&mock, 16);
+        push_enabled_false_responses(&mock, 0x00, 0x00);
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
+        push_write_acks(&mock, 1);
+
+        let mut ep1 = mock_channel_none(&mock);
+        init_ad9637(&mut ep1, &cal).unwrap();
+
+        let payloads = extract_out_payloads(&mock);
+
+        // First 9 payloads should be configure_ad9637
+        assert_adc_write(&payloads, 0, 0x08, 0x03); // reset+standby
+        assert_adc_write(&payloads, 1, 0x08, 0x00); // power normal
+
+        // Payload 9: r0x15=0x00 (ADC output power off)
+        assert_single_write(&payloads, 9, 0x15, 0x00);
+    }
+
+    #[test]
+    fn init_ad9637_errors_if_dcm_fails_to_lock() {
+        let mock = std::sync::Arc::new(MockTransport::new());
+        let cal = [0x00; 16];
+
+        // configure_ad9637 + bank power off
+        push_write_acks(&mock, 9);
+        push_write_acks(&mock, 1);
+        // set_ad9637_enabled_false succeeds
+        push_enabled_false_responses(&mock, 0x00, 0x00);
+        // set_ad9637_enabled_true fails: DCM doesn't lock (r0x40=0x00)
+        push_write_acks(&mock, 3);
+        push_dcm_cascade_responses(&mock, 0x00, 0x00);
+
+        let mut ep1 = mock_channel_none(&mock);
+        let err = init_ad9637(&mut ep1, &cal).unwrap_err();
+        assert!(
+            err.to_string().contains("Main DCM didn't lock"),
+            "expected DCM lock error, got: {err}"
+        );
+    }
+
+    // -------------------------------------------------------------------
+    // reset_main_dcm tests
+    // -------------------------------------------------------------------
+
+    #[test]
+    fn reset_main_dcm_returns_lock_result() {
+        let mock = std::sync::Arc::new(MockTransport::new());
+
+        push_dcm_cascade_responses(&mock, 0xA0, 0x00);
+
+        let mut ep1 = mock_channel_none(&mock);
+        let result = reset_main_dcm(&mut ep1).unwrap();
+
+        // DCM_MAIN_LOCKED = 0xA0: bits 5 (main) + 7 (system PLL)
+        assert!(result.locked, "0xA0 should be considered locked");
+        assert_eq!(result.status_40, 0xA0);
+        assert_eq!(result.status_4a, 0x00);
+    }
+
+    #[test]
+    fn reset_main_dcm_unlocked_when_status_missing_bits() {
+        let mock = std::sync::Arc::new(MockTransport::new());
+
+        // Only bit 7 set (system PLL), missing bit 5 (main DCM)
+        push_dcm_cascade_responses(&mock, 0x80, 0x00);
+
+        let mut ep1 = mock_channel_none(&mock);
+        let result = reset_main_dcm(&mut ep1).unwrap();
+
+        assert!(!result.locked, "0x80 should NOT be considered locked (missing main DCM bit)");
+    }
+
     #[test]
     fn dcm_cascade_runs_5step_jesd_and_reads_status() {
         let mock = std::sync::Arc::new(MockTransport::new());
