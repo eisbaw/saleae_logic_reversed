@@ -45,6 +45,10 @@ pub enum ProtoError {
     #[error("empty selection list: no available rates to choose from")]
     EmptySelection,
 
+    /// Data content is invalid (e.g. bad length, unexpected values).
+    #[error("invalid data: {reason}")]
+    InvalidData { reason: String },
+
     /// Generic parse error with context.
     #[error("parse error: {context}")]
     Parse { context: String },

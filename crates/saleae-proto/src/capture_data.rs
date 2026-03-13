@@ -48,6 +48,12 @@ pub const OVERFLOW_METADATA_SIZE: usize = 16;
 /// Size of one overflow data block: 512 bytes sample + 124 bytes stats.
 pub const OVERFLOW_BLOCK_SIZE: usize = 636;
 
+/// Sample data bytes per overflow block (256 samples * 2 bytes for analog).
+pub const OVERFLOW_BLOCK_SAMPLE_SIZE: usize = 512;
+
+/// Stats bytes per overflow block.
+pub const OVERFLOW_BLOCK_STATS_SIZE: usize = 124;
+
 /// Samples per packet alignment when stats are enabled.
 pub const SAMPLES_PER_PACKET_MULTIPLE_WITH_STATS: usize = 256;
 
@@ -239,13 +245,214 @@ impl StatsHeader {
 }
 
 // ---------------------------------------------------------------------------
+// Overflow metadata (16 bytes when stats flags bit 9 is set)
+// ---------------------------------------------------------------------------
+
+/// 16-byte overflow metadata that follows the mandatory stats header when
+/// the `overflow_meta` flag (bit 9) is set.
+///
+/// Based on Ghidra decompilation of `ParseMsoWaveformData` (ELF VA 0x2d41510):
+/// the parser stores `overflow_entry_size = 8` and saves the stream position,
+/// then skips 16 bytes. With entry_size=8 and total=16, this is 2 entries.
+///
+/// The downstream consumer `PrintErrors` (ELF VA 0x1c1fcb0) checks boolean
+/// error flags for: Master FIFO overflow, Digital FIFO overflow, Analog FIFO
+/// overflow, analog FSM error, digital FSM error, bitslip 1 error, bitslip 2
+/// error. The `cur_overflow != prev_overflow` comparison triggers error
+/// logging.
+///
+/// # Confidence
+///
+/// The 16-byte size and 2x8-byte entry structure are **High confidence**
+/// (direct decompilation). The interpretation as prev/cur overflow flags
+/// is **Hypothesis** -- the parser skips these bytes without field-level
+/// parsing. The flag bit positions within each u64 are inferred from
+/// PrintErrors but not confirmed.
+///
+/// # Wire format
+///
+/// ```text
+/// Offset  Size  Description
+/// 0x00    8     Previous overflow flags (u64, LE) -- hypothesis
+/// 0x08    8     Current overflow flags (u64, LE) -- hypothesis
+/// ```
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct OverflowMetadata {
+    /// Previous overflow flags / counter (u64 LE).
+    ///
+    /// Hypothesized to be a bitfield of FIFO overflow and FSM error flags.
+    pub prev_overflow: u64,
+    /// Current overflow flags / counter (u64 LE).
+    ///
+    /// When `cur_overflow != prev_overflow`, the host detects overflow.
+    pub cur_overflow: u64,
+}
+
+impl OverflowMetadata {
+    /// Parse 16 bytes of overflow metadata.
+    pub fn parse(data: &[u8]) -> ProtoResult<Self> {
+        if data.len() < OVERFLOW_METADATA_SIZE {
+            return Err(ProtoError::BufferTooShort {
+                need: OVERFLOW_METADATA_SIZE,
+                have: data.len(),
+            });
+        }
+
+        let prev_overflow = u64::from_le_bytes([
+            data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7],
+        ]);
+        let cur_overflow = u64::from_le_bytes([
+            data[8], data[9], data[10], data[11], data[12], data[13], data[14], data[15],
+        ]);
+
+        Ok(Self {
+            prev_overflow,
+            cur_overflow,
+        })
+    }
+
+    /// Encode as 16 bytes (prev LE + cur LE).
+    pub fn to_bytes(&self) -> [u8; 16] {
+        let mut out = [0u8; 16];
+        out[..8].copy_from_slice(&self.prev_overflow.to_le_bytes());
+        out[8..16].copy_from_slice(&self.cur_overflow.to_le_bytes());
+        out
+    }
+
+    /// Whether overflow was detected (cur differs from prev).
+    pub fn overflow_detected(&self) -> bool {
+        self.cur_overflow != self.prev_overflow
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Overflow error flags (hypothesized bit positions within u64)
+// ---------------------------------------------------------------------------
+
+/// Hypothesized overflow error flag bit positions within the overflow
+/// metadata u64 values.
+///
+/// Derived from `PrintErrors` (ELF VA 0x1c1fcb0) which checks a boolean
+/// array at offsets [0], [1], [2], [3], [4], [9], [10]. The boolean array
+/// is likely derived from the overflow flags bitfield.
+///
+/// # Confidence: Hypothesis
+///
+/// The error names and their existence are **High confidence** (string
+/// literals in the binary). The mapping to specific bit positions is
+/// **Hypothesis** -- PrintErrors takes a boolean array, not a bitfield
+/// directly, so the unpacking logic is elsewhere.
+pub mod overflow_flags {
+    /// Master FIFO overflow (PrintErrors param[0]).
+    pub const MASTER_FIFO: u64 = 1 << 0;
+    /// Digital FIFO overflow (PrintErrors param[1]).
+    pub const DIGITAL_FIFO: u64 = 1 << 1;
+    /// Analog FIFO overflow (PrintErrors param[2]).
+    pub const ANALOG_FIFO: u64 = 1 << 2;
+    /// Analog FSM error (PrintErrors param[3]).
+    pub const ANALOG_FSM: u64 = 1 << 3;
+    /// Digital FSM error (PrintErrors param[4]).
+    pub const DIGITAL_FSM: u64 = 1 << 4;
+    /// Bitslip 1 error (PrintErrors param[9]).
+    pub const BITSLIP_1: u64 = 1 << 9;
+    /// Bitslip 2 error (PrintErrors param[10]).
+    pub const BITSLIP_2: u64 = 1 << 10;
+}
+
+// ---------------------------------------------------------------------------
+// Overflow block stats (124 bytes per overflow data block)
+// ---------------------------------------------------------------------------
+
+/// Per-block stats within an overflow data block (124 bytes).
+///
+/// Each overflow block is 636 bytes total: 512 bytes of sample data
+/// followed by 124 bytes of stats. The first 20 bytes of the stats
+/// have the same layout as the mandatory `StatsHeader`. The remaining
+/// 104 bytes contain additional per-block metadata.
+///
+/// # Confidence
+///
+/// The 124-byte size is **High confidence** (decompilation shows
+/// `n_blocks * 0x7c` and `skip(stream, n_blocks * 124)`). The internal
+/// layout is **Hypothesis** -- the parser skips the stats without
+/// field-level parsing. We parse the first 20 bytes as a `StatsHeader`
+/// and preserve the remaining 104 bytes as raw data for future analysis.
+///
+/// # Wire format (hypothesized)
+///
+/// ```text
+/// Offset  Size  Description
+/// 0x00    20    StatsHeader (same format as mandatory stats header)
+/// 0x14    104   Additional per-block metadata (unknown layout)
+/// ```
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct OverflowBlockStats {
+    /// Stats header (first 20 bytes, same format as mandatory stats).
+    pub header: StatsHeader,
+    /// Raw remaining bytes (104 bytes of unknown per-block metadata).
+    ///
+    /// Preserved verbatim for future analysis. The internal structure
+    /// is not yet determined from decompilation.
+    pub extra: [u8; 104],
+}
+
+impl OverflowBlockStats {
+    /// Parse 124 bytes of per-block overflow stats.
+    pub fn parse(data: &[u8]) -> ProtoResult<Self> {
+        if data.len() < OVERFLOW_BLOCK_STATS_SIZE {
+            return Err(ProtoError::BufferTooShort {
+                need: OVERFLOW_BLOCK_STATS_SIZE,
+                have: data.len(),
+            });
+        }
+
+        let header = StatsHeader::parse(data)?;
+
+        let mut extra = [0u8; 104];
+        extra.copy_from_slice(&data[STATS_HEADER_SIZE..OVERFLOW_BLOCK_STATS_SIZE]);
+
+        Ok(Self { header, extra })
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Parsed overflow block (512 sample bytes + 124 stats bytes)
+// ---------------------------------------------------------------------------
+
+/// One overflow data block from the EP2 stream.
+///
+/// When both `overflow_meta` (bit 9) and `overflow_data` (bit 12) flags
+/// are set in the stats header, the remaining bytes after the 16-byte
+/// overflow metadata are organized as N blocks of 636 bytes each.
+///
+/// Each block contains 256 analog samples (512 bytes at 2 bytes/sample)
+/// followed by 124 bytes of per-block stats.
+///
+/// # Wire format
+///
+/// ```text
+/// | 512 bytes sample data | 124 bytes stats |  = 636 bytes per block
+/// ```
+///
+/// The number of blocks is `remaining_bytes / 636`. If `remaining_bytes`
+/// is not evenly divisible by 636, the parser throws
+/// `"Invalid MSO waveform received, invalid data length"`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct OverflowBlock {
+    /// Raw sample data (512 bytes = 256 analog samples at 2 bytes each).
+    pub sample_data: Vec<u8>,
+    /// Per-block stats (124 bytes).
+    pub stats: OverflowBlockStats,
+}
+
+// ---------------------------------------------------------------------------
 // Parsed data chunk
 // ---------------------------------------------------------------------------
 
 /// A parsed data chunk from the EP2 IN stream.
 ///
 /// Each chunk has a header, optional start packet fields, sample data,
-/// and optional stats trailer.
+/// optional stats trailer, and optional overflow data.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DataChunk {
     /// Chunk header (always present).
@@ -259,6 +466,10 @@ pub struct DataChunk {
     pub sample_data: Vec<u8>,
     /// Stats trailer (present when stats are enabled).
     pub stats: Option<StatsHeader>,
+    /// Overflow metadata (present when stats flag bit 9 is set).
+    pub overflow_meta: Option<OverflowMetadata>,
+    /// Overflow data blocks (present when stats flag bits 9 AND 12 are set).
+    pub overflow_blocks: Vec<OverflowBlock>,
 }
 
 /// Parse a raw EP2 IN data buffer into a data chunk.
@@ -337,18 +548,50 @@ pub fn parse_data_chunk(
 
     let sample_data = data[cursor..sample_end].to_vec();
 
-    // Total consumed: for stats case, consume stats too.
-    let consumed = if stats.is_some() {
-        let stats_end = sample_end + STATS_HEADER_SIZE;
-        // If overflow meta present, skip that too.
-        let stats_ref = stats.as_ref().unwrap();
-        if stats_ref.has_overflow_meta() {
-            (stats_end + OVERFLOW_METADATA_SIZE).min(data.len())
+    // Parse overflow data after stats header.
+    let (overflow_meta, overflow_blocks, consumed) = if let Some(ref stats_ref) = stats {
+        let mut pos = sample_end + STATS_HEADER_SIZE;
+
+        // Parse overflow metadata (16 bytes) when bit 9 is set.
+        let overflow_meta = if stats_ref.has_overflow_meta() && pos + OVERFLOW_METADATA_SIZE <= data.len() {
+            let meta = OverflowMetadata::parse(&data[pos..])?;
+            pos += OVERFLOW_METADATA_SIZE;
+            Some(meta)
         } else {
-            stats_end.min(data.len())
-        }
+            None
+        };
+
+        // Parse overflow data blocks when bits 9 AND 12 are set.
+        let overflow_blocks = if stats_ref.has_overflow_data() && overflow_meta.is_some() {
+            let remaining = data.len().saturating_sub(pos);
+            if remaining > 0 && remaining % OVERFLOW_BLOCK_SIZE != 0 {
+                return Err(ProtoError::InvalidData {
+                    reason: format!(
+                        "overflow data length {} not divisible by block size {}",
+                        remaining, OVERFLOW_BLOCK_SIZE,
+                    ),
+                });
+            }
+            let n_blocks = remaining / OVERFLOW_BLOCK_SIZE;
+            let mut blocks = Vec::with_capacity(n_blocks);
+            for _ in 0..n_blocks {
+                let block_sample = data[pos..pos + OVERFLOW_BLOCK_SAMPLE_SIZE].to_vec();
+                pos += OVERFLOW_BLOCK_SAMPLE_SIZE;
+                let block_stats = OverflowBlockStats::parse(&data[pos..])?;
+                pos += OVERFLOW_BLOCK_STATS_SIZE;
+                blocks.push(OverflowBlock {
+                    sample_data: block_sample,
+                    stats: block_stats,
+                });
+            }
+            blocks
+        } else {
+            Vec::new()
+        };
+
+        (overflow_meta, overflow_blocks, pos.min(data.len()))
     } else {
-        sample_end
+        (None, Vec::new(), sample_end)
     };
 
     Ok((
@@ -357,6 +600,8 @@ pub fn parse_data_chunk(
             start,
             sample_data,
             stats,
+            overflow_meta,
+            overflow_blocks,
         },
         consumed,
     ))
@@ -728,6 +973,201 @@ mod tests {
             err,
             ProtoError::BufferTooShort { need: 20, have: 19 }
         ));
+    }
+
+    // -------------------------------------------------------------------
+    // OverflowMetadata tests
+    // -------------------------------------------------------------------
+
+    #[test]
+    fn overflow_metadata_parse() {
+        let mut data = [0u8; 16];
+        data[..8].copy_from_slice(&42u64.to_le_bytes()); // prev
+        data[8..16].copy_from_slice(&99u64.to_le_bytes()); // cur
+
+        let meta = OverflowMetadata::parse(&data).unwrap();
+        assert_eq!(meta.prev_overflow, 42);
+        assert_eq!(meta.cur_overflow, 99);
+        assert!(meta.overflow_detected());
+    }
+
+    #[test]
+    fn overflow_metadata_no_change() {
+        let mut data = [0u8; 16];
+        data[..8].copy_from_slice(&7u64.to_le_bytes());
+        data[8..16].copy_from_slice(&7u64.to_le_bytes());
+
+        let meta = OverflowMetadata::parse(&data).unwrap();
+        assert!(!meta.overflow_detected());
+    }
+
+    #[test]
+    fn overflow_metadata_roundtrip() {
+        let original = OverflowMetadata {
+            prev_overflow: 0xDEAD_BEEF_CAFE_BABE,
+            cur_overflow: 0x0123_4567_89AB_CDEF,
+        };
+        let bytes = original.to_bytes();
+        let parsed = OverflowMetadata::parse(&bytes).unwrap();
+        assert_eq!(original, parsed);
+    }
+
+    #[test]
+    fn overflow_metadata_too_short() {
+        let data = [0u8; 15];
+        let err = OverflowMetadata::parse(&data).unwrap_err();
+        assert!(matches!(
+            err,
+            ProtoError::BufferTooShort { need: 16, have: 15 }
+        ));
+    }
+
+    // -------------------------------------------------------------------
+    // OverflowBlockStats tests
+    // -------------------------------------------------------------------
+
+    #[test]
+    fn overflow_block_stats_parse() {
+        let mut data = [0u8; 124];
+        // Set packet_id in the embedded stats header.
+        data[0..4].copy_from_slice(&55u32.to_le_bytes());
+        // Set some recognizable pattern in the extra bytes.
+        data[20] = 0xAA;
+        data[123] = 0xBB;
+
+        let block_stats = OverflowBlockStats::parse(&data).unwrap();
+        assert_eq!(block_stats.header.packet_id, 55);
+        assert_eq!(block_stats.extra[0], 0xAA);
+        assert_eq!(block_stats.extra[103], 0xBB);
+    }
+
+    #[test]
+    fn overflow_block_stats_too_short() {
+        let data = [0u8; 123];
+        let err = OverflowBlockStats::parse(&data).unwrap_err();
+        assert!(matches!(
+            err,
+            ProtoError::BufferTooShort {
+                need: 124,
+                have: 123
+            }
+        ));
+    }
+
+    // -------------------------------------------------------------------
+    // parse_data_chunk with overflow tests
+    // -------------------------------------------------------------------
+
+    #[test]
+    fn parse_data_chunk_with_overflow_meta() {
+        let header = ChunkHeader {
+            channel: 0,
+            software: false,
+            is_start: false,
+            config_id: 1,
+        };
+
+        let sample_bytes = vec![0x11; 32];
+
+        // Stats with overflow_meta flag (bit 9) set.
+        let mut stats_bytes = [0u8; STATS_HEADER_SIZE];
+        stats_bytes[0..4].copy_from_slice(&7u32.to_le_bytes());
+        stats_bytes[10..12].copy_from_slice(&0x0200u16.to_le_bytes()); // bit 9
+
+        // Overflow metadata: 16 bytes.
+        let mut meta_bytes = [0u8; 16];
+        meta_bytes[..8].copy_from_slice(&10u64.to_le_bytes());
+        meta_bytes[8..].copy_from_slice(&20u64.to_le_bytes());
+
+        let mut data = Vec::new();
+        data.extend_from_slice(&header.to_bytes());
+        data.extend_from_slice(&sample_bytes);
+        data.extend_from_slice(&stats_bytes);
+        data.extend_from_slice(&meta_bytes);
+
+        let (chunk, consumed) = parse_data_chunk(&data, 32, true).unwrap();
+        assert_eq!(consumed, 4 + 32 + 20 + 16);
+        assert_eq!(chunk.sample_data.len(), 32);
+        assert!(chunk.stats.is_some());
+        assert!(chunk.stats.as_ref().unwrap().has_overflow_meta());
+        assert!(!chunk.stats.as_ref().unwrap().has_overflow_data());
+
+        let meta = chunk.overflow_meta.unwrap();
+        assert_eq!(meta.prev_overflow, 10);
+        assert_eq!(meta.cur_overflow, 20);
+        assert!(meta.overflow_detected());
+        assert!(chunk.overflow_blocks.is_empty());
+    }
+
+    #[test]
+    fn parse_data_chunk_with_overflow_blocks() {
+        let header = ChunkHeader {
+            channel: 0,
+            software: false,
+            is_start: false,
+            config_id: 1,
+        };
+
+        let sample_bytes = vec![0x11; 32];
+
+        // Stats with overflow_meta (bit 9) AND overflow_data (bit 12) set.
+        let mut stats_bytes = [0u8; STATS_HEADER_SIZE];
+        stats_bytes[0..4].copy_from_slice(&1u32.to_le_bytes());
+        stats_bytes[10..12].copy_from_slice(&0x1200u16.to_le_bytes()); // bits 9+12
+
+        // Overflow metadata: 16 bytes.
+        let meta_bytes = [0u8; 16];
+
+        // One overflow block: 512 sample + 124 stats = 636 bytes.
+        let mut block_sample = vec![0xCC; 512];
+        block_sample[0] = 0xDD; // recognizable
+        let mut block_stats = [0u8; 124];
+        block_stats[0..4].copy_from_slice(&99u32.to_le_bytes()); // packet_id
+
+        let mut data = Vec::new();
+        data.extend_from_slice(&header.to_bytes());
+        data.extend_from_slice(&sample_bytes);
+        data.extend_from_slice(&stats_bytes);
+        data.extend_from_slice(&meta_bytes);
+        data.extend_from_slice(&block_sample);
+        data.extend_from_slice(&block_stats);
+
+        let (chunk, consumed) = parse_data_chunk(&data, 32, true).unwrap();
+        assert_eq!(consumed, data.len());
+        assert_eq!(chunk.overflow_blocks.len(), 1);
+        assert_eq!(chunk.overflow_blocks[0].sample_data[0], 0xDD);
+        assert_eq!(chunk.overflow_blocks[0].stats.header.packet_id, 99);
+    }
+
+    #[test]
+    fn parse_data_chunk_overflow_invalid_length() {
+        let header = ChunkHeader {
+            channel: 0,
+            software: false,
+            is_start: false,
+            config_id: 1,
+        };
+
+        let sample_bytes = vec![0x11; 32];
+
+        // Stats with bits 9+12 set.
+        let mut stats_bytes = [0u8; STATS_HEADER_SIZE];
+        stats_bytes[10..12].copy_from_slice(&0x1200u16.to_le_bytes());
+
+        let meta_bytes = [0u8; 16];
+
+        // Invalid: 100 bytes is not divisible by 636.
+        let bad_overflow = vec![0u8; 100];
+
+        let mut data = Vec::new();
+        data.extend_from_slice(&header.to_bytes());
+        data.extend_from_slice(&sample_bytes);
+        data.extend_from_slice(&stats_bytes);
+        data.extend_from_slice(&meta_bytes);
+        data.extend_from_slice(&bad_overflow);
+
+        let err = parse_data_chunk(&data, 32, true).unwrap_err();
+        assert!(matches!(err, ProtoError::InvalidData { .. }));
     }
 
     // -------------------------------------------------------------------
