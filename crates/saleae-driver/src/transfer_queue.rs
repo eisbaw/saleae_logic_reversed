@@ -262,7 +262,17 @@ impl TransferConfig {
     /// parses the value via `strtoll`.
     pub fn from_env_override() -> Option<usize> {
         let val = std::env::var("SALEAE_USB_TRANSFER_LIMIT").ok()?;
-        let parsed: i64 = val.parse().ok()?;
+        let parsed: i64 = match val.parse() {
+            Ok(v) => v,
+            Err(e) => {
+                tracing::warn!(
+                    value = %val,
+                    error = %e,
+                    "SALEAE_USB_TRANSFER_LIMIT is set but not a valid integer, ignoring"
+                );
+                return None;
+            }
+        };
         if parsed > 0 {
             Some(parsed as usize)
         } else {

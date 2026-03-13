@@ -8,7 +8,9 @@
 //! default). Disable it to build and test without USB system dependencies.
 
 pub mod error;
+#[cfg(any(feature = "test-support", test))]
 pub mod mock;
+#[cfg(any(feature = "test-support", test))]
 pub mod mock_stream;
 pub mod stream;
 pub mod transport;

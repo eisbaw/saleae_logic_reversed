@@ -13,3 +13,4 @@ getrandom = { workspace = true }
 ureq = "3"
 
 [dev-dependencies]
+saleae-usb = { workspace = true, features = ["test-support"] }
