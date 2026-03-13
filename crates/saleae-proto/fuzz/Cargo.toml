@@ -11,7 +11,50 @@ cargo-fuzz = true
 libfuzzer-sys = "0.4"
 saleae-proto = { path = ".." }
 
+# Prevent the workspace from including us (requires nightly).
+[workspace]
+
 [[bin]]
 name = "fx3_image"
 path = "fuzz_targets/fx3_image.rs"
+doc = false
+
+[[bin]]
+name = "parse_calibration"
+path = "fuzz_targets/parse_calibration.rs"
+doc = false
+
+[[bin]]
+name = "chunk_header"
+path = "fuzz_targets/chunk_header.rs"
+doc = false
+
+[[bin]]
+name = "start_packet_fields"
+path = "fuzz_targets/start_packet_fields.rs"
+doc = false
+
+[[bin]]
+name = "stats_header"
+path = "fuzz_targets/stats_header.rs"
+doc = false
+
+[[bin]]
+name = "parse_data_chunk"
+path = "fuzz_targets/parse_data_chunk.rs"
+doc = false
+
+[[bin]]
+name = "disaggregator_pro"
+path = "fuzz_targets/disaggregator_pro.rs"
+doc = false
+
+[[bin]]
+name = "sal_reader"
+path = "fuzz_targets/sal_reader.rs"
+doc = false
+
+[[bin]]
+name = "obfuscation"
+path = "fuzz_targets/obfuscation.rs"
 doc = false
