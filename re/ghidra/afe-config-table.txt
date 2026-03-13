@@ -1,0 +1,149 @@
+openjdk version "21.0.9" 2025-10-21
+OpenJDK Runtime Environment (build 21.0.9+-nixos)
+OpenJDK 64-Bit Server VM (build 21.0.9+-nixos, mixed mode)
+Module manifest file error on line 2 of file: /home/mpedersen/.config/ghidra/ghidra_11.3.2_NIX/Extensions/GhidraMCP/Module.manifest
+	-> Invalid line encountered: GHIDRA_MODULE_NAME=GhidraMCP
+Module manifest file error on line 3 of file: /home/mpedersen/.config/ghidra/ghidra_11.3.2_NIX/Extensions/GhidraMCP/Module.manifest
+	-> Invalid line encountered: GHIDRA_MODULE_DESC=An HTTP server plugin for Ghidra
+Module manifest file error on line 2 of file: /home/mpedersen/.config/ghidra/ghidra_11.3.2_NIX/Extensions/GhidraMCP/Module.manifest
+	-> Invalid line encountered: GHIDRA_MODULE_NAME=GhidraMCP
+Module manifest file error on line 3 of file: /home/mpedersen/.config/ghidra/ghidra_11.3.2_NIX/Extensions/GhidraMCP/Module.manifest
+	-> Invalid line encountered: GHIDRA_MODULE_DESC=An HTTP server plugin for Ghidra
+INFO  Using log config file: jar:file:/nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Framework/Generic/lib/Generic.jar!/generic.log4j.xml (LoggingInitialization)  
+INFO  Using log file: /home/mpedersen/.config/ghidra/ghidra_11.3.2_NIX/application.log (LoggingInitialization)  
+INFO  Loading user preferences: /home/mpedersen/.config/ghidra/ghidra_11.3.2_NIX/preferences (Preferences)  
+INFO  Searching for classes... (ClassSearcher)  
+INFO  Class search complete (653 ms) (ClassSearcher)  
+INFO  Initializing SSL Context (SSLContextInitializer)  
+INFO  Initializing Random Number Generator... (SecureRandomFactory)  
+INFO  Random Number Generator initialization complete: NativePRNGNonBlocking (SecureRandomFactory)  
+INFO  Trust manager disabled, cacerts have not been set (ApplicationTrustManagerFactory)  
+INFO  Headless startup complete (1341 ms) (AnalyzeHeadless)  
+INFO  Class searcher loaded 57 extension points (18 false positives) (ClassSearcher)  
+INFO  HEADLESS Script Paths:
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Processors/DATA/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/Jython/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/MicrosoftCodeAnalyzer/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Processors/PIC/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Debug/Debugger/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/SwiftDemangler/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/Base/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/PyGhidra/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/FunctionID/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Debug/Debugger-rmi-trace/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/DecompilerDependent/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/BSim/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/BytePatterns/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/Decompiler/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/WildcardAssembler/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/GnuDemangler/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/PDB/ghidra_scripts
+    /home/mpedersen/nvidia/saleae_reverse/re/ghidra/scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Processors/Atmel/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/FileFormats/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/SystemEmulation/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Processors/JVM/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Processors/8051/ghidra_scripts
+    /nix/store/rkbhy56mz9x1xn3776h68y6hmiihnd32-ghidra-11.3.2/lib/ghidra/Ghidra/Features/VersionTracking/ghidra_scripts (HeadlessAnalyzer)  
+INFO  HEADLESS: execution starts (HeadlessAnalyzer)  
+INFO  Opening existing project: /home/mpedersen/nvidia/saleae_reverse/ghidra_proj2/sal_rev2 (HeadlessAnalyzer)  
+INFO  Opening project: /home/mpedersen/nvidia/saleae_reverse/ghidra_proj2/sal_rev2 (HeadlessProject)  
+INFO  REPORT: Processing project file: /libgraph_server_shared.so (HeadlessAnalyzer)  
+INFO  SCRIPT: /home/mpedersen/nvidia/saleae_reverse/re/ghidra/scripts/ExtractAfeConfigTable.java (HeadlessAnalyzer)  
+INFO  ExtractAfeConfigTable.java> === AfeConfig_RawHardware AllConfigs Table === (GhidraScript)  
+INFO  ExtractAfeConfigTable.java> Table address: 0x0089a448 (Ghidra VA) (GhidraScript)  
+INFO  ExtractAfeConfigTable.java> ELF VA: 0x0079a448 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java> Entries: 66 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java> Entry size: 24 bytes (0x18) (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>  (GhidraScript)  
+INFO  ExtractAfeConfigTable.java> Format (from struct analysis): (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>   byte[0]:   attn1 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>   byte[1]:   attn2 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>   byte[2-3]: preamp (short) (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>   byte[4-5]: ??? (short) (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>   byte[6-7]: filter (short) (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>   byte[8]:   ladder (char, signed) (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>   byte[9-15]: padding/unknown (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>   byte[16-23]: dac (double) (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>  (GhidraScript)  
+INFO  ExtractAfeConfigTable.java> Refined layout based on format function: (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>   [0]:    attn1 (bool/byte) (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>   [1]:    attn2 (bool/byte) (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>   [2-3]:  preamp (enum, 2 bytes) (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>   [4-5]:  power (enum, 2 bytes) -- 'pwoer' in original (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>   [6-7]:  filter (enum, 2 bytes) (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>   [8]:    ladder (int8_t, -20 to 0 in steps of 2) (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>   [9-15]: padding (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>   [16-23]: dac (double, voltage) (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>  (GhidraScript)  
+INFO  ExtractAfeConfigTable.java> Idx | attn1 | attn2 | preamp | power | filter | ladder | dac (GhidraScript)  
+INFO  ExtractAfeConfigTable.java> ----+-------+-------+--------+-------+--------+--------+-------- (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>   0 |     0 |     0 |      1 |     1 |      4 |      0 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>   1 |     0 |     0 |      1 |     1 |      4 |     -2 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>   2 |     0 |     0 |      1 |     1 |      4 |     -4 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>   3 |     0 |     0 |      1 |     1 |      4 |     -6 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>   4 |     0 |     0 |      1 |     1 |      4 |     -8 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>   5 |     0 |     0 |      1 |     1 |      4 |    -10 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>   6 |     0 |     0 |      1 |     1 |      4 |    -12 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>   7 |     0 |     0 |      1 |     1 |      4 |    -14 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>   8 |     0 |     0 |      1 |     1 |      4 |    -16 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>   9 |     0 |     0 |      1 |     1 |      4 |    -18 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>  10 |     0 |     0 |      1 |     1 |      4 |    -20 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>  11 |     0 |     0 |      0 |     1 |      4 |      0 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>  12 |     0 |     0 |      0 |     1 |      4 |     -2 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>  13 |     0 |     0 |      0 |     1 |      4 |     -4 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>  14 |     0 |     0 |      0 |     1 |      4 |     -6 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>  15 |     0 |     0 |      0 |     1 |      4 |     -8 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>  16 |     0 |     0 |      0 |     1 |      4 |    -10 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>  17 |     0 |     0 |      0 |     1 |      4 |    -12 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>  18 |     0 |     0 |      0 |     1 |      4 |    -14 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>  19 |     0 |     0 |      0 |     1 |      4 |    -16 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>  20 |     0 |     0 |      0 |     1 |      4 |    -18 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>  21 |     0 |     0 |      0 |     1 |      4 |    -20 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>  22 |     1 |     0 |      1 |     1 |      4 |      0 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>  23 |     1 |     0 |      1 |     1 |      4 |     -2 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>  24 |     1 |     0 |      1 |     1 |      4 |     -4 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>  25 |     1 |     0 |      1 |     1 |      4 |     -6 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>  26 |     1 |     0 |      1 |     1 |      4 |     -8 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>  27 |     1 |     0 |      1 |     1 |      4 |    -10 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>  28 |     1 |     0 |      1 |     1 |      4 |    -12 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>  29 |     1 |     0 |      1 |     1 |      4 |    -14 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>  30 |     1 |     0 |      1 |     1 |      4 |    -16 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>  31 |     1 |     0 |      1 |     1 |      4 |    -18 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>  32 |     1 |     0 |      1 |     1 |      4 |    -20 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>  33 |     1 |     0 |      0 |     1 |      4 |      0 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>  34 |     1 |     0 |      0 |     1 |      4 |     -2 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>  35 |     1 |     0 |      0 |     1 |      4 |     -4 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>  36 |     1 |     0 |      0 |     1 |      4 |     -6 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>  37 |     1 |     0 |      0 |     1 |      4 |     -8 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>  38 |     1 |     0 |      0 |     1 |      4 |    -10 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>  39 |     1 |     0 |      0 |     1 |      4 |    -12 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>  40 |     1 |     0 |      0 |     1 |      4 |    -14 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>  41 |     1 |     0 |      0 |     1 |      4 |    -16 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>  42 |     1 |     0 |      0 |     1 |      4 |    -18 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>  43 |     1 |     0 |      0 |     1 |      4 |    -20 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>  44 |     1 |     1 |      1 |     1 |      4 |      0 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>  45 |     1 |     1 |      1 |     1 |      4 |     -2 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>  46 |     1 |     1 |      1 |     1 |      4 |     -4 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>  47 |     1 |     1 |      1 |     1 |      4 |     -6 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>  48 |     1 |     1 |      1 |     1 |      4 |     -8 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>  49 |     1 |     1 |      1 |     1 |      4 |    -10 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>  50 |     1 |     1 |      1 |     1 |      4 |    -12 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>  51 |     1 |     1 |      1 |     1 |      4 |    -14 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>  52 |     1 |     1 |      1 |     1 |      4 |    -16 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>  53 |     1 |     1 |      1 |     1 |      4 |    -18 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>  54 |     1 |     1 |      1 |     1 |      4 |    -20 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>  55 |     1 |     1 |      0 |     1 |      4 |      0 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>  56 |     1 |     1 |      0 |     1 |      4 |     -2 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>  57 |     1 |     1 |      0 |     1 |      4 |     -4 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>  58 |     1 |     1 |      0 |     1 |      4 |     -6 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>  59 |     1 |     1 |      0 |     1 |      4 |     -8 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>  60 |     1 |     1 |      0 |     1 |      4 |    -10 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>  61 |     1 |     1 |      0 |     1 |      4 |    -12 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>  62 |     1 |     1 |      0 |     1 |      4 |    -14 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>  63 |     1 |     1 |      0 |     1 |      4 |    -16 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>  64 |     1 |     1 |      0 |     1 |      4 |    -18 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>  65 |     1 |     1 |      0 |     1 |      4 |    -20 | 0.000000 (GhidraScript)  
+INFO  ExtractAfeConfigTable.java>  (GhidraScript)  
+INFO  ExtractAfeConfigTable.java> === END TABLE === (GhidraScript)  
+INFO  REPORT: Save succeeded for processed file: /libgraph_server_shared.so (HeadlessAnalyzer)  
