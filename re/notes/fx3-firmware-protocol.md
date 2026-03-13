@@ -207,17 +207,21 @@ Each firmware contains two USB device descriptors:
 
 ## Device Type Enumeration
 
-A VID:PID lookup table was found at offset 0x004718e4:
+A VID:PID lookup table was found at offset 0x004718e4.
+**Note:** The "DeviceType" column below originally listed the *internal*
+(compact) enum values.  The correct *external* enum values are documented
+in `re/notes/device-type-enum.md` and are what `GetVidPidForDevice` and
+the calibration server use.
 
-| VID    | PID    | DeviceType | Device Name |
-|--------|--------|------------|-------------|
-| 0x0925 | 0x3881 | 1          | Logic (original, FX2) |
-| 0x21a9 | 0x1001 | 4          | Logic 16 (legacy, FX2LP) |
-| 0x21a9 | 0x1003 | 5          | Logic 4 (FX3) |
-| 0x21a9 | 0x1004 | 6          | Logic 8 (FX3) |
-| 0x21a9 | 0x1005 | 7          | Logic Pro 8 (FX3) |
-| 0x21a9 | 0x1006 | 12         | Logic Pro 16 (FX3) |
-| 0x21a9 | 0x1007 | 1          | Unknown (MSO?) |
+| VID    | PID    | External DeviceType | Internal DeviceType | Device Name |
+|--------|--------|---------------------|---------------------|-------------|
+| 0x0925 | 0x3881 | 0                   | 1                   | Logic (original, FX2) |
+| 0x21a9 | 0x1001 | 1                   | 2                   | Logic 16 (legacy, FX2LP) |
+| 0x21a9 | 0x1003 | 4                   | 3                   | Logic 4 (FX3) |
+| 0x21a9 | 0x1004 | 5                   | 4                   | Logic 8 (FX3) |
+| 0x21a9 | 0x1005 | 6                   | 5                   | Logic Pro 8 (FX3) |
+| 0x21a9 | 0x1006 | 7                   | 6                   | Logic Pro 16 (FX3) |
+| 0x21a9 | 0x1007 | 12                  | 7                   | Mso |
 
 Note: Logic 4 (0x1003) and Logic 8 (0x1004) are FX3-based but we found
 only 2 CY firmware images (for Pro 8 and Pro 16). The non-Pro FX3 devices

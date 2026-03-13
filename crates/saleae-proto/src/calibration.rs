@@ -7,6 +7,7 @@
 //! The calibration data compensates for analog front-end (AFE) distortion
 //! using a cascade of 5 second-order sections (biquads) in Direct Form I.
 
+use crate::device::DeviceType;
 use crate::error::{ProtoError, ProtoResult};
 use quick_xml::events::Event;
 use quick_xml::Reader;
@@ -100,7 +101,11 @@ impl VoltageTransform {
 #[derive(Debug, Clone)]
 pub struct CalibrationData {
     pub device_id: u64,
-    pub device_type: u8,
+    /// Device type parsed from `mDeviceType` in the `.cal` file.
+    ///
+    /// The `.cal` file uses the external DeviceType numbering (e.g. 6 =
+    /// LogicPro8).  See [`DeviceType::type_id`] for the mapping.
+    pub device_type: DeviceType,
     pub calibration_date: String,
     /// ADC gain value from the .cal file (`mAdcGain`).  Always 0.0 in observed
     /// calibration files.  NOT used in the software calibration pipeline — the
@@ -387,8 +392,14 @@ pub fn parse_calibration(xml_data: &[u8]) -> ProtoResult<CalibrationData> {
 
     let device_id =
         device_id.ok_or_else(|| ProtoError::parse("missing mDeviceId in calibration file"))?;
-    let device_type =
+    let device_type_raw =
         device_type.ok_or_else(|| ProtoError::parse("missing mDeviceType in calibration file"))?;
+    let device_type = DeviceType::from_type_id(device_type_raw).ok_or_else(|| {
+        ProtoError::parse(format!(
+            "unknown mDeviceType {} in calibration file",
+            device_type_raw
+        ))
+    })?;
     let calibration_date = calibration_date
         .ok_or_else(|| ProtoError::parse("missing mCalibrationDate in calibration file"))?;
     let adc_gain = adc_gain.unwrap_or(0.0);
@@ -486,7 +497,7 @@ mod tests {
     #[test]
     fn parse_reference_device_type() {
         let cal = load_reference_cal();
-        assert_eq!(cal.device_type, 6); // LogicPro8
+        assert_eq!(cal.device_type, DeviceType::LogicPro8);
     }
 
     #[test]
@@ -827,7 +838,7 @@ mod tests {
 
         let cal = parse_calibration(xml.as_bytes()).expect("parse minimal XML");
         assert_eq!(cal.device_id, 12345);
-        assert_eq!(cal.device_type, 6);
+        assert_eq!(cal.device_type, DeviceType::LogicPro8);
         assert_eq!(cal.calibration_sets.len(), 1);
         assert_eq!(cal.voltage_ranges.len(), 1);
 

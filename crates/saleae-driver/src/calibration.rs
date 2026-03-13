@@ -139,7 +139,7 @@ mod tests {
     fn load_reference_file() {
         let cal = load_calibration_file(&reference_cal_path()).expect("load reference cal");
         assert_eq!(cal.device_id, 8520900333282843121);
-        assert_eq!(cal.device_type, 6);
+        assert_eq!(cal.device_type, saleae_proto::device::DeviceType::LogicPro8);
         assert_eq!(cal.calibration_sets.len(), 48);
         assert_eq!(cal.voltage_ranges.len(), 8);
     }

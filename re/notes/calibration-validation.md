@@ -96,7 +96,8 @@ with the actual XML structure.
 
 ### CONFIRMED: Device Type Enum
 
-mDeviceType = 6 for LogicPro8, matching our documented enum.
+mDeviceType = 6 for LogicPro8, matching the external DeviceType enum
+(see `re/notes/device-type-enum.md`).
 
 
 ### CONFIRMED: 48 Calibration Entries (8 channels x 6 sample rates)

@@ -67,21 +67,22 @@ impl std::fmt::Display for UsbId {
 
 /// Known Saleae device types.
 ///
-/// The `type_id` values come from the device type table at 0x004718e4 in
-/// `libgraph_server_shared.so`. See `doc/protocol/fx3-firmware.md`.
+/// The `type_id` values are the **external** DeviceType enum from the Saleae
+/// binary, used by `GetVidPidForDevice`, the calibration server, and `.cal`
+/// files.  See `re/notes/device-type-enum.md` for full analysis.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum DeviceType {
-    /// Original Logic (0925:3881, FX2). Type ID 1.
+    /// Original Logic (0925:3881, FX2). External type ID 0.
     LogicOriginal,
-    /// Logic 16 (21a9:1001, FX2LP). Type ID 4.
+    /// Logic 16 (21a9:1001, FX2LP). External type ID 1.
     Logic16,
-    /// Logic 4 (21a9:1003, FX3). Type ID 5.
+    /// Logic 4 (21a9:1003, FX3). External type ID 4.
     Logic4,
-    /// Logic 8 (21a9:1004, FX3). Type ID 6.
+    /// Logic 8 (21a9:1004, FX3). External type ID 5.
     Logic8,
-    /// Logic Pro 8 (21a9:1005, FX3). Type ID 7.
+    /// Logic Pro 8 (21a9:1005, FX3). External type ID 6.
     LogicPro8,
-    /// Logic Pro 16 (21a9:1006, FX3). Type ID 12.
+    /// Logic Pro 16 (21a9:1006, FX3). External type ID 7.
     LogicPro16,
 }
 
@@ -134,15 +135,35 @@ impl DeviceType {
         }
     }
 
-    /// Internal type ID from the Saleae device type table.
+    /// External device type ID used by `GetVidPidForDevice`, calibration
+    /// server (`mDeviceType` in `.cal` files), and USB enumeration.
+    ///
+    /// These values come from the external DeviceType enum in the binary
+    /// (see `re/notes/device-type-enum.md`).  They differ from the compact
+    /// internal DeviceType used by `DeviceTypeToString`.
     pub const fn type_id(self) -> u8 {
         match self {
-            DeviceType::LogicOriginal => 1,
-            DeviceType::Logic16 => 4,
-            DeviceType::Logic4 => 5,
-            DeviceType::Logic8 => 6,
-            DeviceType::LogicPro8 => 7,
-            DeviceType::LogicPro16 => 12,
+            DeviceType::LogicOriginal => 0,
+            DeviceType::Logic16 => 1,
+            DeviceType::Logic4 => 4,
+            DeviceType::Logic8 => 5,
+            DeviceType::LogicPro8 => 6,
+            DeviceType::LogicPro16 => 7,
+        }
+    }
+
+    /// Resolve an external type ID back to a `DeviceType`.
+    ///
+    /// This is the inverse of [`type_id`](Self::type_id).
+    pub const fn from_type_id(id: u8) -> Option<DeviceType> {
+        match id {
+            0 => Some(DeviceType::LogicOriginal),
+            1 => Some(DeviceType::Logic16),
+            4 => Some(DeviceType::Logic4),
+            5 => Some(DeviceType::Logic8),
+            6 => Some(DeviceType::LogicPro8),
+            7 => Some(DeviceType::LogicPro16),
+            _ => None,
         }
     }
 
@@ -1144,13 +1165,38 @@ mod tests {
     }
 
     #[test]
-    fn type_ids_match_documented_values() {
-        assert_eq!(DeviceType::LogicOriginal.type_id(), 1);
-        assert_eq!(DeviceType::Logic16.type_id(), 4);
-        assert_eq!(DeviceType::Logic4.type_id(), 5);
-        assert_eq!(DeviceType::Logic8.type_id(), 6);
-        assert_eq!(DeviceType::LogicPro8.type_id(), 7);
-        assert_eq!(DeviceType::LogicPro16.type_id(), 12);
+    fn type_ids_match_external_enum() {
+        // External DeviceType values from re/notes/device-type-enum.md
+        assert_eq!(DeviceType::LogicOriginal.type_id(), 0);
+        assert_eq!(DeviceType::Logic16.type_id(), 1);
+        assert_eq!(DeviceType::Logic4.type_id(), 4);
+        assert_eq!(DeviceType::Logic8.type_id(), 5);
+        assert_eq!(DeviceType::LogicPro8.type_id(), 6);
+        assert_eq!(DeviceType::LogicPro16.type_id(), 7);
+    }
+
+    #[test]
+    fn from_type_id_roundtrips() {
+        for &dt in DeviceType::ALL {
+            let id = dt.type_id();
+            assert_eq!(
+                DeviceType::from_type_id(id),
+                Some(dt),
+                "from_type_id({}) should return {:?}",
+                id,
+                dt,
+            );
+        }
+    }
+
+    #[test]
+    fn from_type_id_rejects_invalid() {
+        // Gaps in the external enum
+        assert!(DeviceType::from_type_id(2).is_none());
+        assert!(DeviceType::from_type_id(3).is_none());
+        assert!(DeviceType::from_type_id(8).is_none());
+        assert!(DeviceType::from_type_id(12).is_none()); // MSO, not supported
+        assert!(DeviceType::from_type_id(255).is_none());
     }
 
     #[test]
