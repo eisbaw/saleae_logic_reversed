@@ -568,7 +568,8 @@ Sample 3: sign_extend_12( (i16) & 0xFFF0 >> 4 )
 | Settings must arrive before data | **Confirmed** | Error string + flag check |
 | Logic 8: 8 bytes per cycle, 1 byte per channel | **Confirmed** | Decompilation of FUN_01bf21b0 |
 | Logic 16: 2*num_channels bytes per cycle | **Confirmed** | Decompilation of FUN_01bf37e0 |
-| Analog data may undergo bit inversion | **High** | XOR 0xFF pattern in FUN_02eae7f0 |
+| Analog data XOR 0xFF is streaming pipeline, not format | **Confirmed** | Decompilation of FUN_02eadc90 (TASK-0201) |
+| Logic 8 uses 8x8 bit matrix transpose per group | **Confirmed** | Decompilation of FUN_01bf1ff0 (TASK-0201) |
 | Settings inner object field layout | **High** | Consistent across deinterleave functions |
 | Channel enable arrays are 32x8 byte slots | **High** | Pro function iterates 32 slots |
 | Full cycle = digital_groups + analog_groups | **High** | Division + modulo check in Pro function |
@@ -576,13 +577,20 @@ Sample 3: sign_extend_12( (i16) & 0xFFF0 >> 4 )
 
 ## Open Questions
 
-1. **FUN_01bf1ff0**: Called by Logic 8 deinterleaver to transform 8-byte
+1. ~~**FUN_01bf1ff0**: Called by Logic 8 deinterleaver to transform 8-byte
    words. Is this a simple bit reordering, byte swap, or something more?
-   Needs decompilation.
+   Needs decompilation.~~
+   **RESOLVED** (2026-03-13, TASK-0201): LUT-based 8x8 bit matrix transpose.
+   See `re/notes/analog-inversion-and-logic8-transform.md`.
 
-2. **Analog bit inversion**: Under what conditions does FUN_02eae7f0
+2. ~~**Analog bit inversion**: Under what conditions does FUN_02eae7f0
    perform the bitwise NOT? Is this offset-binary to two's-complement
-   conversion for certain ADC types?
+   conversion for certain ADC types?~~
+   **RESOLVED** (2026-03-13, TASK-0201): Streaming pipeline feature for
+   polarity/edge tracking across chunks. FUN_02eadc90 is a bit-level edge
+   detector. The XOR 0xFF is NOT an ADC encoding difference -- it is a
+   chunk-level polarity flip triggered by detected transitions. Not relevant
+   to raw deinterleaving. See `re/notes/analog-inversion-and-logic8-transform.md`.
 
 3. **Logic 4 shift mode**: What does the shift field at param_2+0x08
    do? It shifts the data length left by some bits. Is this related to

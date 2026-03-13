@@ -26,8 +26,13 @@
 //!
 //! The Pro deinterleaving format is **Confirmed** from decompilation of
 //! FUN_01bf1190. The 12-bit ADC sign extension via `psraw(4)` is **Confirmed**.
-//! The Logic 8 format is **Confirmed** from FUN_01bf21b0. Exact bit-level
-//! behavior of Logic 8 FUN_01bf1ff0 transform is still uncertain.
+//! The Logic 8 format is **Confirmed** from FUN_01bf21b0 and FUN_01bf1ff0:
+//! each 8-byte group undergoes an 8x8 bit matrix transpose, then byte N
+//! goes to channel N.
+//!
+//! The analog bit inversion (XOR 0xFF) in FUN_02eae7f0 is a streaming
+//! pipeline feature (polarity tracking across chunks), **not** a data
+//! format difference. It is not relevant to raw deinterleaving.
 
 use crate::device::{DeviceFeatureClass, DeviceProfile};
 use crate::error::{ProtoError, ProtoResult};
@@ -482,8 +487,15 @@ impl Disaggregator {
     }
 
     /// Return the expected interleave cycle size in bytes.
+    ///
+    /// For NonPro (Logic 8), this is always 8 regardless of GPIF width,
+    /// because the FPGA packs 8-byte groups with bit-level interleaving.
+    /// For Pro devices, this is the computed cycle size from the mix rate.
     pub fn cycle_bytes(&self) -> usize {
-        self.mix_rate.cycle_bytes as usize
+        match self.feature_class {
+            DeviceFeatureClass::NonPro => 8,
+            _ => self.mix_rate.cycle_bytes as usize,
+        }
     }
 
     /// Return the number of enabled digital channels.
@@ -821,62 +833,58 @@ impl Disaggregator {
 
     /// Deinterleave Logic 8 data (FUN_01bf21b0).
     ///
-    /// Logic 8 produces digital-only data. The input is processed in
-    /// 8-byte groups, with each byte going to one of the 8 channels
-    /// (in a fixed order). Byte-swap within each 16-bit word corrects
-    /// FPGA bit ordering.
+    /// Logic 8 produces digital-only data in groups of 8 bytes. Each 8-byte
+    /// group is an 8x8 bit matrix: byte N contains bit N of 8 consecutive
+    /// samples across all 8 channels. The deinterleaver transposes this
+    /// matrix so each output byte contains 8 consecutive samples from a
+    /// single channel.
+    ///
+    /// The transpose is performed by `FUN_01bf1ff0`, a lookup-table-based
+    /// 8x8 bit matrix transpose. After transpose, byte 0 goes to channel 0,
+    /// byte 1 to channel 1, etc.
     ///
     /// Error string from binary: "Logic data length must be a multiple of 8"
+    ///
+    /// # Confidence
+    ///
+    /// **Confirmed** from decompilation of FUN_01bf21b0 and FUN_01bf1ff0.
+    /// The bit-transpose LUT construction and 8-byte group processing are
+    /// clearly visible in the decompiled code.
     fn deinterleave_non_pro(&self, data: &[u8]) -> ProtoResult<DisaggregatedData> {
-        // For non-Pro (Logic 8): digital-only, process in groups of
-        // (num_digital * packet_size) bytes.
-        let cycle_size = self.cycle_bytes();
-        if cycle_size == 0 {
+        // Logic 8: always 8-byte groups, regardless of GPIF width.
+        // The binary checks (*param_1 & 7) != 0 and divides by 8.
+        const GROUP_SIZE: usize = 8;
+
+        if data.is_empty() {
             return Ok(DisaggregatedData {
                 digital_samples: vec![Vec::new(); self.num_digital],
                 analog_samples: vec![Vec::new(); self.num_analog],
             });
         }
 
-        if data.len() % cycle_size != 0 {
+        if data.len() % GROUP_SIZE != 0 {
             return Err(ProtoError::parse(format!(
-                "Logic data length {} must be a multiple of {}",
+                "Logic data length {} must be a multiple of 8",
                 data.len(),
-                cycle_size,
             )));
         }
 
-        let num_groups = data.len() / cycle_size;
+        let num_groups = data.len() / GROUP_SIZE;
 
-        // Each group produces `packet_size` bytes per channel (after byte-swap).
+        // After transpose, each group produces 1 byte per channel.
         let mut digital_out: Vec<Vec<u8>> =
-            vec![Vec::with_capacity(num_groups * self.packet_size); self.num_digital];
+            vec![Vec::with_capacity(num_groups); self.num_digital];
 
         for group_idx in 0..num_groups {
-            let group_start = group_idx * cycle_size;
+            let offset = group_idx * GROUP_SIZE;
+            let group = &data[offset..offset + GROUP_SIZE];
 
-            // Each word in the group goes to one channel, byte-swapped.
+            // 8x8 bit matrix transpose: input byte N has bit N of 8 samples.
+            // Output byte N has 8 consecutive samples from channel N.
+            let transposed = bit_transpose_8x8(group);
+
             for (ch, ch_out) in digital_out.iter_mut().enumerate() {
-                let offset = group_start + ch * self.packet_size;
-                let word = &data[offset..offset + self.packet_size];
-
-                match self.packet_size {
-                    2 => {
-                        ch_out.push(word[1]);
-                        ch_out.push(word[0]);
-                    }
-                    4 => {
-                        ch_out.push(word[3]);
-                        ch_out.push(word[2]);
-                        ch_out.push(word[1]);
-                        ch_out.push(word[0]);
-                    }
-                    _ => {
-                        for &b in word.iter().rev() {
-                            ch_out.push(b);
-                        }
-                    }
-                }
+                ch_out.push(transposed[ch]);
             }
         }
 
@@ -888,8 +896,43 @@ impl Disaggregator {
 }
 
 // ---------------------------------------------------------------------------
-// Standalone 12-bit ADC sign extension helpers
+// 8x8 bit matrix transpose (Logic 8)
 // ---------------------------------------------------------------------------
+
+/// Transpose an 8x8 bit matrix stored as 8 bytes.
+///
+/// The FPGA packs Logic 8 data so that in each 8-byte group, bit N of
+/// byte M is sample M from channel N.  After transposing, bit M of output
+/// byte N is sample M from channel N -- i.e., each output byte holds 8
+/// consecutive samples from one channel.
+///
+/// Mirrors the lookup-table-based `FUN_01bf1ff0` (ELF VA 0x1af1ff0,
+/// Ghidra VA 0x1bf1ff0).  We use direct bit manipulation rather than a
+/// precomputed table; the compiler will optimise this adequately for the
+/// data volumes involved.
+///
+/// # Arguments
+///
+/// `group` -- exactly 8 bytes of interleaved FPGA data.
+///
+/// # Returns
+///
+/// 8 bytes, one per channel, with packed digital samples.
+pub fn bit_transpose_8x8(group: &[u8]) -> [u8; 8] {
+    debug_assert_eq!(group.len(), 8);
+    let mut out = [0u8; 8];
+    // For each bit position (channel) ...
+    for bit in 0..8u8 {
+        let mut byte_val = 0u8;
+        // ... gather that bit from all 8 input bytes (samples).
+        for sample in 0..8u8 {
+            let src_bit = (group[sample as usize] >> bit) & 1;
+            byte_val |= src_bit << sample;
+        }
+        out[bit as usize] = byte_val;
+    }
+    out
+}
 
 // ---------------------------------------------------------------------------
 // ContractReadData
@@ -937,6 +980,47 @@ pub fn sign_extend_12bit(raw: u16) -> i16 {
 mod tests {
     use super::*;
     use crate::device::{LOGIC_8_PROFILE, LOGIC_PRO_16_PROFILE, LOGIC_PRO_8_PROFILE};
+
+    // -------------------------------------------------------------------
+    // bit_transpose_8x8 tests
+    // -------------------------------------------------------------------
+
+    #[test]
+    fn transpose_identity_all_ones() {
+        let result = bit_transpose_8x8(&[0xFF; 8]);
+        assert_eq!(result, [0xFF; 8]);
+    }
+
+    #[test]
+    fn transpose_identity_all_zeros() {
+        let result = bit_transpose_8x8(&[0x00; 8]);
+        assert_eq!(result, [0x00; 8]);
+    }
+
+    #[test]
+    fn transpose_single_sample_all_channels() {
+        // Byte 0 = 0xFF (all channels high for sample 0), rest = 0.
+        // Output: each channel byte = 0x01 (only sample 0 bit is set).
+        let result = bit_transpose_8x8(&[0xFF, 0, 0, 0, 0, 0, 0, 0]);
+        assert_eq!(result, [0x01; 8]);
+    }
+
+    #[test]
+    fn transpose_single_channel_all_samples() {
+        // All bytes have bit 0 set: channel 0 is high for all 8 samples.
+        // Output: channel 0 = 0xFF, channels 1-7 = 0x00.
+        let result = bit_transpose_8x8(&[0x01; 8]);
+        assert_eq!(result, [0xFF, 0, 0, 0, 0, 0, 0, 0]);
+    }
+
+    #[test]
+    fn transpose_is_involution() {
+        // Transposing twice should return the original.
+        let original = [0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0];
+        let once = bit_transpose_8x8(&original);
+        let twice = bit_transpose_8x8(&once);
+        assert_eq!(twice, original);
+    }
 
     // -------------------------------------------------------------------
     // GCD tests
@@ -1288,9 +1372,23 @@ mod tests {
     // -------------------------------------------------------------------
 
     #[test]
-    fn logic8_digital_deinterleave() {
-        // Logic 8: 8 digital channels, 16-bit GPIF, digital-only.
-        // cycle = 8 * 2 = 16 bytes.
+    fn logic8_cycle_bytes_is_8() {
+        let d = Disaggregator::new(
+            &LOGIC_8_PROFILE,
+            &[0, 1, 2, 3, 4, 5, 6, 7],
+            &[],
+            100_000_000,
+            0,
+        )
+        .unwrap();
+        // Logic 8 always uses 8-byte groups regardless of GPIF width.
+        assert_eq!(d.cycle_bytes(), 8);
+    }
+
+    #[test]
+    fn logic8_bit_transpose_identity() {
+        // If every input byte is 0xFF (all bits set), the transpose should
+        // produce 0xFF for every channel (all 8 samples are high).
         let d = Disaggregator::new(
             &LOGIC_8_PROFILE,
             &[0, 1, 2, 3, 4, 5, 6, 7],
@@ -1300,33 +1398,16 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(d.cycle_bytes(), 16);
-
-        // One cycle: 8 channels, each with 2-byte word.
-        // Channel 0: [0xAA, 0xBB] -> byte-swap -> [0xBB, 0xAA]
-        // Channel 1: [0xCC, 0xDD] -> byte-swap -> [0xDD, 0xCC]
-        // ...
-        let mut data = Vec::new();
-        for ch in 0..8u8 {
-            data.push(ch * 2);
-            data.push(ch * 2 + 1);
-        }
-        // data = [0,1, 2,3, 4,5, 6,7, 8,9, 10,11, 12,13, 14,15]
-
+        let data = [0xFFu8; 8];
         let result = d.process_chunk(&data).unwrap();
         assert_eq!(result.digital_samples.len(), 8);
-        // After byte swap, channel 0 = [1, 0], channel 1 = [3, 2], etc.
         for ch in 0..8 {
-            let expected = vec![(ch as u8) * 2 + 1, (ch as u8) * 2];
-            assert_eq!(
-                result.digital_samples[ch], expected,
-                "channel {ch} mismatch"
-            );
+            assert_eq!(result.digital_samples[ch], vec![0xFF], "channel {ch}");
         }
     }
 
     #[test]
-    fn logic8_multiple_cycles() {
+    fn logic8_bit_transpose_zeros() {
         let d = Disaggregator::new(
             &LOGIC_8_PROFILE,
             &[0, 1, 2, 3, 4, 5, 6, 7],
@@ -1336,19 +1417,79 @@ mod tests {
         )
         .unwrap();
 
-        // Two cycles: cycle 0 all 0xFF, cycle 1 all 0x00.
-        let mut data = vec![0xFF; 16];
-        data.extend_from_slice(&[0x00; 16]);
+        let data = [0x00u8; 8];
+        let result = d.process_chunk(&data).unwrap();
+        assert_eq!(result.digital_samples.len(), 8);
+        for ch in 0..8 {
+            assert_eq!(result.digital_samples[ch], vec![0x00], "channel {ch}");
+        }
+    }
+
+    #[test]
+    fn logic8_bit_transpose_single_channel() {
+        // Set bit 0 in every input byte: all 8 samples have channel 0 high.
+        // After transpose, channel 0 should be 0xFF (all 8 samples high),
+        // all other channels 0x00.
+        let d = Disaggregator::new(
+            &LOGIC_8_PROFILE,
+            &[0, 1, 2, 3, 4, 5, 6, 7],
+            &[],
+            100_000_000,
+            0,
+        )
+        .unwrap();
+
+        let data = [0x01u8; 8]; // bit 0 set in all 8 bytes
+        let result = d.process_chunk(&data).unwrap();
+        assert_eq!(result.digital_samples[0], vec![0xFF]); // channel 0: all high
+        for ch in 1..8 {
+            assert_eq!(result.digital_samples[ch], vec![0x00], "channel {ch}");
+        }
+    }
+
+    #[test]
+    fn logic8_bit_transpose_specific_pattern() {
+        // Input byte 0 = 0xFF (all channels high for sample 0).
+        // Input bytes 1-7 = 0x00.
+        // After transpose: each channel should have only sample 0 high = 0x01.
+        let d = Disaggregator::new(
+            &LOGIC_8_PROFILE,
+            &[0, 1, 2, 3, 4, 5, 6, 7],
+            &[],
+            100_000_000,
+            0,
+        )
+        .unwrap();
+
+        let data = [0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
+        let result = d.process_chunk(&data).unwrap();
+        for ch in 0..8 {
+            assert_eq!(result.digital_samples[ch], vec![0x01], "channel {ch}");
+        }
+    }
+
+    #[test]
+    fn logic8_multiple_groups() {
+        let d = Disaggregator::new(
+            &LOGIC_8_PROFILE,
+            &[0, 1, 2, 3, 4, 5, 6, 7],
+            &[],
+            100_000_000,
+            0,
+        )
+        .unwrap();
+
+        // Two groups: group 0 all 0xFF, group 1 all 0x00.
+        let mut data = vec![0xFF; 8];
+        data.extend_from_slice(&[0x00; 8]);
 
         let result = d.process_chunk(&data).unwrap();
         assert_eq!(result.digital_samples.len(), 8);
         for ch in 0..8 {
-            // 2 cycles * 2 bytes = 4 bytes per channel
-            assert_eq!(result.digital_samples[ch].len(), 4);
+            // 2 groups = 2 bytes per channel.
+            assert_eq!(result.digital_samples[ch].len(), 2);
             assert_eq!(result.digital_samples[ch][0], 0xFF);
-            assert_eq!(result.digital_samples[ch][1], 0xFF);
-            assert_eq!(result.digital_samples[ch][2], 0x00);
-            assert_eq!(result.digital_samples[ch][3], 0x00);
+            assert_eq!(result.digital_samples[ch][1], 0x00);
         }
     }
 
@@ -1363,8 +1504,8 @@ mod tests {
         )
         .unwrap();
 
-        // 17 bytes is not a multiple of 16.
-        let data = vec![0u8; 17];
+        // 9 bytes is not a multiple of 8.
+        let data = vec![0u8; 9];
         let result = d.process_chunk(&data);
         assert!(result.is_err());
     }
