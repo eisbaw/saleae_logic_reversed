@@ -431,6 +431,126 @@ mod tests {
         assert_eq!(samples[3], -17);
     }
 
+    // -- Edge case and adversarial tests --
+
+    #[test]
+    fn zero_sections_passes_through() {
+        let mut filter = BiquadFilter::new(&[]);
+        assert_eq!(filter.num_sections(), 0);
+        // With no sections, input should pass through unchanged
+        assert!((filter.process_sample(42.0) - 42.0).abs() < 1e-15);
+        assert!((filter.process_sample(-1.5) - (-1.5)).abs() < 1e-15);
+    }
+
+    #[test]
+    fn zero_sections_block_passes_through() {
+        let mut filter = BiquadFilter::new(&[]);
+        let mut block = vec![1.0, 2.0, 3.0];
+        filter.process_block(&mut block);
+        assert!((block[0] - 1.0).abs() < 1e-15);
+        assert!((block[1] - 2.0).abs() < 1e-15);
+        assert!((block[2] - 3.0).abs() < 1e-15);
+    }
+
+    #[test]
+    fn nan_input_propagates() {
+        let sections = [identity_section()];
+        let mut filter = BiquadFilter::new(&sections);
+        let y = filter.process_sample(f64::NAN);
+        assert!(y.is_nan(), "NaN input should produce NaN output");
+    }
+
+    #[test]
+    fn nan_coefficient_propagates() {
+        let sections = [BiquadSection {
+            b0: f64::NAN,
+            b1: 0.0,
+            b2: 0.0,
+            a1: 0.0,
+            a2: 0.0,
+        }];
+        let mut filter = BiquadFilter::new(&sections);
+        let y = filter.process_sample(1.0);
+        assert!(y.is_nan(), "NaN b0 should produce NaN output, got {y}");
+    }
+
+    #[test]
+    fn nan_in_feedback_poisons_subsequent_outputs() {
+        // If a1 is NaN, the first output is fine (y[0] = b0*x[0] - NaN*0)
+        // but after the first sample, the feedback state contains NaN,
+        // which poisons all subsequent outputs.
+        let sections = [BiquadSection {
+            b0: 1.0,
+            b1: 0.0,
+            b2: 0.0,
+            a1: f64::NAN,
+            a2: 0.0,
+        }];
+        let mut filter = BiquadFilter::new(&sections);
+        let _y0 = filter.process_sample(1.0);
+        // y[1] = b0*x[1] - NaN*y[0] = NaN
+        let y1 = filter.process_sample(1.0);
+        assert!(y1.is_nan(), "NaN feedback should poison output, got {y1}");
+    }
+
+    #[test]
+    fn infinity_input_handled() {
+        let sections = [identity_section()];
+        let mut filter = BiquadFilter::new(&sections);
+        let y = filter.process_sample(f64::INFINITY);
+        assert!(y.is_infinite(), "inf input should produce inf output");
+    }
+
+    #[test]
+    fn extreme_gain_coefficient() {
+        // Very large b0: should amplify enormously but remain finite
+        let sections = [BiquadSection {
+            b0: 1e15,
+            b1: 0.0,
+            b2: 0.0,
+            a1: 0.0,
+            a2: 0.0,
+        }];
+        let mut filter = BiquadFilter::new(&sections);
+        let y = filter.process_sample(1.0);
+        assert!((y - 1e15).abs() < 1.0, "extreme gain: expected ~1e15, got {y}");
+    }
+
+    #[test]
+    fn unstable_filter_diverges() {
+        // a1 = -2.0 creates an unstable pole (|pole| > 1).
+        // Output should grow without bound.
+        let sections = [BiquadSection {
+            b0: 1.0,
+            b1: 0.0,
+            b2: 0.0,
+            a1: -2.0, // pole at z=2, unstable
+            a2: 0.0,
+        }];
+        let mut filter = BiquadFilter::new(&sections);
+
+        // Feed a single impulse, then zeros
+        filter.process_sample(1.0);
+        let mut last = 0.0;
+        for _ in 0..50 {
+            last = filter.process_sample(0.0);
+        }
+        // Output should have grown very large
+        assert!(
+            last.abs() > 1e10,
+            "unstable filter should diverge, got {last}"
+        );
+    }
+
+    #[test]
+    fn process_block_i16_zero_sections() {
+        let mut filter = BiquadFilter::new(&[]);
+        let mut samples = vec![100i16, -200, 0, i16::MAX];
+        let original = samples.clone();
+        filter.process_block_i16(&mut samples);
+        assert_eq!(samples, original, "zero sections should pass through");
+    }
+
     #[test]
     fn process_block_i16_real_calibration() {
         // Process a DC signal through real calibration filter

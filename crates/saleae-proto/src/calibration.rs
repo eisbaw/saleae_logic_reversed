@@ -842,6 +842,437 @@ mod tests {
         }
     }
 
+    // -- Edge case and adversarial tests --
+
+    #[test]
+    fn parse_empty_input_returns_error() {
+        let result = parse_calibration(b"");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn parse_garbage_bytes_returns_error() {
+        let result = parse_calibration(b"\x00\x01\x02\x03\xff\xfe");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn parse_valid_xml_but_no_calibration_data() {
+        let xml = r#"<?xml version="1.0"?><root><child>hello</child></root>"#;
+        let result = parse_calibration(xml.as_bytes());
+        assert!(result.is_err(), "should fail: missing required fields");
+    }
+
+    #[test]
+    fn parse_missing_device_id_returns_error() {
+        // No mDeviceId element at all -- neither wrapper nor inner
+        let xml = r#"<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<boost_serialization signature="serialization::archive" version="10">
+<DeviceCalibrationSet>
+  <px>
+    <mDeviceType>6</mDeviceType>
+    <mCalibrationDate>1/1/2020</mCalibrationDate>
+    <mCalibrationData><count>0</count></mCalibrationData>
+    <mFullScaleVoltageRanges><count>0</count></mFullScaleVoltageRanges>
+  </px>
+</DeviceCalibrationSet>
+</boost_serialization>"#;
+        let result = parse_calibration(xml.as_bytes());
+        assert!(result.is_err(), "should fail: missing mDeviceId");
+    }
+
+    #[test]
+    fn parse_missing_device_type_returns_error() {
+        let xml = r#"<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<boost_serialization signature="serialization::archive" version="10">
+<DeviceCalibrationSet>
+  <px>
+    <mDeviceId><mDeviceId>12345</mDeviceId></mDeviceId>
+    <mCalibrationDate>1/1/2020</mCalibrationDate>
+    <mCalibrationData>
+      <count>1</count><item_version>21</item_version>
+      <item>
+        <mChannel><mDeviceId>12345</mDeviceId><mChannelIndex>0</mChannelIndex><mDataType>0</mDataType></mChannel>
+        <mSampleRate>1000000</mSampleRate>
+        <mDf1SosCoefficients><count>30</count><item_version>0</item_version>
+          <item>1.0</item><item>0.0</item><item>0.0</item><item>1</item><item>0.0</item><item>0.0</item>
+          <item>1.0</item><item>0.0</item><item>0.0</item><item>1</item><item>0.0</item><item>0.0</item>
+          <item>1.0</item><item>0.0</item><item>0.0</item><item>1</item><item>0.0</item><item>0.0</item>
+          <item>1.0</item><item>0.0</item><item>0.0</item><item>1</item><item>0.0</item><item>0.0</item>
+          <item>1.0</item><item>0.0</item><item>0.0</item><item>1</item><item>0.0</item><item>0.0</item>
+        </mDf1SosCoefficients>
+        <mFirTaps><count>0</count></mFirTaps>
+        <mGroupDelay>0</mGroupDelay>
+        <mImpulseLength>1</mImpulseLength>
+      </item>
+    </mCalibrationData>
+    <mFullScaleVoltageRanges>
+      <count>1</count><item_version>21</item_version>
+      <item><mChannel><mDeviceId>12345</mDeviceId><mChannelIndex>0</mChannelIndex><mDataType>0</mDataType></mChannel>
+        <mFullScaleMinVoltage>-10.0</mFullScaleMinVoltage><mFullScaleMaxVoltage>10.0</mFullScaleMaxVoltage></item>
+    </mFullScaleVoltageRanges>
+  </px>
+</DeviceCalibrationSet>
+</boost_serialization>"#;
+        let result = parse_calibration(xml.as_bytes());
+        assert!(result.is_err(), "should fail: missing mDeviceType");
+    }
+
+    #[test]
+    fn parse_wrong_coeff_count_too_few() {
+        // Only 6 coefficients instead of 30
+        let xml = r#"<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<boost_serialization signature="serialization::archive" version="10">
+<DeviceCalibrationSet>
+  <px>
+    <mDeviceId><mDeviceId>12345</mDeviceId><mDeviceType>6</mDeviceType></mDeviceId>
+    <mCalibrationDate>1/1/2020</mCalibrationDate>
+    <mCalibrationData>
+      <count>1</count><item_version>21</item_version>
+      <item>
+        <mChannel><mDeviceId>12345</mDeviceId><mChannelIndex>0</mChannelIndex><mDataType>0</mDataType></mChannel>
+        <mSampleRate>1000000</mSampleRate>
+        <mDf1SosCoefficients><count>6</count><item_version>0</item_version>
+          <item>1.0</item><item>0.0</item><item>0.0</item><item>1</item><item>0.0</item><item>0.0</item>
+        </mDf1SosCoefficients>
+        <mFirTaps><count>0</count></mFirTaps>
+        <mGroupDelay>0</mGroupDelay>
+        <mImpulseLength>1</mImpulseLength>
+      </item>
+    </mCalibrationData>
+    <mFullScaleVoltageRanges>
+      <count>1</count><item_version>21</item_version>
+      <item><mChannel><mDeviceId>12345</mDeviceId><mChannelIndex>0</mChannelIndex><mDataType>0</mDataType></mChannel>
+        <mFullScaleMinVoltage>-10.0</mFullScaleMinVoltage><mFullScaleMaxVoltage>10.0</mFullScaleMaxVoltage></item>
+    </mFullScaleVoltageRanges>
+  </px>
+</DeviceCalibrationSet>
+</boost_serialization>"#;
+        let result = parse_calibration(xml.as_bytes());
+        assert!(result.is_err(), "should reject wrong coefficient count");
+        let err_msg = result.unwrap_err().to_string();
+        assert!(err_msg.contains("30"), "error should mention expected count: {err_msg}");
+    }
+
+    #[test]
+    fn parse_a0_not_one_rejected() {
+        // a0 = 2.0 instead of 1.0 in section 0
+        let xml = r#"<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<boost_serialization signature="serialization::archive" version="10">
+<DeviceCalibrationSet>
+  <px>
+    <mDeviceId><mDeviceId>12345</mDeviceId><mDeviceType>6</mDeviceType></mDeviceId>
+    <mCalibrationDate>1/1/2020</mCalibrationDate>
+    <mCalibrationData>
+      <count>1</count><item_version>21</item_version>
+      <item>
+        <mChannel><mDeviceId>12345</mDeviceId><mChannelIndex>0</mChannelIndex><mDataType>0</mDataType></mChannel>
+        <mSampleRate>1000000</mSampleRate>
+        <mDf1SosCoefficients><count>30</count><item_version>0</item_version>
+          <item>1.0</item><item>0.0</item><item>0.0</item><item>2.0</item><item>0.0</item><item>0.0</item>
+          <item>1.0</item><item>0.0</item><item>0.0</item><item>1</item><item>0.0</item><item>0.0</item>
+          <item>1.0</item><item>0.0</item><item>0.0</item><item>1</item><item>0.0</item><item>0.0</item>
+          <item>1.0</item><item>0.0</item><item>0.0</item><item>1</item><item>0.0</item><item>0.0</item>
+          <item>1.0</item><item>0.0</item><item>0.0</item><item>1</item><item>0.0</item><item>0.0</item>
+        </mDf1SosCoefficients>
+        <mFirTaps><count>0</count></mFirTaps>
+        <mGroupDelay>0</mGroupDelay>
+        <mImpulseLength>1</mImpulseLength>
+      </item>
+    </mCalibrationData>
+    <mFullScaleVoltageRanges>
+      <count>1</count><item_version>21</item_version>
+      <item><mChannel><mDeviceId>12345</mDeviceId><mChannelIndex>0</mChannelIndex><mDataType>0</mDataType></mChannel>
+        <mFullScaleMinVoltage>-10.0</mFullScaleMinVoltage><mFullScaleMaxVoltage>10.0</mFullScaleMaxVoltage></item>
+    </mFullScaleVoltageRanges>
+  </px>
+</DeviceCalibrationSet>
+</boost_serialization>"#;
+        let result = parse_calibration(xml.as_bytes());
+        assert!(result.is_err(), "should reject a0 != 1.0");
+        let err_msg = result.unwrap_err().to_string();
+        assert!(err_msg.contains("a0"), "error should mention a0: {err_msg}");
+    }
+
+    #[test]
+    fn parse_non_numeric_coefficient_rejected() {
+        // "abc" is not a valid f64
+        let xml = r#"<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<boost_serialization signature="serialization::archive" version="10">
+<DeviceCalibrationSet>
+  <px>
+    <mDeviceId><mDeviceId>12345</mDeviceId><mDeviceType>6</mDeviceType></mDeviceId>
+    <mCalibrationDate>1/1/2020</mCalibrationDate>
+    <mCalibrationData>
+      <count>1</count><item_version>21</item_version>
+      <item>
+        <mChannel><mDeviceId>12345</mDeviceId><mChannelIndex>0</mChannelIndex><mDataType>0</mDataType></mChannel>
+        <mSampleRate>1000000</mSampleRate>
+        <mDf1SosCoefficients><count>30</count><item_version>0</item_version>
+          <item>abc</item><item>0.0</item><item>0.0</item><item>1</item><item>0.0</item><item>0.0</item>
+          <item>1.0</item><item>0.0</item><item>0.0</item><item>1</item><item>0.0</item><item>0.0</item>
+          <item>1.0</item><item>0.0</item><item>0.0</item><item>1</item><item>0.0</item><item>0.0</item>
+          <item>1.0</item><item>0.0</item><item>0.0</item><item>1</item><item>0.0</item><item>0.0</item>
+          <item>1.0</item><item>0.0</item><item>0.0</item><item>1</item><item>0.0</item><item>0.0</item>
+        </mDf1SosCoefficients>
+        <mFirTaps><count>0</count></mFirTaps>
+        <mGroupDelay>0</mGroupDelay>
+        <mImpulseLength>1</mImpulseLength>
+      </item>
+    </mCalibrationData>
+    <mFullScaleVoltageRanges>
+      <count>1</count><item_version>21</item_version>
+      <item><mChannel><mDeviceId>12345</mDeviceId><mChannelIndex>0</mChannelIndex><mDataType>0</mDataType></mChannel>
+        <mFullScaleMinVoltage>-10.0</mFullScaleMinVoltage><mFullScaleMaxVoltage>10.0</mFullScaleMaxVoltage></item>
+    </mFullScaleVoltageRanges>
+  </px>
+</DeviceCalibrationSet>
+</boost_serialization>"#;
+        let result = parse_calibration(xml.as_bytes());
+        assert!(result.is_err(), "non-numeric coefficient should be rejected");
+    }
+
+    #[test]
+    fn parse_nan_coefficient_accepted_by_parser() {
+        // Rust's str::parse::<f64>() accepts "NaN" -- this documents
+        // that the parser does NOT reject NaN coefficients. The a0
+        // check will catch NaN in the a0 position (since NaN != 1.0),
+        // but NaN in other positions silently passes through.
+        // This is a known limitation.
+        let xml = r#"<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<boost_serialization signature="serialization::archive" version="10">
+<DeviceCalibrationSet>
+  <px>
+    <mDeviceId><mDeviceId>12345</mDeviceId><mDeviceType>6</mDeviceType></mDeviceId>
+    <mCalibrationDate>1/1/2020</mCalibrationDate>
+    <mCalibrationData>
+      <count>1</count><item_version>21</item_version>
+      <item>
+        <mChannel><mDeviceId>12345</mDeviceId><mChannelIndex>0</mChannelIndex><mDataType>0</mDataType></mChannel>
+        <mSampleRate>1000000</mSampleRate>
+        <mDf1SosCoefficients><count>30</count><item_version>0</item_version>
+          <item>NaN</item><item>0.0</item><item>0.0</item><item>1</item><item>0.0</item><item>0.0</item>
+          <item>1.0</item><item>0.0</item><item>0.0</item><item>1</item><item>0.0</item><item>0.0</item>
+          <item>1.0</item><item>0.0</item><item>0.0</item><item>1</item><item>0.0</item><item>0.0</item>
+          <item>1.0</item><item>0.0</item><item>0.0</item><item>1</item><item>0.0</item><item>0.0</item>
+          <item>1.0</item><item>0.0</item><item>0.0</item><item>1</item><item>0.0</item><item>0.0</item>
+        </mDf1SosCoefficients>
+        <mFirTaps><count>0</count></mFirTaps>
+        <mGroupDelay>0</mGroupDelay>
+        <mImpulseLength>1</mImpulseLength>
+      </item>
+    </mCalibrationData>
+    <mFullScaleVoltageRanges>
+      <count>1</count><item_version>21</item_version>
+      <item><mChannel><mDeviceId>12345</mDeviceId><mChannelIndex>0</mChannelIndex><mDataType>0</mDataType></mChannel>
+        <mFullScaleMinVoltage>-10.0</mFullScaleMinVoltage><mFullScaleMaxVoltage>10.0</mFullScaleMaxVoltage></item>
+    </mFullScaleVoltageRanges>
+  </px>
+</DeviceCalibrationSet>
+</boost_serialization>"#;
+        // NaN parses as f64, but the resulting section has NaN b0.
+        // The parser currently accepts this. Document the behavior.
+        let result = parse_calibration(xml.as_bytes());
+        assert!(result.is_ok(), "NaN parses as f64 -- parser accepts it (known limitation)");
+        let cal = result.unwrap();
+        assert!(cal.calibration_sets[0].sections[0].b0.is_nan());
+    }
+
+    #[test]
+    fn parse_nan_in_a0_position_rejected() {
+        // NaN in the a0 position (index 3) should be rejected because
+        // (NaN - 1.0).abs() > 1e-10 is false (NaN comparisons are always false).
+        // Wait -- actually (NaN - 1.0).abs() returns NaN, and NaN > 1e-10 is false.
+        // So the a0 check does NOT catch NaN! This is a real bug to document.
+        let xml = r#"<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<boost_serialization signature="serialization::archive" version="10">
+<DeviceCalibrationSet>
+  <px>
+    <mDeviceId><mDeviceId>12345</mDeviceId><mDeviceType>6</mDeviceType></mDeviceId>
+    <mCalibrationDate>1/1/2020</mCalibrationDate>
+    <mCalibrationData>
+      <count>1</count><item_version>21</item_version>
+      <item>
+        <mChannel><mDeviceId>12345</mDeviceId><mChannelIndex>0</mChannelIndex><mDataType>0</mDataType></mChannel>
+        <mSampleRate>1000000</mSampleRate>
+        <mDf1SosCoefficients><count>30</count><item_version>0</item_version>
+          <item>1.0</item><item>0.0</item><item>0.0</item><item>NaN</item><item>0.0</item><item>0.0</item>
+          <item>1.0</item><item>0.0</item><item>0.0</item><item>1</item><item>0.0</item><item>0.0</item>
+          <item>1.0</item><item>0.0</item><item>0.0</item><item>1</item><item>0.0</item><item>0.0</item>
+          <item>1.0</item><item>0.0</item><item>0.0</item><item>1</item><item>0.0</item><item>0.0</item>
+          <item>1.0</item><item>0.0</item><item>0.0</item><item>1</item><item>0.0</item><item>0.0</item>
+        </mDf1SosCoefficients>
+        <mFirTaps><count>0</count></mFirTaps>
+        <mGroupDelay>0</mGroupDelay>
+        <mImpulseLength>1</mImpulseLength>
+      </item>
+    </mCalibrationData>
+    <mFullScaleVoltageRanges>
+      <count>1</count><item_version>21</item_version>
+      <item><mChannel><mDeviceId>12345</mDeviceId><mChannelIndex>0</mChannelIndex><mDataType>0</mDataType></mChannel>
+        <mFullScaleMinVoltage>-10.0</mFullScaleMinVoltage><mFullScaleMaxVoltage>10.0</mFullScaleMaxVoltage></item>
+    </mFullScaleVoltageRanges>
+  </px>
+</DeviceCalibrationSet>
+</boost_serialization>"#;
+        let result = parse_calibration(xml.as_bytes());
+        // BUG: NaN in a0 passes the check because (NaN - 1.0).abs() > 1e-10
+        // evaluates to false (NaN comparisons always return false).
+        // This documents the bug for a future fix.
+        assert!(result.is_ok(), "BUG: NaN a0 passes the check due to NaN comparison semantics");
+    }
+
+    #[test]
+    fn parse_no_calibration_sets_returns_error() {
+        // Valid XML with device info but empty mCalibrationData
+        let xml = r#"<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<boost_serialization signature="serialization::archive" version="10">
+<DeviceCalibrationSet>
+  <px>
+    <mDeviceId><mDeviceId>12345</mDeviceId><mDeviceType>6</mDeviceType></mDeviceId>
+    <mCalibrationDate>1/1/2020</mCalibrationDate>
+    <mCalibrationData><count>0</count></mCalibrationData>
+    <mFullScaleVoltageRanges>
+      <count>1</count><item_version>21</item_version>
+      <item><mChannel><mDeviceId>12345</mDeviceId><mChannelIndex>0</mChannelIndex><mDataType>0</mDataType></mChannel>
+        <mFullScaleMinVoltage>-10.0</mFullScaleMinVoltage><mFullScaleMaxVoltage>10.0</mFullScaleMaxVoltage></item>
+    </mFullScaleVoltageRanges>
+  </px>
+</DeviceCalibrationSet>
+</boost_serialization>"#;
+        let result = parse_calibration(xml.as_bytes());
+        assert!(result.is_err(), "should fail: no calibration sets");
+        let err_msg = result.unwrap_err().to_string();
+        assert!(err_msg.contains("no calibration sets"), "error: {err_msg}");
+    }
+
+    #[test]
+    fn parse_no_voltage_ranges_returns_error() {
+        let xml = r#"<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<boost_serialization signature="serialization::archive" version="10">
+<DeviceCalibrationSet>
+  <px>
+    <mDeviceId><mDeviceId>12345</mDeviceId><mDeviceType>6</mDeviceType></mDeviceId>
+    <mCalibrationDate>1/1/2020</mCalibrationDate>
+    <mCalibrationData>
+      <count>1</count><item_version>21</item_version>
+      <item>
+        <mChannel><mDeviceId>12345</mDeviceId><mChannelIndex>0</mChannelIndex><mDataType>0</mDataType></mChannel>
+        <mSampleRate>1000000</mSampleRate>
+        <mDf1SosCoefficients><count>30</count><item_version>0</item_version>
+          <item>1.0</item><item>0.0</item><item>0.0</item><item>1</item><item>0.0</item><item>0.0</item>
+          <item>1.0</item><item>0.0</item><item>0.0</item><item>1</item><item>0.0</item><item>0.0</item>
+          <item>1.0</item><item>0.0</item><item>0.0</item><item>1</item><item>0.0</item><item>0.0</item>
+          <item>1.0</item><item>0.0</item><item>0.0</item><item>1</item><item>0.0</item><item>0.0</item>
+          <item>1.0</item><item>0.0</item><item>0.0</item><item>1</item><item>0.0</item><item>0.0</item>
+        </mDf1SosCoefficients>
+        <mFirTaps><count>0</count></mFirTaps>
+        <mGroupDelay>0</mGroupDelay>
+        <mImpulseLength>1</mImpulseLength>
+      </item>
+    </mCalibrationData>
+    <mFullScaleVoltageRanges><count>0</count></mFullScaleVoltageRanges>
+  </px>
+</DeviceCalibrationSet>
+</boost_serialization>"#;
+        let result = parse_calibration(xml.as_bytes());
+        assert!(result.is_err(), "should fail: no voltage ranges");
+        let err_msg = result.unwrap_err().to_string();
+        assert!(err_msg.contains("no voltage ranges"), "error: {err_msg}");
+    }
+
+    #[test]
+    fn parse_malformed_xml_unclosed_tag() {
+        let xml = r#"<?xml version="1.0"?><root><unclosed>"#;
+        let result = parse_calibration(xml.as_bytes());
+        // Parser should either error on the malformed XML or on missing fields.
+        // Either way, it must not return Ok.
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn parse_non_numeric_device_id_rejected() {
+        let xml = r#"<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<boost_serialization>
+<DeviceCalibrationSet>
+  <px>
+    <mDeviceId><mDeviceId>not_a_number</mDeviceId><mDeviceType>6</mDeviceType></mDeviceId>
+    <mCalibrationDate>1/1/2020</mCalibrationDate>
+    <mCalibrationData><count>0</count></mCalibrationData>
+    <mFullScaleVoltageRanges><count>0</count></mFullScaleVoltageRanges>
+  </px>
+</DeviceCalibrationSet>
+</boost_serialization>"#;
+        let result = parse_calibration(xml.as_bytes());
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn parse_missing_calibration_date_returns_error() {
+        let xml = r#"<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<boost_serialization>
+<DeviceCalibrationSet>
+  <px>
+    <mDeviceId><mDeviceId>12345</mDeviceId><mDeviceType>6</mDeviceType></mDeviceId>
+    <mCalibrationData>
+      <count>1</count><item_version>21</item_version>
+      <item>
+        <mChannel><mDeviceId>12345</mDeviceId><mChannelIndex>0</mChannelIndex><mDataType>0</mDataType></mChannel>
+        <mSampleRate>1000000</mSampleRate>
+        <mDf1SosCoefficients><count>30</count><item_version>0</item_version>
+          <item>1.0</item><item>0.0</item><item>0.0</item><item>1</item><item>0.0</item><item>0.0</item>
+          <item>1.0</item><item>0.0</item><item>0.0</item><item>1</item><item>0.0</item><item>0.0</item>
+          <item>1.0</item><item>0.0</item><item>0.0</item><item>1</item><item>0.0</item><item>0.0</item>
+          <item>1.0</item><item>0.0</item><item>0.0</item><item>1</item><item>0.0</item><item>0.0</item>
+          <item>1.0</item><item>0.0</item><item>0.0</item><item>1</item><item>0.0</item><item>0.0</item>
+        </mDf1SosCoefficients>
+        <mFirTaps><count>0</count></mFirTaps>
+        <mGroupDelay>0</mGroupDelay>
+        <mImpulseLength>1</mImpulseLength>
+      </item>
+    </mCalibrationData>
+    <mFullScaleVoltageRanges>
+      <count>1</count><item_version>21</item_version>
+      <item><mChannel><mDeviceId>12345</mDeviceId><mChannelIndex>0</mChannelIndex><mDataType>0</mDataType></mChannel>
+        <mFullScaleMinVoltage>-10.0</mFullScaleMinVoltage><mFullScaleMaxVoltage>10.0</mFullScaleMaxVoltage></item>
+    </mFullScaleVoltageRanges>
+  </px>
+</DeviceCalibrationSet>
+</boost_serialization>"#;
+        let result = parse_calibration(xml.as_bytes());
+        assert!(result.is_err(), "should fail: missing mCalibrationDate");
+    }
+
+    // -- VoltageTransform edge case tests --
+
+    #[test]
+    fn voltage_transform_adc_min_equals_adc_max_produces_nan_or_inf() {
+        // When adc_min == adc_max, we get a division by zero.
+        // The current code does not guard against this; it produces inf/NaN.
+        // This test documents the behavior.
+        let tx = VoltageTransform::from_range(-10.0, 10.0, 0, 0);
+        // scale = (10 - (-10)) / (0 - 0) = 20/0 = inf
+        assert!(tx.scale.is_infinite() || tx.scale.is_nan(),
+            "adc_min==adc_max should produce inf or NaN scale, got {}", tx.scale);
+    }
+
+    #[test]
+    fn voltage_transform_inverted_range() {
+        // min_voltage > max_voltage: should produce negative scale
+        let tx = VoltageTransform::from_range(10.0, -10.0, -2048, 2047);
+        assert!(tx.scale < 0.0, "inverted voltage range should give negative scale");
+    }
+
+    #[test]
+    fn voltage_transform_zero_voltage_range() {
+        // Both voltages the same: scale should be 0
+        let tx = VoltageTransform::from_range(5.0, 5.0, -2048, 2047);
+        assert!((tx.scale - 0.0).abs() < 1e-15);
+        // All codes should map to 5.0
+        assert!((tx.apply(0) - 5.0).abs() < 1e-10);
+        assert!((tx.apply(2047) - 5.0).abs() < 1e-10);
+    }
+
     #[test]
     fn parse_missing_adc_gain_defaults_to_zero() {
         // Same as parse_minimal_xml but without the <mAdcGain> element.

@@ -579,6 +579,168 @@ mod tests {
         );
     }
 
+    // -- Edge case and adversarial tests --
+
+    #[test]
+    fn empty_input_rejected() {
+        let err = Fx3Image::parse(&[]).unwrap_err();
+        assert!(matches!(err, ProtoError::BufferTooShort { need: 4, have: 0 }));
+    }
+
+    #[test]
+    fn one_byte_input_rejected() {
+        let err = Fx3Image::parse(&[0x43]).unwrap_err();
+        assert!(matches!(err, ProtoError::BufferTooShort { .. }));
+    }
+
+    #[test]
+    fn header_only_no_sections_rejected() {
+        // Valid header but no section data at all
+        let buf = [0x43, 0x59, 0x00, IMAGE_TYPE_NORMAL];
+        let err = Fx3Image::parse(&buf).unwrap_err();
+        assert!(matches!(err, ProtoError::BufferTooShort { .. }));
+    }
+
+    #[test]
+    fn section_length_overflow_rejected() {
+        // dLength = MAX_SECTION_WORDS + 1, should be rejected
+        let mut buf = Vec::new();
+        buf.extend_from_slice(&FX3_MAGIC);
+        buf.push(0x00);
+        buf.push(IMAGE_TYPE_NORMAL);
+        let bad_len = MAX_SECTION_WORDS + 1;
+        buf.extend_from_slice(&bad_len.to_le_bytes());
+        buf.extend_from_slice(&0x4000_3000u32.to_le_bytes());
+
+        let err = Fx3Image::parse(&buf).unwrap_err();
+        assert!(
+            matches!(err, ProtoError::InvalidFirmwareSection { .. }),
+            "expected InvalidFirmwareSection, got: {err}"
+        );
+    }
+
+    #[test]
+    fn section_data_truncated_rejected() {
+        // Claim 2 words (8 bytes) but only provide 4 bytes of data
+        let mut buf = Vec::new();
+        buf.extend_from_slice(&FX3_MAGIC);
+        buf.push(0x00);
+        buf.push(IMAGE_TYPE_NORMAL);
+        buf.extend_from_slice(&2u32.to_le_bytes()); // 2 words = 8 bytes
+        buf.extend_from_slice(&0x4000_3000u32.to_le_bytes());
+        buf.extend_from_slice(&[0xAA; 4]); // only 4 bytes, need 8
+
+        let err = Fx3Image::parse(&buf).unwrap_err();
+        assert!(matches!(err, ProtoError::BufferTooShort { .. }));
+    }
+
+    #[test]
+    fn terminator_without_checksum_rejected() {
+        // Terminator (dLength=0) but not enough bytes for entry + checksum
+        let mut buf = Vec::new();
+        buf.extend_from_slice(&FX3_MAGIC);
+        buf.push(0x00);
+        buf.push(IMAGE_TYPE_NORMAL);
+        buf.extend_from_slice(&0u32.to_le_bytes()); // dLength = 0 (terminator)
+        buf.extend_from_slice(&0x4000_0000u32.to_le_bytes()); // entry addr
+        // Missing checksum bytes
+
+        let err = Fx3Image::parse(&buf).unwrap_err();
+        assert!(matches!(err, ProtoError::BufferTooShort { .. }));
+    }
+
+    #[test]
+    fn max_sections_overflow_rejected() {
+        // Build an image with MAX_SECTIONS+1 sections (all minimal)
+        let mut buf = Vec::new();
+        buf.extend_from_slice(&FX3_MAGIC);
+        buf.push(0x00); // no checksum
+        buf.push(IMAGE_TYPE_NORMAL);
+
+        for _ in 0..=MAX_SECTIONS {
+            buf.extend_from_slice(&1u32.to_le_bytes()); // 1 word
+            buf.extend_from_slice(&0x4000_3000u32.to_le_bytes());
+            buf.extend_from_slice(&[0x00; 4]); // 4 bytes of data
+        }
+        // Terminator
+        buf.extend_from_slice(&0u32.to_le_bytes());
+        buf.extend_from_slice(&0x4000_0000u32.to_le_bytes());
+        buf.extend_from_slice(&0u32.to_le_bytes());
+
+        let err = Fx3Image::parse(&buf).unwrap_err();
+        let msg = err.to_string();
+        assert!(
+            msg.contains("more than") && msg.contains("sections"),
+            "expected section limit error, got: {msg}"
+        );
+    }
+
+    #[test]
+    fn trailing_garbage_after_valid_image_ignored() {
+        // A valid image followed by extra bytes. parse() should return
+        // consumed < data.len(), and the image should be valid.
+        let section_data = [0x01, 0x00, 0x00, 0x00];
+        let mut raw = make_test_image(&section_data, 0x4000_e020);
+        raw.extend_from_slice(&[0xDE, 0xAD, 0xBE, 0xEF]); // trailing garbage
+
+        let (image, consumed) = Fx3Image::parse(&raw).unwrap();
+        assert_eq!(consumed, raw.len() - 4, "should not consume trailing garbage");
+        assert_eq!(image.sections.len(), 1);
+    }
+
+    #[test]
+    fn checksum_disabled_ignores_bad_checksum() {
+        // image_ctl bit 0 = 0 means checksum not verified
+        let section_data = [0x01, 0x00, 0x00, 0x00];
+        let mut buf = Vec::new();
+        buf.extend_from_slice(&FX3_MAGIC);
+        buf.push(0x00); // checksum disabled
+        buf.push(IMAGE_TYPE_NORMAL);
+        buf.extend_from_slice(&1u32.to_le_bytes());
+        buf.extend_from_slice(&0x4000_3000u32.to_le_bytes());
+        buf.extend_from_slice(&section_data);
+        buf.extend_from_slice(&0u32.to_le_bytes());
+        buf.extend_from_slice(&0x4000_e020u32.to_le_bytes());
+        buf.extend_from_slice(&0xDEADBEEFu32.to_le_bytes()); // wrong checksum
+
+        // Should succeed because checksum bit is not set
+        let (image, _) = Fx3Image::parse(&buf).unwrap();
+        assert_eq!(image.sections.len(), 1);
+    }
+
+    #[test]
+    fn section_word_len_calculated_correctly() {
+        let section = Fx3Section {
+            address: 0,
+            data: vec![0; 20], // 5 words
+        };
+        assert_eq!(section.word_len(), 5);
+    }
+
+    #[test]
+    fn upload_chunks_empty_image() {
+        let image = Fx3Image {
+            header: Fx3Header {
+                image_ctl: 0,
+                image_type: IMAGE_TYPE_NORMAL,
+            },
+            sections: vec![],
+            entry_address: 0,
+            checksum: 0,
+        };
+        let chunks: Vec<_> = image.upload_chunks().collect();
+        assert!(chunks.is_empty());
+    }
+
+    #[test]
+    fn spi_width_values() {
+        // Verify all SPI width decodings from image_ctl bits 1-2
+        assert_eq!(Fx3Header { image_ctl: 0b000, image_type: IMAGE_TYPE_NORMAL }.spi_width(), 1);
+        assert_eq!(Fx3Header { image_ctl: 0b010, image_type: IMAGE_TYPE_NORMAL }.spi_width(), 2);
+        assert_eq!(Fx3Header { image_ctl: 0b100, image_type: IMAGE_TYPE_NORMAL }.spi_width(), 4);
+        assert_eq!(Fx3Header { image_ctl: 0b110, image_type: IMAGE_TYPE_NORMAL }.spi_width(), 4);
+    }
+
     #[test]
     fn multiple_sections_parsed() {
         let sec1 = [0x01u8, 0x00, 0x00, 0x00];

@@ -1034,6 +1034,89 @@ mod tests {
         assert!(DeviceType::from_usb_id(id).is_err());
     }
 
+    // -- Edge-case VID:PID classification tests --
+
+    #[test]
+    fn from_usb_id_each_known_device() {
+        // Verify each concrete VID:PID maps to the correct DeviceType
+        assert_eq!(
+            DeviceType::from_usb_id(UsbId::new(0x0925, 0x3881)).unwrap(),
+            DeviceType::LogicOriginal
+        );
+        assert_eq!(
+            DeviceType::from_usb_id(UsbId::new(0x21a9, 0x1001)).unwrap(),
+            DeviceType::Logic16
+        );
+        assert_eq!(
+            DeviceType::from_usb_id(UsbId::new(0x21a9, 0x1003)).unwrap(),
+            DeviceType::Logic4
+        );
+        assert_eq!(
+            DeviceType::from_usb_id(UsbId::new(0x21a9, 0x1004)).unwrap(),
+            DeviceType::Logic8
+        );
+        assert_eq!(
+            DeviceType::from_usb_id(UsbId::new(0x21a9, 0x1005)).unwrap(),
+            DeviceType::LogicPro8
+        );
+        assert_eq!(
+            DeviceType::from_usb_id(UsbId::new(0x21a9, 0x1006)).unwrap(),
+            DeviceType::LogicPro16
+        );
+    }
+
+    #[test]
+    fn from_usb_id_wrong_vid_with_valid_pid_rejected() {
+        // Saleae PID but wrong VID
+        let result = DeviceType::from_usb_id(UsbId::new(0x0925, 0x1005));
+        assert!(result.is_err(), "Saleae PID with legacy VID should be rejected");
+    }
+
+    #[test]
+    fn from_usb_id_saleae_vid_unknown_pid_rejected() {
+        // Correct Saleae VID but non-existent PID
+        let result = DeviceType::from_usb_id(UsbId::new(0x21a9, 0x1002));
+        assert!(result.is_err(), "unknown PID 0x1002 should be rejected");
+
+        let result = DeviceType::from_usb_id(UsbId::new(0x21a9, 0x1007));
+        assert!(result.is_err(), "unknown PID 0x1007 should be rejected");
+    }
+
+    #[test]
+    fn from_usb_id_zero_vid_pid_rejected() {
+        let result = DeviceType::from_usb_id(UsbId::new(0, 0));
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn from_usb_id_max_vid_pid_rejected() {
+        let result = DeviceType::from_usb_id(UsbId::new(0xFFFF, 0xFFFF));
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn unknown_device_error_contains_vid_pid() {
+        let err = DeviceType::from_usb_id(UsbId::new(0xBEEF, 0xCAFE)).unwrap_err();
+        let msg = err.to_string();
+        assert!(msg.contains("beef") || msg.contains("BEEF") || msg.contains("0xbeef"),
+            "error should contain VID: {msg}");
+        assert!(msg.contains("cafe") || msg.contains("CAFE") || msg.contains("0xcafe"),
+            "error should contain PID: {msg}");
+    }
+
+    #[test]
+    fn legacy_vid_only_matches_original_logic() {
+        // The legacy VID 0x0925 should only match PID 0x3881
+        let ok = DeviceType::from_usb_id(UsbId::new(VID_SALEAE_LEGACY, PID_LOGIC_ORIGINAL));
+        assert!(ok.is_ok());
+
+        // Other PIDs with legacy VID should fail
+        for pid in [0x1001, 0x1003, 0x1004, 0x1005, 0x1006] {
+            let result = DeviceType::from_usb_id(UsbId::new(VID_SALEAE_LEGACY, pid));
+            assert!(result.is_err(), "legacy VID with PID {pid:#06x} should fail");
+        }
+    }
+
     #[test]
     fn fx3_devices_are_correct() {
         assert!(!DeviceType::LogicOriginal.is_fx3());
