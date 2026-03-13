@@ -48,16 +48,47 @@ use crate::calibration::VoltageTransform;
 /// binary's processing order), then converts filtered codes to voltages
 /// via a linear transform. The filter state is maintained across calls,
 /// so samples must be fed in temporal order.
+///
+/// The processor carries [`settling_samples`](Self::settling_samples),
+/// which indicates how many initial output samples contain transient
+/// artifacts from the IIR filter's zeroed delay lines. Callers decide
+/// whether to discard, fade-in, or ignore this region.
 #[derive(Debug, Clone)]
 pub struct AnalogProcessor {
     transform: VoltageTransform,
     filter: BiquadFilter,
+    /// Number of initial samples that contain filter transient artifacts.
+    settling_samples: u64,
 }
 
 impl AnalogProcessor {
     /// Create a new processor from a voltage transform and biquad filter.
+    ///
+    /// Sets `settling_samples` to 0. Use [`with_settling`](Self::with_settling)
+    /// to provide calibration-derived settling info.
     pub fn new(transform: VoltageTransform, filter: BiquadFilter) -> Self {
-        Self { transform, filter }
+        Self {
+            transform,
+            filter,
+            settling_samples: 0,
+        }
+    }
+
+    /// Create a new processor with settling time from calibration data.
+    ///
+    /// `settling_samples` is the number of initial output samples that
+    /// contain IIR filter transient artifacts (typically
+    /// [`CalibrationSet::settling_samples()`](crate::calibration::CalibrationSet::settling_samples)).
+    pub fn with_settling(
+        transform: VoltageTransform,
+        filter: BiquadFilter,
+        settling_samples: u64,
+    ) -> Self {
+        Self {
+            transform,
+            filter,
+            settling_samples,
+        }
     }
 
     /// Process a block of raw ADC samples into calibrated voltages.
@@ -121,6 +152,19 @@ impl AnalogProcessor {
     /// Access the underlying biquad filter.
     pub fn filter(&self) -> &BiquadFilter {
         &self.filter
+    }
+
+    /// Number of initial output samples that contain filter transient artifacts.
+    ///
+    /// The IIR biquad cascade starts with zeroed delay lines. Output samples
+    /// before this point have not yet converged to the filter's steady-state
+    /// response. Callers may choose to discard these samples, apply a
+    /// fade-in window, or ignore the settling period.
+    ///
+    /// Returns 0 if the processor was created via [`new`](Self::new) without
+    /// settling info.
+    pub fn settling_samples(&self) -> u64 {
+        self.settling_samples
     }
 }
 
@@ -447,5 +491,44 @@ mod tests {
             vr.max_voltage,
             v_max
         );
+    }
+
+    // ---------------------------------------------------------------
+    // Settling time tests
+    // ---------------------------------------------------------------
+
+    #[test]
+    fn new_has_zero_settling_samples() {
+        let transform = VoltageTransform::from_range(-10.0, 10.0, -2048, 2047);
+        let filter = BiquadFilter::new(&[identity_section()]);
+        let proc = AnalogProcessor::new(transform, filter);
+        assert_eq!(proc.settling_samples(), 0);
+    }
+
+    #[test]
+    fn with_settling_stores_settling_samples() {
+        let transform = VoltageTransform::from_range(-10.0, 10.0, -2048, 2047);
+        let filter = BiquadFilter::new(&[identity_section()]);
+        let proc = AnalogProcessor::with_settling(transform, filter, 3381);
+        assert_eq!(proc.settling_samples(), 3381);
+    }
+
+    #[test]
+    fn real_cal_settling_samples_from_calibration() {
+        // Verify that with_settling correctly carries the calibration-derived
+        // settling time through to the processor.
+        let cal = load_reference_cal();
+        let set = cal.find_set(0, 50_000_000).expect("ch0 @ 50MHz");
+        let vr = cal.find_voltage_range(0).expect("ch0 voltage range");
+
+        let transform = VoltageTransform::from_range(vr.min_voltage, vr.max_voltage, -2048, 2047);
+        let filter = BiquadFilter::new(&set.sections);
+        let settling = set.settling_samples();
+
+        assert!(settling > 0, "calibration should have non-zero settling time");
+        assert_eq!(settling, 3381, "expected 3381 settling samples for ch0 @ 50MHz");
+
+        let proc = AnalogProcessor::with_settling(transform, filter, settling);
+        assert_eq!(proc.settling_samples(), settling);
     }
 }

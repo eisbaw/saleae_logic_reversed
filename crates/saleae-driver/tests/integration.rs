@@ -1632,3 +1632,85 @@ fn capture_pipeline_stop_flag_terminates_cleanly() {
         "should not capture all queued data when stop flag is set"
     );
 }
+
+#[test]
+fn capture_pipeline_teardown_warnings_on_failure() {
+    // When teardown commands (write r0x00=0x00, StopStream) fail because
+    // the mock has no queued responses, teardown_warnings should be populated.
+    let mock = Arc::new(MockTransport::new());
+    let mut channel = make_initialized_channel(&mock);
+
+    let config = CaptureConfig::pro8(1_000_000, vec![0, 1], vec![]);
+    queue_run_capture_start(&mock, &config);
+
+    // Queue one EP2 read so the capture loop runs once.
+    let ep2_data = build_digital_only_ep2_data(2, 1, 4);
+    mock.push_bulk_in_response(EP2_CAPTURE_IN, ep2_data);
+
+    // Do NOT queue teardown responses (write_registers, stop_stream).
+    // This means both teardown commands will fail.
+
+    let result = saleae_driver::capture::run_capture(
+        &mut channel,
+        &config,
+        std::time::Duration::from_secs(10),
+        None,
+    )
+    .expect("run_capture should succeed even with teardown failures");
+
+    // Teardown warnings should be populated.
+    assert!(
+        result.has_teardown_warnings(),
+        "teardown_warnings should be non-empty when teardown commands fail"
+    );
+    assert!(
+        result.teardown_warnings.len() >= 2,
+        "expected at least 2 teardown warnings (trigger clear + stop_stream), got {}",
+        result.teardown_warnings.len()
+    );
+    // Verify warning messages contain useful context.
+    let all_warnings = result.teardown_warnings.join("; ");
+    assert!(
+        all_warnings.contains("trigger") || all_warnings.contains("StopStream"),
+        "teardown warnings should mention failed operations: {all_warnings}"
+    );
+}
+
+#[test]
+fn capture_pipeline_no_teardown_warnings_on_success() {
+    // When teardown commands succeed, teardown_warnings should be empty.
+    let mock = Arc::new(MockTransport::new());
+    let mut channel = make_initialized_channel(&mock);
+
+    let config = CaptureConfig::pro8(1_000_000, vec![0, 1], vec![]);
+    queue_run_capture_start(&mock, &config);
+
+    // Queue one EP2 read, then an explicit EP2 error to break the loop
+    // without consuming the EP1 teardown responses that follow.
+    let ep2_data = build_digital_only_ep2_data(2, 1, 4);
+    mock.push_bulk_in_response(EP2_CAPTURE_IN, ep2_data);
+    mock.push_bulk_in_error(
+        EP2_CAPTURE_IN,
+        UsbError::Timeout { timeout_ms: 100 },
+    );
+
+    // Queue successful teardown responses:
+    // write_registers r0x00=0x00 ACK
+    mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
+    // stop_stream response (2 bytes: status + padding)
+    mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x07, 0x00]);
+
+    let result = saleae_driver::capture::run_capture(
+        &mut channel,
+        &config,
+        std::time::Duration::from_secs(10),
+        None,
+    )
+    .expect("run_capture should succeed");
+
+    assert!(
+        !result.has_teardown_warnings(),
+        "teardown_warnings should be empty when teardown succeeds, got: {:?}",
+        result.teardown_warnings
+    );
+}

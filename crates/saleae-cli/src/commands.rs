@@ -1256,8 +1256,9 @@ pub fn capture_analog(
                             proc.transform().offset
                         );
                         println!(
-                            "    IIR filter:    {} biquad sections",
-                            proc.filter().num_sections()
+                            "    IIR filter:    {} biquad sections, {} settling samples",
+                            proc.filter().num_sections(),
+                            proc.settling_samples()
                         );
                     }
                     Err(e) => {
@@ -1546,8 +1547,11 @@ fn create_channel_processor(
     let transform =
         saleae_proto::VoltageTransform::from_range(vr.min_voltage, vr.max_voltage, -2048, 2047);
     let filter = saleae_proto::BiquadFilter::new(&set.sections);
+    let settling = set.settling_samples();
 
-    Ok(saleae_proto::AnalogProcessor::new(transform, filter))
+    Ok(saleae_proto::AnalogProcessor::with_settling(
+        transform, filter, settling,
+    ))
 }
 
 /// Parse an export format string ("csv", "binary", or "sal") into an ExportFormat.
