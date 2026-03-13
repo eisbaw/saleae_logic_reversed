@@ -4,7 +4,7 @@ title: 'End-to-end validation: compare Rust output against Saleae Logic 2 captur
 status: In Progress
 assignee: []
 created_date: '2026-03-09 11:22'
-updated_date: '2026-03-12 09:37'
+updated_date: '2026-03-12 14:11'
 labels:
   - validation
   - hardware-testing
@@ -38,3 +38,28 @@ Success criteria:
 - Analog captures match within 1% of Saleae Logic 2 output
 - No USB transfer overflow at sustained capture rates
 <!-- SECTION:DESCRIPTION:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+## Progress (2026-03-12)
+
+### What works end-to-end
+- Full init: firmware detect -> FPGA program (auto-bitstream) -> ADC init -> DCM lock -> capture -> decode
+- EP2 streaming at 24.3 MB/s sustained (49.8 MB in 2s)
+- Disaggregator decodes interleaved digital+analog into per-channel streams
+- Digital: 8 channels x 12.5M samples, analog: 8 channels x 3.1M samples
+- Open inputs show expected behavior (digital=low, analog=DC offset with noise)
+
+### What's missing for E2E validation
+1. **Test signal source**: Need a known signal (square wave, ramp, etc.) connected to inputs
+2. **Saleae Logic 2 reference capture**: Need to capture same signal with proprietary software for comparison
+3. **Sample rate flexibility**: Currently hardcoded to pcap's 12.5 MSa/s mixed mode registers
+4. **Analog calibration**: Raw ADC values, no calibration coefficients applied yet
+5. **Multi-rate testing**: PRD requires 1/10/50 MHz validation
+6. **CSV/binary export**: capture-digital command exists but uses different code path than full-init
+
+### Blockers
+- No signal generator available on local machine (need physical setup)
+- Analog calibration filter not yet implemented (EEPROM cal data is read but not applied)
+<!-- SECTION:NOTES:END -->
