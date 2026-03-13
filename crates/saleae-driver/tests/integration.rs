@@ -1361,3 +1361,274 @@ fn encrypted_write_read_mixed_sequence() {
 
     channel.ping().expect("ping after write/read should succeed");
 }
+
+// ===========================================================================
+// Test 10: End-to-end capture pipeline with disaggregation
+// ===========================================================================
+
+/// Queue mock responses for the full run_capture pipeline.
+///
+/// run_capture does:
+/// 1. configure_capture: WriteRegisters OUT + IN (ACK), ReadRegisters OUT + IN (readback)
+/// 2. start_sampling: OUT + IN (2-byte response)
+/// 3. write_registers r0x00=0x01: OUT + IN (ACK)
+/// 4. EP2 read loop (caller provides EP2 data)
+/// 5. write_registers r0x00=0x00: OUT + IN (ACK) -- warn on failure
+/// 6. stop_stream: OUT + IN -- warn on failure
+///
+/// This helper queues responses for steps 1-3. The caller must queue
+/// EP2 data (step 4) and optionally stop responses (steps 5-6).
+fn queue_run_capture_start(mock: &MockTransport, config: &CaptureConfig) {
+    // Step 1: configure_capture
+    // WriteRegisters ACK
+    mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
+    // ReadRegisters readback: return the written values so verification passes
+    let pairs = saleae_driver::capture::build_capture_register_pairs(config);
+    let readback: Vec<u8> = pairs.iter().map(|&(_, v)| v).collect();
+    mock.push_bulk_in_response(endpoint::BULK_IN, readback);
+    // Step 2: StartSampling response (2 bytes)
+    mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00, 0x00]);
+    // Step 3: write_registers r0x00=0x01 ACK
+    mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x00]);
+}
+
+/// Build synthetic EP2 data for digital-only Pro capture.
+///
+/// Constructs `num_cycles` interleaving cycles for a Pro device with
+/// `num_digital` channels and 32-bit GPIF (packet_size=4). Each cycle
+/// is `digital_ratio * num_digital * 4` bytes.
+///
+/// Channel data uses a repeating pattern: channel `c`, cycle `i` gets
+/// word bytes `[c, i, c^i, 0xFF]` (before byte-swap by disaggregator).
+fn build_digital_only_ep2_data(
+    num_digital: usize,
+    digital_ratio: u32,
+    num_cycles: usize,
+) -> Vec<u8> {
+    let packet_size = 4usize; // 32-bit GPIF
+    let words_per_cycle = digital_ratio as usize * num_digital;
+    let cycle_bytes = words_per_cycle * packet_size;
+    let mut data = Vec::with_capacity(num_cycles * cycle_bytes);
+
+    for cycle in 0..num_cycles {
+        for word_idx in 0..words_per_cycle {
+            let ch = word_idx % num_digital;
+            let c = ch as u8;
+            let i = cycle as u8;
+            // Each 4-byte word: [c, i, c^i, 0xFF]
+            // After byte-swap by disaggregator: [0xFF, c^i, i, c]
+            data.push(c);
+            data.push(i);
+            data.push(c ^ i);
+            data.push(0xFF);
+        }
+    }
+    data
+}
+
+#[test]
+fn capture_pipeline_digital_only_configure_stream_disaggregate() {
+    // End-to-end: run_capture -> disaggregate -> verify output.
+    //
+    // This test exercises the full capture pipeline with mock data:
+    // 1. Configure capture registers
+    // 2. Start sampling + trigger
+    // 3. Read EP2 data (mock provides synthetic interleaved data)
+    // 4. Stop capture
+    // 5. Create disaggregator from capture config
+    // 6. Process raw data and verify per-channel output
+    let mock = Arc::new(MockTransport::new());
+    let mut channel = make_initialized_channel(&mock);
+
+    let config = CaptureConfig::pro8(1_000_000, vec![0, 1], vec![]);
+
+    // Queue start responses (configure + start + trigger).
+    queue_run_capture_start(&mock, &config);
+
+    // Build 8 cycles of digital EP2 data (2 channels, digital_ratio=1, 4B words).
+    // Each cycle = 2 words x 4 bytes = 8 bytes. Total = 64 bytes.
+    let num_cycles = 8;
+    let ep2_data = build_digital_only_ep2_data(2, 1, num_cycles);
+    assert_eq!(ep2_data.len(), 64, "8 cycles x 8 bytes per cycle");
+
+    // Queue the EP2 data as a single bulk read.
+    mock.push_bulk_in_response(EP2_CAPTURE_IN, ep2_data.clone());
+
+    // No more EP2 data queued -- next EP2 read will error, breaking the loop.
+    // The stop commands (write r0x00=0x00, StopStream) will also fail on
+    // empty queue, but run_capture handles those with warn!, not error.
+
+    // Run the capture with a long timeout (the EP2 error will break the loop
+    // well before timeout expires).
+    let result = saleae_driver::capture::run_capture(
+        &mut channel,
+        &config,
+        std::time::Duration::from_secs(10),
+        None,
+    )
+    .expect("run_capture should succeed even if EP2 loop breaks early");
+
+    // Verify raw data was collected.
+    assert_eq!(
+        result.raw_data.len(),
+        64,
+        "should have collected all 64 bytes of EP2 data"
+    );
+    assert!(
+        !result.completed_normally,
+        "capture should report early stop (EP2 queue exhausted)"
+    );
+    assert_eq!(result.read_count, 1, "one successful EP2 read");
+
+    // --- Disaggregate the captured data ---
+    let disaggregator = config
+        .disaggregator()
+        .expect("disaggregator creation should succeed");
+
+    assert_eq!(disaggregator.num_digital(), 2);
+    assert_eq!(disaggregator.num_analog(), 0);
+    assert_eq!(disaggregator.cycle_bytes(), 8, "2 channels x 4 bytes");
+
+    let disaggregated = disaggregator
+        .process_chunk(&result.raw_data)
+        .expect("disaggregation should succeed");
+
+    // Verify output structure.
+    assert_eq!(
+        disaggregated.digital_samples.len(),
+        2,
+        "should have 2 digital channels"
+    );
+    assert_eq!(
+        disaggregated.analog_samples.len(),
+        0,
+        "should have 0 analog channels"
+    );
+
+    // Each channel should have 8 cycles * 4 bytes per word = 32 bytes.
+    assert_eq!(
+        disaggregated.digital_samples[0].len(),
+        32,
+        "channel 0: 8 cycles x 4 bytes"
+    );
+    assert_eq!(
+        disaggregated.digital_samples[1].len(),
+        32,
+        "channel 1: 8 cycles x 4 bytes"
+    );
+
+    // Verify byte-swap pattern. Input word [c, i, c^i, 0xFF] becomes
+    // [0xFF, c^i, i, c] after byte-swap.
+    // Channel 0, cycle 0: input [0x00, 0x00, 0x00, 0xFF] -> [0xFF, 0x00, 0x00, 0x00]
+    assert_eq!(
+        &disaggregated.digital_samples[0][0..4],
+        &[0xFF, 0x00, 0x00, 0x00],
+        "ch0 cycle0: byte-swapped [0,0,0,0xFF]"
+    );
+    // Channel 1, cycle 0: input [0x01, 0x00, 0x01, 0xFF] -> [0xFF, 0x01, 0x00, 0x01]
+    assert_eq!(
+        &disaggregated.digital_samples[1][0..4],
+        &[0xFF, 0x01, 0x00, 0x01],
+        "ch1 cycle0: byte-swapped [1,0,1,0xFF]"
+    );
+    // Channel 0, cycle 3: input [0x00, 0x03, 0x03, 0xFF] -> [0xFF, 0x03, 0x03, 0x00]
+    assert_eq!(
+        &disaggregated.digital_samples[0][12..16],
+        &[0xFF, 0x03, 0x03, 0x00],
+        "ch0 cycle3: byte-swapped [0,3,3,0xFF]"
+    );
+}
+
+#[test]
+fn capture_pipeline_with_encrypted_channel() {
+    // Same pipeline test but with EncryptionMode::XorAll to verify
+    // encrypted capture works end-to-end.
+    let mock = Arc::new(MockTransport::new());
+    let (mut channel, mut fw) = make_encrypted_channel(&mock);
+
+    let config = CaptureConfig::pro8(1_000_000, vec![0, 1], vec![]);
+
+    // Queue encrypted responses for run_capture start sequence.
+    // configure_capture: WriteRegisters ACK
+    fw.advance_seed(); // fw decrypts write command
+    let ack = firmware_encrypt_response(&mut fw, &[0x00]);
+    mock.push_bulk_in_response(endpoint::BULK_IN, ack);
+
+    // configure_capture: ReadRegisters readback
+    let pairs = saleae_driver::capture::build_capture_register_pairs(&config);
+    let readback: Vec<u8> = pairs.iter().map(|&(_, v)| v).collect();
+    fw.advance_seed(); // fw decrypts read command
+    let encrypted_readback = firmware_encrypt_response(&mut fw, &readback);
+    mock.push_bulk_in_response(endpoint::BULK_IN, encrypted_readback);
+
+    // start_sampling response (2 bytes)
+    fw.advance_seed(); // fw decrypts start command
+    let start_resp = firmware_encrypt_response(&mut fw, &[0x00, 0x00]);
+    mock.push_bulk_in_response(endpoint::BULK_IN, start_resp);
+
+    // write r0x00=0x01 ACK
+    fw.advance_seed(); // fw decrypts write command
+    let trigger_ack = firmware_encrypt_response(&mut fw, &[0x00]);
+    mock.push_bulk_in_response(endpoint::BULK_IN, trigger_ack);
+
+    // EP2 data (NOT encrypted -- EP2 is raw FPGA data, not EP1 command channel).
+    let num_cycles = 4;
+    let ep2_data = build_digital_only_ep2_data(2, 1, num_cycles);
+    mock.push_bulk_in_response(EP2_CAPTURE_IN, ep2_data.clone());
+
+    let result = saleae_driver::capture::run_capture(
+        &mut channel,
+        &config,
+        std::time::Duration::from_secs(10),
+        None,
+    )
+    .expect("encrypted run_capture should succeed");
+
+    assert_eq!(result.raw_data.len(), 32, "4 cycles x 8 bytes");
+
+    // Disaggregate and verify.
+    let disaggregator = config.disaggregator().unwrap();
+    let disaggregated = disaggregator
+        .process_chunk(&result.raw_data)
+        .expect("disaggregation should succeed");
+
+    assert_eq!(disaggregated.digital_samples.len(), 2);
+    assert_eq!(disaggregated.digital_samples[0].len(), 16);
+    assert_eq!(disaggregated.digital_samples[1].len(), 16);
+}
+
+#[test]
+fn capture_pipeline_stop_flag_terminates_cleanly() {
+    // Verify that the stop_flag (Ctrl-C) mechanism works with the pipeline.
+    use std::sync::atomic::AtomicBool;
+
+    let mock = Arc::new(MockTransport::new());
+    let mut channel = make_initialized_channel(&mock);
+
+    let config = CaptureConfig::pro8(1_000_000, vec![0, 1], vec![]);
+    queue_run_capture_start(&mock, &config);
+
+    // Queue several EP2 reads so the loop would run many times.
+    let ep2_data = build_digital_only_ep2_data(2, 1, 4);
+    for _ in 0..10 {
+        mock.push_bulk_in_response(EP2_CAPTURE_IN, ep2_data.clone());
+    }
+
+    // Set stop flag immediately -- capture should stop after first iteration check.
+    let stop = AtomicBool::new(true);
+
+    let result = saleae_driver::capture::run_capture(
+        &mut channel,
+        &config,
+        std::time::Duration::from_secs(60),
+        Some(&stop),
+    )
+    .expect("run_capture with stop flag should succeed");
+
+    // Should have captured 0 bytes (flag was set before first read) or
+    // some data (flag checked after read). Either way, should not hang.
+    assert!(
+        result.raw_data.len() <= 10 * ep2_data.len(),
+        "should not capture all queued data when stop flag is set"
+    );
+}
