@@ -449,27 +449,27 @@ _build-release: _require-cargo
 
 # Build release binary and run against local hardware
 run-hw *ARGS: _build-release
-    sudo target/release/saleae-cli {{ ARGS }}
+    target/release/saleae-cli {{ ARGS }}
 
 # Ping the device (verify firmware is running and EP1 is alive)
 hw-ping: _build-release
-    sudo target/release/saleae-cli -v ping
+    target/release/saleae-cli -v ping
 
 # Full device init: firmware upload + FPGA program + ADC init + test capture
 hw-init: _build-release
-    sudo target/release/saleae-cli -vv full-init \
+    target/release/saleae-cli -vv full-init \
         --firmware {{ fw_path }} --bitstream {{ bs_path }}
 
 # Digital capture (default: all 8 channels, 1MHz, 2s, CSV output)
 hw-capture-digital RATE="1000000" DURATION="2.0" CHANNELS="0,1,2,3,4,5,6,7" OUTPUT="capture-out": _build-release
-    sudo target/release/saleae-cli -v capture-digital \
+    target/release/saleae-cli -v capture-digital \
         --firmware {{ fw_path }} --bitstream {{ bs_path }} \
         --sample-rate {{ RATE }} --duration {{ DURATION }} \
         --channels {{ CHANNELS }} --output {{ OUTPUT }} --format csv
 
 # Analog capture (default: channels 0,1, 1MHz, 2s, CSV output)
 hw-capture-analog RATE="1000000" DURATION="2.0" CHANNELS="0,1" OUTPUT="capture-out": _build-release
-    sudo target/release/saleae-cli -v capture-analog \
+    target/release/saleae-cli -v capture-analog \
         --firmware {{ fw_path }} --bitstream {{ bs_path }} \
         --sample-rate {{ RATE }} --duration {{ DURATION }} \
         --channels {{ CHANNELS }} --output {{ OUTPUT }} --format csv
@@ -482,25 +482,25 @@ hw-capture-quick DURATION="2.0" OUTPUT="": _build-release
     if [ -n "{{ OUTPUT }}" ]; then
         ARGS="$ARGS --output {{ OUTPUT }}"
     fi
-    sudo target/release/saleae-cli $ARGS
+    target/release/saleae-cli $ARGS
 
 # Reset device to bootloader mode (requires power cycle after)
 hw-reset: _build-release
-    sudo target/release/saleae-cli reset-device
+    target/release/saleae-cli reset-device
 
 # Upload firmware only (no FPGA/ADC init)
 hw-upload-fw: _build-release
-    sudo target/release/saleae-cli upload-firmware --firmware {{ fw_path }}
+    target/release/saleae-cli upload-firmware --firmware {{ fw_path }}
 
 # Program FPGA only (assumes firmware already running)
 hw-program-fpga: _build-release
-    sudo target/release/saleae-cli -v program-fpga --bitstream {{ bs_path }}
+    target/release/saleae-cli -v program-fpga --bitstream {{ bs_path }}
 
 # Full hardware smoke test: init + short digital capture + short analog capture
 hw-smoke: _build-release
     #!/usr/bin/env bash
     set -euo pipefail
-    CLI="sudo target/release/saleae-cli"
+    CLI="target/release/saleae-cli"
     echo "=== Full Init ==="
     $CLI -vv full-init --firmware {{ fw_path }} --bitstream {{ bs_path }}
     echo ""
@@ -520,11 +520,11 @@ hw-smoke: _build-release
 
 # List connected Saleae devices with USB state
 hw-list: _build-release
-    sudo target/release/saleae-cli list-devices
+    target/release/saleae-cli list-devices
 
 # Monitor USB bus for Saleae connect/disconnect events
 hw-monitor: _build-release
-    sudo target/release/saleae-cli monitor
+    target/release/saleae-cli monitor
 
 # Run cargo-fuzz on packet parsers (requires nightly)
 fuzz TARGET="": _require-cargo
