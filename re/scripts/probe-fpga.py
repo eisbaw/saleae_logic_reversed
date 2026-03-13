@@ -266,7 +266,7 @@ def main():
         candidates = sorted(glob.glob("/tmp/bitstream-spartan6-slx9-*.bin"))
         if not candidates:
             print("No bitstream specified and no candidates in /tmp/")
-            print("Copy bitstreams: scp firmware/bitstream-spartan6-slx9-*.bin nvdk-msdlab-09:/tmp/")
+            print("Copy bitstreams to /tmp/: cp firmware/bitstream-spartan6-slx9-*.bin /tmp/")
             # Still useful - we got through Phase 1
             usb.util.release_interface(dev, 0)
             sys.exit(0)

@@ -5,15 +5,14 @@ architecture, and current phase.
 
 ## Hardware Access
 
-A Saleae Logic Pro 8 (21a9:1005) is physically attached to `nvdk-msdlab-09`.
-Bus 002, USB 3.0 SuperSpeed, 3 bulk endpoints (EP1 OUT, EP1 IN, EP2 IN).
-iSerial reports "SERNUM" (this is just Saleae's label, not a placeholder).
-SSH access is available. Use SSHFS to mount remote filesystems when needed
-(e.g., for USB captures, lsusb output, or running tools against the device).
+A Saleae Logic Pro 8 (21a9:1005) is physically attached to the local machine.
+Bus 003, USB 2.0 High Speed. After firmware upload: 3 bulk endpoints
+(EP1 OUT, EP1 IN, EP2 IN). In bootloader mode: iProduct "WestBridge".
 
 ```
-ssh nvdk-msdlab-09 'lsusb -d 21a9:'     # quick check
-ssh nvdk-msdlab-09 'lsusb -v -d 21a9:'  # full descriptors
+lsusb -d 21a9:                # quick check
+lsusb -v -d 21a9:             # full descriptors
+sudo target/release/saleae-cli list-devices  # after build
 ```
 
 ## Documentation Rules

@@ -8,13 +8,7 @@ saleae_path     := env("SALEAE_PATH", "")
 main_so         := saleae_path / "resources/linux-x64/libgraph_server_shared.so"
 asar_file       := saleae_path / "resources/app.asar"
 
-# Remote host where Saleae hardware is attached
-usb_host        := "nvdk-msdlab-09"
-
-# Remote deploy directory (/var/tmp persists across reboots;
-# NFS home is read-only on lab hosts)
-deploy_dir      := "/var/tmp/saleae"
-deploy_bin      := "saleae-cli"
+# Saleae hardware is attached locally (was nvdk-msdlab-09, now local)
 
 # Saleae vendor IDs for USB filtering
 saleae_vid      := "21a9"
@@ -86,12 +80,12 @@ check:
     fi
 
     echo ""
-    echo "=== Remote USB Host ({{ usb_host }}) ==="
-    if ssh -o ConnectTimeout=3 {{ usb_host }} 'lsusb -d {{ saleae_vid }}: 2>/dev/null' &>/dev/null; then
-        dev=$(ssh {{ usb_host }} 'lsusb -d {{ saleae_vid }}:')
+    echo "=== Local USB ==="
+    if lsusb -d {{ saleae_vid }}: 2>/dev/null | grep -q .; then
+        dev=$(lsusb -d {{ saleae_vid }}:)
         echo "  [ok]   Saleae device found: $dev"
     else
-        echo "  [WARN] Cannot reach {{ usb_host }} or no Saleae device attached"
+        echo "  [WARN] No Saleae device attached locally"
     fi
 
     echo ""
@@ -331,29 +325,27 @@ usb-capture OPERATION DURATION="5" NOTES="":
     fi
     eval bash re/scripts/usb-capture.sh "{{ OPERATION }}" $ARGS
 
-# Quick unlabeled USB capture for DURATION seconds (tcpdump, streams to local file)
+# Quick unlabeled USB capture for DURATION seconds (tcpdump, local)
 usb-capture-quick DURATION="10":
     #!/usr/bin/env bash
     set -euo pipefail
     TIMESTAMP=$(date +%Y%m%d-%H%M%S)
     OUTFILE="re/captures/quick_${TIMESTAMP}.pcap"
     mkdir -p re/captures
-    # Detect USB bus for Saleae device
-    BUS=$(ssh {{ usb_host }} 'lsusb -d {{ saleae_vid }}:' | head -1 | sed 's/Bus \([0-9]*\).*/\1/' | sed 's/^0*//')
-    echo "Capturing USB traffic on {{ usb_host }} bus $BUS for {{ DURATION }}s..."
+    BUS=$(lsusb -d {{ saleae_vid }}: | head -1 | sed 's/Bus \([0-9]*\).*/\1/' | sed 's/^0*//')
+    echo "Capturing USB traffic on local bus $BUS for {{ DURATION }}s..."
     echo "Output: $OUTFILE"
-    ssh {{ usb_host }} "sudo modprobe usbmon 2>/dev/null; \
-        sudo timeout $(({{ DURATION }} + 2)) tcpdump -i usbmon${BUS} -w - 2>/dev/null" \
-        > "$OUTFILE" 2>/dev/null || true
+    sudo modprobe usbmon 2>/dev/null || true
+    sudo timeout $(({{ DURATION }} + 2)) tcpdump -i usbmon${BUS} -w "$OUTFILE" 2>/dev/null || true
     echo "Capture complete: $(stat -c%s "$OUTFILE" 2>/dev/null || echo '?') bytes"
     echo "Analyze with: tshark -r $OUTFILE"
 
-# List USB devices on remote host, highlighting Saleae devices
+# List USB devices locally, highlighting Saleae devices
 usb-list:
     #!/usr/bin/env bash
     set -euo pipefail
-    echo "=== USB devices on {{ usb_host }} ==="
-    ssh {{ usb_host }} 'lsusb' | while read -r line; do
+    echo "=== Local USB devices ==="
+    lsusb | while read -r line; do
         if echo "$line" | grep -qiE '{{ saleae_vid }}|{{ saleae_vid_legacy }}'; then
             echo ">>> $line  <<< SALEAE"
         else
@@ -361,43 +353,43 @@ usb-list:
         fi
     done
 
-# Full USB descriptor dump for Saleae devices on remote host
+# Full USB descriptor dump for Saleae devices
 usb-descriptors:
     #!/usr/bin/env bash
     set -euo pipefail
-    echo "=== Saleae USB Descriptors ({{ usb_host }}) ==="
-    ssh {{ usb_host }} 'lsusb -v -d {{ saleae_vid }}: 2>/dev/null' || true
-    ssh {{ usb_host }} 'lsusb -v -d {{ saleae_vid_legacy }}: 2>/dev/null' || true
+    echo "=== Saleae USB Descriptors (local) ==="
+    lsusb -v -d {{ saleae_vid }}: 2>/dev/null || true
+    lsusb -v -d {{ saleae_vid_legacy }}: 2>/dev/null || true
 
-# Live USB monitor on remote host (tcpdump, raw output, Ctrl-C to stop)
+# Live USB monitor (tcpdump, raw output, Ctrl-C to stop)
 usb-monitor:
     #!/usr/bin/env bash
     set -euo pipefail
-    BUS=$(ssh {{ usb_host }} 'lsusb -d {{ saleae_vid }}:' | head -1 | sed 's/Bus \([0-9]*\).*/\1/' | sed 's/^0*//')
-    echo "Live USB monitor on {{ usb_host }} bus $BUS (Ctrl-C to stop)..."
-    ssh {{ usb_host }} "sudo modprobe usbmon 2>/dev/null; \
-        sudo tcpdump -i usbmon${BUS} -nn -v"
+    BUS=$(lsusb -d {{ saleae_vid }}: | head -1 | sed 's/Bus \([0-9]*\).*/\1/' | sed 's/^0*//')
+    echo "Live USB monitor on local bus $BUS (Ctrl-C to stop)..."
+    sudo modprobe usbmon 2>/dev/null || true
+    sudo tcpdump -i usbmon${BUS} -nn -v
 
-# Check USB capture prerequisites on remote host
+# Check USB capture prerequisites locally
 usb-check:
     #!/usr/bin/env bash
     set -euo pipefail
-    echo "=== USB Capture Prerequisites on {{ usb_host }} ==="
+    echo "=== USB Capture Prerequisites (local) ==="
     echo ""
     echo "--- Device ---"
-    ssh {{ usb_host }} 'lsusb -d {{ saleae_vid }}: 2>/dev/null' && echo "  [ok]" || echo "  [MISSING] No Saleae device"
+    lsusb -d {{ saleae_vid }}: 2>/dev/null && echo "  [ok]" || echo "  [MISSING] No Saleae device"
     echo ""
     echo "--- tcpdump ---"
-    ssh {{ usb_host }} 'which tcpdump && tcpdump --version 2>&1 | head -1' && echo "  [ok]" || echo "  [MISSING]"
+    which tcpdump && tcpdump --version 2>&1 | head -1 && echo "  [ok]" || echo "  [MISSING]"
     echo ""
     echo "--- tshark ---"
-    ssh {{ usb_host }} 'which tshark 2>/dev/null' && echo "  [ok]" || echo "  [NOT INSTALLED] Install with: sudo dnf install wireshark-cli"
+    which tshark 2>/dev/null && echo "  [ok]" || echo "  [NOT INSTALLED]"
     echo ""
     echo "--- usbmon ---"
-    ssh {{ usb_host }} 'sudo modprobe usbmon 2>/dev/null && ls /dev/usbmon* 2>/dev/null' && echo "  [ok]" || echo "  [ISSUE] Cannot load usbmon"
+    sudo modprobe usbmon 2>/dev/null && ls /dev/usbmon* 2>/dev/null && echo "  [ok]" || echo "  [ISSUE] Cannot load usbmon"
     echo ""
     echo "--- sudo ---"
-    ssh {{ usb_host }} 'sudo -n true 2>/dev/null' && echo "  [ok] passwordless sudo" || echo "  [WARN] sudo requires password"
+    sudo -n true 2>/dev/null && echo "  [ok] passwordless sudo" || echo "  [WARN] sudo requires password"
 
 # ─── Rust ───────────────────────────────────────────────────────────────────
 
@@ -445,55 +437,14 @@ run *ARGS: _require-cargo
 doc: _require-cargo
     cargo doc --no-deps --open
 
-# ─── Remote Deploy ─────────────────────────────────────────────────────────
+# ─── Hardware ──────────────────────────────────────────────────────────────
 
-# Build release binary, patch for non-Nix Linux, and scp to remote host
-deploy: _require-cargo
+# Build release binary and run against local hardware
+run-hw *ARGS: _require-cargo
     #!/usr/bin/env bash
     set -euo pipefail
-    echo "=== Building release binary ==="
     cargo build --release --bin saleae-cli
-
-    SRC="target/release/saleae-cli"
-    PATCHED="target/release/saleae-cli-patched"
-
-    echo "=== Patching binary for non-Nix host ==="
-    cp "$SRC" "$PATCHED"
-    patchelf --set-interpreter /lib64/ld-linux-x86-64.so.2 "$PATCHED"
-    patchelf --set-rpath /lib64 "$PATCHED"
-
-    # Verify the patched binary looks sane
-    INTERP=$(patchelf --print-interpreter "$PATCHED")
-    RPATH=$(patchelf --print-rpath "$PATCHED")
-    echo "  interpreter: $INTERP"
-    echo "  rpath:       $RPATH"
-
-    echo "=== Deploying to {{ usb_host }}:{{ deploy_dir }}/{{ deploy_bin }} ==="
-    ssh {{ usb_host }} "mkdir -p {{ deploy_dir }}/firmware"
-    scp "$PATCHED" {{ usb_host }}:{{ deploy_dir }}/{{ deploy_bin }}
-    ssh {{ usb_host }} "chmod +x {{ deploy_dir }}/{{ deploy_bin }}"
-    rm "$PATCHED"
-
-    # Deploy firmware blobs if they exist
-    if ls firmware/fw-fx3-*.img 1>/dev/null 2>&1; then
-        echo "=== Deploying firmware blobs ==="
-        scp firmware/fw-fx3-*.img {{ usb_host }}:{{ deploy_dir }}/firmware/
-    fi
-
-    echo "=== Verifying remote binary ==="
-    ssh {{ usb_host }} "ldd {{ deploy_dir }}/{{ deploy_bin }} && echo '---' && {{ deploy_dir }}/{{ deploy_bin }} --version"
-    echo "Deploy complete."
-
-# Run saleae-cli on remote host (where Saleae hardware is attached)
-# Firmware paths like "firmware/fw-fx3-pro8.img" are remapped to the
-# deploy directory automatically.
-run-remote *ARGS: deploy
-    #!/usr/bin/env bash
-    set -euo pipefail
-    REMOTE_ARGS="{{ ARGS }}"
-    # Remap local firmware/ paths to remote deploy dir
-    REMOTE_ARGS="${REMOTE_ARGS//firmware\//{{ deploy_dir }}/firmware/}"
-    ssh {{ usb_host }} "{{ deploy_dir }}/{{ deploy_bin }} $REMOTE_ARGS"
+    target/release/saleae-cli {{ ARGS }}
 
 # Run cargo-fuzz on packet parsers (requires nightly)
 fuzz TARGET="": _require-cargo
