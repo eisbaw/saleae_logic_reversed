@@ -243,7 +243,7 @@ pub fn reset_device(serial_filter: Option<&str>) -> Result<()> {
 /// the LFSR implementation.
 pub fn ping(serial_filter: Option<&str>) -> Result<()> {
     println!("Running ReseedDevice + Ping...");
-    let dev = saleae_driver::facade::open_and_connect_with_serial(serial_filter)
+    let mut dev = saleae_driver::facade::open_and_connect_with_serial(serial_filter)
         .context("failed to connect to device")?;
 
     let encryption_mode = saleae_driver::facade::encryption_mode_for_device(&dev.device);
@@ -256,6 +256,21 @@ pub fn ping(serial_filter: Option<&str>) -> Result<()> {
     println!();
     println!("SUCCESS: Ping returned correct complement.");
     println!("XOR encryption is in sync with firmware.");
+
+    // Diagnostic: read key FPGA registers.
+    println!();
+    println!("FPGA register dump:");
+    let diag_regs: &[u8] = &[0x00, 0x0f, 0x10, 0x11, 0x15, 0x19, 0x40, 0x4a, 0x7f];
+    for &addr in diag_regs {
+        match dev.channel.read_register_8(addr) {
+            Ok(val) => println!("  r0x{addr:02x} = 0x{val:02x}"),
+            Err(e) => println!("  r0x{addr:02x} = ERROR: {e}"),
+        }
+    }
+
+    // Check if FPGA is programmed.
+    let fpga_ok = saleae_driver::fpga::is_fpga_programmed(&mut dev.channel);
+    println!("  FPGA programmed: {fpga_ok}");
 
     Ok(())
 }
@@ -463,28 +478,22 @@ pub fn full_init(
     }
     println!();
 
-    // Step 4: FPGA program + verify
-    if auto_bitstream {
+    // Resolve bitstream: auto-detect tries multiple files, otherwise read the specified one.
+    let bitstream = if auto_bitstream {
+        // Auto-bitstream programs the FPGA as a side effect of probing.
         println!("Auto-detecting bitstream...");
-        let (_bitstream_data, found_path) = try_bitstreams(
+        let (bs_data, found_path) = try_bitstreams(
             &mut dev.channel,
             SLX9_BITSTREAMS,
             dev.profile,
             dev.usb_speed,
         )?;
         println!("Using bitstream: {found_path}");
+        bs_data
     } else {
-        let bitstream = std::fs::read(bitstream_path)
-            .with_context(|| format!("failed to read bitstream: {bitstream_path}"))?;
-        println!("Programming FPGA ({} bytes)...", bitstream.len());
-        saleae_driver::fpga::program_fpga(
-            &mut dev.channel,
-            &bitstream,
-            dev.profile,
-            dev.usb_speed,
-        )?;
-        println!("FPGA programmed and verified.");
-    }
+        std::fs::read(bitstream_path)
+            .with_context(|| format!("failed to read bitstream: {bitstream_path}"))?
+    };
     println!();
 
     // Read EEPROM device ID (offset 0x08, 8 bytes LE) for calibration file lookup.
@@ -511,13 +520,11 @@ pub fn full_init(
     );
     println!();
 
-    // Step 5: AD9637 ADC init via driver module
-    println!("AD9637 ADC init...");
-
-    // Read calibration from EEPROM (offset 0x10, 16 bytes)
-    let cal_data = dev
-        .channel
-        .read_version(&[0x33, 0x81, 0x10, 0x00, 0x10, 0x00])?;
+    // Idempotent init: FPGA + ADC + channel config + ADC power-on.
+    // Uses facade::init_for_capture which handles cold/fast path with fallback.
+    println!("Initializing device for capture...");
+    let cal_data = saleae_driver::facade::init_for_capture(&mut dev, &bitstream)
+        .context("device initialization for capture failed")?;
     println!(
         "  Calibration: {}",
         cal_data
@@ -526,29 +533,7 @@ pub fn full_init(
             .collect::<Vec<_>>()
             .join(" ")
     );
-
-    let dcm_result = saleae_driver::adc::init_ad9637(&mut dev.channel, &cal_data)
-        .context("AD9637 init failed")?;
-    println!(
-        "  DCM locked: {} (r0x40={:#04x})",
-        dcm_result.locked, dcm_result.status_40
-    );
-    println!();
-
-    // Re-init EP1 (reseed + ping for next phase)
-    dev.channel.initialize().context("EP1 re-init failed")?;
-    dev.channel
-        .write_registers(&[(0x0f, 0x00), (0x10, 0x0f), (0x11, 0x00)])?;
-    println!("Channel enables set.");
-
-    // Step 6: Pre-capture ADC power on
-    println!("Pre-capture ADC power on...");
-    let capture_dcm = saleae_driver::adc::power_on_for_capture(&mut dev.channel)
-        .context("ADC power-on for capture failed")?;
-    println!(
-        "  DCM locked for capture (r0x40={:#04x})",
-        capture_dcm.status_40
-    );
+    println!("Device initialized for capture.");
     println!();
 
     // Compute capture registers from config (12.5 MSa/s mixed, all channels).

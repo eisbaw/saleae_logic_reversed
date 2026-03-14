@@ -376,49 +376,61 @@ fn attempt_reset_to_bootloader(serial_filter: Option<&str>, on_status: &dyn Fn(&
 // init_for_capture
 // ---------------------------------------------------------------------------
 
-/// Full hardware initialization for capture: FPGA + ADC + channel config + power-on.
+/// Idempotent hardware initialization for capture.
 ///
-/// This is the common pipeline shared by `full_init`, `capture_digital`,
-/// and `capture_analog`. After this returns, the device is ready for
-/// `run_capture`.
+/// Checks whether the FPGA is already programmed (via r0x7F readback).
+/// - **Cold path** (FPGA not programmed): full sequence -- FPGA program,
+///   EEPROM read, ADC init, reseed, channel enables, ADC power-on.
+/// - **Fast path** (FPGA already programmed): skips FPGA reprogramming
+///   and full ADC init. Just reseeds, sets channel enables, and powers
+///   on the ADC (which re-locks the DCM).
 ///
-/// Steps:
-/// 1. Program FPGA (reset + bitstream upload + r0x7F verify).
-/// 2. Read EEPROM calibration coefficients (offset 0x10, 16 bytes).
-/// 3. AD9637 ADC init (with calibration data).
-/// 4. Re-init EP1 (reseed + ping for next phase).
-/// 5. Write channel enable registers (r0x0f, r0x10, r0x11).
-/// 6. Pre-capture ADC power-on + DCM lock.
+/// This makes the capture pipeline restartable without a power cycle:
+/// after `adc::power_down`, calling `init_for_capture` again takes the
+/// fast path.
 ///
 /// Returns the EEPROM calibration data (16 bytes) for use in downstream
 /// calibration.
 pub fn init_for_capture(dev: &mut ConnectedDevice, bitstream: &[u8]) -> DriverResult<Vec<u8>> {
-    // Step 1: FPGA program.
-    info!(bitstream_len = bitstream.len(), "Programming FPGA");
-    crate::fpga::program_fpga(&mut dev.channel, bitstream, dev.profile, dev.usb_speed)?;
-    info!("FPGA programmed and verified");
+    let fpga_ready = crate::fpga::is_fpga_programmed(&mut dev.channel);
 
-    // Step 2: Read EEPROM calibration (offset 0x10, 16 bytes).
+    if fpga_ready {
+        info!("FPGA already programmed -- taking fast path (skip reprogram + ADC init)");
+    }
+
+    // Cold path: full FPGA program + ADC init.
+    if !fpga_ready {
+        cold_init(dev, bitstream)?;
+    }
+
+    match prepare_for_capture(dev) {
+        Ok(cal_data) => Ok(cal_data),
+        Err(e) if fpga_ready => {
+            // Fast path failed -- fall back to full cold init.
+            warn!("Fast path failed ({e}), falling back to cold init");
+            cold_init(dev, bitstream)?;
+            prepare_for_capture(dev)
+        }
+        Err(e) => Err(e),
+    }
+}
+
+/// Common tail for init_for_capture: EEPROM read, reseed, channel enables,
+/// ADC power-on. Extracted to avoid duplication between fast and fallback paths.
+fn prepare_for_capture(dev: &mut ConnectedDevice) -> DriverResult<Vec<u8>> {
+    // Read EEPROM calibration (offset 0x10, 16 bytes).
     let cal_data = dev
         .channel
         .read_version(&[0x33, 0x81, 0x10, 0x00, 0x10, 0x00])?;
 
-    // Step 3: AD9637 ADC init.
-    let dcm_result = crate::adc::init_ad9637(&mut dev.channel, &cal_data)?;
-    info!(
-        locked = dcm_result.locked,
-        status_40 = format_args!("{:#04x}", dcm_result.status_40),
-        "AD9637 init complete"
-    );
-
-    // Step 4: Re-init EP1 (reseed + ping).
+    // Re-init EP1 (reseed + ping).
     dev.channel.initialize()?;
 
-    // Step 5: Channel enables (hardcoded to pcap Phase 4 defaults).
+    // Channel enables (hardcoded to pcap Phase 4 defaults).
     dev.channel
         .write_registers(&[(0x0f, 0x00), (0x10, 0x0f), (0x11, 0x00)])?;
 
-    // Step 6: Pre-capture ADC power-on.
+    // Pre-capture ADC power-on + DCM lock.
     let capture_dcm = crate::adc::power_on_for_capture(&mut dev.channel)?;
     info!(
         status_40 = format_args!("{:#04x}", capture_dcm.status_40),
@@ -426,6 +438,26 @@ pub fn init_for_capture(dev: &mut ConnectedDevice, bitstream: &[u8]) -> DriverRe
     );
 
     Ok(cal_data)
+}
+
+/// Full cold initialization: FPGA program + ADC init.
+fn cold_init(dev: &mut ConnectedDevice, bitstream: &[u8]) -> DriverResult<()> {
+    info!(bitstream_len = bitstream.len(), "Programming FPGA");
+    crate::fpga::program_fpga(&mut dev.channel, bitstream, dev.profile, dev.usb_speed)?;
+    info!("FPGA programmed and verified");
+
+    // Read EEPROM calibration for ADC init.
+    let cal_data = dev
+        .channel
+        .read_version(&[0x33, 0x81, 0x10, 0x00, 0x10, 0x00])?;
+
+    let dcm_result = crate::adc::init_ad9637(&mut dev.channel, &cal_data)?;
+    info!(
+        locked = dcm_result.locked,
+        status_40 = format_args!("{:#04x}", dcm_result.status_40),
+        "AD9637 init complete"
+    );
+    Ok(())
 }
 
 // ---------------------------------------------------------------------------

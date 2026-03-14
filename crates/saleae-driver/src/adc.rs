@@ -40,7 +40,7 @@
 use std::time::Duration;
 
 use saleae_proto::fpga_regs;
-use tracing::{debug, info};
+use tracing::{debug, info, warn};
 
 use crate::ep1::Ep1CommandChannel;
 use crate::error::{DriverError, DriverResult};
@@ -61,6 +61,9 @@ const ADC_ENABLE_PRE_RESET_MS: u64 = 1;
 /// Delay after ADC reset cycle for DCM to lock.
 /// From decompiled SetAd9637Enabled: second sleep_for = 50ms (0x02faf080 ns).
 const DCM_LOCK_SETTLE_MS: u64 = 50;
+
+/// Max attempts for DCM lock. The Spartan-6 DCM lock is intermittent.
+const DCM_LOCK_MAX_ATTEMPTS: u32 = 5;
 
 /// DCM lock mask: bits 5 (main DCM) + 6 (slow DCM) + 7 (system PLL).
 ///
@@ -285,19 +288,40 @@ pub fn set_ad9637_enabled_true(ep1: &mut Ep1CommandChannel) -> DriverResult<DcmL
     // Read additional status registers (matches decompiled)
     let r19 = ep1.read_register_8(fpga_regs::FEAT_STATUS_GENERAL)?;
     let r40_final = ep1.read_register_8(fpga_regs::FEAT_PLL_STATUS)?;
-    let r4a = ep1.read_register_8(fpga_regs::FEAT_PLL_STATUS_2)?;
+    let mut r4a = ep1.read_register_8(fpga_regs::FEAT_PLL_STATUS_2)?;
 
     debug!("Post-enable: r0x19={r19:#04x} r0x40={r40_final:#04x} r0x4a={r4a:#04x}");
 
-    // Check bitslip (hard error in the binary, not retry)
+    // Bitslip check: r0x4a bit 1 = LVDS deserializer has performed bit
+    // alignment. On cold init (pcap), this flag appears transiently in the
+    // cascade read and clears by the post-enable read. On warm restarts,
+    // the flag stays latched because the FPGA hasn't been reprogrammed.
+    //
+    // The Saleae binary treats this as a hard error, but it only ever does
+    // cold inits. For warm restarts, a latched bitslip flag with locked DCM
+    // (r0x40=0xE0) indicates successful alignment, not an error.
     if (r4a & BITSLIP_ADC0) != 0 {
-        return Err(DriverError::FpgaProgramming {
-            context: format!("ADC 1 bitslip detected after enable (r0x4a={r4a:#04x})"),
-        });
+        // Try one brief settle to see if it clears (as in the pcap).
+        std::thread::sleep(Duration::from_millis(1));
+        r4a = ep1.read_register_8(fpga_regs::FEAT_PLL_STATUS_2)?;
+        if (r4a & BITSLIP_ADC0) != 0 {
+            if r40_final == DCM_ALL_LOCKED {
+                // DCM locked + bitslip latched = warm restart, alignment already done.
+                warn!("ADC bitslip flag latched (r0x4a={r4a:#04x}), proceeding (DCM locked)");
+            } else {
+                // Bitslip without stable clock = real alignment error.
+                return Err(DriverError::FpgaProgramming {
+                    context: format!(
+                        "ADC bitslip with DCM not fully locked \
+                         (r0x4a={r4a:#04x}, r0x40={r40_final:#04x})"
+                    ),
+                });
+            }
+        }
     }
     // ADC 2 bitslip only for Logic Pro 16 -- not checked for Pro 8.
 
-    info!("ADC enabled: r0x40={r40_final:#04x} r0x4a={r4a:#04x}",);
+    info!("ADC enabled: r0x40={r40_final:#04x} r0x4a={r4a:#04x}");
 
     Ok(DcmLockResult {
         locked: true,
@@ -387,18 +411,55 @@ pub fn write_calibration_and_cascade(
 pub fn power_on_for_capture(ep1: &mut Ep1CommandChannel) -> DriverResult<DcmLockResult> {
     info!("Powering on ADC for capture");
 
-    // Power on ADC bank
     debug!("FPGA r0x15=0x03 (ADC bank power on)");
     ep1.write_register_8(fpga_regs::FEAT_BANK_POWER, 0x03)?;
 
-    // Enable ADC (full SetAd9637Enabled(true) sequence)
-    let result = set_ad9637_enabled_true(ep1)?;
+    // Reset the LVDS deserializer state before enabling. On warm restarts
+    // (fast path), the ADC may be in an unknown state from a previous
+    // session. The enabled_false call does SPI transfer + JESD cascade
+    // which resets the FPGA's alignment logic.
+    if let Err(e) = set_ad9637_enabled_false(ep1) {
+        debug!("Pre-enable reset failed (expected on some warm paths): {e}");
+    }
 
-    info!(
-        "ADC powered on, DCM locked (r0x40={:#04x})",
-        result.status_40,
-    );
-    Ok(result)
+    // Enable ADC with retry (DCM lock is intermittent on Spartan-6).
+    let mut last_err = None;
+    for attempt in 0..DCM_LOCK_MAX_ATTEMPTS {
+        match set_ad9637_enabled_true(ep1) {
+            Ok(result) => {
+                if attempt > 0 {
+                    info!(attempt, "DCM locked on retry (power_on_for_capture)");
+                }
+                info!(
+                    "ADC powered on, DCM locked (r0x40={:#04x})",
+                    result.status_40
+                );
+                return Ok(result);
+            }
+            Err(e) => {
+                warn!(
+                    attempt,
+                    remaining = DCM_LOCK_MAX_ATTEMPTS - attempt - 1,
+                    "DCM lock failed during power_on, retrying: {e}"
+                );
+                last_err = Some(e);
+                if let Err(e) = set_ad9637_enabled_false(ep1) {
+                    debug!("Retry disable failed (continuing): {e}");
+                }
+                // Power-cycle the ADC bank before retrying (100ms off, 100ms on).
+                if let Err(e) = ep1.write_register_8(fpga_regs::FEAT_BANK_POWER, 0x00) {
+                    debug!("Bank power off failed (continuing): {e}");
+                }
+                std::thread::sleep(Duration::from_millis(100));
+                if let Err(e) = ep1.write_register_8(fpga_regs::FEAT_BANK_POWER, 0x03) {
+                    debug!("Bank power on failed (continuing): {e}");
+                }
+                std::thread::sleep(Duration::from_millis(100));
+            }
+        }
+    }
+
+    Err(last_err.unwrap())
 }
 
 /// Power down ADC (Phase 8 teardown).
@@ -446,21 +507,38 @@ pub fn init_ad9637(ep1: &mut Ep1CommandChannel, calibration: &[u8]) -> DriverRes
     debug!("FPGA r0x15=0x00 (ADC output power off)");
     ep1.write_register_8(fpga_regs::FEAT_BANK_POWER, 0x00)?;
 
-    // SetAd9637Enabled(false) -- SPI commit + ResetMainDcm
-    // From CommonDeviceInit line 553
-    set_ad9637_enabled_false(ep1)?;
+    // SetAd9637Enabled(false/true) with retry -- DCM lock is intermittent.
+    let mut last_err = None;
+    for attempt in 0..DCM_LOCK_MAX_ATTEMPTS {
+        if attempt == 0 {
+            set_ad9637_enabled_false(ep1)?;
+        } else {
+            // On retries, swallow disable errors (device may be in a bad state).
+            let _ = set_ad9637_enabled_false(ep1);
+        }
+        match set_ad9637_enabled_true(ep1) {
+            Ok(result) => {
+                if attempt > 0 {
+                    info!(attempt, "DCM locked on retry (init_ad9637)");
+                }
+                // Phase 3d-3e: Calibration + post-cal cascade
+                write_calibration_and_cascade(ep1, calibration)?;
+                info!("AD9637 init sequence complete");
+                return Ok(result);
+            }
+            Err(e) => {
+                warn!(
+                    attempt,
+                    remaining = DCM_LOCK_MAX_ATTEMPTS - attempt - 1,
+                    "DCM lock failed during init, retrying: {e}"
+                );
+                last_err = Some(e);
+                std::thread::sleep(Duration::from_millis(100));
+            }
+        }
+    }
 
-    // SetAd9637Enabled(true) -- full enable sequence
-    // From CommonDeviceInit line 564
-    let result = set_ad9637_enabled_true(ep1)?;
-
-    // Phase 3d-3e: Calibration + post-cal cascade
-    // From CommonDeviceInit lines 567-569 (r0x00=0x00, r0x00=0x40) and
-    // the calibration write + final SetAd9637Enabled(false)
-    write_calibration_and_cascade(ep1, calibration)?;
-
-    info!("AD9637 init sequence complete");
-    Ok(result)
+    Err(last_err.unwrap())
 }
 
 // ---------------------------------------------------------------------------
@@ -748,10 +826,10 @@ mod tests {
     }
 
     #[test]
-    fn set_ad9637_enabled_true_errors_on_bitslip() {
+    fn set_ad9637_enabled_true_warns_on_bitslip_but_succeeds() {
         let mock = std::sync::Arc::new(MockTransport::new());
 
-        // DCM locks fine but bitslip detected on r0x4a
+        // DCM locks fine but bitslip flag set on r0x4a
         push_write_acks(&mock, 3);
         push_dcm_cascade_responses(&mock, 0xE0, 0x00);
         // Post-enable reads: r0x19=0x00, r0x40=0xE0, r0x4a=0x02 (BITSLIP_ADC0)
@@ -759,12 +837,15 @@ mod tests {
         mock.push_bulk_in_response(endpoint::BULK_IN, vec![0xE0]); // r0x40
         mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x02]); // r0x4a (bitslip!)
 
+        // Re-read after 1ms settle: still 0x02 (latched, warm restart)
+        mock.push_bulk_in_response(endpoint::BULK_IN, vec![0x02]);
+
         let mut ep1 = mock_channel_none(&mock);
-        let err = set_ad9637_enabled_true(&mut ep1).unwrap_err();
-        assert!(
-            err.to_string().contains("bitslip"),
-            "expected bitslip error, got: {err}"
-        );
+        // Should succeed with a warning, not error
+        let result = set_ad9637_enabled_true(&mut ep1).unwrap();
+        assert!(result.locked);
+        assert_eq!(result.status_40, 0xE0);
+        assert_eq!(result.status_4a, 0x02);
     }
 
     // -------------------------------------------------------------------
@@ -775,8 +856,11 @@ mod tests {
     fn power_on_for_capture_writes_bank_power_then_enables_adc() {
         let mock = std::sync::Arc::new(MockTransport::new());
 
-        // 1 write_register_8 ACK (r0x15=0x03) + set_ad9637_enabled_true
+        // 1 write_register_8 ACK (r0x15=0x03) +
+        // set_ad9637_enabled_false (1 ADC write + 5 JESD + 2 reads = 8) +
+        // set_ad9637_enabled_true (3 ADC writes + 5 JESD + 2 reads + 3 reads = 13)
         push_write_acks(&mock, 1);
+        push_enabled_false_responses(&mock, 0x00, 0x00);
         push_enabled_true_responses(&mock, 0xE0, 0x00);
 
         let mut ep1 = mock_channel_none(&mock);
@@ -786,8 +870,8 @@ mod tests {
         assert_eq!(result.status_40, 0xE0);
 
         let payloads = extract_out_payloads(&mock);
-        // 1 + 13 = 14
-        assert_eq!(payloads.len(), 14);
+        // 1 + 8 + 13 = 22
+        assert_eq!(payloads.len(), 22);
 
         // First command: bank power on (r0x15=0x03)
         assert_single_write(&payloads, 0, 0x15, 0x03);
@@ -913,14 +997,17 @@ mod tests {
         let mock = std::sync::Arc::new(MockTransport::new());
         let cal = [0x00; 16];
 
-        // configure_ad9637 + bank power off
+        // configure_ad9637 (9 writes) + bank power off (1 write)
         push_write_acks(&mock, 9);
         push_write_acks(&mock, 1);
-        // set_ad9637_enabled_false succeeds
-        push_enabled_false_responses(&mock, 0x00, 0x00);
-        // set_ad9637_enabled_true fails: DCM doesn't lock (r0x40=0x00)
-        push_write_acks(&mock, 3);
-        push_dcm_cascade_responses(&mock, 0x00, 0x00);
+
+        // DCM_LOCK_MAX_ATTEMPTS attempts, each: enabled_false + enabled_true (fails)
+        for _ in 0..DCM_LOCK_MAX_ATTEMPTS {
+            push_enabled_false_responses(&mock, 0x00, 0x00);
+            // set_ad9637_enabled_true: 3 writes + DCM cascade with 0x00 (fail)
+            push_write_acks(&mock, 3);
+            push_dcm_cascade_responses(&mock, 0x00, 0x00);
+        }
 
         let mut ep1 = mock_channel_none(&mock);
         let err = init_ad9637(&mut ep1, &cal).unwrap_err();

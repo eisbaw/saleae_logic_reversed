@@ -223,6 +223,25 @@ pub fn program_fpga(
     Ok(())
 }
 
+/// Check if the FPGA is already programmed by reading the scratch register.
+///
+/// Writes 0xAA to r0x7F and reads it back. If the readback matches, the
+/// FPGA bitstream is loaded and responsive.
+pub fn is_fpga_programmed(ep1: &mut Ep1CommandChannel) -> bool {
+    let result = (|| -> DriverResult<bool> {
+        ep1.write_registers(&[(0x7F, fpga_regs::FPGA_READBACK_OK)])?;
+        let readback = ep1.read_registers(&[0x7F])?;
+        Ok(!readback.is_empty() && readback[0] == fpga_regs::FPGA_READBACK_OK)
+    })();
+    match result {
+        Ok(v) => v,
+        Err(e) => {
+            debug!("FPGA readback check failed (treating as not programmed): {e}");
+            false
+        }
+    }
+}
+
 /// Post-programming initialization sequence.
 ///
 /// After the FPGA bitstream is loaded, the host must initialize the FPGA

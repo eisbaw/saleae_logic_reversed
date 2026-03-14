@@ -455,8 +455,8 @@ run-hw *ARGS: _build-release
 hw-ping: _build-release
     target/release/saleae-cli -v ping
 
-# Full device init: firmware upload + FPGA program + ADC init + test capture
-hw-init: _build-release
+# Full pipeline: firmware upload, FPGA program, ADC init, 2s capture, analog decode, teardown
+hw-capture: _build-release
     target/release/saleae-cli -vv full-init \
         --firmware {{ fw_path }} --bitstream {{ bs_path }}
 
