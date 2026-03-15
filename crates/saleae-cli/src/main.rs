@@ -51,6 +51,13 @@ enum Command {
         /// Path to the FX3 firmware image file.
         #[arg(long)]
         firmware: String,
+
+        /// Force re-upload even if firmware is already running.
+        ///
+        /// Attempts to overwrite the running firmware via EP0 control transfers.
+        /// Use this to recover from a dead EP1 command thread without a power cycle.
+        #[arg(long, default_value = "false")]
+        force: bool,
     },
 
     /// Start a digital capture.
@@ -139,6 +146,28 @@ enum Command {
     /// After this, the device should appear in bootloader mode (bcdDevice=1.00)
     /// and firmware can be re-uploaded.
     ResetDevice,
+
+    /// Diagnostic: read/write FPGA registers and test DCM locking.
+    ///
+    /// Reads key status registers, optionally runs JESD cascade, and reports
+    /// results. Useful for debugging DCM lock failures.
+    Diag {
+        /// Run a JESD power sequence and report DCM status.
+        #[arg(long)]
+        jesd_cascade: bool,
+
+        /// Run full ADC enable sequence (set_ad9637_enabled_true).
+        #[arg(long)]
+        adc_enable: bool,
+
+        /// Read a specific register (hex address, e.g. "0x40").
+        #[arg(long)]
+        read_reg: Option<String>,
+
+        /// Write a register: "addr=value" (hex, e.g. "0x15=0x03").
+        #[arg(long)]
+        write_reg: Option<String>,
+    },
 
     /// Full init with auto-recovery: firmware upload + FPGA + ADC + capture.
     ///
@@ -276,7 +305,9 @@ fn main() -> anyhow::Result<()> {
 
     match cli.command {
         Command::ListDevices => commands::list_devices()?,
-        Command::UploadFirmware { firmware } => commands::upload_firmware(&firmware, serial)?,
+        Command::UploadFirmware { firmware, force } => {
+            commands::upload_firmware(&firmware, serial, force)?
+        }
         Command::Ping => commands::ping(serial)?,
         Command::ProgramFpga {
             bitstream,
@@ -313,6 +344,12 @@ fn main() -> anyhow::Result<()> {
             )?
         }
         Command::ResetDevice => commands::reset_device(serial)?,
+        Command::Diag {
+            jesd_cascade,
+            adc_enable,
+            read_reg,
+            write_reg,
+        } => commands::diag(jesd_cascade, adc_enable, read_reg, write_reg, serial)?,
         Command::FullInit {
             firmware,
             bitstream,

@@ -217,9 +217,9 @@ impl CaptureConfig {
             });
         }
 
-        if self.digital_channels.is_empty() {
+        if self.digital_channels.is_empty() && self.analog_channels.is_empty() {
             return Err(DriverError::InvalidCaptureConfig {
-                reason: "at least one digital channel must be enabled".into(),
+                reason: "at least one channel (digital or analog) must be enabled".into(),
             });
         }
 

@@ -636,6 +636,28 @@ hw-capture-matrix: _build-release
         exit 1
     fi
 
+# Repeated idempotent capture test: full-init N times without power cycle
+hw-capture-idempotent RUNS="3": _build-release
+    #!/usr/bin/env bash
+    set -euo pipefail
+    CLI="target/release/saleae-cli"
+    PASS=0; FAIL=0
+    for i in $(seq 1 {{ RUNS }}); do
+        echo "=== Run $i/{{ RUNS }} ==="
+        if $CLI full-init --firmware {{ fw_path }} --bitstream {{ bs_path }} 2>&1; then
+            PASS=$((PASS + 1))
+            echo "  PASS"
+        else
+            FAIL=$((FAIL + 1))
+            echo "  FAIL"
+        fi
+        echo ""
+    done
+    echo "==============================="
+    echo "Idempotent capture test: $PASS/{{ RUNS }} passed, $FAIL failed"
+    echo "==============================="
+    [ "$FAIL" -eq 0 ]
+
 # List connected Saleae devices with USB state
 hw-list: _build-release
     target/release/saleae-cli list-devices

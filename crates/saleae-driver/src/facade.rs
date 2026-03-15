@@ -446,6 +446,11 @@ fn cold_init(dev: &mut ConnectedDevice, bitstream: &[u8]) -> DriverResult<()> {
     crate::fpga::program_fpga(&mut dev.channel, bitstream, dev.profile, dev.usb_speed)?;
     info!("FPGA programmed and verified");
 
+    // Brief settle after FPGA programming.  The pcap (USB 3.0) shows no gap,
+    // but USB 2.0 has different GPIF timing; give the FPGA startup sequence
+    // time to complete before we start issuing ADC register writes.
+    std::thread::sleep(std::time::Duration::from_millis(10));
+
     // Read EEPROM calibration for ADC init.
     let cal_data = dev
         .channel

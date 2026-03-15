@@ -13,9 +13,17 @@ use saleae_proto::device::BootState;
 pub const DEFAULT_FIRMWARE_PATH: &str = "firmware/fw-fx3-pro8.img";
 
 /// Default FPGA bitstream path (Xilinx Spartan-6 for Logic Pro 8 Rev 1.2).
+///
+/// Variant B (COR1=0x3D00): slx9-02/03/07.  Hardware-validated: slx9-03 is the
+/// correct variant for Rev 1.2 -- only slx9-03 produces a working ADC clock
+/// for the DCM (task-0138).  slx9-02 programs OK but DCM never locks.
+/// Variant A (slx9-01/06/00, COR1=3D08) fails to configure the FPGA entirely.
 pub const DEFAULT_BITSTREAM_PATH: &str = "firmware/bitstream-spartan6-slx9-03.bin";
 
 /// SLX9 bitstream variants to try during auto-detection (ordered by likelihood).
+///
+/// Variant B (COR1=3D00): slx9-02, slx9-03, slx9-07  (Rev 1.x hardware)
+/// Variant A (COR1=3D08): slx9-00, slx9-01, slx9-06  (fails on Rev 1.2)
 const SLX9_BITSTREAMS: &[&str] = &[
     "firmware/bitstream-spartan6-slx9-03.bin",
     "firmware/bitstream-spartan6-slx9-02.bin",
@@ -106,7 +114,11 @@ pub fn list_devices() -> Result<()> {
 ///   and exits successfully without uploading.
 /// - If in bootloader state (bcdDevice=0x0100), proceeds with upload
 ///   and waits for re-enumeration.
-pub fn upload_firmware(firmware_path: &str, serial_filter: Option<&str>) -> Result<()> {
+pub fn upload_firmware(
+    firmware_path: &str,
+    serial_filter: Option<&str>,
+    force: bool,
+) -> Result<()> {
     // Read and parse firmware file first (before touching USB), so we
     // fail fast on a bad file path or corrupt image.
     let firmware_data = std::fs::read(firmware_path)
@@ -138,13 +150,17 @@ pub fn upload_firmware(firmware_path: &str, serial_filter: Option<&str>) -> Resu
     println!();
 
     match device.boot_state {
-        BootState::FirmwareRunning => {
+        BootState::FirmwareRunning if !force => {
             println!("Firmware is already running on this device.");
             println!("No upload needed. The device is ready for FPGA programming.");
             println!();
-            println!("To force a firmware re-upload, power-cycle the device first");
-            println!("so it re-enters bootloader mode (bcdDevice=1.00).");
+            println!("To force a firmware re-upload, use --force or power-cycle the device.");
             return Ok(());
+        }
+        BootState::FirmwareRunning => {
+            println!("Firmware is running but --force specified.");
+            println!("Attempting to re-upload firmware via EP0 control transfers...");
+            println!("(This overwrites the running firmware to recover from dead EP1.)");
         }
         BootState::Bootloader => {
             println!("Device is in bootloader mode. Proceeding with firmware upload...");
@@ -232,6 +248,84 @@ pub fn reset_device(serial_filter: Option<&str>) -> Result<()> {
     let _ = dev.channel.send_command(0x82, &[]);
     println!("Reset command sent. Device should re-enumerate in bootloader mode.");
     println!("Wait a few seconds, then check with: lsusb -d 21a9:");
+
+    Ok(())
+}
+
+/// Diagnostic: read/write FPGA registers and test DCM locking.
+pub fn diag(
+    jesd_cascade: bool,
+    adc_enable: bool,
+    read_reg: Option<String>,
+    write_reg: Option<String>,
+    serial_filter: Option<&str>,
+) -> Result<()> {
+    let mut dev = saleae_driver::facade::open_and_connect_with_serial(serial_filter)
+        .context("failed to connect to device")?;
+    println!("Connected: {}", dev.device);
+
+    // Always read key status registers first.
+    let r40 = dev.channel.read_register_8(0x40)?;
+    let r4a = dev.channel.read_register_8(0x4a)?;
+    let r19 = dev.channel.read_register_8(0x19)?;
+    let r15 = dev.channel.read_register_8(0x15)?;
+    let r7f = dev.channel.read_register_8(0x7f)?;
+    println!("Status registers:");
+    println!("  r0x40 (PLL/DCM status) = {r40:#04x}  (0xe0 = all locked)");
+    println!("  r0x4a (PLL status 2)   = {r4a:#04x}");
+    println!("  r0x19 (general status) = {r19:#04x}");
+    println!("  r0x15 (bank power)     = {r15:#04x}");
+    println!("  r0x7f (FPGA readback)  = {r7f:#04x}  (0xaa = programmed)");
+
+    if let Some(ref wr) = write_reg {
+        let parts: Vec<&str> = wr.split('=').collect();
+        if parts.len() != 2 {
+            bail!("--write-reg format: 0xADDR=0xVALUE");
+        }
+        let addr = u8::from_str_radix(parts[0].trim_start_matches("0x"), 16)
+            .context("invalid register address")?;
+        let val = u8::from_str_radix(parts[1].trim_start_matches("0x"), 16)
+            .context("invalid register value")?;
+        dev.channel.write_register_8(addr, val)?;
+        println!("Wrote r{addr:#04x} = {val:#04x}");
+        let readback = dev.channel.read_register_8(addr)?;
+        println!("Readback r{addr:#04x} = {readback:#04x}");
+    }
+
+    if let Some(ref rr) = read_reg {
+        let addr = u8::from_str_radix(rr.trim_start_matches("0x"), 16)
+            .context("invalid register address")?;
+        let val = dev.channel.read_register_8(addr)?;
+        println!("Read r{addr:#04x} = {val:#04x}");
+    }
+
+    if jesd_cascade {
+        println!("\nRunning JESD power sequence (0x1E->0x1C->0x18->0x08->0x00)...");
+        let (r40, r4a) = saleae_driver::adc::dcm_cascade(&mut dev.channel)?;
+        println!("  r0x40 = {r40:#04x}  r0x4a = {r4a:#04x}");
+        if r40 == 0xe0 {
+            println!("  DCM LOCKED!");
+        } else {
+            println!("  DCM NOT locked (expected 0xe0)");
+        }
+    }
+
+    if adc_enable {
+        println!("\nRunning set_ad9637_enabled_true (power normal, reset, sleep, cascade)...");
+        match saleae_driver::adc::set_ad9637_enabled_true(&mut dev.channel) {
+            Ok(result) => {
+                println!(
+                    "  DCM locked={} r0x40={:#04x} r0x4a={:#04x}",
+                    result.locked, result.status_40, result.status_4a
+                );
+            }
+            Err(e) => {
+                println!("  FAILED: {e}");
+                let r40 = dev.channel.read_register_8(0x40)?;
+                println!("  r0x40 = {r40:#04x}");
+            }
+        }
+    }
 
     Ok(())
 }

@@ -60,10 +60,12 @@ const ADC_ENABLE_PRE_RESET_MS: u64 = 1;
 
 /// Delay after ADC reset cycle for DCM to lock.
 /// From decompiled SetAd9637Enabled: second sleep_for = 50ms (0x02faf080 ns).
-const DCM_LOCK_SETTLE_MS: u64 = 50;
+/// USB 2.0 cold boot may need extra settle time; 100ms gives margin.
+const DCM_LOCK_SETTLE_MS: u64 = 100;
 
-/// Max attempts for DCM lock. The Spartan-6 DCM lock is intermittent.
-const DCM_LOCK_MAX_ATTEMPTS: u32 = 5;
+/// Max attempts for DCM lock. The Spartan-6 DCM lock is intermittent,
+/// especially on cold boot over USB 2.0.
+const DCM_LOCK_MAX_ATTEMPTS: u32 = 10;
 
 /// DCM lock mask: bits 5 (main DCM) + 6 (slow DCM) + 7 (system PLL).
 ///

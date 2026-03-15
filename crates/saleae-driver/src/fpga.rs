@@ -170,8 +170,23 @@ pub fn program_fpga(
     let chunk_size = profile.fpga_chunk_size(usb_speed);
     let read_ack = profile.register_write_verifies();
 
+    // The bitstream files extracted from the Saleae binary include inter-blob
+    // padding (typically 4 trailing zero bytes).  The binary itself sends
+    // only the actual bitstream content — e.g., 340,604 bytes for SLX9
+    // versus 340,608 in our extracted .bin file.  Strip exactly those
+    // trailing padding bytes: if the last 4 bytes are all zero, remove them.
+    // Xilinx Spartan-6 bitstreams end with NOP words (0x2000), never with
+    // 4 consecutive zero bytes, so this is safe.
+    let bitstream_trimmed =
+        if bitstream.len() >= 4 && bitstream[bitstream.len() - 4..] == [0, 0, 0, 0] {
+            &bitstream[..bitstream.len() - 4]
+        } else {
+            bitstream
+        };
+
     info!(
-        bitstream_len = bitstream.len(),
+        raw_len = bitstream.len(),
+        trimmed_len = bitstream_trimmed.len(),
         chunk_size,
         read_ack,
         device = %profile.device_type,
@@ -185,10 +200,10 @@ pub fn program_fpga(
     // Step 2: Send the bitstream data, chunked per device profile.
     debug!(
         "Sending bitstream data ({} bytes, chunk_size={})",
-        bitstream.len(),
+        bitstream_trimmed.len(),
         chunk_size
     );
-    ep1.write_config_data_chunked(bitstream, chunk_size, read_ack)?;
+    ep1.write_config_data_chunked(bitstream_trimmed, chunk_size, read_ack)?;
 
     // Step 3: Verify FPGA programming via register 0x7F readback.
     //
@@ -229,12 +244,25 @@ pub fn program_fpga(
 /// FPGA bitstream is loaded and responsive.
 pub fn is_fpga_programmed(ep1: &mut Ep1CommandChannel) -> bool {
     let result = (|| -> DriverResult<bool> {
+        // Two-phase test to avoid false positives from SPI echo on
+        // unprogrammed FPGA: write 0x55, read (must NOT be 0xAA),
+        // then write 0xAA, read (must BE 0xAA).
+        ep1.write_registers(&[(0x7F, 0x55)])?;
+        let rb1 = ep1.read_registers(&[0x7F])?;
         ep1.write_registers(&[(0x7F, fpga_regs::FPGA_READBACK_OK)])?;
-        let readback = ep1.read_registers(&[0x7F])?;
-        Ok(!readback.is_empty() && readback[0] == fpga_regs::FPGA_READBACK_OK)
+        let rb2 = ep1.read_registers(&[0x7F])?;
+        let v1 = rb1.first().copied().unwrap_or(0xFF);
+        let v2 = rb2.first().copied().unwrap_or(0xFF);
+        debug!("FPGA r0x7F readback: wrote 0x55 -> {v1:#04x}, wrote 0xAA -> {v2:#04x}");
+        // A real FPGA scratch register returns the last written value.
+        // If the first read returns 0xAA (not 0x55), it's echoing old data.
+        Ok(v1 == 0x55 && v2 == fpga_regs::FPGA_READBACK_OK)
     })();
     match result {
-        Ok(v) => v,
+        Ok(v) => {
+            debug!("FPGA programmed check: {v}");
+            v
+        }
         Err(e) => {
             debug!("FPGA readback check failed (treating as not programmed): {e}");
             false
