@@ -19,7 +19,7 @@ the device, with calibration properly applied.
 - Capture start/stop, sample rate configuration, channel selection
 - Digital sample streaming and decoding
 - Analog sample streaming, ADC data decoding, and calibration application
-- Analog FIR filter reconstruction (calibration-derived, used to compensate
+- Analog IIR biquad filter reconstruction (calibration-derived, used to compensate
   analog front-end imperfections)
 - Calibration data format, storage, and application
 - Device boot sequence (FW upload -> FPGA program -> device ready)
@@ -115,7 +115,7 @@ differences.
    +-- Calibration
    |     +-- AFE (analog front-end) configuration
    |     +-- ADC calibration (gain, offset, INL/DNL)
-   |     +-- FIR filter coefficients (compensate analog path imperfections)
+   |     +-- IIR biquad filter coefficients (compensate analog path imperfections)
    |     +-- Per-channel, per-sample-rate calibration data
    |     +-- Calibration data source: server-hosted AND/OR device EEPROM (TBD)
    |
@@ -128,7 +128,7 @@ Key architectural facts:
 - **Software triggers**: trigger detection runs on the host, not in the FPGA.
   Pre-trigger buffer is managed on host side.
 - **Analog is imperfect**: the analog front-end introduces distortion that is
-  compensated by FIR filters derived from factory calibration data. Getting
+  compensated by IIR biquad filters derived from factory calibration data. Getting
   correct analog samples requires applying these filters.
 - **USB 2.0 vs 3.0**: FX3-based devices support USB 3.0 but fall back to 2.0.
   Maximum sample rates depend on negotiated USB speed.
@@ -168,7 +168,7 @@ Key architectural facts:
 - `afeConfigCalibrations` -- analog front-end calibration data
 - ADC foreground calibration
 - Per-channel calibration
-- FIR filter coefficients for analog path compensation
+- IIR biquad filter coefficients for analog path compensation
 - Calibration applied per-channel and per-sample-rate
 
 ### Communication Protocol
@@ -290,9 +290,9 @@ testable increment.
 
 ### Slice 5: Analog Capture and Calibration
 - RE analog data streaming format, ADC encoding
-- RE calibration data format (AFE config, FIR filter coefficients)
+- RE calibration data format (AFE config, IIR biquad filter coefficients)
 - RE calibration data source and download mechanism
-- RE FIR filter application pipeline
+- RE IIR biquad filter application pipeline
 - Implement analog capture with calibration in Rust
 - **Deliverable**: `saleae-cli capture-analog` produces calibrated analog samples
 
@@ -336,7 +336,7 @@ saleae_reverse/
 - **Hardware bricking**: FX3 firmware upload targets RAM (volatile, safe on power
   cycle). FPGA bitstreams are volatile. `MsoSpiFlash` writes to non-volatile
   storage -- defer MSO support until protocol is fully understood
-- **Analog accuracy**: FIR filter reconstruction is critical and complex. Validate
+- **Analog accuracy**: IIR biquad filter reconstruction is critical and complex. Validate
   against known signals (1kHz square wave, sine sweep) comparing Saleae app
   output vs our output sample-by-sample
 - **Multiple FPGA revisions**: detect via device descriptors or firmware response,

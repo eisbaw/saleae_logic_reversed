@@ -3,10 +3,10 @@ id: TASK-0226
 title: >-
   Fix capture-digital/capture-analog/capture-quick: validate register configs
   against pcaps
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-03-15 17:28'
-updated_date: '2026-03-15 17:28'
+updated_date: '2026-03-15 22:31'
 labels:
   - bug
   - hardware
@@ -55,3 +55,9 @@ The `capture-digital`, `capture-analog`, and `capture-quick` CLI subcommands all
 - [ ] #4 hw-smoke recipe passes (all 3 capture types work)
 - [ ] #5 hw-capture-matrix passes majority of test configurations
 <!-- AC:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Fixed all 7 bugs in compute_capture_registers() validated against 6 pcap configs and Ghidra decompilation. All hw recipes pass (14/14 matrix, 3/3 idempotent). Committed as 659bed3, ee82354. Tagged v0.4.0.
+<!-- SECTION:FINAL_SUMMARY:END -->

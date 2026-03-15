@@ -6,13 +6,13 @@ architecture, and current phase.
 ## Hardware Access
 
 A Saleae Logic Pro 8 (21a9:1005) is physically attached to the local machine.
-Bus 003, USB 2.0 High Speed. After firmware upload: 3 bulk endpoints
-(EP1 OUT, EP1 IN, EP2 IN). In bootloader mode: iProduct "WestBridge".
+Bus 003 or 004 (USB 2.0 or 3.0 depending on port). After firmware upload:
+3 bulk endpoints (EP1 OUT, EP1 IN, EP2 IN). In bootloader mode: iProduct "WestBridge".
 
 ```
 lsusb -d 21a9:                # quick check
 lsusb -v -d 21a9:             # full descriptors
-sudo target/release/saleae-cli list-devices  # after build
+target/release/saleae-cli list-devices  # after build (udev rules, no sudo)
 ```
 
 ## Documentation Rules
