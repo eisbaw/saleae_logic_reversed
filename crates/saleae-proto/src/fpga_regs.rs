@@ -460,17 +460,17 @@ pub const ADC_REG_ADDR: u8 = 0x04;
 /// registers this is typically 0x00.
 pub const ADC_REG_DATA: u8 = 0x05;
 
-/// Analog channel enable mask, low byte.
-pub const FEAT_ANALOG_CH_ENABLE_LO: u8 = 0x06;
-
-/// Analog channel enable mask, high byte (16-channel devices).
-pub const FEAT_ANALOG_CH_ENABLE_HI: u8 = 0x07;
-
 /// Digital channel enable mask, low byte.
-pub const FEAT_DIGITAL_CH_ENABLE_LO: u8 = 0x08;
+pub const FEAT_DIGITAL_CH_ENABLE_LO: u8 = 0x06;
 
 /// Digital channel enable mask, high byte (16-channel devices).
-pub const FEAT_DIGITAL_CH_ENABLE_HI: u8 = 0x09;
+pub const FEAT_DIGITAL_CH_ENABLE_HI: u8 = 0x07;
+
+/// Analog channel enable mask, low byte.
+pub const FEAT_ANALOG_CH_ENABLE_LO: u8 = 0x08;
+
+/// Analog channel enable mask, high byte (16-channel devices).
+pub const FEAT_ANALOG_CH_ENABLE_HI: u8 = 0x09;
 
 /// Analog decimation factor, low byte.
 pub const FEAT_ANALOG_DECIMATION: u8 = 0x0A;

@@ -310,7 +310,7 @@ MsoFpga (16-bit addresses, 32-bit values):
 FpgaDeviceFeatures (8-bit addresses, 8-bit values):
   0x00           Capture init (FEAT_CAPTURE_INIT)
   0x03-0x05      ADC SPI bridge (address, data)
-  0x06-0x09      Channel enable masks (analog + digital, lo + hi)
+  0x06-0x09      Channel enable masks (0x06-07 digital, 0x08-09 analog)
   0x0A           Analog decimation
   0x0B-0x0C      Digital sample rate divider (lo + hi)
   0x0D-0x0E      Analog/digital mix ratios

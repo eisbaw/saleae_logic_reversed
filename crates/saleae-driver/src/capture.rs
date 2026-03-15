@@ -76,7 +76,7 @@ pub struct CaptureConfig {
     /// Constraints:
     /// - Must be <= `sample_rate` (analog cannot exceed digital rate).
     /// - Must divide evenly into the effective analog clock
-    ///   (`base_analog_rate * 4` for Pro devices).
+    ///   (50 MHz analog clock for Pro devices).
     /// - The digital/analog rate ratio must produce an integer GCD-based
     ///   interleaving ratio for the disaggregator.
     ///
@@ -754,10 +754,10 @@ impl AnalogCaptureConfig {
 /// | Reg  | Constant              | Description                          |
 /// |------|-----------------------|--------------------------------------|
 /// | 0x00 | FEAT_CAPTURE_INIT     | Always 0x00                          |
-/// | 0x08 | FEAT_DIGITAL_CH_ENABLE_LO | Digital channel mask low byte    |
-/// | 0x09 | FEAT_DIGITAL_CH_ENABLE_HI | Digital mask high (16ch only)    |
-/// | 0x06 | FEAT_ANALOG_CH_ENABLE_LO  | Analog channel mask low byte    |
-/// | 0x07 | FEAT_ANALOG_CH_ENABLE_HI  | Analog mask high (16ch only)    |
+/// | 0x06 | FEAT_DIGITAL_CH_ENABLE_LO | Digital channel mask low byte    |
+/// | 0x07 | FEAT_DIGITAL_CH_ENABLE_HI | Digital mask high (16ch only)    |
+/// | 0x08 | FEAT_ANALOG_CH_ENABLE_LO  | Analog channel mask low byte    |
+/// | 0x09 | FEAT_ANALOG_CH_ENABLE_HI  | Analog mask high (16ch only)    |
 /// | 0x0A | FEAT_ANALOG_DECIMATION | Analog decimation factor low byte   |
 /// | 0x0B | FEAT_DIGITAL_DIVIDER_LO | Digital divider low byte           |
 /// | 0x0C | FEAT_DIGITAL_DIVIDER_HI | Digital divider high byte          |
@@ -825,7 +825,7 @@ pub fn configure_capture(ep1: &mut Ep1CommandChannel, config: &CaptureConfig) ->
 /// Delegates to [`compute_capture_registers`] and converts to pairs.
 /// The order matches the decompiled `SetCaptureParameters` function.
 ///
-/// Pcap Phase 7 example (Logic Pro 8, all channels, 12.5 MSa/s analog+digital):
+/// Pcap Config 1 (Logic Pro 8, 6.25 MHz dig + 1.5625 MHz ana, 8+8, USB 2.0):
 /// ```text
 /// r0x00=0x00  r0x08=0xff  r0x06=0xff  r0x0a=0x20
 /// r0x0b=0x10  r0x0c=0x00  r0x1a=0x00  r0x0d=0x18
@@ -835,44 +835,84 @@ pub fn build_capture_register_pairs(config: &CaptureConfig) -> Vec<(u8, u8)> {
     compute_capture_registers(config).to_register_pairs()
 }
 
-/// Compute analog/digital mix ratios for GPIF interleaving.
+/// Compute mix ratios via the DeviceCalculateMixRate algorithm.
 ///
-/// The mix ratios tell the FPGA how many 32-bit GPIF words belong to
-/// analog data vs digital data in each interleave cycle.
+/// Returns (mix_ratio_a, mix_ratio_b, digital_ratio).
 ///
-/// For Pro devices with 32-bit GPIF and 12-bit ADC:
-///   mix_ratio_a = analog GPIF words per cycle
-///               = (analog_channel_bytes * num_analog) / packet_size
-///   mix_ratio_b = digital GPIF words per cycle
-///               = (digital_ratio * packet_size * num_digital) / packet_size
-///               = digital_ratio * num_digital
+/// For Pro 8: analog_bytes=8, samples_per_group=3, gpif_width=32.
 ///
-/// Validated against pcap for Logic Pro 8 (all 8 channels, 12.5 MSa/s):
-///   mix_ratio_a = (12 * 8) / 4 = 24 = 0x18
-///   mix_ratio_b = 1 * 8 = 8 = 0x08
-fn compute_mix_ratios(
+/// Algorithm:
+/// - Digital-only (analogRate==0): r0x0d=0, r0x0e=numDigital*1
+/// - Analog-only (digitalRate==0): r0x0d=3*numAnalog*1, r0x0e=0
+/// - Mixed:
+///   dig_reduced = digitalRate / gpif_width (32)
+///   ana_reduced = analogRate / analog_bytes (8)
+///   g = GCD(dig_reduced, ana_reduced)
+///   dig_quotient = dig_reduced / g
+///   ana_quotient = ana_reduced / g
+///   r0x0d = samples_per_group * numAnalog * ana_quotient
+///   r0x0e = numDigital * dig_quotient
+///
+/// Validated against all 6 pcap configs.
+fn compute_mix_ratios_full(
+    config: &CaptureConfig,
     analog_count: u32,
     digital_count: u32,
-    digital_ratio: u32,
-    is_pro: bool,
-) -> (u8, u8) {
-    if !is_pro {
-        // Non-Pro (16-bit GPIF, 12-bit ADC): packet_size=2, analog_group_size=4
-        // analog_channel_bytes = 3 * 4 / 2 = 6
-        let analog_channel_bytes = 6u32;
-        let packet_size = 2u32;
-        let a = ((analog_channel_bytes * analog_count) / packet_size.max(1)).min(0xFF) as u8;
-        let b = (digital_ratio * digital_count).min(0xFF) as u8;
-        return (a, b);
+) -> (u8, u8, u32) {
+    let digital_rate = if digital_count > 0 {
+        config.sample_rate
+    } else {
+        0
+    };
+    let analog_rate = if analog_count > 0 {
+        config.effective_analog_rate()
+    } else {
+        0
+    };
+
+    if analog_rate == 0 && digital_rate == 0 {
+        return (0, 0, 1);
     }
 
-    // Pro (32-bit GPIF, 12-bit ADC): packet_size=4, analog_group_size=8
-    // analog_channel_bytes = 3 * 8 / 2 = 12
-    let analog_channel_bytes = 12u32;
-    let packet_size = 4u32;
-    let a = ((analog_channel_bytes * analog_count) / packet_size.max(1)).min(0xFF) as u8;
-    let b = (digital_ratio * digital_count).min(0xFF) as u8;
-    (a, b)
+    if !config.is_pro {
+        // Non-Pro: simplified path (not fully validated, keep old behavior).
+        let analog_channel_bytes = 6u32;
+        let packet_size = 2u32;
+        if analog_rate == 0 {
+            return (0, digital_count.min(0xFF) as u8, 1);
+        }
+        if digital_rate == 0 {
+            let a = ((analog_channel_bytes * analog_count) / packet_size.max(1)).min(0xFF) as u8;
+            return (a, 0, 1);
+        }
+        let a = ((analog_channel_bytes * analog_count) / packet_size.max(1)).min(0xFF) as u8;
+        let b = digital_count.min(0xFF) as u8;
+        return (a, b, 1);
+    }
+
+    // Pro device: full DeviceCalculateMixRate algorithm
+    if analog_rate == 0 {
+        // Digital-only: dig_quotient=1, ana_quotient=0
+        let b = digital_count.min(0xFF) as u8;
+        return (0, b, 1);
+    }
+
+    if digital_rate == 0 {
+        // Analog-only: dig_quotient=0, ana_quotient=1
+        let a = (PRO_SAMPLES_PER_GROUP * analog_count).min(0xFF) as u8;
+        return (a, 0, 1);
+    }
+
+    // Mixed mode
+    let dig_reduced = digital_rate / PRO_GPIF_WIDTH; // digitalRate / 32
+    let ana_reduced = analog_rate / PRO_ANALOG_BYTES; // analogRate / 8
+    let g = gcd(dig_reduced, ana_reduced);
+    let dig_quotient = (dig_reduced / g) as u32;
+    let ana_quotient = (ana_reduced / g) as u32;
+
+    let a = (PRO_SAMPLES_PER_GROUP * analog_count * ana_quotient).min(0xFF) as u8;
+    let b = (digital_count * dig_quotient).min(0xFF) as u8;
+    (a, b, dig_quotient)
 }
 
 // ---------------------------------------------------------------------------
@@ -885,7 +925,7 @@ fn compute_mix_ratios(
 /// during `SetCaptureParameters`. The struct makes the register semantics
 /// explicit and enables unit testing without constructing raw byte pairs.
 ///
-/// # Pcap reference (Logic Pro 8, 12.5 MSa/s, 8 digital + 8 analog)
+/// # Pcap reference (Logic Pro 8, 6.25 MHz dig + 1.5625 MHz ana, 8+8, USB 2.0)
 ///
 /// ```text
 /// r0x00=0x00  r0x08=0xff  r0x06=0xff  r0x0a=0x20
@@ -896,29 +936,29 @@ fn compute_mix_ratios(
 pub struct CaptureRegisters {
     /// r0x00: capture init, always 0x00 during configuration.
     pub capture_init: u8,
-    /// r0x08: digital channel enable bitmask (bit N = channel N enabled).
+    /// r0x06: digital channel enable bitmask (bit N = channel N enabled).
     pub digital_ch_enable_lo: u8,
-    /// r0x09: digital channel enable high byte (16-channel devices only).
+    /// r0x07: digital channel enable high byte (16-channel devices only).
     pub digital_ch_enable_hi: Option<u8>,
-    /// r0x06: analog channel enable bitmask (bit N = channel N enabled).
+    /// r0x08: analog channel enable bitmask (bit N = channel N enabled).
     pub analog_ch_enable_lo: u8,
-    /// r0x07: analog channel enable high byte (16-channel devices only).
+    /// r0x09: analog channel enable high byte (16-channel devices only).
     pub analog_ch_enable_hi: Option<u8>,
     /// r0x0a: analog decimation factor low byte.
     ///
-    /// For Pro devices with 4x interleaved ADC:
-    ///   analog_decimation = (base_analog_rate * 4) / sample_rate
+    /// Formula: 50_000_000 / analog_rate (with {1,2,3} off-by-one adjust).
     pub analog_decimation: u8,
     /// r0x0b: digital sample rate divider low byte.
     ///
-    /// For Pro devices: digital_divider = fpga_master_clock / sample_rate
-    /// where fpga_master_clock = 200 MHz.
+    /// For Pro devices: digital_divider = (500M / sample_rate) / 5
+    /// with special case: raw_divider==1 maps to 0 before /5.
     pub digital_divider_lo: u8,
     /// r0x0c: digital sample rate divider high byte.
     pub digital_divider_hi: u8,
     /// r0x1a: ADC configuration (Pro devices only).
     ///
-    /// 0 = 4x interleaved, 1 = standard, absent for non-Pro.
+    /// Based on raw 500M/digitalRate divider:
+    /// 0 = default, 1 = 250 MHz (raw_div=2), 2 = 125 MHz (raw_div=4).
     pub adc_config: Option<u8>,
     /// r0x1b: upper analog decimation (board rev 1 only).
     pub analog_dec_upper: Option<u8>,
@@ -930,19 +970,21 @@ pub struct CaptureRegisters {
     ///
     /// = digital_ratio * num_digital_channels
     pub mix_ratio_b: u8,
-    /// r0x12: ADC type / capture config.
+    /// r0x12: Capture mode register.
     ///
-    /// Board rev 0-1 (Xilinx, AD9637): 0x02
-    /// Board rev 3+ (Lattice): 0x01
+    /// 0x01 = analog-only, 0x02 = USB 2.0 mixed, 0x04 = USB 3.0 digital/mixed.
     pub capture_config_2: u8,
     /// r0x13: capture control flags.
     ///
     /// Board rev 2+: 0x01 (capture enabled), rev 0-1: 0x00.
     pub capture_control: u8,
-    /// r0x14: GPIF bus width config.
+    /// r0x14: Decimation/bandwidth factor.
     ///
-    /// 0x10 = 32-bit GPIF (Pro 8/16), 0x08 = 16-bit GPIF (Logic 4/8).
-    pub gpif_bus_width: u8,
+    /// Computed from total capture bandwidth:
+    ///   T = numDigital * digitalRate + numAnalog * analogRate * 12
+    ///   result = min(255, ceil(3_200_000_000 / T))
+    /// Tells the FPGA how to pace data output relative to USB bandwidth.
+    pub decimation_factor: u8,
 
     // Derived values (not written to registers, but needed for disaggregator).
     /// Digital-to-analog sample ratio (digital packets per cycle).
@@ -962,15 +1004,20 @@ pub struct CaptureRegisters {
 /// FPGA master clock frequency in Hz for Logic Pro 8/16.
 ///
 /// Used to compute the digital sample rate divider (r0x0b/r0x0c).
-/// Derived from pcap: 200 MHz / 12.5 MSa/s = 16 = 0x10 (matches pcap r0x0b).
-pub const PRO_FPGA_MASTER_CLOCK_HZ: u64 = 200_000_000;
+/// The actual device stores 500 MHz at DeviceSettings offset 0x194.
+/// The divider formula is: (500M / digitalRate) / 5, with a special
+/// case that raw_divider==1 maps to 0 before the /5 step.
+pub const PRO_FPGA_MASTER_CLOCK_HZ: u64 = 500_000_000;
 
-/// ADC interleave factor for Pro devices when analog decimation > 1.
+/// Pro 8 device constants for DeviceCalculateMixRate.
 ///
-/// The AD9637 ADC runs at 4x the sample rate in interleaved mode.
-/// This factor is applied to base_analog_rate when computing analog_decimation.
-/// Validated: (100 MHz * 4) / 12.5 MSa/s = 32 = 0x20 (matches pcap r0x0a).
-const ADC_4X_INTERLEAVE_FACTOR: u64 = 4;
+/// For GPIF width 32 and ADC bits 12 (AD9637):
+///   analog_bytes = 8 (from the (gpif, adc) lookup table)
+///   samples_per_group = 3
+///   gpif_width = 32
+const PRO_ANALOG_BYTES: u64 = 8;
+const PRO_SAMPLES_PER_GROUP: u32 = 3;
+const PRO_GPIF_WIDTH: u64 = 32;
 
 impl CaptureRegisters {
     /// Convert to a vector of (addr, value) pairs suitable for WriteRegisters.
@@ -980,19 +1027,21 @@ impl CaptureRegisters {
         let mut pairs = Vec::with_capacity(15);
 
         pairs.push((fpga_regs::FEAT_CAPTURE_INIT, self.capture_init));
-        pairs.push((
-            fpga_regs::FEAT_DIGITAL_CH_ENABLE_LO,
-            self.digital_ch_enable_lo,
-        ));
-        if let Some(hi) = self.digital_ch_enable_hi {
-            pairs.push((fpga_regs::FEAT_DIGITAL_CH_ENABLE_HI, hi));
-        }
+        // Pcap wire order: analog mask (0x08) before digital mask (0x06).
+        // This matches the decompiled SetCaptureParameters register sequence.
         pairs.push((
             fpga_regs::FEAT_ANALOG_CH_ENABLE_LO,
             self.analog_ch_enable_lo,
         ));
         if let Some(hi) = self.analog_ch_enable_hi {
             pairs.push((fpga_regs::FEAT_ANALOG_CH_ENABLE_HI, hi));
+        }
+        pairs.push((
+            fpga_regs::FEAT_DIGITAL_CH_ENABLE_LO,
+            self.digital_ch_enable_lo,
+        ));
+        if let Some(hi) = self.digital_ch_enable_hi {
+            pairs.push((fpga_regs::FEAT_DIGITAL_CH_ENABLE_HI, hi));
         }
         pairs.push((fpga_regs::FEAT_ANALOG_DECIMATION, self.analog_decimation));
         pairs.push((fpga_regs::FEAT_DIGITAL_DIVIDER_LO, self.digital_divider_lo));
@@ -1007,7 +1056,7 @@ impl CaptureRegisters {
         pairs.push((fpga_regs::FEAT_MIX_RATIO_B, self.mix_ratio_b));
         pairs.push((fpga_regs::FEAT_CAPTURE_CONFIG_2, self.capture_config_2));
         pairs.push((fpga_regs::FEAT_CAPTURE_CONTROL, self.capture_control));
-        pairs.push((fpga_regs::FEAT_DECIMATION_FACTOR, self.gpif_bus_width));
+        pairs.push((fpga_regs::FEAT_DECIMATION_FACTOR, self.decimation_factor));
 
         pairs
     }
@@ -1020,32 +1069,19 @@ impl CaptureRegisters {
 /// then be converted to register pairs via [`CaptureRegisters::to_register_pairs`].
 ///
 /// The register formulas are derived from decompiled `SetCaptureParameters`
-/// (ELF 0x1c24ca0) and validated against the single known pcap reference
-/// (Logic Pro 8, 12.5 MSa/s, all channels).
+/// (ELF 0x1c24ca0) and validated against 6 pcap configurations covering
+/// digital-only, analog-only, and mixed modes at various rates.
+/// See `re/notes/capture-register-formulas.md` for the complete analysis.
 ///
-/// # Non-equal sample rates
+/// # Key formulas (Logic Pro 8)
 ///
-/// When `config.analog_sample_rate` is set, `analog_decimation` is computed
-/// from the analog rate and `digital_divider` from the digital rate. The
-/// `digital_ratio` (digital groups per analog group) is derived from the
-/// GCD of the effective rates, matching the `DeviceCalculateMixRate`
-/// algorithm from `re/notes/device-helpers.md`.
-///
-/// **Non-equal rate register values are NOT yet hardware-validated.**
-///
-/// # Pcap validation
-///
-/// For the reference config (12.5 MSa/s both, 8 digital + 8 analog, Pro 8):
-/// - analog_decimation = (100 MHz * 4) / 12.5 MHz = 32 = 0x20
-/// - digital_divider = 200 MHz / 12.5 MHz = 16 = 0x10
-/// - mix_ratio_a = (12 * 8) / 4 = 24 = 0x18
-/// - mix_ratio_b = 1 * 8 = 8 = 0x08
-/// - gpif_bus_width = 0x10 (32-bit GPIF)
-///
-/// # Warnings
-///
-/// Logs a warning for sample rate / channel combinations that have not
-/// been hardware-validated.
+/// - analog_decimation (r0x0a) = 50M / analogRate
+/// - digital_divider (r0x0b:0c) = (500M / digitalRate) / 5
+/// - decimation_factor (r0x14) = min(255, ceil(3.2G / T))
+///   where T = numDig * digRate + numAna * anaRate * 12
+/// - mix ratio via DeviceCalculateMixRate with GCD-based quotients
+/// - adc_config (r0x1a) from raw 500M/digitalRate divider
+/// - mode (r0x12) from capture mode + USB speed
 pub fn compute_capture_registers(config: &CaptureConfig) -> CaptureRegisters {
     let analog_count = config.analog_channels.len() as u32;
     let digital_count = config.digital_channels.len() as u32;
@@ -1061,121 +1097,98 @@ pub fn compute_capture_registers(config: &CaptureConfig) -> CaptureRegisters {
     }
 
     // GPIF bus width: Pro devices use 32-bit, non-Pro use 16-bit.
-    let (gpif_packet_size, gpif_bus_width_reg, analog_group_size): (u32, u8, u32) = if config.is_pro
-    {
-        (4, 0x10, 8)
-    } else {
-        (2, 0x08, 4)
-    };
+    let (gpif_packet_size, analog_group_size): (u32, u32) =
+        if config.is_pro { (4, 8) } else { (2, 4) };
 
-    // Analog decimation.
-    // For Pro devices with ADC in 4x interleaved mode:
-    //   analog_decimation = (base_analog_rate * 4) / analog_sample_rate
-    // Validated: (100 MHz * 4) / 12.5 MHz = 32 = 0x20 (matches pcap r0x0a).
-    //
-    // When analog_sample_rate differs from sample_rate, the FPGA's analog
-    // clock divider runs at the analog rate while the digital divider runs
-    // at the digital rate. This produces a non-unity digital_ratio below.
-    //
-    // NOT YET HARDWARE-VALIDATED for non-equal rates. The formula is the
-    // same as equal-rate mode (from SetCaptureParameters decompilation).
+    // --- Analog decimation (r0x0a) ---
+    // Formula: 50_000_000 / analog_rate (integer division)
+    // With subtraction for values 1-3 to handle FPGA off-by-one.
+    // For digital-only (no analog), result is 0.
     let analog_rate = config.effective_analog_rate();
-    let analog_decimation: u16 = if analog_count > 0 && config.base_analog_rate > 0 {
-        let effective_analog_clock = if config.is_pro {
-            config.base_analog_rate * ADC_4X_INTERLEAVE_FACTOR
+    let analog_decimation: u16 = if analog_count > 0 && analog_rate > 0 {
+        let analog_clock = 50_000_000u64; // Analog FPGA clock is always 50 MHz
+        let raw = (analog_clock / analog_rate) as u16;
+        // Decompiled: if raw in {1, 2, 3}, subtract 1
+        if (1..=3).contains(&raw) {
+            raw - 1
         } else {
-            config.base_analog_rate
-        };
-        (effective_analog_clock / analog_rate.max(1)) as u16
+            raw
+        }
     } else {
         0
     };
 
-    // Digital divider: fpga_master_clock / sample_rate.
-    // For Pro 8: 200 MHz / 12.5 MHz = 16 = 0x10 (matches pcap r0x0b).
-    // For non-Pro: divider = rate_ratio - 1 (from decompilation).
-    let fpga_clock = if config.is_pro {
-        PRO_FPGA_MASTER_CLOCK_HZ
-    } else {
-        config.base_digital_rate
-    };
-    let digital_divider: u16 = if config.sample_rate > 0 {
-        let ratio = (fpga_clock / config.sample_rate) as u16;
+    // --- Digital divider (r0x0b:r0x0c) ---
+    // For Pro devices: raw_divider = 500M / digitalRate
+    // Special case: raw_divider == 1 maps to 0
+    // Then divide by 5 (the Pro /5 step).
+    // Effective formula: (500M / rate) / 5 for most rates.
+    let digital_divider: u16 = if digital_count > 0 && config.sample_rate > 0 {
         if config.is_pro {
-            ratio
+            let mut raw = (PRO_FPGA_MASTER_CLOCK_HZ / config.sample_rate) as u16;
+            if raw == 1 {
+                raw = 0; // special case: 500 MHz rate
+            }
+            raw / 5 // Pro /5 step
         } else {
+            let ratio = (config.base_digital_rate / config.sample_rate) as u16;
             ratio.saturating_sub(1)
         }
     } else {
         0
     };
 
-    // Digital ratio: how many digital packet groups per analog group.
-    //
-    // This is the key value that changes with non-equal sample rates.
-    // For equal digital/analog rate: ratio = 1.
-    // For digital=2x analog (e.g. 25 MHz digital, 12.5 MHz analog): ratio = 2.
-    // Digital-only: ratio = 1.
-    //
-    // Algorithm: compute effective digital and analog rates from the FPGA
-    // dividers, then find the integer ratio via GCD.
-    //
-    //   digital_rate = fpga_clock / digital_divider
-    //   analog_rate  = effective_analog_clock / analog_decimation
-    //   digital_ratio = digital_rate / analog_rate (reduced via GCD)
-    //
-    // Pcap reference (12.5 MSa/s both): 200/16 = 12.5, 400/32 = 12.5 -> ratio 1.
-    //
-    // NOT YET HARDWARE-VALIDATED for non-equal rates. The GCD-based ratio
-    // computation matches the DeviceCalculateMixRate decompilation (see
-    // re/notes/device-helpers.md), which takes separate digital and analog
-    // sample rates as parameters.
-    let digital_ratio: u32 = if analog_count > 0 && digital_count > 0 {
-        let analog_dec = analog_decimation as u32;
-        let digital_div = digital_divider as u32;
-        if analog_dec > 0 && digital_div > 0 {
-            let d_rate = fpga_clock / digital_divider.max(1) as u64;
-            let a_rate = if config.is_pro {
-                (config.base_analog_rate * ADC_4X_INTERLEAVE_FACTOR)
-                    / analog_decimation.max(1) as u64
-            } else {
-                config.base_analog_rate / analog_decimation.max(1) as u64
-            };
-            if a_rate > 0 {
-                let g = gcd(d_rate, a_rate);
-                (d_rate / g) as u32
-            } else {
-                1
-            }
-        } else {
-            1
-        }
-    } else {
-        1
-    };
-
-    // Mix ratios (GPIF words per cycle for analog and digital).
-    let (mix_ratio_a, mix_ratio_b) = if analog_count > 0 && digital_count > 0 {
-        compute_mix_ratios(analog_count, digital_count, digital_ratio, config.is_pro)
-    } else if analog_count > 0 {
-        // Analog-only: all GPIF bandwidth for analog.
-        let analog_channel_bytes = if config.is_pro { 12u32 } else { 6u32 };
-        let a = ((analog_channel_bytes * analog_count) / gpif_packet_size).min(0xFF) as u8;
-        (a, 0x00)
-    } else {
-        // Digital-only: all GPIF bandwidth for digital.
-        (0x00, (digital_ratio * digital_count).min(0xFF) as u8)
-    };
-
-    // ADC config (0x1A): only for Pro/JESD devices.
+    // --- ADC config (r0x1a) ---
+    // Based on raw digital divider BEFORE the /5 step.
+    // raw_divider == 2 (250 MHz) -> 1
+    // raw_divider == 4 (125 MHz) -> 2
+    // everything else -> 0
     let adc_config: Option<u8> = if config.is_pro {
-        Some(match analog_decimation {
-            0 | 1 => 0, // 4x interleaved or no analog
-            2 => 1,     // standard
-            _ => 0,     // 4x interleaved (most common for Pro)
+        let raw_divider = if digital_count > 0 && config.sample_rate > 0 {
+            (PRO_FPGA_MASTER_CLOCK_HZ / config.sample_rate) as u16
+        } else {
+            0
+        };
+        Some(match raw_divider {
+            2 => 1, // 250 MHz digital rate
+            4 => 2, // 125 MHz digital rate
+            _ => 0,
         })
     } else {
         None
+    };
+
+    // --- Mix ratios (r0x0d:r0x0e) via DeviceCalculateMixRate ---
+    // For Pro 8: analog_bytes=8, samples_per_group=3, gpif_width=32
+    let (mix_ratio_a, mix_ratio_b, digital_ratio) =
+        compute_mix_ratios_full(config, analog_count, digital_count);
+
+    // --- Decimation factor (r0x14) ---
+    // T = numDigital * digitalRate + numAnalog * analogRate * 12
+    // result = min(255, ceil(3_200_000_000 / T))
+    let decimation_factor: u8 = {
+        let dig_bw = digital_count as u64 * config.sample_rate;
+        let ana_bw = analog_count as u64 * analog_rate * 12; // 12 = ADC bits (AD9637)
+        let t = dig_bw + ana_bw;
+        if t == 0 {
+            0xFF
+        } else {
+            // ceil(3_200_000_000 / T) = (3_200_000_000 + T - 1) / T
+            let factor = 3_200_000_000u64.div_ceil(t);
+            factor.min(255) as u8
+        }
+    };
+
+    // --- Capture mode (r0x12) ---
+    // analog-only -> 0x01
+    // USB 2.0 mixed -> 0x02
+    // USB 3.0 digital or mixed -> 0x04
+    let capture_config_2: u8 = if analog_count > 0 && digital_count == 0 {
+        0x01 // analog-only
+    } else if config.usb_speed == UsbSpeed::High {
+        0x02 // USB 2.0 mixed/digital
+    } else {
+        0x04 // USB 3.0 digital or mixed
     };
 
     // Upper analog decimation (board rev 1 only).
@@ -1192,13 +1205,6 @@ pub fn compute_capture_registers(config: &CaptureConfig) -> CaptureRegisters {
         0x00
     };
 
-    // Capture config 2 (0x12): ADC type selection.
-    let capture_config_2: u8 = if config.board_revision <= 1 {
-        0x02 // AD9637 = index 1, value = 1 << 1
-    } else {
-        0x01
-    };
-
     // Low-speed divider: determines ContractReadData decimation.
     //
     // Decompiled from `LogicDevice::StartSampling` (ELF VA 0x1c3ad40):
@@ -1208,35 +1214,26 @@ pub fn compute_capture_registers(config: &CaptureConfig) -> CaptureRegisters {
     //     100 kSa/s -> divider=2
     //   - >= 200 kSa/s: divider=1 (no contraction)
     //
-    // The non-Pro path uses a 48 MHz FPGA clock; the Pro path uses 200 MHz.
-    // Pro devices at their typical sample rates (>= 1 MSa/s) always use
-    // divider=1. The low-speed divider is primarily relevant for non-Pro
-    // digital-only captures at very low sample rates.
-    //
     // See `re/notes/gpif-width-selection.md` for full decompilation.
     let (low_speed_divider_selector, low_speed_divider): (u8, u32) =
         compute_low_speed_divider(config.sample_rate);
 
     // Warn for unvalidated configurations.
-    let is_pcap_reference = config.sample_rate == 12_500_000
-        && analog_rate == 12_500_000
+    // Config 1 from formulas doc: 6.25 MHz dig / 1.5625 MHz ana, 8+8, USB 2.0
+    let is_pcap_reference = config.sample_rate == 6_250_000
+        && analog_rate == 1_562_500
         && digital_count == 8
         && analog_count == 8
         && config.is_pro
         && config.total_device_channels == 8;
 
     if !is_pcap_reference {
-        let non_equal_note = if config.analog_sample_rate.is_some() {
-            " (NON-EQUAL RATES: needs hardware validation)"
-        } else {
-            ""
-        };
         warn!(
             digital_sample_rate = config.sample_rate,
             analog_sample_rate = analog_rate,
             digital = digital_count,
             analog = analog_count,
-            "Capture register values not hardware-validated for this configuration{non_equal_note}"
+            "Capture register values computed (verify against pcap if available)"
         );
     }
 
@@ -1263,7 +1260,7 @@ pub fn compute_capture_registers(config: &CaptureConfig) -> CaptureRegisters {
         mix_ratio_b,
         capture_config_2,
         capture_control,
-        gpif_bus_width: gpif_bus_width_reg,
+        decimation_factor,
         digital_ratio,
         low_speed_divider_selector,
         low_speed_divider,
@@ -2571,10 +2568,11 @@ mod tests {
 
     #[test]
     fn register_pairs_pcap_validation() {
-        // Validate against pcap Phase 7: Logic Pro 8, all 8 channels,
-        // 12.5 MSa/s mixed. Expected register values from pcap.
+        // Validate against pcap Config 1: Logic Pro 8, all 8 channels,
+        // 6.25 MHz dig + 1.5625 MHz ana, USB 2.0.
         let config = CaptureConfig {
-            sample_rate: 12_500_000,
+            sample_rate: 6_250_000,
+            analog_sample_rate: Some(1_562_500),
             digital_channels: vec![0, 1, 2, 3, 4, 5, 6, 7],
             analog_channels: vec![0, 1, 2, 3, 4, 5, 6, 7],
             total_device_channels: 8,
@@ -2582,6 +2580,7 @@ mod tests {
             is_pro: true,
             base_digital_rate: 500_000_000,
             base_analog_rate: 100_000_000,
+            usb_speed: UsbSpeed::High,
             ..CaptureConfig::default()
         };
         let pairs = build_capture_register_pairs(&config);
@@ -2589,9 +2588,9 @@ mod tests {
         // Check key register values from pcap
         let find = |addr: u8| pairs.iter().find(|&&(a, _)| a == addr).map(|&(_, v)| v);
         assert_eq!(find(0x00), Some(0x00), "CAPTURE_INIT");
-        assert_eq!(find(0x08), Some(0xff), "DIGITAL_CH_ENABLE_LO");
-        assert_eq!(find(0x06), Some(0xff), "ANALOG_CH_ENABLE_LO");
-        assert_eq!(find(0x12), Some(0x02), "CAPTURE_CONFIG_2 (AD9637)");
+        assert_eq!(find(0x08), Some(0xff), "ANALOG_CH_ENABLE_LO (0x08)");
+        assert_eq!(find(0x06), Some(0xff), "DIGITAL_CH_ENABLE_LO (0x06)");
+        assert_eq!(find(0x12), Some(0x02), "CAPTURE_CONFIG_2 (USB 2.0 mixed)");
     }
 
     // -------------------------------------------------------------------
@@ -2600,11 +2599,16 @@ mod tests {
 
     #[test]
     fn capture_registers_pcap_exact_match() {
-        // The single known pcap reference: Logic Pro 8, 12.5 MSa/s,
-        // all 8 digital + 8 analog channels. Every register value must
-        // match the pcap exactly.
+        // Pcap Config 1: Logic Pro 8, 6.25 MHz dig + 1.5625 MHz ana,
+        // all 8 digital + 8 analog channels, USB 2.0.
+        // Every register value must match the pcap exactly.
+        //
+        // Note: This was originally labeled "12.5 MHz" but back-computation
+        // from register values proves rates are 6.25 MHz / 1.5625 MHz.
+        // See re/notes/capture-register-formulas.md for derivation.
         let config = CaptureConfig {
-            sample_rate: 12_500_000,
+            sample_rate: 6_250_000,
+            analog_sample_rate: Some(1_562_500),
             digital_channels: (0..8).collect(),
             analog_channels: (0..8).collect(),
             total_device_channels: 8,
@@ -2612,31 +2616,32 @@ mod tests {
             is_pro: true,
             base_digital_rate: 500_000_000,
             base_analog_rate: 100_000_000,
+            usb_speed: UsbSpeed::High, // USB 2.0
             ..CaptureConfig::default()
         };
         let regs = compute_capture_registers(&config);
 
         assert_eq!(regs.capture_init, 0x00, "r0x00");
-        assert_eq!(regs.digital_ch_enable_lo, 0xff, "r0x08");
-        assert_eq!(regs.digital_ch_enable_hi, None, "no r0x09 for 8ch");
-        assert_eq!(regs.analog_ch_enable_lo, 0xff, "r0x06");
-        assert_eq!(regs.analog_ch_enable_hi, None, "no r0x07 for 8ch");
-        assert_eq!(regs.analog_decimation, 0x20, "r0x0a: analog decimation");
-        assert_eq!(regs.digital_divider_lo, 0x10, "r0x0b: digital divider lo");
-        assert_eq!(regs.digital_divider_hi, 0x00, "r0x0c: digital divider hi");
-        assert_eq!(regs.adc_config, Some(0x00), "r0x1a: ADC config");
+        assert_eq!(regs.digital_ch_enable_lo, 0xff, "r0x06: digital mask");
+        assert_eq!(regs.digital_ch_enable_hi, None, "no r0x07 for 8ch");
+        assert_eq!(regs.analog_ch_enable_lo, 0xff, "r0x08: analog mask");
+        assert_eq!(regs.analog_ch_enable_hi, None, "no r0x09 for 8ch");
+        assert_eq!(regs.analog_decimation, 0x20, "r0x0a: 50M/1.5625M = 32");
+        assert_eq!(regs.digital_divider_lo, 0x10, "r0x0b: (500M/6.25M)/5 = 16");
+        assert_eq!(regs.digital_divider_hi, 0x00, "r0x0c: divider hi");
+        assert_eq!(regs.adc_config, Some(0x00), "r0x1a: raw_div=80, default");
         assert_eq!(regs.analog_dec_upper, Some(0x00), "r0x1b: upper dec");
         assert_eq!(
             regs.mix_ratio_a, 0x18,
-            "r0x0d: mix ratio A (analog GPIF words)"
+            "r0x0d: 3*8*1=24 (mixed, GCD ratio 1:1)"
         );
         assert_eq!(
             regs.mix_ratio_b, 0x08,
-            "r0x0e: mix ratio B (digital GPIF words)"
+            "r0x0e: 8*1=8 (mixed, GCD ratio 1:1)"
         );
-        assert_eq!(regs.capture_config_2, 0x02, "r0x12: ADC type");
+        assert_eq!(regs.capture_config_2, 0x02, "r0x12: USB 2.0 mixed");
         assert_eq!(regs.capture_control, 0x00, "r0x13: capture control");
-        assert_eq!(regs.gpif_bus_width, 0x10, "r0x14: GPIF bus width");
+        assert_eq!(regs.decimation_factor, 0x10, "r0x14: ceil(3.2G/200M)=16");
 
         // Derived values.
         assert_eq!(regs.digital_ratio, 1, "digital_ratio");
@@ -2648,8 +2653,10 @@ mod tests {
     #[test]
     fn capture_registers_pcap_to_register_pairs() {
         // Verify to_register_pairs produces the exact pcap byte sequence.
+        // Config 1: 6.25 MHz dig + 1.5625 MHz ana, 8+8, USB 2.0.
         let config = CaptureConfig {
-            sample_rate: 12_500_000,
+            sample_rate: 6_250_000,
+            analog_sample_rate: Some(1_562_500),
             digital_channels: (0..8).collect(),
             analog_channels: (0..8).collect(),
             total_device_channels: 8,
@@ -2657,32 +2664,191 @@ mod tests {
             is_pro: true,
             base_digital_rate: 500_000_000,
             base_analog_rate: 100_000_000,
+            usb_speed: UsbSpeed::High,
             ..CaptureConfig::default()
         };
         let pairs = config.capture_registers().to_register_pairs();
         let expected: Vec<(u8, u8)> = vec![
-            (0x00, 0x00),
-            (0x08, 0xff),
-            (0x06, 0xff),
-            (0x0a, 0x20),
-            (0x0b, 0x10),
-            (0x0c, 0x00),
-            (0x1a, 0x00),
-            (0x1b, 0x00),
-            (0x0d, 0x18),
-            (0x0e, 0x08),
-            (0x12, 0x02),
-            (0x13, 0x00),
-            (0x14, 0x10),
+            (0x00, 0x00), // CAPTURE_INIT
+            (0x08, 0xff), // ANALOG_CH_ENABLE_LO
+            (0x06, 0xff), // DIGITAL_CH_ENABLE_LO
+            (0x0a, 0x20), // ANALOG_DECIMATION
+            (0x0b, 0x10), // DIGITAL_DIVIDER_LO
+            (0x0c, 0x00), // DIGITAL_DIVIDER_HI
+            (0x1a, 0x00), // ADC_CONFIG
+            (0x1b, 0x00), // ANALOG_DEC_UPPER
+            (0x0d, 0x18), // MIX_RATIO_A
+            (0x0e, 0x08), // MIX_RATIO_B
+            (0x12, 0x02), // CAPTURE_CONFIG_2 (USB 2.0 mixed)
+            (0x13, 0x00), // CAPTURE_CONTROL
+            (0x14, 0x10), // DECIMATION_FACTOR
         ];
         assert_eq!(pairs, expected);
+    }
+
+    #[test]
+    fn pcap_config2_digital_only_1mhz_8ch() {
+        // Pcap Config 2: Digital-only 1MHz 8ch (USB 3.0)
+        let config = CaptureConfig {
+            sample_rate: 1_000_000,
+            digital_channels: (0..8).collect(),
+            analog_channels: vec![],
+            total_device_channels: 8,
+            board_revision: 1,
+            is_pro: true,
+            base_digital_rate: 500_000_000,
+            base_analog_rate: 100_000_000,
+            usb_speed: UsbSpeed::Super,
+            ..CaptureConfig::default()
+        };
+        let regs = compute_capture_registers(&config);
+
+        assert_eq!(regs.capture_init, 0x00, "r0x00");
+        assert_eq!(regs.analog_ch_enable_lo, 0x00, "r0x08: no analog");
+        assert_eq!(regs.digital_ch_enable_lo, 0xff, "r0x06: all 8 digital");
+        assert_eq!(regs.analog_decimation, 0x00, "r0x0a: no analog");
+        assert_eq!(regs.digital_divider_lo, 0x64, "r0x0b: (500M/1M)/5=100");
+        assert_eq!(regs.digital_divider_hi, 0x00, "r0x0c");
+        assert_eq!(regs.adc_config, Some(0x00), "r0x1a: raw_div=500");
+        assert_eq!(regs.mix_ratio_a, 0x00, "r0x0d: no analog");
+        assert_eq!(regs.mix_ratio_b, 0x08, "r0x0e: 8*1=8");
+        assert_eq!(regs.capture_config_2, 0x04, "r0x12: USB3 digital");
+        assert_eq!(regs.capture_control, 0x00, "r0x13");
+        assert_eq!(regs.decimation_factor, 0xff, "r0x14: ceil(3.2G/8M)>255");
+    }
+
+    #[test]
+    fn pcap_config3_analog_only_1_5625mhz_2ch() {
+        // Pcap Config 3: Analog-only 1.5625MHz 2ch (USB 3.0)
+        let config = CaptureConfig {
+            sample_rate: 1_562_500, // digital rate used as fallback
+            analog_sample_rate: Some(1_562_500),
+            digital_channels: vec![],
+            analog_channels: vec![0, 1],
+            total_device_channels: 8,
+            board_revision: 1,
+            is_pro: true,
+            base_digital_rate: 500_000_000,
+            base_analog_rate: 100_000_000,
+            usb_speed: UsbSpeed::Super,
+            ..CaptureConfig::default()
+        };
+        let regs = compute_capture_registers(&config);
+
+        assert_eq!(regs.capture_init, 0x00, "r0x00");
+        assert_eq!(regs.analog_ch_enable_lo, 0x03, "r0x08: ch 0,1");
+        assert_eq!(regs.digital_ch_enable_lo, 0x00, "r0x06: no digital");
+        assert_eq!(regs.analog_decimation, 0x20, "r0x0a: 50M/1.5625M=32");
+        assert_eq!(regs.digital_divider_lo, 0x00, "r0x0b: no digital");
+        assert_eq!(regs.digital_divider_hi, 0x00, "r0x0c");
+        assert_eq!(regs.adc_config, Some(0x00), "r0x1a: no digital");
+        assert_eq!(regs.mix_ratio_a, 0x06, "r0x0d: 3*2*1=6");
+        assert_eq!(regs.mix_ratio_b, 0x00, "r0x0e: no digital");
+        assert_eq!(regs.capture_config_2, 0x01, "r0x12: analog-only");
+        assert_eq!(regs.capture_control, 0x00, "r0x13");
+        assert_eq!(regs.decimation_factor, 0x56, "r0x14: ceil(3.2G/37.5M)=86");
+    }
+
+    #[test]
+    fn pcap_config4_digital_only_50mhz_2ch() {
+        // Pcap Config 4: Digital-only 50MHz 2ch (USB 3.0)
+        let config = CaptureConfig {
+            sample_rate: 50_000_000,
+            digital_channels: vec![0, 1],
+            analog_channels: vec![],
+            total_device_channels: 8,
+            board_revision: 1,
+            is_pro: true,
+            base_digital_rate: 500_000_000,
+            base_analog_rate: 100_000_000,
+            usb_speed: UsbSpeed::Super,
+            ..CaptureConfig::default()
+        };
+        let regs = compute_capture_registers(&config);
+
+        assert_eq!(regs.capture_init, 0x00, "r0x00");
+        assert_eq!(regs.analog_ch_enable_lo, 0x00, "r0x08: no analog");
+        assert_eq!(regs.digital_ch_enable_lo, 0x03, "r0x06: ch 0,1");
+        assert_eq!(regs.analog_decimation, 0x00, "r0x0a: no analog");
+        assert_eq!(regs.digital_divider_lo, 0x02, "r0x0b: (500M/50M)/5=2");
+        assert_eq!(regs.digital_divider_hi, 0x00, "r0x0c");
+        assert_eq!(regs.adc_config, Some(0x00), "r0x1a: raw_div=10");
+        assert_eq!(regs.mix_ratio_a, 0x00, "r0x0d: no analog");
+        assert_eq!(regs.mix_ratio_b, 0x02, "r0x0e: 2*1=2");
+        assert_eq!(regs.capture_config_2, 0x04, "r0x12: USB3 digital");
+        assert_eq!(regs.capture_control, 0x00, "r0x13");
+        assert_eq!(regs.decimation_factor, 0x20, "r0x14: ceil(3.2G/100M)=32");
+    }
+
+    #[test]
+    fn pcap_config5_mixed_50mhz_12_5mhz_4d_2a() {
+        // Pcap Config 5: Mixed 50MHz/12.5MHz 4d+2a (USB 3.0)
+        let config = CaptureConfig {
+            sample_rate: 50_000_000,
+            analog_sample_rate: Some(12_500_000),
+            digital_channels: vec![0, 1, 2, 3],
+            analog_channels: vec![0, 1],
+            total_device_channels: 8,
+            board_revision: 1,
+            is_pro: true,
+            base_digital_rate: 500_000_000,
+            base_analog_rate: 100_000_000,
+            usb_speed: UsbSpeed::Super,
+            ..CaptureConfig::default()
+        };
+        let regs = compute_capture_registers(&config);
+
+        assert_eq!(regs.capture_init, 0x00, "r0x00");
+        assert_eq!(regs.analog_ch_enable_lo, 0x03, "r0x08: ch 0,1");
+        assert_eq!(regs.digital_ch_enable_lo, 0x0f, "r0x06: ch 0-3");
+        assert_eq!(regs.analog_decimation, 0x04, "r0x0a: 50M/12.5M=4");
+        assert_eq!(regs.digital_divider_lo, 0x02, "r0x0b: (500M/50M)/5=2");
+        assert_eq!(regs.digital_divider_hi, 0x00, "r0x0c");
+        assert_eq!(regs.adc_config, Some(0x00), "r0x1a: raw_div=10");
+        assert_eq!(regs.mix_ratio_a, 0x06, "r0x0d: 3*2*1=6");
+        assert_eq!(regs.mix_ratio_b, 0x04, "r0x0e: 4*1=4");
+        assert_eq!(regs.capture_config_2, 0x04, "r0x12: USB3 mixed");
+        assert_eq!(regs.capture_control, 0x00, "r0x13");
+        assert_eq!(regs.decimation_factor, 0x07, "r0x14: ceil(3.2G/500M)=7");
+    }
+
+    #[test]
+    fn pcap_config6_mixed_250mhz_6_25mhz_4d_2a() {
+        // Pcap Config 6: Mixed 250MHz/6.25MHz 4d+2a (USB 3.0)
+        let config = CaptureConfig {
+            sample_rate: 250_000_000,
+            analog_sample_rate: Some(6_250_000),
+            digital_channels: vec![0, 1, 2, 3],
+            analog_channels: vec![0, 1],
+            total_device_channels: 8,
+            board_revision: 1,
+            is_pro: true,
+            base_digital_rate: 500_000_000,
+            base_analog_rate: 100_000_000,
+            usb_speed: UsbSpeed::Super,
+            ..CaptureConfig::default()
+        };
+        let regs = compute_capture_registers(&config);
+
+        assert_eq!(regs.capture_init, 0x00, "r0x00");
+        assert_eq!(regs.analog_ch_enable_lo, 0x03, "r0x08: ch 0,1");
+        assert_eq!(regs.digital_ch_enable_lo, 0x0f, "r0x06: ch 0-3");
+        assert_eq!(regs.analog_decimation, 0x08, "r0x0a: 50M/6.25M=8");
+        assert_eq!(regs.digital_divider_lo, 0x00, "r0x0b: (500M/250M)/5=0");
+        assert_eq!(regs.digital_divider_hi, 0x00, "r0x0c");
+        assert_eq!(regs.adc_config, Some(0x01), "r0x1a: raw_div=2 -> 1");
+        assert_eq!(regs.mix_ratio_a, 0x06, "r0x0d: 3*2*1=6");
+        assert_eq!(regs.mix_ratio_b, 0x28, "r0x0e: 4*10=40");
+        assert_eq!(regs.capture_config_2, 0x04, "r0x12: USB3 mixed");
+        assert_eq!(regs.capture_control, 0x00, "r0x13");
+        assert_eq!(regs.decimation_factor, 0x03, "r0x14: ceil(3.2G/1.15G)=3");
     }
 
     #[test]
     fn capture_registers_digital_only() {
         // Digital-only mode: all 8 digital, no analog.
         let config = CaptureConfig {
-            sample_rate: 12_500_000,
+            sample_rate: 1_000_000,
             digital_channels: (0..8).collect(),
             analog_channels: vec![],
             total_device_channels: 8,
@@ -2698,15 +2864,18 @@ mod tests {
         assert_eq!(regs.analog_ch_enable_lo, 0x00, "no analog channels");
         assert_eq!(regs.analog_decimation, 0x00, "no analog -> no decimation");
         assert_eq!(regs.mix_ratio_a, 0x00, "no analog -> mix_ratio_a = 0");
-        assert_eq!(regs.mix_ratio_b, 0x08, "digital GPIF words = 1 * 8 = 8");
+        assert_eq!(regs.mix_ratio_b, 0x08, "digital GPIF words = numDig*1 = 8");
         assert_eq!(regs.digital_ratio, 1);
+        assert_eq!(regs.capture_config_2, 0x04, "USB 3.0 digital");
     }
 
     #[test]
     fn capture_registers_channel_subset() {
         // Only channels 0-3 digital, channels 0,1 analog.
+        // Same rate for both: dig_reduced/ana_reduced -> GCD=1, quotients=1
         let config = CaptureConfig {
-            sample_rate: 12_500_000,
+            sample_rate: 50_000_000,
+            analog_sample_rate: Some(12_500_000),
             digital_channels: vec![0, 1, 2, 3],
             analog_channels: vec![0, 1],
             total_device_channels: 8,
@@ -2720,16 +2889,15 @@ mod tests {
 
         assert_eq!(regs.digital_ch_enable_lo, 0x0f, "channels 0-3 = 0x0f");
         assert_eq!(regs.analog_ch_enable_lo, 0x03, "channels 0,1 = 0x03");
-        // Mix ratio A = (12 * 2) / 4 = 6
-        assert_eq!(regs.mix_ratio_a, 6, "analog GPIF words = (12*2)/4 = 6");
-        // Mix ratio B = 1 * 4 = 4
-        assert_eq!(regs.mix_ratio_b, 4, "digital GPIF words = 1*4 = 4");
+        // dig_reduced=50M/32=1562500, ana_reduced=12.5M/8=1562500, GCD ratio 1:1
+        assert_eq!(regs.mix_ratio_a, 6, "r0x0d: 3*2*1=6");
+        assert_eq!(regs.mix_ratio_b, 4, "r0x0e: 4*1=4");
     }
 
     #[test]
     fn capture_registers_16ch_device() {
         let config = CaptureConfig {
-            sample_rate: 12_500_000,
+            sample_rate: 1_000_000,
             digital_channels: vec![0, 1, 8, 9],
             analog_channels: vec![0, 8],
             total_device_channels: 16,
@@ -2741,10 +2909,6 @@ mod tests {
         };
         let regs = compute_capture_registers(&config);
 
-        assert_eq!(
-            regs.digital_ch_enable_lo,
-            Some(0x03).map(|_| regs.digital_ch_enable_lo).unwrap()
-        );
         // Channels 0,1 -> lo byte = 0x03; channels 8,9 -> hi byte = 0x03
         assert_eq!(regs.digital_ch_enable_lo, 0x03);
         assert_eq!(regs.digital_ch_enable_hi, Some(0x03));
@@ -2758,10 +2922,12 @@ mod tests {
 
     #[test]
     fn disaggregator_pcap_reference() {
-        // The disaggregator for the pcap reference config must
-        // produce the same cycle structure as the hardcoded values.
+        // The disaggregator for the pcap reference config (6.25 MHz digital,
+        // 1.5625 MHz analog, 8+8 channels, USB 2.0) must produce the same
+        // cycle structure as the hardcoded values.
         let config = CaptureConfig {
-            sample_rate: 12_500_000,
+            sample_rate: 6_250_000,
+            analog_sample_rate: Some(1_562_500),
             digital_channels: (0..8).collect(),
             analog_channels: (0..8).collect(),
             total_device_channels: 8,
@@ -3686,65 +3852,64 @@ mod tests {
 
     #[test]
     fn registers_25mhz_digital_6_25mhz_analog() {
-        // Pro 8: 25 MHz digital, 6.25 MHz analog, all channels.
-        // NOT HARDWARE-VALIDATED.
+        // Pro 8: 25 MHz digital, 6.25 MHz analog, all 8+8.
         //
-        // Expected computation:
-        //   digital_divider = 200 MHz / 25 MHz = 8
-        //   analog_decimation = (100 MHz * 4) / 6.25 MHz = 64 = 0x40
-        //   d_rate = 200 / 8 = 25 MHz
-        //   a_rate = 400 / 64 = 6.25 MHz
-        //   digital_ratio = 25 / 6.25 = 4
-        //   mix_ratio_a = (12 * 8) / 4 = 24 = 0x18
-        //   mix_ratio_b = 4 * 8 = 32 = 0x20
+        // Expected computation (corrected formulas):
+        //   digital_divider = (500M / 25M) / 5 = 4
+        //   analog_decimation = 50M / 6.25M = 8
+        //   dig_reduced = 25M/32 = 781250
+        //   ana_reduced = 6.25M/8 = 781250
+        //   GCD ratio 1:1
+        //   mix_ratio_a = 3*8*1 = 24
+        //   mix_ratio_b = 8*1 = 8
         let config = CaptureConfig {
             analog_sample_rate: Some(6_250_000),
             ..CaptureConfig::pro8(25_000_000, (0..8).collect(), (0..8).collect())
         };
         let regs = compute_capture_registers(&config);
 
-        assert_eq!(regs.digital_divider_lo, 8, "200M / 25M = 8");
+        assert_eq!(regs.digital_divider_lo, 4, "(500M/25M)/5 = 4");
         assert_eq!(regs.digital_divider_hi, 0);
-        assert_eq!(regs.analog_decimation, 0x40, "(100M * 4) / 6.25M = 64");
-        assert_eq!(regs.digital_ratio, 4, "25M / 6.25M = 4");
-        assert_eq!(regs.mix_ratio_a, 0x18, "(12 * 8) / 4 = 24");
-        assert_eq!(regs.mix_ratio_b, 0x20, "4 * 8 = 32");
+        assert_eq!(regs.analog_decimation, 8, "50M / 6.25M = 8");
+        assert_eq!(regs.digital_ratio, 1, "GCD ratio 1:1");
+        assert_eq!(regs.mix_ratio_a, 24, "3*8*1 = 24");
+        assert_eq!(regs.mix_ratio_b, 8, "8*1 = 8");
     }
 
     #[test]
     fn registers_50mhz_digital_12_5mhz_analog() {
         // Pro 8: 50 MHz digital, 12.5 MHz analog, 4 digital + 2 analog.
-        // NOT HARDWARE-VALIDATED.
+        // This matches pcap Config 5 exactly.
         //
-        // Expected computation:
-        //   digital_divider = 200 MHz / 50 MHz = 4
-        //   analog_decimation = (100 MHz * 4) / 12.5 MHz = 32 = 0x20
-        //   d_rate = 200 / 4 = 50 MHz
-        //   a_rate = 400 / 32 = 12.5 MHz
-        //   digital_ratio = 50 / 12.5 = 4
-        //   mix_ratio_a = (12 * 2) / 4 = 6
-        //   mix_ratio_b = 4 * 4 = 16 = 0x10
+        // Expected computation (corrected formulas):
+        //   digital_divider = (500M / 50M) / 5 = 2
+        //   analog_decimation = 50M / 12.5M = 4
+        //   dig_reduced = 50M/32 = 1562500
+        //   ana_reduced = 12.5M/8 = 1562500
+        //   GCD ratio 1:1
+        //   mix_ratio_a = 3*2*1 = 6
+        //   mix_ratio_b = 4*1 = 4
         let config = CaptureConfig {
             analog_sample_rate: Some(12_500_000),
             ..CaptureConfig::pro8(50_000_000, vec![0, 1, 2, 3], vec![0, 1])
         };
         let regs = compute_capture_registers(&config);
 
-        assert_eq!(regs.digital_divider_lo, 4, "200M / 50M = 4");
-        assert_eq!(regs.analog_decimation, 0x20, "(100M * 4) / 12.5M = 32");
-        assert_eq!(regs.digital_ratio, 4, "50M / 12.5M = 4");
-        assert_eq!(regs.mix_ratio_a, 6, "(12 * 2) / 4 = 6");
-        assert_eq!(regs.mix_ratio_b, 16, "4 * 4 = 16");
+        assert_eq!(regs.digital_divider_lo, 2, "(500M/50M)/5 = 2");
+        assert_eq!(regs.analog_decimation, 4, "50M / 12.5M = 4");
+        assert_eq!(regs.digital_ratio, 1, "GCD ratio 1:1");
+        assert_eq!(regs.mix_ratio_a, 6, "3*2*1 = 6");
+        assert_eq!(regs.mix_ratio_b, 4, "4*1 = 4");
     }
 
     #[test]
     fn registers_equal_rate_same_as_no_override() {
         // Setting analog_sample_rate = Some(same_value) should produce
         // identical registers to not setting it.
-        let config_default = CaptureConfig::pro8(12_500_000, (0..8).collect(), (0..8).collect());
+        let config_default = CaptureConfig::pro8(1_000_000, (0..8).collect(), (0..8).collect());
         let config_explicit = CaptureConfig {
-            analog_sample_rate: Some(12_500_000),
-            ..CaptureConfig::pro8(12_500_000, (0..8).collect(), (0..8).collect())
+            analog_sample_rate: Some(1_000_000),
+            ..CaptureConfig::pro8(1_000_000, (0..8).collect(), (0..8).collect())
         };
 
         let regs_default = compute_capture_registers(&config_default);
@@ -3758,7 +3923,7 @@ mod tests {
         // When no analog channels are enabled, analog_sample_rate is irrelevant.
         let config = CaptureConfig {
             analog_sample_rate: Some(6_250_000),
-            ..CaptureConfig::pro8(25_000_000, (0..8).collect(), vec![])
+            ..CaptureConfig::pro8(1_000_000, (0..8).collect(), vec![])
         };
         let regs = compute_capture_registers(&config);
 
@@ -3768,23 +3933,30 @@ mod tests {
 
     #[test]
     fn registers_2x_rate_ratio() {
-        // Pro 8: 12.5 MHz digital, 6.25 MHz analog.
-        // digital_ratio should be 2.
+        // Pro 8: 12.5 MHz digital, 6.25 MHz analog, 4+4.
         //
-        //   digital_divider = 200 / 12.5 = 16
-        //   analog_decimation = 400 / 6.25 = 64
-        //   d_rate = 200 / 16 = 12.5
-        //   a_rate = 400 / 64 = 6.25
-        //   digital_ratio = 12.5 / 6.25 = 2
+        // New formulas:
+        //   digital_divider = (500M/12.5M)/5 = 8
+        //   analog_decimation = 50M/6.25M = 8
+        //   dig_reduced = 12.5M/32 = 390625
+        //   ana_reduced = 6.25M/8 = 781250
+        //   GCD = 390625, dig_q=1, ana_q=2
+        //   digital_ratio = 1 (dig_quotient)
+        //   mix_ratio_a = 3*4*2 = 24
+        //   mix_ratio_b = 4*1 = 4
         let config = CaptureConfig {
             analog_sample_rate: Some(6_250_000),
             ..CaptureConfig::pro8(12_500_000, (0..4).collect(), (0..4).collect())
         };
         let regs = compute_capture_registers(&config);
 
-        assert_eq!(regs.digital_divider_lo, 16);
-        assert_eq!(regs.analog_decimation, 64);
-        assert_eq!(regs.digital_ratio, 2, "12.5M / 6.25M = 2");
+        assert_eq!(regs.digital_divider_lo, 8, "(500M/12.5M)/5 = 8");
+        assert_eq!(regs.analog_decimation, 8, "50M/6.25M = 8");
+        // dig_reduced=390625, ana_reduced=781250, GCD=390625
+        // dig_q=1, ana_q=2
+        assert_eq!(regs.digital_ratio, 1, "dig_quotient = 1");
+        assert_eq!(regs.mix_ratio_a, 24, "3*4*2 = 24");
+        assert_eq!(regs.mix_ratio_b, 4, "4*1 = 4");
     }
 
     #[test]
@@ -3798,9 +3970,9 @@ mod tests {
 
         assert_eq!(disagg.num_digital(), 8);
         assert_eq!(disagg.num_analog(), 8);
-        // digital_ratio=4, so digital: 4*4*8=128 bytes, analog: 12*8=96 bytes
-        // total cycle = 224 bytes
-        assert_eq!(disagg.cycle_bytes(), 224);
+        // digital_ratio=1 (GCD-based), so digital: 1*4*8=32 bytes, analog: 12*8=96 bytes
+        // total cycle = 128 bytes
+        assert_eq!(disagg.cycle_bytes(), 128);
     }
 
     #[test]

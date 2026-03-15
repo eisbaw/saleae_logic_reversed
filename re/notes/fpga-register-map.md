@@ -453,18 +453,19 @@ Data constraint: `adc_data < 0x100` (8-bit ADC register values).
 | Reg | Name | Description |
 |-----|------|-------------|
 | 0x00 | CAPTURE_INIT | Initial register (written as 0). |
-| 0x06 | ANALOG_CH_ENABLE_LO | Analog channel enable mask, low byte. |
-| 0x07 | ANALOG_CH_ENABLE_HI | Analog channel enable mask, high byte (16ch devices). |
-| 0x08 | DIGITAL_CH_ENABLE_LO | Digital channel enable mask, low byte. |
-| 0x09 | DIGITAL_CH_ENABLE_HI | Digital channel enable mask, high byte (16ch devices). |
-| 0x0A | ANALOG_DECIMATION | Analog decimation factor, low byte. |
-| 0x0B | DIGITAL_DIVIDER_LO | Digital sample rate divider, low byte. |
-| 0x0C | DIGITAL_DIVIDER_HI | Digital sample rate divider, high byte. |
-| 0x0D | MIX_RATIO_A | Analog/digital mix ratio A. |
-| 0x0E | MIX_RATIO_B | Analog/digital mix ratio B. |
+| 0x06 | DIGITAL_CH_ENABLE_LO | Digital channel enable mask, low byte. |
+| 0x07 | DIGITAL_CH_ENABLE_HI | Digital channel enable mask, high byte (16ch devices). |
+| 0x08 | ANALOG_CH_ENABLE_LO | Analog channel enable mask, low byte. |
+| 0x09 | ANALOG_CH_ENABLE_HI | Analog channel enable mask, high byte (16ch devices). |
+| 0x0A | ANALOG_DECIMATION | Analog decimation factor: 50M / analogRate. |
+| 0x0B | DIGITAL_DIVIDER_LO | Digital divider low: (500M / digitalRate) / 5. |
+| 0x0C | DIGITAL_DIVIDER_HI | Digital divider high byte. |
+| 0x0D | MIX_RATIO_A | Analog mix value (samples_per_group * numAnalog * ana_quotient). |
+| 0x0E | MIX_RATIO_B | Digital mix value (numDigital * dig_quotient). |
+| 0x12 | CAPTURE_MODE | Capture mode: 0x01=analog-only, 0x02=USB2 mixed, 0x04=USB3 dig/mixed. |
 | 0x13 | CAPTURE_CONTROL | Capture control flags byte. |
-| 0x14 | DECIMATION_FACTOR | Computed decimation factor (max 0xFF). |
-| 0x1A | ADC_CONFIG | ADC configuration (Pro devices, JESD mode). |
+| 0x14 | DECIMATION_FACTOR | Bandwidth factor: min(0xFF, ceil(3.2G / T)). |
+| 0x1A | ADC_CONFIG | ADC config based on raw 500M/digitalRate divider. |
 | 0x1B | ANALOG_DEC_UPPER | Upper analog decimation (board revision 1 only). |
 
 **CAPTURE_CONTROL (reg 0x13) bit fields**:
@@ -476,16 +477,21 @@ bits [7:2]: Reserved
 
 **MIX_RATIO constraints**: `(mix_ratio_a | mix_ratio_b) < 0x100` (8-bit values).
 
-**DECIMATION_FACTOR (reg 0x14)**: Computed as
-`min(0xFF, (base_rate / total_channel_rate + padding) / (base_rate / total_channel_rate))`
-where padding depends on whether JESD mode is active (40M vs 100M).
+**DECIMATION_FACTOR (reg 0x14)**: Bandwidth pacing factor computed from total
+capture throughput: `T = numDigital * digitalRate + numAnalog * analogRate * 12`,
+`result = min(0xFF, ceil(3_200_000_000 / T))`. Tells the FPGA how to pace data
+output relative to USB bandwidth. See `re/notes/capture-register-formulas.md`.
 
-**ADC_CONFIG (reg 0x1A)**: Written only when `local_17c != 0` (JESD/Pro mode).
+**CAPTURE_MODE (reg 0x12)**: Selects capture mode based on channel config and USB speed:
+  0x01 = analog-only (no digital channels), 0x02 = USB 2.0 mixed,
+  0x04 = USB 3.0 digital-only or mixed.
+
+**ADC_CONFIG (reg 0x1A)**: Written only for Pro/JESD devices. Based on the raw
+digital divider (500M / digitalRate) BEFORE the /5 step:
 ```
-Value encoding:
-  1 = standard mode
-  0 = 4x interleaved mode (local_188 = 1)
-  2*N = other interleave (local_168 * 2)
+raw_divider == 2 (250 MHz digital) -> 1
+raw_divider == 4 (125 MHz digital) -> 2
+everything else -> 0
 ```
 
 **ANALOG_DEC_UPPER (reg 0x1B)**: Written only for board revision 1

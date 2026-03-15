@@ -1,9 +1,10 @@
 ---
 id: TASK-0227
 title: 'RE: Decode SetCaptureParameters from Ghidra for all capture modes'
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-03-15 17:28'
+updated_date: '2026-03-15 20:57'
 labels:
   - RE
   - ghidra
@@ -44,3 +45,9 @@ Decompile `Logic2FpgaDevice::SetCaptureParameters` more thoroughly to understand
 - [ ] #3 Formula for each register documented with source line references
 - [ ] #4 compute_capture_registers() updated to match decompilation
 <!-- AC:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Decompiled SetCaptureParameters (ELF 0x1c24ca0) from Ghidra. All 12 registers match all 6 pcap configs exactly. Found 7 bugs in current Rust implementation (2 critical, 3 moderate, 1 minor, 1 doc). Full analysis in re/notes/capture-register-formulas.md.
+<!-- SECTION:FINAL_SUMMARY:END -->
