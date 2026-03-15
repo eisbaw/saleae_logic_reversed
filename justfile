@@ -534,11 +534,15 @@ hw-capture-matrix: _build-release
         echo "--- $name ---"
         local dir="$OUT/$name"
         mkdir -p "$dir"
-        if "$CLI" -v "$@" --output "$dir" --format csv 2>&1 | tail -5; then
+        local log="$OUT/$name.log"
+        if "$CLI" -v "$@" --output "$dir" --format csv >"$log" 2>&1; then
+            tail -5 "$log"
             echo "  PASS"
             PASS=$((PASS + 1))
         else
-            echo "  FAIL (exit $?)"
+            local rc=$?
+            tail -10 "$log"
+            echo "  FAIL (exit $rc)"
             FAIL=$((FAIL + 1))
         fi
         echo ""
@@ -602,11 +606,15 @@ hw-capture-matrix: _build-release
     run_quick() {
         local name="$1"; shift
         echo "--- $name ---"
-        if "$CLI" -v "$@" --output "$OUT/$name.raw" 2>&1 | tail -5; then
+        local log="$OUT/$name.log"
+        if "$CLI" -v "$@" --output "$OUT/$name.raw" >"$log" 2>&1; then
+            tail -5 "$log"
             echo "  PASS"
             PASS=$((PASS + 1))
         else
-            echo "  FAIL (exit $?)"
+            local rc=$?
+            tail -10 "$log"
+            echo "  FAIL (exit $rc)"
             FAIL=$((FAIL + 1))
         fi
         echo ""

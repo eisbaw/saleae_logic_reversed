@@ -1090,62 +1090,58 @@ pub fn capture_quick(
         }
     }
 
-    // Step 4: ADC init (only for mixed mode).
-    if !is_digital_only {
-        println!("Mixed mode: running ADC init...");
+    // Step 4: ADC init (always required -- the FPGA needs the DCM locked
+    // even for digital-only captures, as validated by pcap analysis).
+    println!("Running ADC init...");
 
-        // Read calibration from EEPROM (offset 0x10, 16 bytes).
-        let cal_data = dev
-            .channel
-            .read_version(&[0x33, 0x81, 0x10, 0x00, 0x10, 0x00])
-            .context("failed to read EEPROM calibration")?;
-        println!(
-            "  Calibration: {}",
-            cal_data
-                .iter()
-                .map(|b| format!("{b:02x}"))
-                .collect::<Vec<_>>()
-                .join(" ")
-        );
+    // Read calibration from EEPROM (offset 0x10, 16 bytes).
+    let cal_data = dev
+        .channel
+        .read_version(&[0x33, 0x81, 0x10, 0x00, 0x10, 0x00])
+        .context("failed to read EEPROM calibration")?;
+    println!(
+        "  Calibration: {}",
+        cal_data
+            .iter()
+            .map(|b| format!("{b:02x}"))
+            .collect::<Vec<_>>()
+            .join(" ")
+    );
 
-        match saleae_driver::adc::init_ad9637(&mut dev.channel, &cal_data) {
-            Ok(dcm_result) => {
-                println!(
-                    "  ADC init OK: DCM locked={}, r0x40={:#04x}",
-                    dcm_result.locked, dcm_result.status_40
-                );
-            }
-            Err(e) => {
-                println!("  WARNING: ADC init failed: {e}");
-                println!("  Continuing anyway (best-effort)...");
-            }
+    match saleae_driver::adc::init_ad9637(&mut dev.channel, &cal_data) {
+        Ok(dcm_result) => {
+            println!(
+                "  ADC init OK: DCM locked={}, r0x40={:#04x}",
+                dcm_result.locked, dcm_result.status_40
+            );
         }
-
-        // Re-init EP1 after ADC init (the binary does this).
-        dev.channel
-            .initialize()
-            .context("EP1 re-init after ADC failed")?;
-
-        // Channel enables.
-        dev.channel
-            .write_registers(&[(0x0f, 0x00), (0x10, 0x0f), (0x11, 0x00)])?;
-        println!("  Channel enables set.");
-
-        // Pre-capture ADC power on.
-        match saleae_driver::adc::power_on_for_capture(&mut dev.channel) {
-            Ok(dcm_result) => {
-                println!("  ADC power-on OK: r0x40={:#04x}", dcm_result.status_40);
-            }
-            Err(e) => {
-                println!("  WARNING: ADC power-on failed: {e}");
-                println!("  Continuing anyway (best-effort for capture data)...");
-            }
+        Err(e) => {
+            println!("  WARNING: ADC init failed: {e}");
+            println!("  Continuing anyway (best-effort)...");
         }
-        println!();
-    } else {
-        println!("Digital-only mode: skipping ADC/DCM init entirely.");
-        println!();
     }
+
+    // Re-init EP1 after ADC init (the binary does this).
+    dev.channel
+        .initialize()
+        .context("EP1 re-init after ADC failed")?;
+
+    // Channel enables.
+    dev.channel
+        .write_registers(&[(0x0f, 0x00), (0x10, 0x0f), (0x11, 0x00)])?;
+    println!("  Channel enables set.");
+
+    // Pre-capture ADC power on.
+    match saleae_driver::adc::power_on_for_capture(&mut dev.channel) {
+        Ok(dcm_result) => {
+            println!("  ADC power-on OK: r0x40={:#04x}", dcm_result.status_40);
+        }
+        Err(e) => {
+            println!("  WARNING: ADC power-on failed: {e}");
+            println!("  Continuing anyway (best-effort for capture data)...");
+        }
+    }
+    println!();
 
     // Step 5: Write capture registers (computed from mask config).
     let digital_channels: Vec<u8> = (0..8).filter(|&ch| digital_mask & (1 << ch) != 0).collect();
@@ -1174,12 +1170,10 @@ pub fn capture_quick(
     )
     .context("capture failed")?;
 
-    // Power down ADC if we powered it on.
-    if !is_digital_only {
-        match saleae_driver::adc::power_down(&mut dev.channel) {
-            Ok(()) => println!("  ADC powered down."),
-            Err(e) => println!("  WARNING: ADC power-down failed: {e}"),
-        }
+    // Power down ADC (always, since we always init it).
+    match saleae_driver::adc::power_down(&mut dev.channel) {
+        Ok(()) => println!("  ADC powered down."),
+        Err(e) => println!("  WARNING: ADC power-down failed: {e}"),
     }
     println!();
 
