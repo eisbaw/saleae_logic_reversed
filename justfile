@@ -441,7 +441,7 @@ doc: _require-cargo
 
 # Default paths for firmware and bitstream blobs
 fw_path     := "firmware/fw-fx3-pro8.img"
-bs_path     := "firmware/bitstream-spartan6-slx9-02.bin"
+bs_path     := "firmware/bitstream-spartan6-slx9-03.bin"
 
 # Build release binary (shared dependency for hw recipes)
 _build-release: _require-cargo
