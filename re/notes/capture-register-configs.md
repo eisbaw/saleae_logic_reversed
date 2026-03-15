@@ -1,0 +1,93 @@
+# Capture Register Configurations (Hardware-Validated)
+
+All configs captured via usbmon of Saleae Logic 2 GUI v2.4.36 on Logic Pro 8 (hw rev 1.2).
+Pcap files in `re/captures/gui_pcaps/`.
+
+## Register Map (12 registers written via WriteRegisters 0x80)
+
+| Reg   | Name       | Description |
+|-------|------------|-------------|
+| 0x00  | CTRL       | Master control (0x00=idle, 0x01=capture, JESD cascade values) |
+| 0x08  | ANA_MASK   | Analog channel enable bitmask (bit per channel) |
+| 0x06  | DIG_MASK   | Digital channel enable bitmask (bit per channel) |
+| 0x0a  | ANA_DEC    | Analog decimation factor |
+| 0x0b  | DIG_DIV_LO | Digital clock divider low byte |
+| 0x0c  | DIG_DIV_HI | Digital clock divider high byte (big configs) |
+| 0x1a  | ADC_CFG    | ADC configuration (0x00 normal, 0x01 for high-rate mixed) |
+| 0x0d  | MIX_LO     | Mix ratio / bandwidth allocation low byte |
+| 0x0e  | MIX_HI     | Mix ratio / bandwidth allocation high byte |
+| 0x12  | MODE       | Capture mode (0x01=analog-only, 0x02=mixed-USB2, 0x04=digital/mixed-USB3) |
+| 0x13  | RSVD       | Reserved (always 0x00) |
+| 0x14  | SCOPE_CFG  | Scope/channel config ID |
+
+## Validated Configurations
+
+### Config 1: Mixed 12.5MHz 8dig+8ana (USB 2.0) - ORIGINAL REFERENCE
+- Source: `re/captures/usbmon4-ep1-decoded.txt` (pre-existing pcap)
+- `r0x00=0x00, r0x08=0xff, r0x06=0xff, r0x0a=0x20, r0x0b=0x10, r0x0c=0x00`
+- `r0x1a=0x00, r0x0d=0x18, r0x0e=0x08, r0x12=0x02, r0x13=0x00, r0x14=0x10`
+
+### Config 2: Digital-only 1MHz 8ch (USB 3.0)
+- Source: `usbmon4_digital_1mhz_8ch_20260315_210312.pcap`
+- `r0x00=0x00, r0x08=0x00, r0x06=0xff, r0x0a=0x00, r0x0b=0x64, r0x0c=0x00`
+- `r0x1a=0x00, r0x0d=0x00, r0x0e=0x08, r0x12=0x04, r0x13=0x00, r0x14=0xff`
+
+### Config 3: Analog-only 1.5625MHz 2ch (USB 3.0)
+- Source: `usbmon4_analog_1_5mhz_2ch_20260315_210644.pcap`
+- `r0x00=0x00, r0x08=0x03, r0x06=0x00, r0x0a=0x20, r0x0b=0x00, r0x0c=0x00`
+- `r0x1a=0x00, r0x0d=0x06, r0x0e=0x00, r0x12=0x01, r0x13=0x00, r0x14=0x56`
+
+### Config 4: Digital-only 50MHz 2ch (USB 3.0)
+- Source: `usbmon4_digital_50mhz_2ch_20260315_211304.pcap`
+- `r0x00=0x00, r0x08=0x00, r0x06=0x03, r0x0a=0x00, r0x0b=0x02, r0x0c=0x00`
+- `r0x1a=0x00, r0x0d=0x00, r0x0e=0x02, r0x12=0x04, r0x13=0x00, r0x14=0x20`
+
+### Config 5: Mixed 50MHz dig + 12.5MHz ana, 4dig+2ana (USB 3.0)
+- Source: `usbmon4_mixed_50m_12_5m_4d2a_20260315_211221.pcap`
+- `r0x00=0x00, r0x08=0x03, r0x06=0x0f, r0x0a=0x04, r0x0b=0x02, r0x0c=0x00`
+- `r0x1a=0x00, r0x0d=0x06, r0x0e=0x04, r0x12=0x04, r0x13=0x00, r0x14=0x07`
+
+### Config 6: Mixed 250MHz dig + 6.25MHz ana, 4dig+2ana (USB 3.0)
+- Source: `usbmon4_mixed_125m_6_25m_4d2a_20260315_211344.pcap`
+- `r0x00=0x00, r0x08=0x03, r0x06=0x0f, r0x0a=0x08, r0x0b=0x00, r0x0c=0x00`
+- `r0x1a=0x01, r0x0d=0x06, r0x0e=0x28, r0x12=0x04, r0x13=0x00, r0x14=0x03`
+
+## Analysis
+
+### r0x12 (MODE)
+- 0x01 = analog-only
+- 0x02 = mixed mode on USB 2.0
+- 0x04 = digital-only OR mixed mode on USB 3.0
+
+### r0x0b:r0x0c (DIG_DIV) - Digital clock divider
+- Digital-only: divider = FPGA_clock / digital_sample_rate
+  - 1MHz: 0x64 (100) = 100MHz/100
+  - 50MHz: 0x02 = 100MHz/2
+- Mixed USB2.0: 0x10 (16)
+- Mixed USB3.0 50/12.5: 0x02
+- Mixed USB3.0 250/6.25: 0x00
+
+### r0x0a (ANA_DEC) - Analog decimation
+- 1.5625MHz analog: 0x20 (32) = 50MHz/32
+- 12.5MHz analog: 0x04 = 50MHz/4 (USB3 mixed) or 0x20 = 50MHz/32 (USB2 and analog-only 1.5MHz)
+- 6.25MHz analog: 0x08 = 50MHz/8
+- Digital-only: 0x00
+
+### r0x0d:r0x0e (MIX ratio)
+- Digital-only: r0x0d=0x00 (no analog bandwidth needed)
+- Analog-only: r0x0d=0x06, r0x0e=0x00
+- Mixed: r0x0d=0x06, r0x0e varies with digital rate
+  - r0x0e encodes how much USB bandwidth goes to digital vs analog
+
+### r0x14 (SCOPE_CFG)
+Complex encoding - seems to combine channel count info and mode:
+- 0xff = 8 digital, no analog
+- 0x56 = 2 analog, no digital
+- 0x10 = 8+8 mixed USB2
+- 0x20 = 2 digital only
+- 0x07 = 4dig+2ana mixed
+- 0x03 = 4dig+2ana mixed (higher rate)
+
+### r0x1a (ADC_CFG)
+- 0x00 = standard
+- 0x01 = high-rate mode (seen only with 250MHz digital in mixed)
