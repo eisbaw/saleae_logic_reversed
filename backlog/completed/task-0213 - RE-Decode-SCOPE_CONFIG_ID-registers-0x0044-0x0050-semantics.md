@@ -1,9 +1,10 @@
 ---
 id: TASK-0213
 title: 'RE: Decode SCOPE_CONFIG_ID registers 0x0044-0x0050 semantics'
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-03-13 20:49'
+updated_date: '2026-03-16 06:27'
 labels:
   - reverse-engineering
   - fpga-registers
@@ -22,3 +23,9 @@ These may be used for identifying capture configurations or synchronizing host/d
 
 Approach: decompile SetConfigurationIds in Ghidra. Trace where the config IDs are read back or used in capture start/stop logic.
 <!-- SECTION:DESCRIPTION:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+Already documented in re/notes/config-id-semantics.md. SetConfigurationIds takes two uint64 params, packs 4 per-channel config IDs into registers 0x0044-0x0050. Monotonically incrementing counter from SetConfiguration (offset 0x1f0). FPGA embeds value in EP2 chunk header bits [31:16]. Updated fpga-registers.md with richer descriptions.
+<!-- SECTION:FINAL_SUMMARY:END -->

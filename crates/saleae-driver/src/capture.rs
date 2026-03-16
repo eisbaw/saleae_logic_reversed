@@ -529,6 +529,60 @@ pub struct AfeChannelConfig {
 /// Total number of static AFE configurations (3 attn combos x 2 preamp x 11 ladder values).
 pub const TOTAL_AFE_CONFIGURATIONS: usize = 66;
 
+/// Static table of all 66 AFE configurations, matching the AllConfigs table
+/// extracted from the Saleae binary at Ghidra VA 0x0089a448 (ELF VA 0x0079a448).
+///
+/// Layout: 3 attenuator groups x 2 preamp modes x 11 ladder values.
+///   Indices  0-10: attn1=0, attn2=0, preamp=HG, ladder 0..-20
+///   Indices 11-21: attn1=0, attn2=0, preamp=LG, ladder 0..-20
+///   Indices 22-32: attn1=1, attn2=0, preamp=HG, ladder 0..-20
+///   Indices 33-43: attn1=1, attn2=0, preamp=LG, ladder 0..-20
+///   Indices 44-54: attn1=1, attn2=1, preamp=HG, ladder 0..-20
+///   Indices 55-65: attn1=1, attn2=1, preamp=LG, ladder 0..-20
+///
+/// All entries have power=true, filter=4, dac_offset=0.0 (constants in the binary table).
+pub const ALL_CONFIGS: [AfeChannelConfig; TOTAL_AFE_CONFIGURATIONS] = {
+    // Build the table at compile time using const evaluation.
+    let mut table = [AfeChannelConfig {
+        attn1: false,
+        attn2: false,
+        preamp: false,
+        power: true,
+        filter: 4,
+        ladder: 0,
+        dac_offset: 0.0,
+    }; TOTAL_AFE_CONFIGURATIONS];
+
+    let attn_groups: [(bool, bool); 3] = [(false, false), (true, false), (true, true)];
+    let preamp_modes: [bool; 2] = [true, false]; // HG first, then LG
+
+    let mut idx = 0;
+    let mut ag = 0;
+    while ag < 3 {
+        let mut pm = 0;
+        while pm < 2 {
+            let mut lv = 0;
+            while lv < 11 {
+                table[idx] = AfeChannelConfig {
+                    attn1: attn_groups[ag].0,
+                    attn2: attn_groups[ag].1,
+                    preamp: preamp_modes[pm],
+                    power: true,
+                    filter: 4,
+                    ladder: -(lv as i8 * 2),
+                    dac_offset: 0.0,
+                };
+                idx += 1;
+                lv += 1;
+            }
+            pm += 1;
+        }
+        ag += 1;
+    }
+
+    table
+};
+
 impl Default for AfeChannelConfig {
     /// Default: no attenuation, low-gain preamp, full power, filter=4, no ladder atten.
     /// Matches config index 11 in the static table (no atten, LG, ladder=0).
@@ -628,35 +682,34 @@ impl AfeChannelConfig {
         }
     }
 
+    /// Compute the config number (0-65).
+    ///
+    /// This mirrors the binary's `GetConfigNumber` function. Delegates to the
+    /// O(1) formula in [`config_index`](Self::config_index) rather than
+    /// performing a linear scan.
+    ///
+    /// Returns None if the combination is not representable in the table.
+    pub fn config_number(&self) -> Option<u8> {
+        self.config_index().map(|i| i as u8)
+    }
+
     /// Create an AfeChannelConfig from a config table index (0-65).
     ///
     /// Returns None if index >= 66.
     pub fn from_config_index(index: usize) -> Option<Self> {
-        if index >= TOTAL_AFE_CONFIGURATIONS {
+        let n: u8 = u8::try_from(index).ok()?;
+        Self::for_config_number(n)
+    }
+
+    /// Create an AfeChannelConfig from a config number (0-65).
+    ///
+    /// This mirrors the binary's `ForConfigNumber` function which indexes
+    /// into the AllConfigs array. Returns None if n >= 66.
+    pub fn for_config_number(n: u8) -> Option<Self> {
+        if (n as usize) >= TOTAL_AFE_CONFIGURATIONS {
             return None;
         }
-        let attn_group = index / 22;
-        let remainder = index % 22;
-        let (preamp, ladder_idx) = if remainder < 11 {
-            (true, remainder)
-        } else {
-            (false, remainder - 11)
-        };
-        let (attn1, attn2) = match attn_group {
-            0 => (false, false),
-            1 => (true, false),
-            2 => (true, true),
-            _ => return None,
-        };
-        Some(Self {
-            attn1,
-            attn2,
-            preamp,
-            power: true,
-            filter: 4,
-            ladder: -(ladder_idx as i8 * 2),
-            dac_offset: 0.0,
-        })
+        Some(ALL_CONFIGS[n as usize])
     }
 }
 
@@ -3231,6 +3284,121 @@ mod tests {
             ..AfeChannelConfig::default()
         };
         afe.encode_vga_config();
+    }
+
+    #[test]
+    fn all_configs_table_structure() {
+        // Verify the static ALL_CONFIGS table has the expected structure:
+        // 3 attn groups x 2 preamp modes x 11 ladder values
+        assert_eq!(ALL_CONFIGS.len(), 66);
+
+        for (i, cfg) in ALL_CONFIGS.iter().enumerate() {
+            // All entries have constant power and filter
+            assert!(cfg.power, "config {}: power should be true", i);
+            assert_eq!(cfg.filter, 4, "config {}: filter should be 4", i);
+            assert_eq!(
+                cfg.dac_offset, 0.0,
+                "config {}: dac_offset should be 0.0",
+                i
+            );
+
+            // Ladder must be 0 to -20, even
+            assert!(
+                cfg.ladder <= 0 && cfg.ladder >= -20,
+                "config {}: ladder out of range",
+                i
+            );
+            assert_eq!(cfg.ladder % 2, 0, "config {}: ladder must be even", i);
+        }
+
+        // Spot-check boundary entries
+        // Index 0: no atten, HG, ladder=0
+        assert!(!ALL_CONFIGS[0].attn1);
+        assert!(!ALL_CONFIGS[0].attn2);
+        assert!(ALL_CONFIGS[0].preamp);
+        assert_eq!(ALL_CONFIGS[0].ladder, 0);
+
+        // Index 10: no atten, HG, ladder=-20
+        assert!(!ALL_CONFIGS[10].attn1);
+        assert!(!ALL_CONFIGS[10].attn2);
+        assert!(ALL_CONFIGS[10].preamp);
+        assert_eq!(ALL_CONFIGS[10].ladder, -20);
+
+        // Index 11: no atten, LG, ladder=0
+        assert!(!ALL_CONFIGS[11].attn1);
+        assert!(!ALL_CONFIGS[11].attn2);
+        assert!(!ALL_CONFIGS[11].preamp);
+        assert_eq!(ALL_CONFIGS[11].ladder, 0);
+
+        // Index 22: 10x atten, HG, ladder=0
+        assert!(ALL_CONFIGS[22].attn1);
+        assert!(!ALL_CONFIGS[22].attn2);
+        assert!(ALL_CONFIGS[22].preamp);
+        assert_eq!(ALL_CONFIGS[22].ladder, 0);
+
+        // Index 44: 10x+100x atten, HG, ladder=0
+        assert!(ALL_CONFIGS[44].attn1);
+        assert!(ALL_CONFIGS[44].attn2);
+        assert!(ALL_CONFIGS[44].preamp);
+        assert_eq!(ALL_CONFIGS[44].ladder, 0);
+
+        // Index 65: 10x+100x, LG, ladder=-20
+        assert!(ALL_CONFIGS[65].attn1);
+        assert!(ALL_CONFIGS[65].attn2);
+        assert!(!ALL_CONFIGS[65].preamp);
+        assert_eq!(ALL_CONFIGS[65].ladder, -20);
+    }
+
+    #[test]
+    fn config_number_roundtrip_all_66() {
+        for i in 0u8..66 {
+            let config = AfeChannelConfig::for_config_number(i)
+                .unwrap_or_else(|| panic!("for_config_number({}) returned None", i));
+            let n = config
+                .config_number()
+                .unwrap_or_else(|| panic!("config_number() returned None for config {}", i));
+            assert_eq!(n, i, "roundtrip failed for config number {}", i);
+        }
+    }
+
+    #[test]
+    fn config_number_matches_config_index() {
+        // config_number (linear scan) and config_index (formula) must agree
+        for (i, config) in ALL_CONFIGS.iter().enumerate() {
+            let by_scan = config.config_number().unwrap() as usize;
+            let by_formula = config.config_index().unwrap();
+            assert_eq!(by_scan, by_formula, "mismatch at index {}", i);
+            assert_eq!(by_scan, i);
+        }
+    }
+
+    #[test]
+    fn for_config_number_out_of_range() {
+        assert!(AfeChannelConfig::for_config_number(66).is_none());
+        assert!(AfeChannelConfig::for_config_number(255).is_none());
+    }
+
+    #[test]
+    fn config_number_invalid_returns_none() {
+        // attn2 without attn1 is not in the table
+        let afe = AfeChannelConfig {
+            attn1: false,
+            attn2: true,
+            ..AfeChannelConfig::default()
+        };
+        assert!(afe.config_number().is_none());
+    }
+
+    #[test]
+    fn all_configs_vga_encode_all_valid() {
+        // Every entry in ALL_CONFIGS must produce a valid VGA SPI word
+        for (i, cfg) in ALL_CONFIGS.iter().enumerate() {
+            let spi = cfg.encode_vga_config();
+            // Verify power bit is set (power=true means bit 10 = 1)
+            assert_ne!(spi & (1 << 10), 0, "config {}: power bit not set", i);
+            // Verify filter bits [8:6] = 4 = 0b100
+            assert_eq!((spi >> 6) & 7, 4, "config {}: filter bits wrong", i);
+        }
     }
 
     // -------------------------------------------------------------------

@@ -58,14 +58,34 @@ GlitchFilterEnabled, not a simple enable/disable flag.
 
 | Value | Name     | Evidence |
 |-------|----------|----------|
-| 0     | Normal   | Config struct has mTriggerNormal_HoldoffSamples/TimeoutSamples |
-| 1     | Auto     | Config struct has mTriggerAuto_HoldoffSamples/TimeoutSamples |
-| 2     | Single   | "Single" string present in binary; common oscilloscope mode |
-| 3     | Disabled | DisableAnalogTrigger writes 0x0C to reg 0x70 (bits [3:2] = 3) |
+| 0     | Normal   | Default/zero-initialized; uses mTriggerNormal_HoldoffSamples/TimeoutSamples |
+| 1     | Auto     | ProcessPendingConfiguration writes UI mode 0 + 1 = 1; uses mTriggerAuto_HoldoffSamples/TimeoutSamples |
+| 2     | Single   | ProcessPendingConfiguration writes UI mode 1 + 1 = 2; "Single" string in binary |
+| 3     | Disabled | DisableAnalogTrigger writes 0x0C to reg 0x70 (bits [3:2] = 3); also UI mode 2 + 1 = 3 |
 
-**Confidence**: Value 3 = Disabled is confirmed (DisableAnalogTrigger function
-at ELF 0x02d65280 writes literal 0x0C = 0b00001100). Values 0-2 are
-hypothesized based on struct field naming and standard oscilloscope conventions.
+**Confidence**: **Confirmed** (TASK-0214). All four values verified from
+decompiled ProcessPendingConfiguration (ELF 0x2d4a280,
+oscilloscope_instrument.cpp).
+
+The UI-to-FPGA mapping applies a +1 offset: UI trigger mode values {0,1,2}
+are stored as FPGA register values {1,2,3}. Value 0 (Normal) is the default
+state used when no explicit trigger mode is set, or before trigger
+configuration is applied. The UI mode field is at config struct offset 0x18c;
+when mode >= 3, no mode value is written (the field is left at its previous
+value).
+
+Decompiled evidence for the +1 transform:
+```
+// From ProcessPendingConfiguration (oscilloscope_instrument.cpp)
+uVar6 = *(uint *)(config + 0x18c);  // UI trigger mode
+if (uVar6 < 3) {
+    triggerStruct.mTriggerMode = (char)uVar6 + 1;  // +1 offset
+}
+// if uVar6 >= 3, mode is not set (left at previous value)
+```
+
+DisableAnalogTrigger (ELF 0x02d65280) writes literal 0x0C = 0b00001100,
+confirming value 3 = Disabled independently.
 
 ### DisableAnalogTrigger (ELF 0x02d65280)
 
@@ -88,20 +108,44 @@ Value 0x0C breakdown:
 4-bit field at register 0x0070 bits [7:4]. Validated by SetField assertion:
 `(value & 0xF0) == 0` (value must fit in 4 bits, range 0-15).
 
-From the software trigger engine (DigitalTriggerNode):
-| Value | Name         |
-|-------|--------------|
-| 0     | EdgeTrigger  |
-| 1     | PulseTrigger |
+| Value | Name         | Evidence |
+|-------|--------------|----------|
+| 0     | EdgeTrigger  | DigitalTriggerNode switch: iVar1==0 -> FUN_01be1960 (EdgeTrigger_Detect) |
+| 1     | PulseTrigger | DigitalTriggerNode switch: iVar1==1 -> FUN_01be23c0 (PulseTrigger_Detect) |
+| 2-15  | **Reserved** | DigitalTriggerNode throws exception for any value != 0 and != 1 |
 
-The hardware register supports up to 16 trigger types (4 bits). Only 2 are
-confirmed from the software trigger path. The FPGA may support additional
-hardware trigger types not exposed in the standard Logic software, or the
-extra bits may be reserved for future use.
+**Confidence**: **Confirmed** (TASK-0208). Only two trigger types exist in
+the binary. The DigitalTriggerNode::CheckTrigger function (ELF 0x1ae1720)
+contains a definitive two-way switch:
 
-The binary contains truncated strings "EdgeTrigH" and "PulseTriH" which may
-be hardware trigger type names, suggesting at minimum edge and pulse are
-supported in hardware.
+```
+// From DigitalTrigger_CheckTrigger (digital_trigger_node.cpp)
+iVar1 = *(int *)(config + 0x58);  // trigger type
+if (iVar1 == 1) {
+    FUN_01be23c0(...);  // PulseTrigger_Detect
+} else {
+    if (iVar1 != 0) {
+        FUN_01be5210();  // throws exception (invalid trigger type)
+    }
+    FUN_01be1960(...);  // EdgeTrigger_Detect
+}
+```
+
+FUN_01be5210 (ELF 0x1ae5210) is a 47-byte function that allocates and
+throws a C++ exception via __cxa_throw. It is NOT an assertion with a
+message -- it throws an unnamed exception type. Any trigger type value
+other than 0 or 1 is a hard error.
+
+The ProcessPendingConfiguration caller (ELF 0x2d4a280) passes the trigger
+type value from config struct offset 0x198 with only a `< 4` bounds check,
+meaning the UI allows values 0-3. However, the software trigger engine only
+accepts 0-1. Values 2-3 would reach the FPGA hardware but crash the software
+trigger path. The 4-bit FPGA field (supporting 0-15) is reserved for
+potential future FPGA-only trigger types not implemented in v2.4.40.
+
+The binary contains strings "EdgeTrigH" and "PulseTriH" which appear to be
+truncated hardware trigger type names (EdgeTriggerHardware, PulseTriggerHardware),
+matching the two implemented types.
 
 
 ## GlitchFilterEnabled Field
@@ -112,9 +156,22 @@ supported in hardware.
 | Value | Meaning |
 |-------|---------|
 | 0     | Glitch filter disabled |
-| 1-3   | Glitch filter enabled (mode TBD) |
+| 1-3   | Glitch filter enabled (specific modes unknown) |
 
-This field controls whether the FPGA applies the glitch filter to the trigger
+**Confidence**: Partial (TASK-0209). The 2-bit width is confirmed from the
+SetField assertion. Value 0 = disabled is confirmed from
+DisableAnalogTrigger (writes 0x0C with bits [1:0] = 0). The specific
+meanings of values 1, 2, and 3 could not be determined from static analysis.
+
+The ProcessPendingConfiguration caller (ELF 0x2d4a280) sets this field from
+the AnalogTriggerConfiguration struct at offset 0x0a (mGlitchFilterEnabled).
+No enum type name or string constants for this field were found in the
+binary. The field is passed straight through without transformation -- unlike
+TriggerMode, no +1 offset is applied. The FPGA firmware likely implements
+different glitch filter behaviors (e.g., different filter widths or
+algorithms) for values 1-3, but this is not visible from the host software.
+
+This field controls whether the FPGA applies a glitch filter to the trigger
 input before trigger detection. It is separate from the per-channel digital
 glitch filter in registers 0x0170-0x017C.
 
@@ -366,11 +423,35 @@ Zeroes the CAPTURE_CONTROL register to disable analog capture.
 | 0x02d67230 | 0x02e67230 | ReadSpi_15BitAddress | Read via reg 0x04 (15-bit address) |
 
 
-## New Register Discovered: 0x0194
+## Scope Instrument Register Group (TASK-0204)
 
-Function at ELF 0x02d662c0 writes register 0x0194 with a single uint32
-parameter. Purpose unknown -- possibly related to scope channel configuration
-or test pattern mode. Not previously documented.
+### Register 0x0194 (SCOPE_CHANNEL_CONFIG master)
+
+Function `WriteRegister_0x194` at ELF 0x02d662c0 writes register 0x0194
+with a single uint32 parameter. Called from `ProcessPendingConfiguration`
+in `oscilloscope_instrument.cpp` -- the value is `*(uint32_t *)config_data`
+(offset 0x00 of the oscilloscope pending configuration struct). The internal
+bit layout of this uint32 is not yet decoded.
+
+### Register array 0x0198-0x01A8 (per-channel scope config, 5 channels)
+
+Function `SetScopeChannelConfig` at ELF 0x02d66b70 writes to registers
+looked up from table DAT_0089ad92: {0x0198, 0x019C, 0x01A0, 0x01A4, 0x01A8}.
+Index is 0-4 (bounds-checked with `array::at`). Value is `param & 0xFF`.
+
+Packed by `AddInstrumentInternal` in mso_device.cpp using `SetField<uint8_t>`:
+- bits [7:5] = InstrumentIndex (MsoInstrumentIndex, 3 bits, assertion: < 8)
+- bits [4:0] = InstrumentType (sub-instrument type, 5 bits)
+
+### Register array 0x0180-0x0190 (configuration IDs, 5 channels)
+
+Function `SetScopeConfigurationId` at ELF 0x02d661f0 writes to registers
+looked up from table DAT_0089ad80: {0x0180, 0x0184, 0x0188, 0x018C, 0x0190}.
+
+### Register array 0x01B0-0x01BC (voltage thresholds, 4 channels)
+
+Function `SetDigitalDerivedVoltageThresholds` at ELF 0x02d66a10 writes to
+registers looked up from table DAT_0089ad8a: {0x01B0, 0x01B4, 0x01B8, 0x01BC}.
 
 
 ## Confidence Assessment
@@ -381,13 +462,18 @@ or test pattern mode. Not previously documented.
 | ChannelSource in bits [15:8] | **Confirmed** | Decompiled: `(uint)*pbVar3 << 8` where pbVar3[0] = mChannelSource |
 | GlitchFilterEnabled in bits [1:0] | **Confirmed** | Decompiled: `pbVar3[10] & 3` and SetField assertion |
 | TriggerMode 3 = Disabled | **Confirmed** | DisableAnalogTrigger writes 0x0C (bits [3:2] = 3) |
-| TriggerMode 0=Normal, 1=Auto, 2=Single | **Hypothesis** | Inferred from config field names and oscilloscope convention |
-| TriggerType 0=Edge, 1=Pulse | **High** | Software trigger uses same values; "EdgeTrigH"/"PulseTriH" strings |
+| TriggerMode 0=Normal, 1=Auto, 2=Single | **Confirmed** | ProcessPendingConfiguration applies +1 offset: UI {0,1,2} -> FPGA {1,2,3}; value 0 is default |
+| TriggerType 0=Edge, 1=Pulse | **Confirmed** | DigitalTriggerNode switch with exception for any other value |
+| TriggerType 2-15 reserved | **Confirmed** | FUN_01be5210 throws exception for type != 0 and != 1 |
+| GlitchFilterEnabled modes 1-3 | **Unknown** | 2-bit field confirmed; specific mode behaviors are FPGA-internal |
 | InternalSetDigitalConfiguration bit layout | **Confirmed** | Decompiled: enabled<<20 | pulseWidth |
 | SamplesToTicks = (samples+7)>>3 | **Confirmed** | Standalone function decompiled |
 | Hysteresis reg 0x7C layout | **Confirmed** | Decompiled: rising[15:0] | falling[31:16] |
 | Logic Pro has no HW triggers | **Confirmed** | FpgaDeviceFeatures has no trigger registers |
-| Register 0x194 exists | **Confirmed** | Decompiled function writes it; purpose unknown |
+| Register 0x194 exists | **Confirmed** | Decompiled function writes it; internal bit layout TBD |
+| Scope register tables (0x0180-0x01A8) | **Confirmed** | DAT_0089ad80/ad8a/ad92 memory reads match decompiled index calculations |
+| Per-channel scope config byte layout | **Confirmed** | SetField assertions in AddInstrumentInternal: index[7:5] | type[4:0] |
+| Voltage threshold table (0x01B0-0x01BC) | **Confirmed** | DAT_0089ad8a memory read; 4 entries at stride 4 |
 
 
 ## Key Addresses (ELF VAs)
@@ -414,3 +500,8 @@ or test pattern mode. Not previously documented.
 | 0x02d66f30 | 0x02e66f30 | WriteSpi |
 | 0x02d671c0 | 0x02e671c0 | ReadSpi_7BitAddress |
 | 0x02d67230 | 0x02e67230 | ReadSpi_15BitAddress |
+| 0x01ae1720 | 0x01be1720 | DigitalTriggerNode::CheckTrigger (trigger type switch) |
+| 0x01ae1960 | 0x01be1960 | EdgeTrigger_Detect |
+| 0x01ae23c0 | 0x01be23c0 | PulseTrigger_Detect |
+| 0x01ae5210 | 0x01be5210 | InvalidTriggerType_Throw (exception for type != 0,1) |
+| 0x02d4a280 | 0x02e4a280 | ProcessPendingConfiguration (oscilloscope_instrument.cpp) |

@@ -1,0 +1,882 @@
+// ================================================================
+// Decompiled overflow handling and per-block stats functions
+// TASK-0210: Per-block stats (124 bytes) consumer
+// TASK-0211: Overflow metadata (16 bytes) interpretation
+// Saleae Logic 2 v2.4.40 - libgraph_server_shared.so
+// ================================================================
+
+// ----------------------------------------------------------------
+// Function at Ghidra VA 0x1d1fcb0
+// ELF VA: 0x1c1fcb0
+// Name: FUN_01d1fcb0
+// Size: 1340 bytes
+// ----------------------------------------------------------------
+
+void FUN_01d1fcb0(char *param_1,char param_2)
+
+{
+  int iVar1;
+  long lVar2;
+  char cVar3;
+  ulong uVar4;
+  long lVar5;
+  undefined1 local_90 [96];
+  
+  lVar2 = DAT_030b0128;
+  if (*param_1 != '\0') {
+    iVar1 = *(int *)(DAT_030b0128 + 0x38);
+    cVar3 = FUN_02edfa80(DAT_030b0128 + 0x70);
+    if ((iVar1 < 5) || (cVar3 != '\0')) {
+      if ((*(byte *)(lVar2 + 8) & 1) == 0) {
+        lVar5 = lVar2 + 9;
+        uVar4 = (ulong)(*(byte *)(lVar2 + 8) >> 1);
+      }
+      else {
+        lVar5 = *(long *)(lVar2 + 0x18);
+        uVar4 = *(ulong *)(lVar2 + 0x10);
+      }
+      FUN_02ee25b0(local_90,lVar5,uVar4,4,"Master Fifo overflow",0x14,0x49e1eb,0xa7,"PrintErrors");
+      FUN_02ee4120(lVar2,local_90,iVar1 < 5,cVar3);
+    }
+  }
+  lVar2 = DAT_030b0128;
+  if (param_1[1] != '\0') {
+    iVar1 = *(int *)(DAT_030b0128 + 0x38);
+    cVar3 = FUN_02edfa80(DAT_030b0128 + 0x70);
+    if ((iVar1 < 5) || (cVar3 != '\0')) {
+      if ((*(byte *)(lVar2 + 8) & 1) == 0) {
+        lVar5 = lVar2 + 9;
+        uVar4 = (ulong)(*(byte *)(lVar2 + 8) >> 1);
+      }
+      else {
+        lVar5 = *(long *)(lVar2 + 0x18);
+        uVar4 = *(ulong *)(lVar2 + 0x10);
+      }
+      FUN_02ee25b0(local_90,lVar5,uVar4,4,"Digital Fifo overflow",0x15,0x49e1eb,0xa9,"PrintErrors");
+      FUN_02ee4120(lVar2,local_90,iVar1 < 5,cVar3);
+    }
+  }
+  lVar2 = DAT_030b0128;
+  if (param_1[2] != '\0') {
+    iVar1 = *(int *)(DAT_030b0128 + 0x38);
+    cVar3 = FUN_02edfa80(DAT_030b0128 + 0x70);
+    if ((iVar1 < 5) || (cVar3 != '\0')) {
+      if ((*(byte *)(lVar2 + 8) & 1) == 0) {
+        lVar5 = lVar2 + 9;
+        uVar4 = (ulong)(*(byte *)(lVar2 + 8) >> 1);
+      }
+      else {
+        lVar5 = *(long *)(lVar2 + 0x18);
+        uVar4 = *(ulong *)(lVar2 + 0x10);
+      }
+      FUN_02ee25b0(local_90,lVar5,uVar4,4,"Analog Fifo overflow",0x14,0x49e1eb,0xab,"PrintErrors");
+      FUN_02ee4120(lVar2,local_90,iVar1 < 5,cVar3);
+    }
+  }
+  lVar2 = DAT_030b0128;
+  if (param_1[3] != '\0') {
+    iVar1 = *(int *)(DAT_030b0128 + 0x38);
+    cVar3 = FUN_02edfa80(DAT_030b0128 + 0x70);
+    if ((iVar1 < 5) || (cVar3 != '\0')) {
+      if ((*(byte *)(lVar2 + 8) & 1) == 0) {
+        lVar5 = lVar2 + 9;
+        uVar4 = (ulong)(*(byte *)(lVar2 + 8) >> 1);
+      }
+      else {
+        lVar5 = *(long *)(lVar2 + 0x18);
+        uVar4 = *(ulong *)(lVar2 + 0x10);
+      }
+      FUN_02ee25b0(local_90,lVar5,uVar4,4,"analog fsm error",0x10,0x49e1eb,0xad,"PrintErrors");
+      FUN_02ee4120(lVar2,local_90,iVar1 < 5,cVar3);
+    }
+  }
+  lVar2 = DAT_030b0128;
+  if (param_1[4] != '\0') {
+    iVar1 = *(int *)(DAT_030b0128 + 0x38);
+    cVar3 = FUN_02edfa80(DAT_030b0128 + 0x70);
+    if ((iVar1 < 5) || (cVar3 != '\0')) {
+      if ((*(byte *)(lVar2 + 8) & 1) == 0) {
+        lVar5 = lVar2 + 9;
+        uVar4 = (ulong)(*(byte *)(lVar2 + 8) >> 1);
+      }
+      else {
+        lVar5 = *(long *)(lVar2 + 0x18);
+        uVar4 = *(ulong *)(lVar2 + 0x10);
+      }
+      FUN_02ee25b0(local_90,lVar5,uVar4,4,"digital fsm error",0x11,0x49e1eb,0xaf,"PrintErrors");
+      FUN_02ee4120(lVar2,local_90,iVar1 < 5,cVar3);
+    }
+  }
+  lVar2 = DAT_030b0128;
+  if (param_1[9] != '\0') {
+    iVar1 = *(int *)(DAT_030b0128 + 0x38);
+    cVar3 = FUN_02edfa80(DAT_030b0128 + 0x70);
+    if ((iVar1 < 5) || (cVar3 != '\0')) {
+      if ((*(byte *)(lVar2 + 8) & 1) == 0) {
+        lVar5 = lVar2 + 9;
+        uVar4 = (ulong)(*(byte *)(lVar2 + 8) >> 1);
+      }
+      else {
+        lVar5 = *(long *)(lVar2 + 0x18);
+        uVar4 = *(ulong *)(lVar2 + 0x10);
+      }
+      FUN_02ee25b0(local_90,lVar5,uVar4,4,"bitslip 1 error",0xf,0x49e1eb,0xb2,"PrintErrors");
+      FUN_02ee4120(lVar2,local_90,iVar1 < 5,cVar3);
+    }
+  }
+  lVar2 = DAT_030b0128;
+  if ((param_2 != '\0') && (param_1[10] != '\0')) {
+    iVar1 = *(int *)(DAT_030b0128 + 0x38);
+    cVar3 = FUN_02edfa80(DAT_030b0128 + 0x70);
+    if ((iVar1 < 5) || (cVar3 != '\0')) {
+      if ((*(byte *)(lVar2 + 8) & 1) == 0) {
+        lVar5 = lVar2 + 9;
+        uVar4 = (ulong)(*(byte *)(lVar2 + 8) >> 1);
+      }
+      else {
+        lVar5 = *(long *)(lVar2 + 0x18);
+        uVar4 = *(ulong *)(lVar2 + 0x10);
+      }
+      FUN_02ee25b0(local_90,lVar5,uVar4,4,"bitslip 2 error",0xf,0x49e1eb,0xb4,"PrintErrors");
+      FUN_02ee4120(lVar2,local_90,iVar1 < 5,cVar3);
+    }
+  }
+  return;
+}
+
+
+
+// ----------------------------------------------------------------
+// Function at Ghidra VA 0x1d3f350
+// ELF VA: 0x1c3f350
+// Name: FUN_01d3f350
+// Size: 523 bytes
+// ----------------------------------------------------------------
+
+void FUN_01d3f350(long param_1,int param_2)
+
+{
+  int iVar1;
+  long lVar2;
+  byte bVar3;
+  ulong uVar4;
+  long lVar5;
+  undefined1 auVar6 [16];
+  int local_13c;
+  undefined4 local_138 [8];
+  char *local_118;
+  undefined4 uStack_110;
+  char *local_108;
+  char *local_e8;
+  undefined4 uStack_e0;
+  undefined1 uStack_dc;
+  undefined3 uStack_db;
+  char *local_d8;
+  void *local_d0;
+  undefined1 local_88 [96];
+  
+  local_138[0] = CONCAT31(local_138[0]._1_3_,2);
+                    /* try { // try from 01d3f37c to 01d3f3aa has its CatchHandler @ 01d3f57a */
+  local_13c = param_2;
+  (**(code **)(**(long **)(param_1 + 0x90) + 0x20))
+            (*(long **)(param_1 + 0x90),param_1 + 0x168,local_138,1,0,"stopping stream");
+  (**(code **)(**(long **)(param_1 + 0x180) + 0x10))
+            (*(long **)(param_1 + 0x180),0,0,"stopping data source");
+                    /* try { // try from 01d3f3ab to 01d3f494 has its CatchHandler @ 01d3f57c */
+  auVar6 = FUN_01d21ac0(param_1);
+  local_e8 = auVar6._0_8_;
+  uStack_e0 = auVar6._8_4_;
+  _uStack_dc = CONCAT31(uStack_db,auVar6[0xc]);
+  FUN_01d1fcb0(&local_e8,0);
+  lVar2 = DAT_030b0128;
+  if (uStack_e0._1_1_ != '\0') {
+    local_118 = "/workspace/monorepo/graph-io/devices/logic_interface/src/LogicGraduateDevice.cpp";
+    uStack_110 = 0x1a6;
+    local_108 = "StopCallback";
+    iVar1 = *(int *)(DAT_030b0128 + 0x38);
+    bVar3 = FUN_02edfa80(DAT_030b0128 + 0x70);
+    if ((3 < iVar1 & (bVar3 ^ 1)) == 0) {
+      if ((*(byte *)(lVar2 + 8) & 1) == 0) {
+        lVar5 = lVar2 + 9;
+        uVar4 = (ulong)(*(byte *)(lVar2 + 8) >> 1);
+      }
+      else {
+        lVar5 = *(long *)(lVar2 + 0x18);
+        uVar4 = *(ulong *)(lVar2 + 0x10);
+      }
+      FUN_02ee25b0(local_88,lVar5,uVar4,3,"resetting bitslip after slip, during shutdown.",0x2e,
+                   local_118._0_4_,uStack_110,local_108);
+      FUN_02ee4120(lVar2,local_88,iVar1 < 4,bVar3);
+    }
+    FUN_01d21c00(param_1);
+  }
+  if (local_13c != 0) {
+    local_138[0] = FUN_01d4e780();
+    local_e8 = "/workspace/monorepo/graph-io/devices/logic_interface/src/LogicGraduateDevice.cpp";
+    uStack_e0 = 0x1b8;
+    local_d8 = "StopCallback";
+    FUN_01d1f2f0(DAT_030b0128,4,"Got error: {} {}",0x10,&local_13c,local_138,0x535013,0x1b8,
+                 "StopCallback");
+    local_e8 = (char *)CONCAT44(local_e8._4_4_,local_138[0]);
+    uStack_e0 = uStack_e0 & 0xffff0000;
+                    /* try { // try from 01d3f52a to 01d3f536 has its CatchHandler @ 01d3f55b */
+    FUN_01d1f810(*(undefined8 *)(param_1 + 0x140),param_1 + 0xa8,&local_e8);
+    if ((uStack_e0 & 1) != 0) {
+      operator_delete(local_d0);
+    }
+  }
+  return;
+}
+
+
+
+// ----------------------------------------------------------------
+// Function at Ghidra VA 0x1d42da0
+// ELF VA: 0x1c42da0
+// Name: FUN_01d42da0
+// Size: 921 bytes
+// ----------------------------------------------------------------
+
+void FUN_01d42da0(long param_1,int param_2)
+
+{
+  __shared_weak_count *p_Var1;
+  long lVar2;
+  int iVar3;
+  char *pcVar4;
+  byte bVar5;
+  undefined4 uVar6;
+  ulong uVar7;
+  long lVar8;
+  __shared_weak_count *p_Var9;
+  undefined1 auVar10 [16];
+  undefined1 local_13d;
+  int local_13c;
+  undefined8 local_138;
+  undefined4 local_130;
+  undefined1 local_12c;
+  undefined8 local_118;
+  undefined4 uStack_110;
+  char *local_108;
+  char *local_e8;
+  byte bStack_e0;
+  undefined1 uStack_df;
+  undefined2 uStack_de;
+  undefined4 uStack_dc;
+  char *local_d8;
+  void *local_d0;
+  char *local_88;
+  undefined4 uStack_80;
+  char *local_78;
+  
+                    /* try { // try from 01d42dc0 to 01d42e9d has its CatchHandler @ 01d4318c */
+  local_13c = param_2;
+  (**(code **)(**(long **)(param_1 + 0x180) + 0x10))
+            (*(long **)(param_1 + 0x180),0,0,"stop data source");
+  local_13d = 2;
+  (**(code **)(**(long **)(param_1 + 0x90) + 0x20))
+            (*(long **)(param_1 + 0x90),param_1 + 0x168,&local_13d,1,0,"COMMAND_STOP_STREAM");
+  (**(code **)(**(long **)(param_1 + 0x90) + 0x28))
+            (*(long **)(param_1 + 0x90),param_1 + 0x170,&local_118,2,"COMMAND_STOP_STREAM reply");
+  if (((char)local_118 != '\a') || (local_118._1_1_ != '\0')) {
+    local_88 = 
+    "/workspace/monorepo/graph-io/devices/logic_interface/src/LogicProfessionalDevice.cpp";
+    uStack_80 = 0x1b7;
+    local_78 = "SendStopCommand";
+    FUN_01d2ae40(DAT_030b0128,4,"Stop command error. Error: {}; CY Error: {}",0x2b,&local_118,
+                 (long)&local_118 + 1,0x49e2cf,0x1b7,"SendStopCommand");
+  }
+                    /* try { // try from 01d42e9e to 01d42ecf has its CatchHandler @ 01d4318a */
+  auVar10 = FUN_01d21ac0(param_1);
+  local_138 = auVar10._0_8_;
+  local_130 = auVar10._8_4_;
+  local_12c = auVar10[0xc];
+  FUN_01d1fcb0(&local_138,*(int *)(param_1 + 0xb0) == 7);
+  if ((local_130._1_1_ == '\0') && ((*(int *)(param_1 + 400) != 0x10 || (local_130._2_1_ == '\0'))))
+  goto LAB_01d4305f;
+  FUN_02ed1390(&local_e8,param_1 + 0x208,FUN_01d2a770);
+  pcVar4 = local_e8;
+  p_Var9 = (__shared_weak_count *)
+           CONCAT44(uStack_dc,CONCAT22(uStack_de,CONCAT11(uStack_df,bStack_e0)));
+  if (p_Var9 == (__shared_weak_count *)0x0) {
+LAB_01d42f14:
+    if (local_e8 != (char *)0x0) goto LAB_01d42f19;
+LAB_01d42f7a:
+    p_Var9 = (__shared_weak_count *)0x0;
+  }
+  else {
+    LOCK();
+    p_Var1 = p_Var9 + 8;
+    lVar2 = *(long *)p_Var1;
+    *(long *)p_Var1 = *(long *)p_Var1 + -1;
+    UNLOCK();
+    if (lVar2 != 0) goto LAB_01d42f14;
+    (**(code **)(*(long *)p_Var9 + 0x10))(p_Var9);
+    std::__shared_weak_count::__release_weak(p_Var9);
+    if (pcVar4 == (char *)0x0) goto LAB_01d42f7a;
+LAB_01d42f19:
+                    /* try { // try from 01d42f19 to 01d42f25 has its CatchHandler @ 01d43139 */
+    FUN_01d296c0(&local_e8,param_1 + 0x208);
+    p_Var9 = (__shared_weak_count *)
+             CONCAT44(uStack_dc,CONCAT22(uStack_de,CONCAT11(uStack_df,bStack_e0)));
+    if (*(long **)(local_e8 + 0xa0) != (long *)0x0) {
+                    /* try { // try from 01d42f3f to 01d42f41 has its CatchHandler @ 01d4315a */
+      (**(code **)(**(long **)(local_e8 + 0xa0) + 0x30))();
+    }
+  }
+  lVar2 = DAT_030b0128;
+  local_118 = "/workspace/monorepo/graph-io/devices/logic_interface/src/LogicProfessionalDevice.cpp"
+  ;
+  uStack_110 = 0x182;
+  local_108 = "StopCallback";
+  iVar3 = *(int *)(DAT_030b0128 + 0x38);
+                    /* try { // try from 01d42faf to 01d43036 has its CatchHandler @ 01d4315a */
+  bVar5 = FUN_02edfa80(DAT_030b0128 + 0x70);
+  if ((3 < iVar3 & (bVar5 ^ 1)) == 0) {
+    if ((*(byte *)(lVar2 + 8) & 1) == 0) {
+      lVar8 = lVar2 + 9;
+      uVar7 = (ulong)(*(byte *)(lVar2 + 8) >> 1);
+    }
+    else {
+      lVar8 = *(long *)(lVar2 + 0x18);
+      uVar7 = *(ulong *)(lVar2 + 0x10);
+    }
+    FUN_02ee25b0(&local_88,lVar8,uVar7,3,
+                 "resetting bitslip after slip, during shutdown, after bank shutoff",0x41,
+                 (undefined4)local_118,uStack_110,local_108);
+    FUN_02ee4120(lVar2,&local_88,iVar3 < 4,bVar5);
+  }
+  FUN_01d21c00(param_1);
+  if (p_Var9 != (__shared_weak_count *)0x0) {
+    LOCK();
+    p_Var1 = p_Var9 + 8;
+    lVar2 = *(long *)p_Var1;
+    *(long *)p_Var1 = *(long *)p_Var1 + -1;
+    UNLOCK();
+    if (lVar2 == 0) {
+      (**(code **)(*(long *)p_Var9 + 0x10))(p_Var9);
+      std::__shared_weak_count::__release_weak(p_Var9);
+    }
+  }
+LAB_01d4305f:
+                    /* try { // try from 01d43068 to 01d43071 has its CatchHandler @ 01d4318a */
+  FUN_01d23010(param_1,0,*(undefined1 *)(param_1 + 0x288));
+  if (local_13c != 0) {
+    uVar6 = FUN_01d4e780();
+    local_138 = CONCAT44(local_138._4_4_,uVar6);
+    local_e8 = 
+    "/workspace/monorepo/graph-io/devices/logic_interface/src/LogicProfessionalDevice.cpp";
+    bStack_e0 = 0x97;
+    uStack_df = 1;
+    uStack_de = 0;
+    local_d8 = "StopCallback";
+    FUN_01d1f2f0(DAT_030b0128,4,"Got error: {} {}",0x10,&local_13c,&local_138,0x49e2cf,0x197,
+                 "StopCallback");
+    local_e8 = (char *)CONCAT44(local_e8._4_4_,(undefined4)local_138);
+    bStack_e0 = 0;
+    uStack_df = 0;
+                    /* try { // try from 01d43108 to 01d43114 has its CatchHandler @ 01d4313b */
+    FUN_01d1f810(*(undefined8 *)(param_1 + 0x140),param_1 + 0xa8,&local_e8);
+    if ((bStack_e0 & 1) != 0) {
+      operator_delete(local_d0);
+    }
+  }
+  return;
+}
+
+
+
+// ----------------------------------------------------------------
+// Function at Ghidra VA 0x2e037c0
+// ELF VA: 0x2d037c0
+// Name: FUN_02e037c0
+// Size: 723 bytes
+// ----------------------------------------------------------------
+
+undefined4 FUN_02e037c0(long param_1,long param_2,long param_3,int param_4,int param_5,int param_6)
+
+{
+  short sVar1;
+  ulong uVar2;
+  bool bVar3;
+  long lVar4;
+  short *psVar5;
+  int iVar6;
+  long lVar7;
+  long lVar8;
+  int iVar9;
+  long lVar10;
+  undefined8 uVar11;
+  char *pcVar12;
+  undefined4 uVar13;
+  undefined4 uVar14;
+  undefined4 uVar15;
+  undefined4 local_5c;
+  undefined4 local_58;
+  undefined4 local_54;
+  undefined8 local_50;
+  size_t sStack_48;
+  undefined8 local_40;
+  size_t sStack_38;
+  
+  if (param_4 == -1) {
+    FUN_02ed1b50(&local_5c);
+    lVar4 = *(long *)(param_1 + 0x18);
+    lVar7 = param_5 * 8 + lVar4;
+    if ((lVar7 < param_3) && (lVar8 = (param_5 * 8 + 8) + lVar4, param_2 < lVar8)) {
+      if (param_2 < lVar7) {
+        param_2 = lVar7;
+      }
+      if (lVar8 < param_3) {
+        param_3 = lVar8;
+      }
+      lVar7 = *(long *)(param_1 + 0x38);
+      lVar8 = *(long *)(param_1 + 0x40);
+      lVar10 = param_2 - lVar4;
+      if (((lVar10 == 0) || (((lVar8 != 0 && (0 < lVar10)) && (lVar10 <= lVar7)))) &&
+         ((param_3 == lVar4 ||
+          (((lVar8 != 0 && (0 < param_3 - lVar4)) && (param_3 - lVar4 <= lVar7)))))) {
+        if (param_2 != param_3) {
+          if (lVar8 == 0) goto LAB_02e03a15;
+          psVar5 = (short *)(lVar8 + lVar10 * 2);
+          lVar4 = param_3 * 2 + param_2 * -2;
+          do {
+            if ((short *)(lVar8 + lVar7 * 2) <= psVar5) goto LAB_02e03a15;
+            sVar1 = *psVar5;
+            uVar14 = local_5c;
+            if (local_5c._2_2_ < sVar1) {
+              local_5c = CONCAT22(sVar1,(short)local_5c);
+              sVar1 = *psVar5;
+              uVar14 = local_5c;
+            }
+            bVar3 = sVar1 < (short)local_5c;
+            local_5c = uVar14;
+            if (bVar3) {
+              local_5c._2_2_ = (short)((uint)uVar14 >> 0x10);
+              local_5c = CONCAT22(local_5c._2_2_,sVar1);
+            }
+            psVar5 = psVar5 + 1;
+            lVar4 = lVar4 + -2;
+          } while (lVar4 != 0);
+        }
+        return local_5c;
+      }
+LAB_02e03a15:
+                    /* WARNING: Subroutine does not return */
+      FUN_01bef130();
+    }
+  }
+  else {
+    uVar2 = *(ulong *)(param_1 + 0x48);
+    if (uVar2 == 0) {
+      local_40 = 0;
+      sStack_38 = strlen((char *)0x0);
+      uVar13 = 0xeb;
+      pcVar12 = "data.mAnalogStats.size() > 0";
+      uVar11 = 0x1c;
+      uVar14 = (undefined4)local_40;
+      uVar15 = (undefined4)sStack_38;
+LAB_02e03a9c:
+                    /* WARNING: Subroutine does not return */
+      FUN_02eca300(pcVar12,uVar11,
+                   "Saleae::Graph::AnalogStats PackedWaveformGetStats(const Saleae::Graph::PackedWaveformData &, Saleae::Graph::SampleInterval, int, int, int)"
+                   ,0x8a,
+                   "/workspace/monorepo/graph-io/core/waveform_data/src/waveform_data/waveform_data_collection.cpp"
+                   ,0x5e,uVar13,uVar14,uVar15);
+    }
+    iVar6 = 0x10 << ((byte)param_4 & 0x1f);
+    lVar7 = (long)(iVar6 * param_5) + *(long *)(param_1 + 0x18);
+    lVar4 = iVar6 + lVar7;
+    if ((param_2 <= lVar7) && (lVar4 <= param_3)) {
+      if (0x7ffffffffffffffe < uVar2) goto LAB_02e03a15;
+      iVar6 = param_6 * *(int *)(&DAT_008942c0 + (long)param_4 * 4) + param_5 * 4;
+      if (uVar2 * 2 <= (ulong)(long)iVar6) {
+        local_50 = 0;
+        sStack_48 = strlen((char *)0x0);
+        uVar13 = 0xfd;
+        pcVar12 = "offset_into_stats_bytes < data.mAnalogStats.size_bytes()";
+        uVar11 = 0x38;
+        uVar14 = (undefined4)local_50;
+        uVar15 = (undefined4)sStack_48;
+        goto LAB_02e03a9c;
+      }
+      lVar4 = (long)(iVar6 / 2);
+      iVar9 = (int)*(short *)(*(long *)(param_1 + 0x50) + lVar4 * 2);
+      iVar6 = (int)*(short *)(*(long *)(param_1 + 0x50) + 2 + lVar4 * 2);
+      goto LAB_02e039fd;
+    }
+    if ((lVar7 < param_3) && (param_2 <= lVar4)) {
+      local_5c = FUN_02e037c0(param_1,param_2,param_3,param_4 + -1,param_5 * 2,param_6);
+      local_54 = FUN_02e037c0(param_1,param_2,param_3,param_4 + -1,param_5 * 2 + 1,param_6);
+      FUN_02ed1b70(&local_5c,&local_54);
+      return local_5c;
+    }
+  }
+  iVar9 = 0x7fff;
+  iVar6 = -0x8000;
+LAB_02e039fd:
+  FUN_02ed1b60(&local_58,iVar9,iVar6);
+  return local_58;
+}
+
+
+
+// ----------------------------------------------------------------
+// Function at Ghidra VA 0x2e047c0
+// ELF VA: 0x2d047c0
+// Name: FUN_02e047c0
+// Size: 580 bytes
+// ----------------------------------------------------------------
+
+undefined4 FUN_02e047c0(long param_1,long param_2,long param_3,long param_4)
+
+{
+  ulong uVar1;
+  char cVar2;
+  undefined4 uVar3;
+  long *plVar4;
+  ulong uVar5;
+  long lVar6;
+  undefined4 local_78;
+  undefined4 local_74;
+  long local_70;
+  long local_68;
+  undefined4 local_5c;
+  undefined8 local_58;
+  size_t sStack_50;
+  long local_48;
+  long local_40;
+  undefined4 local_38;
+  undefined4 uStack_34;
+  undefined4 uStack_30;
+  undefined4 uStack_2c;
+  
+  lVar6 = **(long **)(param_4 + 8);
+  local_38 = *(undefined4 *)(lVar6 + 0x18);
+  uStack_34 = *(undefined4 *)(lVar6 + 0x1c);
+  uStack_30 = *(undefined4 *)(lVar6 + 0x20);
+  uStack_2c = *(undefined4 *)(lVar6 + 0x24);
+  local_48 = param_2;
+  local_40 = param_3;
+  if (param_3 == param_2) {
+    FUN_02ed1b50(&local_74);
+  }
+  else {
+    cVar2 = FUN_02ed1b20();
+    if (cVar2 == '\0') {
+      local_58 = 0;
+      sStack_50 = strlen((char *)0x0);
+                    /* WARNING: Subroutine does not return */
+      FUN_02eca300("chunk_interval.Contains( interval.mBegin )",0x2a,
+                   "Saleae::Graph::AnalogStats Saleae::Graph::WaveformDataCollection::WaveformIterator::GetStats(Saleae::Graph::SampleInterval, Saleae::Graph::WaveformDataCollection::ChunkIterator &) const"
+                   ,0xb9,
+                   "/workspace/monorepo/graph-io/core/waveform_data/src/waveform_data/waveform_data_collection.cpp"
+                   ,0x5e,0x199,(undefined4)local_58,(undefined4)sStack_50);
+    }
+    FUN_02ed1b50(&local_78);
+    local_68 = *(long *)(**(long **)(param_4 + 8) + 0x20);
+    if (local_68 < param_3) {
+      local_70 = param_2;
+      local_78 = FUN_02e03ab0(param_4,&local_70);
+      *(long *)(param_4 + 0x10) = *(long *)(param_4 + 0x10) + 1;
+      plVar4 = (long *)(*(long *)(param_4 + 8) + 8);
+      *(long **)(param_4 + 8) = plVar4;
+      if (plVar4 == *(long **)(*(long *)(param_4 + 0x18) + 0x10)) {
+        plVar4 = *(long **)(*(long *)(param_4 + 0x18) + 8);
+        *(long **)(param_4 + 8) = plVar4;
+      }
+      lVar6 = *plVar4;
+      if (*(long *)(lVar6 + 0x20) < param_3) {
+        do {
+          uVar3 = FUN_02e03ab0(param_4,lVar6 + 0x18);
+          local_70 = CONCAT44(local_70._4_4_,uVar3);
+          FUN_02ed1b70(&local_78,&local_70);
+          *(long *)(param_4 + 0x10) = *(long *)(param_4 + 0x10) + 1;
+          plVar4 = (long *)(*(long *)(param_4 + 8) + 8);
+          *(long **)(param_4 + 8) = plVar4;
+          if (plVar4 == *(long **)(*(long *)(param_4 + 0x18) + 0x10)) {
+            plVar4 = *(long **)(*(long *)(param_4 + 0x18) + 8);
+            *(long **)(param_4 + 8) = plVar4;
+          }
+          lVar6 = *plVar4;
+        } while (*(long *)(lVar6 + 0x20) < param_3);
+      }
+      local_70 = *(long *)(lVar6 + 0x18);
+      local_68 = param_3;
+      local_5c = FUN_02e03ab0(param_4,&local_70);
+      FUN_02ed1b70(&local_78,&local_5c);
+      plVar4 = *(long **)(param_4 + 8);
+      lVar6 = *(long *)(*plVar4 + 0x20);
+      local_74 = local_78;
+    }
+    else {
+      local_74 = FUN_02e03ab0(param_4,&local_48);
+      plVar4 = *(long **)(param_4 + 8);
+      lVar6 = *(long *)(*plVar4 + 0x20);
+    }
+    if (lVar6 == param_3) {
+      if (*(long *)(param_1 + 0x18) == *(long *)(param_1 + 0x38)) {
+        if (-1 < param_3) {
+          return local_74;
+        }
+      }
+      else {
+        uVar5 = *(long *)(param_1 + 0x38) - 1;
+        uVar1 = **(ulong **)(param_1 + 0x40);
+        if ((uVar5 | uVar1) >> 0x20 == 0) {
+          uVar5 = (uVar5 & 0xffffffff) % (uVar1 & 0xffffffff);
+        }
+        else {
+          uVar5 = uVar5 % uVar1;
+        }
+        if (*(long *)(*(long *)((*(ulong **)(param_1 + 0x40))[1] + uVar5 * 8) + 0x20) <= param_3) {
+          return local_74;
+        }
+      }
+      *(long *)(param_4 + 0x10) = *(long *)(param_4 + 0x10) + 1;
+      *(long **)(param_4 + 8) = plVar4 + 1;
+      if (plVar4 + 1 == *(long **)(*(long *)(param_4 + 0x18) + 0x10)) {
+        *(undefined8 *)(param_4 + 8) = *(undefined8 *)(*(long *)(param_4 + 0x18) + 8);
+      }
+    }
+  }
+  return local_74;
+}
+
+
+
+// ----------------------------------------------------------------
+// Function at Ghidra VA 0x2e03ab0
+// ELF VA: 0x2d03ab0
+// Name: FUN_02e03ab0
+// Size: 1107 bytes
+// ----------------------------------------------------------------
+
+undefined4 FUN_02e03ab0(long param_1,long *param_2)
+
+{
+  short *psVar1;
+  short sVar2;
+  short sVar3;
+  bool bVar4;
+  short sVar5;
+  ulong uVar6;
+  int iVar7;
+  ulong uVar8;
+  short *psVar9;
+  long lVar10;
+  long lVar11;
+  long lVar12;
+  undefined8 uVar13;
+  char *pcVar14;
+  short *psVar15;
+  long lVar16;
+  short *psVar17;
+  long lVar18;
+  ulong uVar19;
+  short *psVar20;
+  ulong uVar21;
+  undefined4 uVar22;
+  undefined4 uVar23;
+  undefined4 uVar24;
+  undefined4 local_60;
+  undefined4 local_5c;
+  long local_58;
+  undefined8 local_50;
+  size_t sStack_48;
+  char *local_40;
+  undefined8 uStack_38;
+  
+  lVar16 = *param_2;
+  lVar18 = param_2[1];
+  if (lVar18 <= lVar16) {
+    local_40 = "Cannot GetStats for 0 samples";
+    uStack_38 = 0x1d;
+    uVar23 = 0x454e20;
+    uVar24 = 0x1d;
+    uVar22 = 0x114;
+    pcVar14 = "interval.Length() > 0";
+    uVar13 = 0x15;
+LAB_02e03f0c:
+                    /* WARNING: Subroutine does not return */
+    FUN_02eca300(pcVar14,uVar13,
+                 "Saleae::Graph::AnalogStats Saleae::Graph::WaveformDataCollection::ChunkIterator::GetStats(const Saleae::Graph::SampleInterval &) const"
+                 ,0x86,
+                 "/workspace/monorepo/graph-io/core/waveform_data/src/waveform_data/waveform_data_collection.cpp"
+                 ,0x5e,uVar22,uVar23,uVar24);
+  }
+  lVar11 = **(long **)(param_1 + 8);
+  uVar21 = *(ulong *)(lVar11 + 0x48);
+  if (uVar21 < 0x7fffffffffffffff) {
+    if (uVar21 == 0) {
+      lVar10 = *(long *)(lVar11 + 0x40);
+      if (lVar10 != 0) {
+        lVar11 = *(long *)(lVar11 + 0x18);
+        psVar17 = (short *)((lVar16 - lVar11) * 2 + lVar10);
+        psVar15 = psVar17;
+        if (1 < (ulong)(lVar18 - lVar16)) {
+          psVar15 = psVar17 + 1;
+          if (*psVar17 <= psVar17[1]) {
+            psVar15 = psVar17;
+            psVar17 = psVar17 + 1;
+          }
+          if (lVar18 - lVar16 != 2) {
+            lVar12 = (2 - lVar11) * 2 + lVar10;
+            lVar18 = lVar18 * 2;
+            lVar10 = lVar10 + (3 - lVar11) * 2;
+            psVar20 = psVar15;
+            do {
+              if (lVar16 * 2 + 6 == lVar18) {
+                psVar1 = (short *)(lVar12 + lVar16 * 2);
+                sVar2 = *(short *)(lVar12 + lVar16 * 2);
+                psVar15 = psVar1;
+                if ((*psVar20 <= sVar2) && (psVar15 = psVar20, *psVar17 <= sVar2)) {
+                  psVar17 = psVar1;
+                }
+                break;
+              }
+              psVar1 = (short *)(lVar12 + lVar16 * 2);
+              psVar15 = (short *)(lVar16 * 2 + lVar10);
+              sVar2 = psVar1[1];
+              sVar3 = *psVar1;
+              psVar9 = psVar1;
+              sVar5 = sVar2;
+              if (sVar3 <= sVar2) {
+                psVar9 = psVar15;
+                psVar15 = psVar1;
+                sVar5 = sVar3;
+                sVar3 = sVar2;
+              }
+              if (*psVar20 <= sVar5) {
+                psVar15 = psVar20;
+              }
+              if (*psVar17 <= sVar3) {
+                psVar17 = psVar9;
+              }
+              lVar12 = lVar12 + 4;
+              lVar18 = lVar18 + -4;
+              lVar10 = lVar10 + 4;
+              psVar20 = psVar15;
+            } while (lVar16 * 2 + 4 != lVar18);
+          }
+        }
+        FUN_02ed1b60(&local_60,(int)*psVar15,(int)*psVar17);
+        return local_60;
+      }
+    }
+    else {
+      lVar16 = lVar16 - *(long *)(lVar11 + 0x18);
+      lVar10 = lVar16 + 0xff;
+      if (-1 < lVar16) {
+        lVar10 = lVar16;
+      }
+      uVar8 = lVar10 >> 8;
+      lVar18 = lVar18 - *(long *)(lVar11 + 0x18);
+      lVar16 = lVar18 + 0xff;
+      lVar18 = lVar18 + 0x1fe;
+      if (-1 < lVar16) {
+        lVar18 = lVar16;
+      }
+      uVar19 = lVar18 >> 8;
+      local_58 = lVar11;
+      if (uVar8 == uVar19) {
+        local_50 = 0;
+        sStack_48 = strlen((char *)0x0);
+        uVar22 = 0x12a;
+        pcVar14 = "start_entry != end_entry";
+        uVar13 = 0x18;
+        uVar23 = (undefined4)local_50;
+        uVar24 = (undefined4)sStack_48;
+        goto LAB_02e03f0c;
+      }
+      uVar21 = uVar21 / 0x3e;
+      FUN_02ed1b60(&local_60,0x7fff,0xffff8000);
+      iVar7 = (int)((ulong)lVar10 >> 8);
+      uVar6 = (ulong)iVar7;
+      bVar4 = (long)uVar6 < (long)uVar19;
+      if (((long)uVar6 < (long)uVar19) && (uVar6 < uVar21)) {
+        uVar6 = (ulong)iVar7;
+        do {
+          uVar6 = uVar6 + 1;
+          local_5c = FUN_02e037c0(**(undefined8 **)(param_1 + 8),*param_2,param_2[1],4,
+                                  uVar8 & 0xffffffff,uVar21 & 0xffffffff);
+          FUN_02ed1b70(&local_60,&local_5c);
+          bVar4 = (long)uVar6 < (long)uVar19;
+          if ((long)uVar19 <= (long)uVar6) break;
+          uVar8 = (ulong)((int)uVar8 + 1);
+        } while (uVar6 < uVar21);
+      }
+      if (!bVar4) {
+        return local_60;
+      }
+      lVar16 = param_2[1];
+      lVar18 = uVar21 * 0x100;
+      if ((long)(uVar21 * 0x100) <= *param_2) {
+        lVar18 = *param_2;
+      }
+      uVar21 = lVar16 - lVar18;
+      if (uVar21 != 0xffffffffffffffff) {
+        lVar11 = *(long *)(**(long **)(param_1 + 8) + 0x40);
+        lVar10 = *(long *)(local_58 + 0x18);
+        if ((lVar16 == lVar18) || (lVar11 != 0)) {
+          psVar17 = (short *)((lVar18 - lVar10) * 2 + lVar11);
+          psVar15 = psVar17;
+          if (1 < uVar21) {
+            psVar15 = psVar17 + 1;
+            if (*psVar17 <= psVar17[1]) {
+              psVar15 = psVar17;
+              psVar17 = psVar17 + 1;
+            }
+            if (uVar21 != 2) {
+              lVar12 = (2 - lVar10) * 2 + lVar11;
+              lVar16 = lVar16 * 2;
+              lVar11 = lVar11 + (3 - lVar10) * 2;
+              psVar20 = psVar15;
+              do {
+                if (lVar18 * 2 + 6 == lVar16) {
+                  psVar1 = (short *)(lVar12 + lVar18 * 2);
+                  sVar2 = *(short *)(lVar12 + lVar18 * 2);
+                  psVar15 = psVar1;
+                  if ((*psVar20 <= sVar2) && (psVar15 = psVar20, *psVar17 <= sVar2)) {
+                    psVar17 = psVar1;
+                  }
+                  break;
+                }
+                psVar1 = (short *)(lVar12 + lVar18 * 2);
+                psVar15 = (short *)(lVar18 * 2 + lVar11);
+                sVar2 = psVar1[1];
+                sVar3 = *psVar1;
+                psVar9 = psVar1;
+                sVar5 = sVar3;
+                if (sVar3 <= sVar2) {
+                  psVar9 = psVar15;
+                  psVar15 = psVar1;
+                  sVar5 = sVar2;
+                  sVar2 = sVar3;
+                }
+                if (*psVar20 <= sVar2) {
+                  psVar15 = psVar20;
+                }
+                if (*psVar17 <= sVar5) {
+                  psVar17 = psVar9;
+                }
+                lVar12 = lVar12 + 4;
+                lVar16 = lVar16 + -4;
+                lVar11 = lVar11 + 4;
+                psVar20 = psVar15;
+              } while (lVar18 * 2 + 4 != lVar16);
+            }
+          }
+          FUN_02ed1b60(&local_5c,(int)*psVar15,(int)*psVar17);
+          FUN_02ed1b70(&local_60,&local_5c);
+          return local_60;
+        }
+      }
+    }
+  }
+                    /* WARNING: Subroutine does not return */
+  FUN_01bef130();
+}
+
+
+

@@ -1,9 +1,10 @@
 ---
 id: TASK-0210
 title: 'RE: Decode per-block stats 124-byte internal layout in overflow data'
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-03-13 20:49'
+updated_date: '2026-03-16 06:27'
 labels:
   - reverse-engineering
   - protocol
@@ -22,3 +23,9 @@ This data likely contains per-block timing, sample counts, or error flags. Under
 
 Approach: decompile the function that populates the stats struct. The size 0x7C is confirmed -- look for struct definitions of that size in Ghidra.
 <!-- SECTION:DESCRIPTION:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+124 bytes = multi-resolution min/max pyramid for fast waveform rendering. 31 packed u32 entries (each min/max int16 pair) across 5 decimation levels: 16+8+4+2+1=31 entries. Writer::PushBack generates the pyramid with 5 loops. PackedWaveformGetStats uses recursive level indexing for O(log N) queries. Updated capture_data.rs with MinMaxPair type and pyramid structure.
+<!-- SECTION:FINAL_SUMMARY:END -->

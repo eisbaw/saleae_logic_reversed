@@ -108,10 +108,10 @@ void WriteConfigurationData(const U8 *data, U32 len);  // opcode 0x7F
 | Address | Name | Description |
 |---------|------|-------------|
 | 0x0040 | CAPTURE_CONTROL | Master capture control. Bit 4 = capture mode, bits [6:5] = DownsampleMode. |
-| 0x0044 | SCOPE_CONFIG_ID_0 | Scope configuration ID register 0. |
-| 0x0048 | SCOPE_CONFIG_ID_1 | Scope configuration ID register 1. |
-| 0x004C | SCOPE_CONFIG_ID_2 | Scope configuration ID register 2. |
-| 0x0050 | SCOPE_CONFIG_ID_3 | Scope configuration ID register 3. |
+| 0x0044 | SCOPE_CONFIG_ID_0 | Scope config ID for channel 0. Written by SetConfigurationIds with param_2 low 32 bits. Monotonically incrementing counter from SetConfiguration (offset 0x1f0 in MsoOscilloscopeInstrument). FPGA embeds this in EP2 chunk header bits [31:16]. |
+| 0x0048 | SCOPE_CONFIG_ID_1 | Scope config ID for channel 1. Written with param_2 high 32 bits. |
+| 0x004C | SCOPE_CONFIG_ID_2 | Scope config ID for channel 2. Written with param_3 low 32 bits. |
+| 0x0050 | SCOPE_CONFIG_ID_3 | Scope config ID for channel 3. Written with param_3 high 32 bits. |
 
 ### Analog Channel Configuration Registers
 
@@ -133,7 +133,7 @@ no Altera bitstreams exist in the firmware):
 
 | Address | Name | Description |
 |---------|------|-------------|
-| 0x0070 | TRIGGER_CONTROL | Packed: threshold[31:16], channelSource[15:8], TriggerType[7:4], TriggerMode[3:2], glitchFilterEnabled[1:0]. |
+| 0x0070 | TRIGGER_CONTROL | Packed: threshold[31:16], channelSource[15:8], TriggerType[7:4] (0=Edge, 1=Pulse, 2-15=reserved), TriggerMode[3:2] (0=Normal, 1=Auto, 2=Single, 3=Disabled), glitchFilterEnabled[1:0] (0=off, 1-3=on). |
 | 0x0074 | TRIGGER_NORMAL_HOLDOFF | Normal-mode holdoff in ticks: `(samples+7) >> 3`. |
 | 0x0078 | TRIGGER_NORMAL_TIMEOUT | Normal-mode timeout in ticks. |
 | 0x007C | TRIGGER_HYSTERESIS | Hysteresis: `rising[15:0] | falling[31:16]`. |
@@ -183,11 +183,68 @@ Address formula: `address = 0x0120 + port * 16 + sub_channel * 4`
 
 Same bit layout as DIGITAL_CH_CONFIG: `enabled<<20 | pulseWidth[19:0]`.
 
-### Scope Channel Registers
+### Scope Instrument Registers (MSO only)
+
+These registers are used by the MSO oscilloscope instrument path.
+Three register arrays are indexed per-channel from lookup tables
+in the binary (DAT_0089ad80, DAT_0089ad8a, DAT_0089ad92).
+
+#### Configuration ID Registers
+
+Written by `SetScopeConfigurationId` (ELF 0x02d661f0). Index 0-4.
 
 | Address | Name | Description |
 |---------|------|-------------|
-| 0x0194 | SCOPE_CHANNEL_CONFIG | Scope channel configuration. Written by function at ELF 0x02d662c0 with a single uint32 parameter. Exact bit fields unknown -- possibly scope-mode channel select or test pattern config. See `re/notes/fpga-glitch-filter.md`. |
+| 0x0180 | SCOPE_CONFIG_ID[0] | Scope configuration ID, channel 0. |
+| 0x0184 | SCOPE_CONFIG_ID[1] | Scope configuration ID, channel 1. |
+| 0x0188 | SCOPE_CONFIG_ID[2] | Scope configuration ID, channel 2. |
+| 0x018C | SCOPE_CONFIG_ID[3] | Scope configuration ID, channel 3. |
+| 0x0190 | SCOPE_CONFIG_ID[4] | Scope configuration ID, channel 4. |
+
+Address formula: looked up from table at Ghidra DAT_0089ad80.
+
+#### Scope Channel Config Master Register
+
+| Address | Name | Description |
+|---------|------|-------------|
+| 0x0194 | SCOPE_CHANNEL_CONFIG | Scope instrument configuration (uint32). Written by `WriteRegister_0x194` (ELF 0x02d662c0). Value is read from offset 0x00 of the oscilloscope instrument's pending configuration struct and passed through directly. Called once per `ProcessPendingConfiguration` in `oscilloscope_instrument.cpp`. Exact bit field layout of the uint32 is not yet decoded -- it may encode global scope mode settings (timebase, acquisition mode, etc.). |
+
+#### Per-Channel Scope Config Registers
+
+Written by `SetScopeChannelConfig` (ELF 0x02d66b70). Index 0-4.
+Value is a single byte (`param & 0xFF`).
+
+| Address | Name | Description |
+|---------|------|-------------|
+| 0x0198 | SCOPE_CH_CONFIG[0] | Per-channel scope config, channel 0. |
+| 0x019C | SCOPE_CH_CONFIG[1] | Per-channel scope config, channel 1. |
+| 0x01A0 | SCOPE_CH_CONFIG[2] | Per-channel scope config, channel 2. |
+| 0x01A4 | SCOPE_CH_CONFIG[3] | Per-channel scope config, channel 3. |
+| 0x01A8 | SCOPE_CH_CONFIG[4] | Per-channel scope config, channel 4. |
+
+Address formula: looked up from table at Ghidra DAT_0089ad92.
+
+Byte value layout (from `AddInstrumentInternal` in mso_device.cpp):
+
+| Bits  | Width | Field            | Notes |
+|-------|-------|------------------|-------|
+| [7:5] | 3     | InstrumentIndex  | MsoInstrumentIndex (0-4), SetField assertion: value < 8 |
+| [4:0] | 5     | InstrumentType   | Sub-instrument type / identifier, masked to 5 bits |
+
+Packed as: `(instrument_index << 5) | (type & 0x1F)`.
+
+#### Voltage Threshold Registers
+
+Written by `SetDigitalDerivedVoltageThresholds` (ELF 0x02d66a10). Index 0-3.
+
+| Address | Name | Description |
+|---------|------|-------------|
+| 0x01B0 | SCOPE_VOLTAGE_THRESH[0] | Voltage threshold, channel 0. |
+| 0x01B4 | SCOPE_VOLTAGE_THRESH[1] | Voltage threshold, channel 1. |
+| 0x01B8 | SCOPE_VOLTAGE_THRESH[2] | Voltage threshold, channel 2. |
+| 0x01BC | SCOPE_VOLTAGE_THRESH[3] | Voltage threshold, channel 3. |
+
+Address formula: looked up from table at Ghidra DAT_0089ad8a.
 
 ### Control Registers
 
@@ -304,7 +361,10 @@ MsoFpga (16-bit addresses, 32-bit values):
   0x0104         Digital voltage threshold
   0x0120-0x016F  Smart cable digital config (5 ports x 4 channels)
   0x0170-0x017C  Per-channel digital config (4 channels, stride 4)
-  0x0194         Scope channel configuration
+  0x0180-0x0190  Scope configuration IDs (5 channels, stride 4)
+  0x0194         Scope channel config master register
+  0x0198-0x01A8  Per-channel scope config (5 channels, stride 4)
+  0x01B0-0x01BC  Voltage threshold registers (4 channels, stride 4)
   0x01C0-0x01C4  Commit/bank control, digital test pattern
 
 FpgaDeviceFeatures (8-bit addresses, 8-bit values):

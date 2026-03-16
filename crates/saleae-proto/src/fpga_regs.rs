@@ -130,14 +130,22 @@ pub const fn analog_ch_config_addr(index: u8) -> u16 {
 // Trigger registers
 // ---------------------------------------------------------------------------
 
-/// Trigger control with packed bit fields.
+/// Trigger control with packed bit fields (MSO only).
 ///
 /// Bit layout (from decompiled SetAnalogTriggerConfiguration):
-///   bits [1:0]   = glitchFilterEnabled / enable
-///   bits [3:2]   = TriggerMode (2 bits)
-///   bits [7:4]   = TriggerType (4 bits, max 0xF)
-///   bits [15:8]  = channelSource
-///   bits [31:16] = TriggerThreshold (16 bits, signed)
+///   bits [1:0]   = GlitchFilterEnabled (0=disabled, 1-3=enabled modes)
+///   bits [3:2]   = TriggerMode (0=Normal, 1=Auto, 2=Single, 3=Disabled)
+///   bits [7:4]   = TriggerType (0=EdgeTrigger, 1=PulseTrigger, 2-15=reserved)
+///   bits [15:8]  = ChannelSource (analog channel index, max 3)
+///   bits [31:16] = TriggerThreshold (16-bit signed ADC code)
+///
+/// TriggerMode values confirmed from ProcessPendingConfiguration
+/// (oscilloscope_instrument.cpp): UI values {0,1,2} map to FPGA {1,2,3}
+/// via +1 offset. Value 0 (Normal) is default. DisableAnalogTrigger
+/// writes 0x0C (mode=3=Disabled).
+///
+/// TriggerType: only 0 (Edge) and 1 (Pulse) implemented in software
+/// trigger engine. DigitalTriggerNode throws for any other value.
 pub const REG_TRIGGER_CONTROL: u16 = 0x0070;
 
 /// Normal-mode holdoff in ticks: SamplesToTicks(samples) = (samples+7) >> 3.
@@ -236,8 +244,33 @@ pub const REG_SMART_CABLE_BASE: u16 = 0x0120;
 /// Assertion: `address < DigitalConfiguration_DigitalDerived_END` (channel < 4).
 pub const REG_DIGITAL_CH_CONFIG_BASE: u16 = 0x0170;
 
-/// Scope channel configuration register.
+// ---------------------------------------------------------------------------
+// Scope instrument registers (MSO only)
+// ---------------------------------------------------------------------------
+
+/// Base address for scope configuration ID registers (5 channels, stride 4).
+/// Written by SetScopeConfigurationId (ELF 0x02d661f0).
+/// Register addresses: 0x0180, 0x0184, 0x0188, 0x018C, 0x0190.
+pub const REG_SCOPE_CONFIG_ID_BASE: u16 = 0x0180;
+
+/// Scope channel config master register (uint32).
+/// Written by WriteRegister_0x194 (ELF 0x02d662c0).
+/// Value is the first uint32 of the oscilloscope instrument's pending config struct.
+/// Called once per ProcessPendingConfiguration. Internal bit layout not yet decoded.
 pub const REG_SCOPE_CHANNEL_CONFIG: u16 = 0x0194;
+
+/// Base address for per-channel scope config registers (5 channels, stride 4).
+/// Written by SetScopeChannelConfig (ELF 0x02d66b70).
+/// Register addresses: 0x0198, 0x019C, 0x01A0, 0x01A4, 0x01A8.
+/// Value is a single byte: `(instrument_index << 5) | (type & 0x1F)`.
+///   bits [7:5] = InstrumentIndex (MsoInstrumentIndex, 0-4)
+///   bits [4:0] = InstrumentType (sub-instrument type, 5 bits)
+pub const REG_SCOPE_CH_CONFIG_BASE: u16 = 0x0198;
+
+/// Base address for voltage threshold registers (4 channels, stride 4).
+/// Written by SetDigitalDerivedVoltageThresholds (ELF 0x02d66a10).
+/// Register addresses: 0x01B0, 0x01B4, 0x01B8, 0x01BC.
+pub const REG_SCOPE_VOLTAGE_THRESH_BASE: u16 = 0x01B0;
 
 // ---------------------------------------------------------------------------
 // Control registers
@@ -509,6 +542,14 @@ pub const ADC_REG_TRIGGER: u8 = 0x16;
 pub const FEAT_ADC_CONFIG: u8 = 0x1A;
 
 /// Upper analog decimation (board revision 1 only, max value 1).
+///
+/// Formula: `value = min(1, (analog_decimation >> 8) & 0xFF)`
+///
+/// Only written when `board_revision == 1`. Contains the high byte of the
+/// analog decimation factor, clamped to 1. For all observed pcap configs,
+/// the analog decimation fits in 8 bits, so this register is always 0x00.
+/// It would be non-zero only for very low analog sample rates where
+/// `50_000_000 / analog_rate > 255` (i.e., analog_rate < ~196 kHz).
 pub const FEAT_ANALOG_DEC_UPPER: u8 = 0x1B;
 
 /// Status register 0x40 (read-only). Dual-purpose depending on device path.
@@ -754,7 +795,10 @@ mod tests {
     fn new_register_addresses_are_aligned() {
         let addrs = [
             REG_SMART_CABLE_BASE,
+            REG_SCOPE_CONFIG_ID_BASE,
             REG_SCOPE_CHANNEL_CONFIG,
+            REG_SCOPE_CH_CONFIG_BASE,
+            REG_SCOPE_VOLTAGE_THRESH_BASE,
             REG_ANALOG_SAMPLE_DIVIDER,
             REG_ANALOG_PRE_TRIGGER,
             REG_ANALOG_POST_TRIGGER,

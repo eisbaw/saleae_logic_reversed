@@ -616,41 +616,97 @@ pub mod overflow_flags {
 // Overflow block stats (124 bytes per overflow data block)
 // ---------------------------------------------------------------------------
 
+/// Number of entries in the min/max pyramid per block.
+///
+/// The pyramid has 5 levels: 16 + 8 + 4 + 2 + 1 = 31 entries.
+pub const MINMAX_PYRAMID_ENTRIES: usize = 31;
+
+/// A packed min/max pair for a group of analog samples.
+///
+/// Stored on the wire as a u32: `(max_i16 << 16) | (min_i16 & 0xFFFF)`.
+/// Packed by `FUN_02ed1b60` in the Saleae binary.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct MinMaxPair {
+    /// Minimum sample value in the group (int16).
+    pub min: i16,
+    /// Maximum sample value in the group (int16).
+    pub max: i16,
+}
+
+impl MinMaxPair {
+    /// Unpack a min/max pair from a u32.
+    pub fn from_u32(packed: u32) -> Self {
+        Self {
+            min: packed as i16,
+            max: (packed >> 16) as i16,
+        }
+    }
+
+    /// Pack into a u32.
+    pub fn to_u32(self) -> u32 {
+        ((self.max as u16 as u32) << 16) | (self.min as u16 as u32)
+    }
+}
+
 /// Per-block stats within an overflow data block (124 bytes).
 ///
-/// Each overflow block is 636 bytes total: 512 bytes of sample data
-/// followed by 124 bytes of stats. The first 20 bytes of the stats
-/// have the same layout as the mandatory `StatsHeader`. The remaining
-/// 104 bytes contain additional per-block metadata.
+/// Each overflow block is 636 bytes total: 512 bytes of sample data (256
+/// analog samples at 2 bytes each) followed by 124 bytes of stats.
+///
+/// The stats are a **multi-resolution min/max pyramid** for fast waveform
+/// rendering at any zoom level. The 31 entries (4 bytes each = 124 bytes)
+/// are organized into 5 levels:
+///
+/// ```text
+/// Level  Samples/Group  Entries  Offset  Description
+///   0         16           16      0     Min/max for each group of 16 samples
+///   1         32            8     16     Min/max for each group of 32 samples
+///   2         64            4     24     Min/max for each group of 64 samples
+///   3        128            2     28     Min/max for each group of 128 samples
+///   4        256            1     30     Min/max for all 256 samples in block
+///                          ---
+///                           31 entries = 124 bytes
+/// ```
+///
+/// Each entry is a packed u32: `(max_i16 << 16) | (min_i16 & 0xFFFF)`.
+///
+/// The consumer (`PackedWaveformGetStats`, `ChunkIterator::GetStats`)
+/// uses this pyramid for O(log N) min/max queries at any sample range,
+/// starting from the coarsest level and recursing to finer levels at
+/// boundaries.
 ///
 /// # Confidence
 ///
-/// The 124-byte size is **High confidence** (decompilation shows
-/// `n_blocks * 0x7c` and `skip(stream, n_blocks * 124)`). The internal
-/// layout is **Hypothesis** -- the parser skips the stats without
-/// field-level parsing. We parse the first 20 bytes as a `StatsHeader`
-/// and preserve the remaining 104 bytes as raw data for future analysis.
-///
-/// # Wire format (hypothesized)
-///
-/// ```text
-/// Offset  Size  Description
-/// 0x00    20    StatsHeader (same format as mandatory stats header)
-/// 0x14    104   Additional per-block metadata (unknown layout)
-/// ```
+/// **High** -- decoded from `Writer::PushBack` (5 loops with strides
+/// 0x20, 0x40, 0x80, 0x100, 0x200) and `PackedWaveformGetStats`
+/// (recursive level-based access). Assertion `written == expected`
+/// validates output is exactly `n_blocks * 0x7c`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OverflowBlockStats {
-    /// Stats header (first 20 bytes, same format as mandatory stats).
-    pub header: StatsHeader,
-    /// Raw remaining bytes (104 bytes of unknown per-block metadata).
+    /// Multi-resolution min/max pyramid (31 entries).
     ///
-    /// Preserved verbatim for future analysis. The internal structure
-    /// is not yet determined from decompilation.
-    pub extra: [u8; 104],
+    /// Entries are organized by level:
+    /// - `entries[0..16]`:  level 0 (16 samples per group)
+    /// - `entries[16..24]`: level 1 (32 samples per group)
+    /// - `entries[24..28]`: level 2 (64 samples per group)
+    /// - `entries[28..30]`: level 3 (128 samples per group)
+    /// - `entries[30]`:     level 4 (all 256 samples)
+    pub entries: [MinMaxPair; MINMAX_PYRAMID_ENTRIES],
 }
 
+/// Entry offsets for each pyramid level.
+///
+/// Level N starts at `PYRAMID_LEVEL_OFFSETS[N]` in the entries array.
+pub const PYRAMID_LEVEL_OFFSETS: [usize; 5] = [0, 16, 24, 28, 30];
+
+/// Number of entries at each pyramid level.
+pub const PYRAMID_LEVEL_COUNTS: [usize; 5] = [16, 8, 4, 2, 1];
+
+/// Number of samples per group at each pyramid level.
+pub const PYRAMID_LEVEL_SAMPLES: [usize; 5] = [16, 32, 64, 128, 256];
+
 impl OverflowBlockStats {
-    /// Parse 124 bytes of per-block overflow stats.
+    /// Parse 124 bytes of per-block overflow stats (min/max pyramid).
     pub fn parse(data: &[u8]) -> ProtoResult<Self> {
         if data.len() < OVERFLOW_BLOCK_STATS_SIZE {
             return Err(ProtoError::BufferTooShort {
@@ -659,12 +715,34 @@ impl OverflowBlockStats {
             });
         }
 
-        let header = StatsHeader::parse(data)?;
+        let mut entries = [MinMaxPair { min: 0, max: 0 }; MINMAX_PYRAMID_ENTRIES];
+        for (i, entry) in entries.iter_mut().enumerate().take(MINMAX_PYRAMID_ENTRIES) {
+            let offset = i * 4;
+            let packed = u32::from_le_bytes([
+                data[offset],
+                data[offset + 1],
+                data[offset + 2],
+                data[offset + 3],
+            ]);
+            *entry = MinMaxPair::from_u32(packed);
+        }
 
-        let mut extra = [0u8; 104];
-        extra.copy_from_slice(&data[STATS_HEADER_SIZE..OVERFLOW_BLOCK_STATS_SIZE]);
+        Ok(Self { entries })
+    }
 
-        Ok(Self { header, extra })
+    /// Get the min/max pair for a specific level and group index.
+    ///
+    /// Returns `None` if level >= 5 or index >= entries at that level.
+    pub fn get(&self, level: usize, index: usize) -> Option<MinMaxPair> {
+        if level >= 5 || index >= PYRAMID_LEVEL_COUNTS[level] {
+            return None;
+        }
+        Some(self.entries[PYRAMID_LEVEL_OFFSETS[level] + index])
+    }
+
+    /// Get the overall min/max for the entire 256-sample block (level 4).
+    pub fn overall_minmax(&self) -> MinMaxPair {
+        self.entries[PYRAMID_LEVEL_OFFSETS[4]]
     }
 }
 
@@ -1373,16 +1451,50 @@ mod tests {
     #[test]
     fn overflow_block_stats_parse() {
         let mut data = [0u8; 124];
-        // Set packet_id in the embedded stats header.
-        data[0..4].copy_from_slice(&55u32.to_le_bytes());
-        // Set some recognizable pattern in the extra bytes.
-        data[20] = 0xAA;
-        data[123] = 0xBB;
+        // Entry 0 (level 0, group 0): min=100, max=200
+        let packed0 = MinMaxPair { min: 100, max: 200 }.to_u32();
+        data[0..4].copy_from_slice(&packed0.to_le_bytes());
+        // Entry 30 (level 4, overall min/max): min=-500, max=500
+        let packed30 = MinMaxPair {
+            min: -500,
+            max: 500,
+        }
+        .to_u32();
+        data[120..124].copy_from_slice(&packed30.to_le_bytes());
 
         let block_stats = OverflowBlockStats::parse(&data).unwrap();
-        assert_eq!(block_stats.header.packet_id, 55);
-        assert_eq!(block_stats.extra[0], 0xAA);
-        assert_eq!(block_stats.extra[103], 0xBB);
+        assert_eq!(block_stats.entries[0].min, 100);
+        assert_eq!(block_stats.entries[0].max, 200);
+        assert_eq!(block_stats.overall_minmax().min, -500);
+        assert_eq!(block_stats.overall_minmax().max, 500);
+        assert_eq!(
+            block_stats.get(0, 0),
+            Some(MinMaxPair { min: 100, max: 200 })
+        );
+        assert_eq!(
+            block_stats.get(4, 0),
+            Some(MinMaxPair {
+                min: -500,
+                max: 500
+            })
+        );
+        assert_eq!(block_stats.get(5, 0), None); // invalid level
+        assert_eq!(block_stats.get(0, 16), None); // invalid index
+    }
+
+    #[test]
+    fn minmax_pair_roundtrip() {
+        let pair = MinMaxPair {
+            min: -32768,
+            max: 32767,
+        };
+        assert_eq!(MinMaxPair::from_u32(pair.to_u32()), pair);
+
+        let pair2 = MinMaxPair { min: 0, max: 0 };
+        assert_eq!(MinMaxPair::from_u32(pair2.to_u32()), pair2);
+
+        let pair3 = MinMaxPair { min: -1, max: 1 };
+        assert_eq!(MinMaxPair::from_u32(pair3.to_u32()), pair3);
     }
 
     #[test]
@@ -1466,7 +1578,9 @@ mod tests {
         let mut block_sample = vec![0xCC; 512];
         block_sample[0] = 0xDD; // recognizable
         let mut block_stats = [0u8; 124];
-        block_stats[0..4].copy_from_slice(&99u32.to_le_bytes()); // packet_id
+        // Entry 0: min=42, max=99 packed as u32
+        let packed = MinMaxPair { min: 42, max: 99 }.to_u32();
+        block_stats[0..4].copy_from_slice(&packed.to_le_bytes());
 
         let mut data = Vec::new();
         data.extend_from_slice(&header.to_bytes());
@@ -1480,7 +1594,8 @@ mod tests {
         assert_eq!(consumed, data.len());
         assert_eq!(chunk.overflow_blocks.len(), 1);
         assert_eq!(chunk.overflow_blocks[0].sample_data[0], 0xDD);
-        assert_eq!(chunk.overflow_blocks[0].stats.header.packet_id, 99);
+        assert_eq!(chunk.overflow_blocks[0].stats.entries[0].min, 42);
+        assert_eq!(chunk.overflow_blocks[0].stats.entries[0].max, 99);
     }
 
     #[test]

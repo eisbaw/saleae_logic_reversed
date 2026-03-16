@@ -1,9 +1,10 @@
 ---
 id: TASK-0211
 title: 'RE: Verify overflow metadata 16-byte interpretation (previous/current flags)'
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-03-13 20:49'
+updated_date: '2026-03-16 06:27'
 labels:
   - reverse-engineering
   - protocol
@@ -22,3 +23,9 @@ Structure size is confirmed by decompilation, but the semantic meaning of each u
 
 Approach: capture a real overflow event (high sample rate, long duration) and compare the metadata bytes against the hypothesized interpretation. Alternatively, decompile the overflow handler that reads these fields.
 <!-- SECTION:DESCRIPTION:END -->
+
+## Final Summary
+
+<!-- SECTION:FINAL_SUMMARY:BEGIN -->
+The cur_overflow/prev_overflow in HandleWaveformData refer to single-bit flags (bits 15/14 of stats header u16), NOT the 16-byte metadata block. The 16-byte metadata is completely skipped by ParseMsoWaveformData (skip(stream, 0x10)) and never interpreted. Updated overflow-handling.md with corrected interpretation.
+<!-- SECTION:FINAL_SUMMARY:END -->
